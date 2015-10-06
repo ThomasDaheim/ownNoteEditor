@@ -179,13 +179,17 @@ public class OwnNoteEditor implements Initializable {
 
         // init pathlabel to parameter or nothing
         // 1. try the preferences setting
-        String pathname;
+        String pathname = "";
         // most recent file that was opened
-        myPreferences = Preferences.userNodeForPackage(OwnNoteEditor.class);
-        pathname = myPreferences.get(OwnNoteEditor.RECENTOWNCLOUDPATH, "");
+        try {
+            myPreferences = Preferences.userNodeForPackage(OwnNoteEditor.class);
+            pathname = myPreferences.get(OwnNoteEditor.RECENTOWNCLOUDPATH, "");
+        } catch (SecurityException ex) {
+            Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
+        }
         
         // 2. if nothing there use any passed parameters
-        if (pathname.isEmpty()) {
+        if (pathname.isEmpty() && OwnNoteEditor.parameters.getOwnCloudDir() != null) {
             pathname = OwnNoteEditor.parameters.getOwnCloudDir();
         }
         

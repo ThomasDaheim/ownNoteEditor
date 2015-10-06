@@ -18,7 +18,7 @@ public class OwnNoteEditorParameters {
         ownCloudDir
     };
 
-    // value for gallery, if set
+    // value for owncloud path, if set
     private String ownCloudDir = null;
     
     private OwnNoteEditorParameters() {

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.web.*?>
+<?import javafx.geometry.*?>
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane fx:id="borderPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="400.0" minWidth="600.0" prefHeight="600.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tf.ownnote.ui.main.OwnNoteEditor">
+   <center>
+      <GridPane fx:id="gridPane" prefHeight="600.0" prefWidth="1200.0" BorderPane.alignment="CENTER">
+        <columnConstraints>
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="592.0" minWidth="10.0" prefWidth="306.0" />
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="894.0" minWidth="10.0" prefWidth="894.0" />
+        </columnConstraints>
+        <rowConstraints>
+          <RowConstraints maxHeight="189.0" minHeight="0.0" prefHeight="0.0" vgrow="SOMETIMES" />
+          <RowConstraints maxHeight="535.0" minHeight="10.0" prefHeight="535.0" vgrow="SOMETIMES" />
+        </rowConstraints>
+         <children>
+            <TableView fx:id="notesTable" prefHeight="200.0" prefWidth="200.0" styleClass="notesTable" GridPane.columnIndex="1" GridPane.rowIndex="1">
+              <columns>
+                <TableColumn fx:id="noteNameCol" editable="false" prefWidth="75.0" resizable="false" styleClass="noteNameCol" text="Name" />
+                <TableColumn fx:id="noteModifiedCol" editable="false" prefWidth="75.0" resizable="false" styleClass="noteModifiedCol" text="Modified" />
+                  <TableColumn fx:id="noteDeleteCol" editable="false" prefWidth="75.0" resizable="false" sortable="false" styleClass="noteDeleteCol" />
+                  <TableColumn fx:id="noteGroupCol" editable="false" maxWidth="0.0" minWidth="0.0" prefWidth="0.0" resizable="false" sortable="false" styleClass="noteGroupCol" text="Group" visible="false" />
+              </columns>
+            </TableView>
+            <HBox fx:id="pathBox" alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0">
+               <children>
+                  <Label fx:id="ownCloudPath" prefHeight="30.0" prefWidth="261.0" text="...">
+                     <HBox.margin>
+                        <Insets />
+                     </HBox.margin>
+                     <padding>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </padding>
+                  </Label>
+                  <Button fx:id="setOwnCloudPath" mnemonicParsing="false" text="...">
+                     <HBox.margin>
+                        <Insets />
+                     </HBox.margin>
+                  </Button>
+               </children>
+               <padding>
+                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+               </padding></HBox>
+            <HBox fx:id="buttonBox" alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="1">
+               <children>
+                  <Button fx:id="newButton" mnemonicParsing="false" text="New">
+                     <HBox.margin>
+                        <Insets />
+                     </HBox.margin>
+                  </Button>
+                  <TextField fx:id="noteNameText" disable="true">
+                     <HBox.margin>
+                        <Insets />
+                     </HBox.margin>
+                  </TextField>
+                  <ComboBox fx:id="groupNameBox" disable="true" prefWidth="150.0">
+                     <HBox.margin>
+                        <Insets />
+                     </HBox.margin>
+                  </ComboBox>
+                  <TextField fx:id="groupNameText" disable="true">
+                     <HBox.margin>
+                        <Insets />
+                     </HBox.margin>
+                  </TextField>
+                  <Button fx:id="createButton" disable="true" mnemonicParsing="false" text="Create">
+                     <HBox.margin>
+                        <Insets />
+                     </HBox.margin>
+                  </Button>
+                  <Button fx:id="quickSaveButton" disable="true" mnemonicParsing="false" text="QuickSave">
+                     <HBox.margin>
+                        <Insets />
+                     </HBox.margin>
+                  </Button>
+                  <Button fx:id="saveButton" disable="true" mnemonicParsing="false" text="Save">
+                     <HBox.margin>
+                        <Insets />
+                     </HBox.margin>
+                  </Button>
+                  <Button fx:id="cancelButton" disable="true" mnemonicParsing="false" text="Cancel">
+                     <HBox.margin>
+                        <Insets />
+                     </HBox.margin>
+                  </Button>
+               </children>
+               <padding>
+                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+               </padding></HBox>
+            <TableView fx:id="groupsTable" prefHeight="200.0" prefWidth="200.0" styleClass="groupsTable" GridPane.columnIndex="0" GridPane.rowIndex="1">
+              <columns>
+                <TableColumn fx:id="groupNameCol" editable="false" prefWidth="75.0" resizable="false" styleClass="groupNameCol" text="Name" />
+                  <TableColumn fx:id="groupDeleteCol" editable="false" prefWidth="75.0" resizable="false" sortable="false" styleClass="groupDeleteCol" />
+                  <TableColumn fx:id="groupCountCol" editable="false" prefWidth="75.0" resizable="false" sortable="false" styleClass="groupCountCol" text="Count" />
+              </columns>
+            </TableView>
+            <HTMLEditor fx:id="noteEditor" disable="true" htmlText="&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body contenteditable=&quot;true&quot;&gt;&lt;/body&gt;&lt;/html&gt;" prefHeight="200.0" prefWidth="506.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+         </children>
+      </GridPane>
+   </center>
+</BorderPane>
