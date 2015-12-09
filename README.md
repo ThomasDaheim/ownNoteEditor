@@ -13,16 +13,32 @@ DISCLAIMER: This has been tested randomly with my ownNote files. Use at your own
 
 Make sure you have Java 8 SDK installed.
 
-You can try to run and use this application by 
+You can try to run and use this application by
 
-* cloning this repo to you harddisk 
-* go to the "ownNoteEditor" subdirectory 
-* type `./gradlew run`. 
+* cloning this repo to you harddisk
+* go to the "ownNoteEditor" subdirectory
+* type `./gradlew run`.
 
 ## Parameters
 
-If you want to, you can reference your locally synced notes dir directly with a parameter like 
+If you want to, you can reference your locally synced notes dir directly with a parameter like
 
 ```
 --ownCloudDir="C:\owncloudpath\Notes"
 ```
+
+## create a Mac OS X .app bundle
+
+```
+./gradlew createApp
+```
+
+The resulting application will be in the directory `build/macApp`.
+
+## create a Mac OS X .dmg file (will only work on Mac OS X)
+
+```
+./gradlew createDmg
+```
+
+The resulting file will be in the directory `build/distributions`.

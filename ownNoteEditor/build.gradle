@@ -7,12 +7,26 @@
  * user guide available at https://docs.gradle.org/2.7/userguide/tutorial_java_projects.html
  */
 
+// Use a plugin (https://github.com/crotwell/gradle-macappbundle) to create a Mac OS X .app and .dmg
+plugins {
+    id "edu.sc.seis.macAppBundle" version "2.1.4"
+}
+
+macAppBundle {
+    mainClassName = "tf.ownnote.ui.main.OwnNoteEditorManager"
+    icon          = "src/tf/ownnote/ui/main/ownNoteEditor.icns"
+    volumeName    = "ownNoteEditor"
+    dmgName       = "ownNoteEditor"
+    javaProperties.put("apple.laf.useScreenMenuBar", "true")
+    // Uncomment the next line to bundle the JRE with the Mac OS X application
+    //bundleJRE     = true
+}
+
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
 apply plugin: 'application'
 
 mainClassName = 'tf.ownnote.ui.main.OwnNoteEditorManager'
-
 
 //adjust location of src and resources
 // TODO this should be restructured to the standard structure like /src/main/java and ../resources later
