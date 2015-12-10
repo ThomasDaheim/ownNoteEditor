@@ -9,7 +9,7 @@
 
 // Use a plugin (https://github.com/crotwell/gradle-macappbundle) to create a Mac OS X .app and .dmg
 plugins {
-    id "edu.sc.seis.macAppBundle" version "2.1.4"
+    id "edu.sc.seis.macAppBundle" version "2.1.5"
 }
 
 macAppBundle {
