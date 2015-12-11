@@ -49,7 +49,6 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.print.PrinterJob;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
@@ -58,7 +57,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
-import javafx.scene.control.Separator;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellEditEvent;
@@ -199,7 +197,6 @@ public class OwnNoteEditor implements Initializable {
         ownCloudPath.setText(pathname);
     }
 
-    @SuppressWarnings("unchecked")
     private void initEditor() {
         // hide borders
         borderPane.setTop(null);
@@ -609,7 +606,6 @@ public class OwnNoteEditor implements Initializable {
         return (TableColumn<Map<String, String>, String> param) -> new ObjectCell(this, linkCursor, new UniversalMouseEvent(this));
     }
 
-    @SuppressWarnings("unchecked")
     public boolean editNote(final TableCell clickedCell) {
         boolean result = false;
 
@@ -633,7 +629,6 @@ public class OwnNoteEditor implements Initializable {
         return result;
     }
 
-    @SuppressWarnings("unchecked")
     public boolean deleteNote(final TableCell clickedCell) {
         // delete note from filesystem and update list
         Map<String, String> curNote =
@@ -641,7 +636,6 @@ public class OwnNoteEditor implements Initializable {
         return deleteNoteWrapper(curNote);
     }
 
-    @SuppressWarnings("unchecked")
     public boolean deleteGroup(final TableCell clickedCell) {
         Map<String, String> curGroup =
                     (Map<String, String>) clickedCell.getTableView().getItems().get(clickedCell.getIndex());
@@ -751,7 +745,7 @@ public class OwnNoteEditor implements Initializable {
         // remove: font type & font size control - the 2nd and 3rd control with "font-menu-button" style class
         hideNode(noteEditor, ".font-menu-button", 2);
         hideNode(noteEditor, ".font-menu-button", 3);
-        // add: insert link & picture + print controls
+        // add: insert link & picture controls
         addNoteEditorControls();
         // add: undo & redo button, back button
         
@@ -778,11 +772,6 @@ public class OwnNoteEditor implements Initializable {
         Node node = noteEditor.lookup(".top-toolbar");
         if (node != null && node instanceof ToolBar) {
             ToolBar toolbar = (ToolBar) node;
-            
-            // update edit - but only once
-            if (toolbar.lookup(".html-editor-insertlink") != null) {
-                return;
-            }
 
             // copy styles from other buttons in toolbar
             ObservableList<String> buttonStyles = null;
@@ -793,90 +782,77 @@ public class OwnNoteEditor implements Initializable {
                 buttonStyles.removeAll("html-editor-cut");
             }
 
-            // add button to insert link
-            ImageView graphic =
-                    new ImageView(new Image(OwnNoteEditor.class.getResourceAsStream("/tf/ownnote/ui/css/link.png"), 22, 22, true, true));
-            final Button insertLink = new Button("", graphic);
-            insertLink.getStyleClass().add("html-editor-insertlink");
-            if (buttonStyles != null) {
-                insertLink.getStyleClass().addAll(buttonStyles);
-            }
-            insertLink.setOnAction(new EventHandler<ActionEvent>() {
-                @Override
-                public void handle(ActionEvent t) {
-                    LinkDialog linkDialog = new LinkDialog();
-                    if (linkDialog.showAndWait()) {
-                        // dialog has been ended with OK - now check if values are fine
-                        if (!linkDialog.getLinkUrl().isEmpty() && !linkDialog.getLinkText().isEmpty()) {
-                            final String hrefString = 
-                                    "<a href=\"" +
-                                    linkDialog.getLinkUrl().trim() +
-                                    "\" title=\"" +
-                                    linkDialog.getLinkTitle().trim() +
-                                    "\" target=\"" +
-                                    // decide between _self and _blank on the fly
-                                    linkDialog.getWindowMode()+
-                                    "\">" +
-                                    linkDialog.getLinkText().trim() + "</a>";
-                            noteEditor.setHtmlText(noteEditor.getHtmlText() + hrefString);
+            // add button to insert link - but only once
+            if (toolbar.lookup(".html-editor-insertlink") == null) {
+                final ImageView graphic =
+                        new ImageView(new Image(OwnNoteEditor.class.getResourceAsStream("/tf/ownnote/ui/css/link.png"), 16, 16, true, true));
+                final Button insertLink = new Button("", graphic);
+                insertLink.getStyleClass().add("html-editor-insertlink");
+                if (buttonStyles != null) {
+                    insertLink.getStyleClass().addAll(buttonStyles);
+                }
+
+                insertLink.setOnAction(new EventHandler<ActionEvent>() {
+                    @Override
+                    public void handle(ActionEvent t) {
+                        LinkDialog linkDialog = new LinkDialog();
+                        if (linkDialog.showAndWait()) {
+                            // dialog has been ended with OK - now check if values are fine
+                            if (!linkDialog.getLinkUrl().isEmpty() && !linkDialog.getLinkText().isEmpty()) {
+                                final String hrefString = 
+                                        "<a href=\"" +
+                                        linkDialog.getLinkUrl().trim() +
+                                        "\" title=\"" +
+                                        linkDialog.getLinkTitle().trim() +
+                                        "\" target=\"" +
+                                        // decide between _self and _blank on the fly
+                                        linkDialog.getWindowMode()+
+                                        "\">" +
+                                        linkDialog.getLinkText().trim() + "</a>";
+                                noteEditor.setHtmlText(noteEditor.getHtmlText() + hrefString);
+                            }
                         }
                     }
-                }
-            });
-            toolbar.getItems().add(insertLink);
+                });
 
-            // add button to insert image
-            graphic = 
-                    new ImageView(new Image(OwnNoteEditor.class.getResourceAsStream("/tf/ownnote/ui/css/insertimage.gif"), 22, 22, true, true));
-            final Button insertImage = new Button("", graphic);
-            insertImage.getStyleClass().add("html-editor-insertimage");
-            if (buttonStyles != null) {
-                insertImage.getStyleClass().addAll(buttonStyles);
+                toolbar.getItems().add(insertLink);
             }
-            insertImage.setOnAction((ActionEvent arg0) -> {
-                final List<String> extFilter = Arrays.asList("*.jpg", "*.png", "*.gif");
-                final List<String> extValues = Arrays.asList("jpg", "png", "gif");
 
-                final FileChooser fileChooser = new FileChooser();
-                fileChooser.setTitle("Embed an image");
-                fileChooser.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter("Pictures", extFilter));
-                final File selectedFile = fileChooser.showOpenDialog(null);
-
-                if (selectedFile != null) {
-                    if (extValues.contains(FilenameUtils.getExtension(selectedFile.getName()).toLowerCase())) {
-                        try {
-                            // we really have selected a picture - now add it
-                            noteEditor.setHtmlText(
-                                    noteEditor.getHtmlText() + "<img src='" + selectedFile.toURI().toURL().toExternalForm() +"'>");
-                        } catch (MalformedURLException ex) {
-                            Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                    }                        
+            // add button to insert image - but only once
+            if (toolbar.lookup(".html-editor-insertimage") == null) {
+                final ImageView graphic =
+                        new ImageView(new Image(OwnNoteEditor.class.getResourceAsStream("/tf/ownnote/ui/css/insertimage.gif"), 22, 22, true, true));
+                final Button insertImage = new Button("", graphic);
+                insertImage.getStyleClass().add("html-editor-insertimage");
+                if (buttonStyles != null) {
+                    insertImage.getStyleClass().addAll(buttonStyles);
                 }
-            });
-            toolbar.getItems().add(insertImage);
-            
-            // add separator
-            toolbar.getItems().add(new Separator());
 
-            // Issue #12 - add print button
-            // https://stackoverflow.com/questions/28847757/how-to-display-print-dialog-in-java-fx-and-print-node
-            graphic =
-                    new ImageView(new Image(OwnNoteEditor.class.getResourceAsStream("/tf/ownnote/ui/css/print.png"), 22, 22, true, true));
-            final Button printNote = new Button("", graphic);
-            printNote.getStyleClass().add("html-editor-print");
-            if (buttonStyles != null) {
-                printNote.getStyleClass().addAll(buttonStyles);
+                insertImage.setOnAction((ActionEvent arg0) -> {
+                    final List<String> extFilter = Arrays.asList("*.jpg", "*.png", "*.gif");
+                    final List<String> extValues = Arrays.asList("jpg", "png", "gif");
+
+                    final FileChooser fileChooser = new FileChooser();
+                    fileChooser.setTitle("Embed an image");
+                    fileChooser.getExtensionFilters().addAll(
+                        new FileChooser.ExtensionFilter("Pictures", extFilter));
+                    final File selectedFile = fileChooser.showOpenDialog(null);
+                    
+                    if (selectedFile != null) {
+                        if (extValues.contains(FilenameUtils.getExtension(selectedFile.getName()).toLowerCase())) {
+                            try {
+                                // we really have selected a picture - now add it
+                                noteEditor.setHtmlText(
+                                        noteEditor.getHtmlText() + "<img src='" + selectedFile.toURI().toURL().toExternalForm() +"'>");
+                            } catch (MalformedURLException ex) {
+                                Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+                        }                        
+                    }
+                });
+
+                toolbar.getItems().add(insertImage);
             }
-            printNote.setOnAction((ActionEvent arg0) -> {
-                PrinterJob job = PrinterJob.createPrinterJob();
-                if (job != null && job.showPrintDialog(noteEditor.getScene().getWindow())){
-                    noteEditor.print(job);
-                    job.endJob();
-                }
-            });
-            toolbar.getItems().add(printNote);
         }
     }
     

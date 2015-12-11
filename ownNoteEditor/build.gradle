@@ -9,7 +9,7 @@
 
 // Use a plugin (https://github.com/crotwell/gradle-macappbundle) to create a Mac OS X .app and .dmg
 plugins {
-    id "edu.sc.seis.macAppBundle" version "2.1.5"
+    id "edu.sc.seis.macAppBundle" version "2.1.4"
 }
 
 macAppBundle {
@@ -61,12 +61,4 @@ dependencies {
     // testCompile dependency to testCompile 'org.testng:testng:6.8.1' and add
     // 'test.useTestNG()' to your build script.
     testCompile 'junit:junit:4.12'
-}
-
-allprojects {
-    gradle.projectsEvaluated {
-        tasks.withType(JavaCompile) {
-            options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
-        }
-    }
 }
