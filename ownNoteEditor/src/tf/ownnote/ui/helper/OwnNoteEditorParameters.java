@@ -32,7 +32,11 @@ public class OwnNoteEditorParameters {
     public void init(final String [ ] args) {
         // thats all options we can handle
         Options options = new Options();
-        options.addOption(OwnNoteEditorParameters.CmdOps.ownCloudDir.toString(), true, "Path of ownCloud Notes directory");
+        options.addOption(
+                OwnNoteEditorParameters.CmdOps.ownCloudDir.toString(), 
+                OwnNoteEditorParameters.CmdOps.ownCloudDir.toString(), 
+                true, 
+                "Path of ownCloud Notes directory");
 
         // lets parse them by code from other people
         CommandLineParser parser = new DefaultParser();
