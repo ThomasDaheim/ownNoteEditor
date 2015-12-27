@@ -109,6 +109,7 @@ public class OwnNoteEditor implements Initializable {
     private final BooleanProperty inEditMode = new SimpleBooleanProperty();
     
     private boolean handleQuickSave = false;
+    private boolean noteEditorInitDone = false;
 
     @FXML
     private BorderPane borderPane;
@@ -612,7 +613,7 @@ public class OwnNoteEditor implements Initializable {
     @SuppressWarnings("unchecked")
     public boolean editNote(final TableCell clickedCell) {
         boolean result = false;
-
+        
         Map<String, String> curNote =
                     (Map<String, String>) clickedCell.getTableView().getItems().get(clickedCell.getIndex());
 
@@ -745,15 +746,20 @@ public class OwnNoteEditor implements Initializable {
         noteEditor.setVisible(true);
         noteEditor.setHtmlText("");
 
-        // remove: foreground & background control
-        hideNode(noteEditor, ".html-editor-foreground", 1);
-        hideNode(noteEditor, ".html-editor-background", 1);
-        // remove: font type & font size control - the 2nd and 3rd control with "font-menu-button" style class
-        hideNode(noteEditor, ".font-menu-button", 2);
-        hideNode(noteEditor, ".font-menu-button", 3);
-        // add: insert link & picture + print controls
-        addNoteEditorControls();
-        // add: undo & redo button, back button
+        // only init things once
+        if (!noteEditorInitDone) {
+            // remove: foreground & background control
+            hideNode(noteEditor, ".html-editor-foreground", 1);
+            hideNode(noteEditor, ".html-editor-background", 1);
+            // remove: font type & font size control - the 2nd and 3rd control with "font-menu-button" style class
+            hideNode(noteEditor, ".font-menu-button", 2);
+            hideNode(noteEditor, ".font-menu-button", 3);
+            // add: insert link & picture + print controls
+            addNoteEditorControls();
+            // add: undo & redo button, back button
+            
+            noteEditorInitDone = true;
+        }
         
         showAndEnableInitialEditControls();
     }
