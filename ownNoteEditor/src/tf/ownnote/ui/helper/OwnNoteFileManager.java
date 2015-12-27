@@ -32,12 +32,14 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -49,37 +51,15 @@ import javafx.collections.ObservableList;
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public class OwnNoteFileManager {
-    // to reference the columns for notes table
-    public static final String[] notesMapKeys = { "noteName", "noteModified", "noteDelete", "groupName" };
-
-    // to reference the columns for groups table
-    public static final String[] groupsMapKeys = { "groupName", "groupDelete", "groupCount" };
-    
-    public static final String ALL_GROUPS = "All";
-    public static final String NOT_GROUPED = "Not grouped";
-    public static final String NEW_GROUP = "New group";
-    
-    private static final String deleteString = "";
+    public static final String deleteString = "";
     
     private String ownNotePath;
     
-    private final Map<String, Map<String, String>> groupsList = new LinkedHashMap<>();
-    private final Map<String, Map<String, String>> notesList = new LinkedHashMap<>();
+    private final Map<String, GroupData> groupsList = new LinkedHashMap<>();
+    private final Map<String, NoteData> notesList = new LinkedHashMap<>();
     
-    public static String[] getNotesMapKeys() {
-        return notesMapKeys;
-    }
-    public static String getNotesMapKey(final int i) {
-        return notesMapKeys[i];
-    }
+    private final List<String> filesInProgress = new LinkedList<String>();
 
-    public static String[] getGroupsMapKeys() {
-        return groupsMapKeys;
-    }
-    public static String getGroupsMapKey(final int i) {
-        return groupsMapKeys[i];
-    }
-    
     public void initOwnNotePath(final String ownNotePath) {
         assert ownNotePath != null;
         
@@ -89,17 +69,17 @@ public class OwnNoteFileManager {
         groupsList.clear();
         notesList.clear();
 
-        Map<String, String> dataRow = new HashMap<String, String>();
-        dataRow.put(groupsMapKeys[0], ALL_GROUPS);
-        dataRow.put(groupsMapKeys[1], null);
-        dataRow.put(groupsMapKeys[2], "0");
-        groupsList.put("All", new HashMap<String, String>(dataRow));
+        GroupData groupRow = new GroupData();
+        groupRow.setGroupName(GroupData.ALL_GROUPS);
+        groupRow.setGroupDelete(null);
+        groupRow.setGroupCount("0");
+        groupsList.put("All", new GroupData(groupRow));
         
-        dataRow.clear();
-        dataRow.put(groupsMapKeys[0], NOT_GROUPED);
-        dataRow.put(groupsMapKeys[1], null);
-        dataRow.put(groupsMapKeys[2], "0");
-        groupsList.put("Not grouped", new HashMap<String, String>(dataRow));
+        groupRow.clear();
+        groupRow.setGroupName(GroupData.NOT_GROUPED);
+        groupRow.setGroupDelete(null);
+        groupRow.setGroupCount("0");
+        groupsList.put("Not grouped", new GroupData(groupRow));
         
         // iterate over all files from directory
         DirectoryStream<Path> stream = null;
@@ -120,36 +100,34 @@ public class OwnNoteFileManager {
                     groupName = filename.substring(1, filename.indexOf("]"));
                     noteName = filename.substring(filename.indexOf("]")+2, filename.indexOf("."));
                 } else {
-                    groupName = NOT_GROUPED;
+                    groupName = GroupData.NOT_GROUPED;
                     noteName = filename.substring(0, filename.indexOf("."));
                 }
 
                 if (groupsList.containsKey(groupName)) {
                     // group already exists - increase counter
-                    dataRow = groupsList.get(groupName);
-                    dataRow.put(groupsMapKeys[2], new Integer(Integer.valueOf(dataRow.get(groupsMapKeys[2]))+1).toString());
-                    groupsList.replace(groupName, new HashMap<String, String>(dataRow));
-                } else {
-                    // new group - add to list
-                    dataRow.clear();
-                    dataRow.put(groupsMapKeys[0], groupName);
-                    dataRow.put(groupsMapKeys[1], OwnNoteFileManager.deleteString);
-                    dataRow.put(groupsMapKeys[2], "1");
-                    groupsList.put(groupName, new HashMap<String, String>(dataRow));
+                    groupRow = groupsList.get(groupName);
+                    groupRow.setGroupCount(Integer.toString(Integer.valueOf(groupRow.getGroupCount())+1));
+                    groupsList.replace(groupName, new GroupData(groupRow));
+                } else {                    // new group - add to list
+                    groupRow.clear();
+                    groupRow.setGroupName(groupName);
+                    groupRow.setGroupDelete(OwnNoteFileManager.deleteString);
+                    groupRow.setGroupCount("1");
+                    groupsList.put(groupName, new GroupData(groupRow));
                 }
                 // allways increment count for all :-)
-                dataRow = groupsList.get(ALL_GROUPS);
-                dataRow.put(groupsMapKeys[2], new Integer(Integer.valueOf(dataRow.get(groupsMapKeys[2]))+1).toString());
-                groupsList.replace(ALL_GROUPS, new HashMap<String, String>(dataRow));
-
-                dataRow.clear();
-                dataRow.put(notesMapKeys[0], noteName);
-                // TODO: format properly
-                dataRow.put(notesMapKeys[1], formatFileTime(filetime));
-                dataRow.put(notesMapKeys[2], OwnNoteFileManager.deleteString);
-                dataRow.put(notesMapKeys[3], groupName);
+                groupRow = groupsList.get(GroupData.ALL_GROUPS);
+                groupRow.setGroupCount(Integer.toString(Integer.valueOf(groupRow.getGroupCount())+1));
+                groupsList.replace(GroupData.ALL_GROUPS, new GroupData(groupRow));
+                
+                final NoteData noteRow = new NoteData();
+                noteRow.setNoteName(noteName);
+                noteRow.setNoteModified(formatFileTime(filetime));
+                noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
+                noteRow.setGroupName(groupName);
                 // use filename and not notename since duplicate note names can exist in diffeent groups
-                notesList.put(filename, new HashMap<String, String>(dataRow));
+                notesList.put(filename, new NoteData(noteRow));
                 //System.out.println("Added note " + noteName + " for group " + groupName + " from filename " + filename);
             }
         } catch (IOException | DirectoryIteratorException ex) {
@@ -169,32 +147,36 @@ public class OwnNoteFileManager {
         return FXCollections.observableArrayList(notesList.values());
     }
 
+    public List<String> getFilesInProgress() {
+        return filesInProgress;
+    }
+    
     public boolean deleteNote(String groupName, String noteName) {
         assert groupName != null;
         assert noteName != null;
         
         boolean result = true;
+        initFilesInProgress();
         
         final String noteFileName = buildNoteName(groupName, noteName);
         
         try {
+            filesInProgress.add(noteFileName);
             Files.delete(Paths.get(ownNotePath, noteFileName));
+            
+            final GroupData groupRow = groupsList.get(groupName);
+            groupRow.setGroupCount(Integer.toString(Integer.valueOf(groupRow.getGroupCount())-1));
+            groupsList.replace(groupName, groupRow);
         } catch (IOException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = false;
         }
         
+        resetFilesInProgress();
         return result;
     }
 
-    public boolean deleteNote(Map<String, String> curNote) {
-        assert curNote != null;
-        
-        // delegate internally
-        return this.deleteNote(curNote.get(notesMapKeys[3]), curNote.get(notesMapKeys[0]));
-    }
-
-    private String buildNoteName(String groupName, String noteName) {
+    public String buildNoteName(String groupName, String noteName) {
         assert groupName != null;
         assert noteName != null;
         
@@ -206,7 +188,7 @@ public class OwnNoteFileManager {
         
         String result = null;
         
-        if (groupName.equals(NOT_GROUPED) || groupName.isEmpty()) {
+        if (groupName.equals(GroupData.NOT_GROUPED) || groupName.isEmpty()) {
             // only the note name
             result = "";
         } else {
@@ -217,37 +199,45 @@ public class OwnNoteFileManager {
         return result;
     }
 
-    public Boolean deleteGroup(Map<String, String> curGroup) {
-        assert curGroup != null;
-        
-        // deleting a group is removing the group name from the note name
-        return renameGroup(curGroup.get(groupsMapKeys[0]), "");
-    }
-
     public boolean createNewNote(final String groupName, final String noteName) {
         assert groupName != null;
         assert noteName != null;
         
         boolean result = true;
+        initFilesInProgress();
 
         final String newFileName = buildNoteName(groupName, noteName);
         
         try {
-            Files.createFile(Paths.get(this.ownNotePath, newFileName));
+            filesInProgress.add(newFileName);
+            Path newPath = Files.createFile(Paths.get(this.ownNotePath, newFileName));
+            
+            // TF, 20151129
+            // update notesList as well
+            final LocalDateTime filetime = LocalDateTime.ofInstant((new Date(newPath.toFile().lastModified())).toInstant(), ZoneId.systemDefault());
+
+            final NoteData noteRow = new NoteData();
+            noteRow.setNoteName(noteName);
+            noteRow.setNoteModified(formatFileTime(filetime));
+            noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
+            noteRow.setGroupName(groupName);
+            // use filename and not notename since duplicate note names can exist in diffeent groups
+            notesList.put(newFileName, new NoteData(noteRow));
         } catch (IOException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = false;
         }
 
+        resetFilesInProgress();
         return result;
     }
 
-    public String readNote(final Map<String, String> curNote) {
+    public String readNote(final NoteData curNote) {
         assert curNote != null;
         
         String result = "";
         
-        final String noteFileName = buildNoteName(curNote.get(notesMapKeys[3]), curNote.get(notesMapKeys[0]));
+        final String noteFileName = buildNoteName(curNote.getGroupName(), curNote.getNoteName());
         
         try {
             result = new String(Files.readAllBytes(Paths.get(ownNotePath, noteFileName)));
@@ -264,17 +254,104 @@ public class OwnNoteFileManager {
         assert noteName != null;
         assert htmlText != null;
         
-        Boolean result = true;
+        boolean result = true;
+        initFilesInProgress();
 
         final String newFileName = buildNoteName(groupName, noteName);
         
         try {
+            filesInProgress.add(newFileName);
             Files.write(Paths.get(this.ownNotePath, newFileName), htmlText.getBytes());
         } catch (IOException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = false;
         }
 
+        resetFilesInProgress();
+        return result;
+    }
+    
+    public boolean renameNote(final String groupName, final String oldNoteName, final String newNoteName) {
+        assert groupName != null;
+        assert oldNoteName != null;
+        assert newNoteName != null;
+        
+        boolean result = true;
+        initFilesInProgress();
+
+        final String oldFileName = buildNoteName(groupName, oldNoteName);
+        final String newFileName = buildNoteName(groupName, newNoteName);
+        
+        try {
+            filesInProgress.add(oldFileName);
+            filesInProgress.add(newFileName);
+            Files.move(Paths.get(this.ownNotePath, oldFileName), Paths.get(this.ownNotePath, newFileName));
+
+            final NoteData dataRow = notesList.remove(oldFileName);
+            dataRow.setNoteName(newNoteName);
+            notesList.put(newFileName, dataRow);
+        } catch (IOException ex) {
+            Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+            result = false;
+        }
+
+        resetFilesInProgress();
+        return result;
+    }
+    
+    public boolean moveNote(final String oldGroupName, final String noteName, final String newGroupName) {
+        assert oldGroupName != null;
+        assert noteName != null;
+        assert newGroupName != null;
+        
+        boolean result = true;
+        initFilesInProgress();
+
+        final String oldFileName = buildNoteName(oldGroupName, noteName);
+        final String newFileName = buildNoteName(newGroupName, noteName);
+        
+        try {
+            filesInProgress.add(oldFileName);
+            filesInProgress.add(newFileName);
+            // System.out.printf("Time %s: Added files\n", getCurrentTimeStamp());
+            Files.move(Paths.get(this.ownNotePath, oldFileName), Paths.get(this.ownNotePath, newFileName));
+
+            final NoteData dataRow = notesList.remove(oldFileName);
+            dataRow.setGroupName(newGroupName);
+            notesList.put(newFileName, dataRow);
+        } catch (IOException ex) {
+            Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+            result = false;
+        }
+
+        // change count on groups
+        final GroupData oldGroupRow = groupsList.get(oldGroupName);
+        final GroupData newGroupRow = groupsList.get(newGroupName);
+        oldGroupRow.setGroupCount(Integer.toString(Integer.valueOf(newGroupRow.getGroupCount())-1));
+        newGroupRow.setGroupCount(Integer.toString(Integer.valueOf(newGroupRow.getGroupCount())+1));
+        groupsList.replace(oldGroupName, oldGroupRow);
+        groupsList.replace(newGroupName, newGroupRow);
+        
+        resetFilesInProgress();
+        return result;
+    }
+
+    public boolean createNewGroup(final String groupName) {
+        assert groupName != null;
+        
+        boolean result = true;
+
+        if (!groupsList.containsKey(groupName)) {
+            // creating a group is only adding it to the groupsList
+            final GroupData groupRow = new GroupData();
+            groupRow.setGroupName(groupName);
+            groupRow.setGroupDelete(OwnNoteFileManager.deleteString);
+            groupRow.setGroupCount("0");
+            groupsList.put(groupName, new GroupData(groupRow));
+        } else {
+            result = false;
+        }
+        
         return result;
     }
 
@@ -283,6 +360,7 @@ public class OwnNoteFileManager {
         assert newGroupName != null;
         
         Boolean result = true;
+        initFilesInProgress();
         
         // old and new part of note name
         final String oldNoteNamePrefix = buildGroupName(oldGroupName);
@@ -317,6 +395,7 @@ public class OwnNoteFileManager {
         }
         
         // 3. rename all notes
+        NoteData noteRow = null;
         if (result) {
             try {
                 // need to re-read since iterator can only be used once - don't ask
@@ -330,7 +409,16 @@ public class OwnNoteFileManager {
                     final String newFileName = newNoteNamePrefix + filename.substring(oldNoteNamePrefix.length());
 
                     try {
+                        filesInProgress.add(filename);
+                        filesInProgress.add(newFileName);
                         Files.move(Paths.get(this.ownNotePath, filename), Paths.get(this.ownNotePath, newFileName));
+                        
+                        // TF, 20151129
+                        // update notelist as well
+                        noteRow = notesList.remove(filename);
+                        noteRow.setGroupName(newGroupName);
+                        notesList.put(newFileName, noteRow);
+
                     } catch (IOException ex) {
                         // and now we're royaly screwed since we would need to do a rollback for the already renamed files...
                         Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
@@ -343,8 +431,29 @@ public class OwnNoteFileManager {
                 result = false;
             }
         }
+        
+        // TF, 20151129
+        // 4. update grouplist as well
+        // TF, 20151215: if new group already exists only increase note count!
+        final GroupData oldGroupRow = groupsList.remove(oldGroupName);
+        final GroupData newGroupRow = groupsList.get(newGroupName);
+        if (newGroupRow == null) {
+            oldGroupRow.setGroupName(newGroupName);
+            groupsList.put(newGroupName, oldGroupRow);
+        } else {
+            newGroupRow.setGroupCount(Integer.toString(Integer.valueOf(newGroupRow.getGroupCount())+Integer.valueOf(oldGroupRow.getGroupCount())));
+            groupsList.replace(newGroupName, newGroupRow);
+        }
 
+        resetFilesInProgress();
         return result;
+    }
+
+    public boolean deleteGroup(final String groupName) {
+        assert groupName != null;
+        
+        // deleting a group is removing the group name from the note name
+        return renameGroup(groupName, GroupData.NOT_GROUPED);
     }
 
     private String formatFileTime(final LocalDateTime filetime) {
@@ -387,5 +496,28 @@ public class OwnNoteFileManager {
         }
         
         return result;
+    }
+    
+    private void initFilesInProgress() {
+        // easy part: clear list before adding new things
+        filesInProgress.clear();
+    }
+    
+    private void resetFilesInProgress() {
+        // hard part: reset with some time-delay
+        new java.util.Timer().schedule( 
+            new java.util.TimerTask() {
+                @Override
+                public void run() {
+                    filesInProgress.clear();
+                    // System.out.printf("Time %s: Removed files\n", getCurrentTimeStamp());
+                }
+            }, 
+            10 
+        );        
+    }
+
+    public String getCurrentTimeStamp() {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date());
     }
 }

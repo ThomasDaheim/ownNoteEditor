@@ -26,19 +26,21 @@
 package tf.ownnote.ui.main;
 
 import java.io.File;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.Iterator;
+import java.nio.file.Path;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.Preferences;
-import javafx.application.Application.Parameters;
+import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
@@ -46,48 +48,39 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.print.PrinterJob;
-import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar.ButtonData;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
-import javafx.scene.control.Separator;
-import javafx.scene.control.TableCell;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellEditEvent;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
-import javafx.scene.control.ToolBar;
-import javafx.scene.control.cell.MapValueFactory;
-import javafx.scene.control.cell.TextFieldTableCell;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.RowConstraints;
-import javafx.scene.text.Text;
 import javafx.scene.web.HTMLEditor;
 import javafx.stage.DirectoryChooser;
-import javafx.stage.FileChooser;
-import javafx.util.Callback;
-import javafx.util.converter.DefaultStringConverter;
-import org.apache.commons.io.FilenameUtils;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import tf.ownnote.ui.helper.LinkDialog;
+import tf.ownnote.ui.helper.GroupData;
+import tf.ownnote.ui.helper.NoteData;
+import tf.ownnote.ui.helper.OwnNoteDirectoryMonitor;
 import tf.ownnote.ui.helper.OwnNoteEditorParameters;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
+import tf.ownnote.ui.helper.OwnNoteTabPane;
+import tf.ownnote.ui.helper.OwnNoteTableColumn;
+import tf.ownnote.ui.helper.OwnNoteTableView;
 
 /**
  *
@@ -96,6 +89,7 @@ import tf.ownnote.ui.helper.OwnNoteFileManager;
 public class OwnNoteEditor implements Initializable {
 
     private final OwnNoteFileManager myFileManager = new OwnNoteFileManager();
+    private final OwnNoteDirectoryMonitor myDirMonitor = new OwnNoteDirectoryMonitor(this);
 
     private final static OwnNoteEditorParameters parameters = OwnNoteEditorParameters.getInstance();
     
@@ -104,20 +98,26 @@ public class OwnNoteEditor implements Initializable {
     
     private final static int TEXTFIELDWIDTH = 100;
     
-    private List<String> realGroupNames = null;
+    private final List<String> realGroupNames = new LinkedList<String> ();
+    
+    private FilteredList<Map<String, String>> filteredData = null;
     
     private final BooleanProperty inEditMode = new SimpleBooleanProperty();
     
     private boolean handleQuickSave = false;
-
+    // should we show standard ownNote face or oneNotes?
+    private boolean classicLook = true;
+    
     @FXML
     private BorderPane borderPane;
     @FXML
     private GridPane gridPane;
     @FXML
-    private TableView<Map<String, String>> notesTable;
+    private TableView<Map<String, String>> notesTableFXML;
+    private OwnNoteTableView notesTable = null;
     @FXML
-    private TableView<Map<String, String>> groupsTable;
+    private TableView<Map<String, String>> groupsTableFXML;
+    private OwnNoteTableView groupsTable = null;
     @FXML
     private HBox pathBox;
     @FXML
@@ -125,19 +125,26 @@ public class OwnNoteEditor implements Initializable {
     @FXML
     private Button setOwnCloudPath;
     @FXML
-    private TableColumn<Map<String, String>, String> noteNameCol;
+    private TableColumn<Map, String> noteNameColFXML;
+    private OwnNoteTableColumn noteNameCol = null;
     @FXML
-    private TableColumn<Map<String, String>, String> noteModifiedCol;
+    private TableColumn<Map, String> noteModifiedColFXML;
+    private OwnNoteTableColumn noteModifiedCol = null;
     @FXML
-    private TableColumn<Map<String, String>, String> noteDeleteCol;
+    private TableColumn<Map, String> noteDeleteColFXML;
+    private OwnNoteTableColumn noteDeleteCol = null;
     @FXML
-    private TableColumn<Map<String, String>, String> groupNameCol;
+    private TableColumn<Map, String> groupNameColFXML;
+    private OwnNoteTableColumn groupNameCol = null;
     @FXML
-    private TableColumn<Map<String, String>, String> groupDeleteCol;
+    private TableColumn<Map, String> groupDeleteColFXML;
+    private OwnNoteTableColumn groupDeleteCol = null;
     @FXML
-    private TableColumn<Map<String, String>, String> groupCountCol;
+    private TableColumn<Map, String> groupCountColFXML;
+    private OwnNoteTableColumn groupCountCol = null;
     @FXML
-    private TableColumn<Map<String, String>, String> noteGroupCol;
+    private TableColumn<Map, String> noteGroupColFXML;
+    private OwnNoteTableColumn noteGroupCol = null;
     @FXML
     private Button newButton;
     @FXML
@@ -151,33 +158,33 @@ public class OwnNoteEditor implements Initializable {
     @FXML
     private TextField noteNameText;
     @FXML
-    private HTMLEditor noteEditor;
+    private HTMLEditor noteEditorFXML;
+    private OwnNoteHTMLEditor noteEditor = null;
     @FXML
     private Button quickSaveButton;
     @FXML
     private Button saveButton;
     @FXML
     private HBox buttonBox;
+    @FXML
+    private TabPane groupsPaneFXML;
+    private OwnNoteTabPane groupsPane = null;
+
+    public OwnNoteEditor() {
+    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        initEditor();
+        // defer initEditor since we need to know the value of the prameters...
     }
     
-    public void setParameters(final Parameters parameters) {
-        // now we have three kinds of parameters :-(
-        // 1) named: name, value pairs from jnlp
-        // 2) unnamed: values only from jnlp
-        // 3) raw: good, old command line parameters
-        // http://java-buddy.blogspot.de/2014/02/get-parametersarguments-in-javafx.html
-        
-        // for now just use raw parameters since the code as lready there for this :-)
-        // let some one else deal with the command line parameters
-        if ((parameters.getRaw() != null) && !parameters.getRaw().isEmpty()) {
-            OwnNoteEditor.parameters.init(parameters.getRaw().toArray(new String[0]));
-        } else {
-            OwnNoteEditor.parameters.init(null);
-        }
+    public void stop() {
+        myDirMonitor.stop();
+    }
+    
+    public void setParameters() {
+        classicLook = OwnNoteEditorParameters.LookAndFeel.classic.equals(OwnNoteEditor.parameters.getLookAndFeel());
+        initEditor();
 
         // init pathlabel to parameter or nothing
         // 1. try the preferences setting
@@ -201,6 +208,23 @@ public class OwnNoteEditor implements Initializable {
 
     @SuppressWarnings("unchecked")
     private void initEditor() {
+        // init our wrappers to FXML classes...
+        notesTable = new OwnNoteTableView(notesTableFXML);
+        groupsTable = new OwnNoteTableView(groupsTableFXML);
+        
+        noteNameCol = new OwnNoteTableColumn(noteNameColFXML);
+        noteModifiedCol = new OwnNoteTableColumn(noteModifiedColFXML);
+        noteDeleteCol = new OwnNoteTableColumn(noteDeleteColFXML);
+        groupNameCol = new OwnNoteTableColumn(groupNameColFXML);
+        groupDeleteCol = new OwnNoteTableColumn(groupDeleteColFXML);
+        groupCountCol = new OwnNoteTableColumn(groupCountColFXML);
+        noteGroupCol = new OwnNoteTableColumn(noteGroupColFXML);
+        
+        groupsPane = new OwnNoteTabPane(groupsPaneFXML);
+        
+        noteEditor = new OwnNoteHTMLEditor(noteEditorFXML);
+        noteEditor.setEditor(this);
+        
         // hide borders
         borderPane.setTop(null);
         borderPane.setBottom(null);
@@ -215,84 +239,300 @@ public class OwnNoteEditor implements Initializable {
         gridPane.getRowConstraints().add(row2);
         gridPane.getColumnConstraints().clear();
         ColumnConstraints column1 = new ColumnConstraints();
-        column1.setPercentWidth(220.0/1200.0*100.0);
+        if (classicLook) {
+            column1.setPercentWidth(220.0/1200.0*100.0);
+        } else {
+            column1.setPercentWidth(400.0/1200.0*100.0);
+        }
         column1.setHgrow(Priority.ALWAYS);
         ColumnConstraints column2 = new ColumnConstraints();
         column2.setPercentWidth(100 - column1.getPercentWidth());
         column2.setHgrow(Priority.ALWAYS);
         gridPane.getColumnConstraints().addAll(column1, column2);
         
-        // set width of columns to percentage of table
-        noteNameCol.prefWidthProperty().bind(notesTable.widthProperty().multiply(0.65));
-        noteModifiedCol.prefWidthProperty().bind(notesTable.widthProperty().multiply(0.25));
-        noteDeleteCol.prefWidthProperty().bind(notesTable.widthProperty().multiply(0.10));
-        notesTable.setPlaceholder(new Text(""));
-        notesTable.setDisable(false);
-        notesTable.getSelectionModel().setCellSelectionEnabled(false);
+        notesTable.setEditor(this);
+        notesTable.setTableType(OwnNoteTableView.TableType.notesTable);
+        // set callback, width, value name, cursor type of columns
+        noteNameCol.setTableColumnProperties(this, 0.65, NoteData.getNoteDataName(0), classicLook);
+        noteModifiedCol.setTableColumnProperties(this, 0.25, NoteData.getNoteDataName(1), false);
+        noteDeleteCol.setTableColumnProperties(this, 0.10, NoteData.getNoteDataName(2), false);
+        noteGroupCol.setTableColumnProperties(this, 0, NoteData.getNoteDataName(3), false);
 
-        groupNameCol.prefWidthProperty().bind(groupsTable.widthProperty().multiply(0.65));
-        groupDeleteCol.prefWidthProperty().bind(groupsTable.widthProperty().multiply(0.15));
-        groupCountCol.prefWidthProperty().bind(groupsTable.widthProperty().multiply(0.20));
-        groupsTable.setPlaceholder(new Text(""));
-        groupsTable.setDisable(false);
-        groupsTable.getSelectionModel().setCellSelectionEnabled(false);
-
-        // set map value factories for all table columns
-        int i = 0;
-        for(TableColumn<Map<String, String>, ?> column : notesTable.getColumns()) {
-            column.setCellValueFactory(new MapValueFactory(OwnNoteFileManager.getNotesMapKey(i)));
-            i++;
-        }
-        // .getColumns returns TableColumn<Map<String, Object>, ?> instead of TableColumn<Map<String, Object>, Object> - CRAP
-        // therefore below can't be done in the loop above
-        noteNameCol.setCellFactory(createObjectCellFactory(true));
-        noteModifiedCol.setCellFactory(createObjectCellFactory(false));
-        noteDeleteCol.setCellFactory(createObjectCellFactory(false));
-        noteGroupCol.setCellFactory(createObjectCellFactory(false));
-
-        i = 0;
-        for(TableColumn<Map<String, String>, ?> column : groupsTable.getColumns()) {
-            column.setCellValueFactory(new MapValueFactory(OwnNoteFileManager.getGroupsMapKey(i)));
-            i++;
-        }
-        groupNameCol.setCellFactory(createObjectCellFactory(false));
-        groupDeleteCol.setCellFactory(createObjectCellFactory(false));
-        groupCountCol.setCellFactory(createObjectCellFactory(false));
+        // only new button visible initially
+        hideAndDisableAllCreateControls();
+        hideAndDisableAllEditControls();
         
-        // name can be changed - but not for all entries!
-        groupsTable.setEditable(true);
-        groupNameCol.setEditable(true);
-        
-        // in case the group name changes notes neeed to be renamed
-        groupNameCol.setOnEditCommit((CellEditEvent<Map<String, String>, String> t) -> {
-            Map<String, String> curEntry =
-                    (Map<String, String>) t.getTableView().getItems().get(t.getTablePosition().getRow());
+        if (classicLook) {
+            hideNoteEditor();
             
-            if (!t.getNewValue().equals(t.getOldValue())) {
-                final TableColumn editCol = (TableColumn) t.getSource();
-                
-                // rename all notes of the group
-                if (!myFileManager.renameGroup(t.getOldValue(), t.getNewValue())) {
-                    // error message - most likely note in new group with same name already exists
+            groupsPane.setDisable(true);
+            groupsPane.setVisible(false);
+
+            groupsTable.setEditor(this);
+            groupsTable.setTableType(OwnNoteTableView.TableType.groupsTable);
+            // set callback, width, value name, cursor type of columns
+            groupNameCol.setTableColumnProperties(this, 0.65, GroupData.getGroupDataName(0), false);
+            groupDeleteCol.setTableColumnProperties(this, 0.15, GroupData.getGroupDataName(1), false);
+            groupCountCol.setTableColumnProperties(this, 0.20, GroupData.getGroupDataName(2), false);
+
+            // name can be changed - but not for all entries!
+            groupsTable.setEditable(true);
+            groupNameCol.setEditable(true);
+
+            // in case the group name changes notes neeed to be renamed
+            groupNameCol.setOnEditCommit((CellEditEvent<Map, String> t) -> {
+                final GroupData curEntry =
+                        new GroupData((Map<String, String>) t.getTableView().getItems().get(t.getTablePosition().getRow()));
+
+                if (!t.getNewValue().equals(t.getOldValue())) {
+                    // rename all notes of the group
+                    if (!renameGroupWrapper(t.getOldValue(), t.getNewValue())) {
+                        // TODO: revert changes to group name on UI
+                        curEntry.setGroupName(t.getOldValue());
+
+                        // workaround til TODO above resolved :-)
+                        initFromDirectory(false);
+                    } else {
+                        // update group name in table
+                        curEntry.setGroupName(t.getNewValue());
+                    }
+                }
+            });
+            
+            // buttons and stuff should only impact layout when visible
+            // https://stackoverflow.com/questions/12200195/javafx-hbox-hide-item
+            for(Node child: buttonBox.getChildren()){
+                child.managedProperty().bind(child.visibleProperty());
+            }
+
+            // keep track of the visibility of the editor
+            inEditMode.bind(noteEditor.visibleProperty());
+
+            // add listener for note name
+            noteNameText.textProperty().addListener(
+                (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
+                    if (newValue != null && !newValue.equals(oldValue)) {
+                        if (this.inEditMode.get() && this.handleQuickSave) {
+                            hideAndDisableControl(quickSaveButton);
+                        }
+                    }
+                });
+
+            // add listener for group name
+            groupNameText.textProperty().addListener(
+                (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
+                    if (newValue != null && !newValue.equals(oldValue)) {
+                        if (this.inEditMode.get() && this.handleQuickSave) {
+                            hideAndDisableControl(quickSaveButton);
+                        }
+                    }
+                });
+
+            // add listener for group combobox - but before changing values :-)
+            groupNameBox.valueProperty().addListener(
+                (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
+                    if (newValue != null && !newValue.equals(oldValue)) {
+                        // only in case of "new group" selected we show the field to enter an new group name
+                        if (newValue.equals(GroupData.NEW_GROUP)) {
+                            showAndEnableControl(groupNameText);
+                            groupNameText.setPromptText("group title");
+                            groupNameText.clear();
+                        } else {
+                            hideAndDisableControl(groupNameText);
+                        }
+                        if (this.inEditMode.get() && this.handleQuickSave) {
+                            hideAndDisableControl(quickSaveButton);
+                        }
+                    }
+                });
+
+            // add action to the button - show initial create controls and populate combo box
+            newButton.setOnAction((ActionEvent event) -> {
+                // 1. enable initial create controls
+                showAndEnableInitialCreateControls();
+
+                // 2. fill combo box
+                initGroupNameBox();
+                groupNameBox.setValue(GroupData.NOT_GROUPED);
+                groupNameBox.requestFocus();
+            });
+
+            // cancel button simply hides all create controls
+            cancelButton.setOnAction((ActionEvent event) -> {
+                if (!inEditMode.get()) {
+                    hideAndDisableAllCreateControls();
+                } else {
+                    hideAndDisableAllEditControls();
+                    hideNoteEditor();
+                }
+            });
+
+            // create button creates empty note if text fields filled
+            createButton.setOnAction((ActionEvent event) -> {
+                // check if name fields are filled correctly
+                Boolean doCreate = true;
+
+                String newNoteName = noteNameText.getText();
+                if (newNoteName.isEmpty()) {
+                    // no note name entered...
+                    doCreate = false;
+
                     Alert alert = new Alert(AlertType.ERROR);
                     alert.setTitle("Error Dialog");
-                    alert.setHeaderText("An error occured while renaming the group.");
-                    alert.setContentText("A file in the new group has the same name as a file in the old.");
+                    alert.setHeaderText("No note title given.");
 
                     alert.showAndWait();
-                    
-                    // TODO: revert changes to group name on UI
-                    curEntry.put(OwnNoteFileManager.groupsMapKeys[0], t.getOldValue());
-                
-                    // workaround til TODO above resolved :-)
-                    initFromDirectory();
-                } else {
-                    // update group name in table
-                    curEntry.put(OwnNoteFileManager.groupsMapKeys[0], t.getNewValue());
                 }
-            }
-        });
+                String newGroupName = "";
+                if (groupNameBox.getValue().equals(GroupData.NEW_GROUP)) {
+                    newGroupName = groupNameText.getText();
 
+                    if (newGroupName.isEmpty()) {
+                        // "new group" selected and no group name entered...
+                        doCreate = false;
+
+                        Alert alert = new Alert(AlertType.ERROR);
+                        alert.setTitle("Error Dialog");
+                        alert.setHeaderText("No group title given.");
+
+                        alert.showAndWait();
+                    }
+                } else {
+                    newGroupName = groupNameBox.getValue();
+                }
+
+                if (doCreate) {
+                    if (createNoteWrapper(newGroupName, newNoteName)) {
+                        hideAndDisableAllCreateControls();
+                        initFromDirectory(false);
+                    }
+                }
+            });
+
+            // quicksave button saves note but stays in editor
+            quickSaveButton.setOnAction((ActionEvent event) -> {
+                // quicksave = no changes to note name and group name allowed!
+                final NoteData curNote =
+                        new NoteData((Map<String, String>) noteEditor.getUserData());
+
+                if (myFileManager.saveNote(curNote.getGroupName(),
+                        curNote.getNoteName(),
+                        noteEditor.getNoteText())) {
+                } else {
+                    // error message - most likely note in "Not grouped" with same name already exists
+                    Alert alert = new Alert(AlertType.ERROR);
+                    alert.setTitle("Error Dialog");
+                    alert.setHeaderText("Note couldn't be saved.");
+
+                    alert.showAndWait();
+                }
+            });
+
+            // save button saves note but stays in editor
+            saveButton.setOnAction((ActionEvent event) -> {
+                // save = you might have changed note name & group name
+                // check if name fields are filled correctly
+                Boolean doSave = true;
+
+                String newNoteName = noteNameText.getText();
+                if (newNoteName.isEmpty()) {
+                    // no note name entered...
+                    doSave = false;
+
+                    Alert alert = new Alert(AlertType.ERROR);
+                    alert.setTitle("Error Dialog");
+                    alert.setHeaderText("No note title given.");
+
+                    alert.showAndWait();
+                }
+                String newGroupName = "";
+                if (groupNameBox.getValue().equals(GroupData.NEW_GROUP)) {
+                    newGroupName = groupNameText.getText();
+
+                    if (newGroupName.isEmpty()) {
+                        // "new group" selected and no group name entered...
+                        doSave = false;
+
+                        Alert alert = new Alert(AlertType.ERROR);
+                        alert.setTitle("Error Dialog");
+                        alert.setHeaderText("No group title given.");
+
+                        alert.showAndWait();
+                    }
+                } else {
+                    newGroupName = groupNameBox.getValue();
+                }
+
+                if (doSave) {
+                    // check against previous note and group name - might have changed!
+                    final NoteData curNote =
+                        new NoteData((Map<String, String>) noteEditor.getUserData());
+                    final String curNoteName = curNote.getNoteName();
+                    final String curGroupName = curNote.getGroupName();
+
+                    if (!curNoteName.equals(newNoteName) || !curGroupName.equals(newGroupName)) {
+                        // a bit of save transactions: first create new then delete old...
+                        if (!createNoteWrapper(newGroupName, newNoteName)) {
+                            doSave = false;
+                        } else {
+                            if (!deleteNoteWrapper(curNote)) {
+                                doSave = false;
+                                // clean up: delete new empty note - ignore return values
+                                myFileManager.deleteNote(newGroupName, newNoteName);
+                            }
+                        }
+                    }
+                }
+
+                if (doSave) {
+                    if (saveNoteWrapper(newGroupName, newNoteName, noteEditor.getNoteText())) {
+                        noteEditor.hasBeenSaved();
+                    }
+                }
+            });
+        
+        } else {
+            // oneNote look and feel
+            // 1. no groups table, no button list
+            groupsTable.setDisable(true);
+            groupsTable.setVisible(false);
+
+            buttonBox.setDisable(true);
+            buttonBox.setVisible(false);
+            
+            // 2. notes table in the lower left grid panel and tab pane
+            gridPane.getChildren().remove(notesTable.getTableView());
+            gridPane.add(notesTable.getTableView(), 0, 1);
+            
+            // 3. and can't be deleted with trashcan
+            noteNameCol.setWidthPercentage(0.75);
+            noteNameCol.setStyle("notename-font-weight: normal");
+            noteModifiedCol.setWidthPercentage(0.25);
+            noteDeleteCol.setVisible(false);
+            
+            // name can be changed - but not for all entries!
+            noteNameCol.setEditable(true);
+            notesTable.setEditable(true);
+            
+            // From documentation - The .root style class is applied to the root node of the Scene instance.
+            notesTable.getScene().getRoot().setStyle("tab-selected-background-color: black");
+            
+            // in case the group name changes notes neeed to be renamed
+            noteNameCol.setOnEditCommit((CellEditEvent<Map, String> t) -> {
+                final NoteData curNote =
+                        new NoteData((Map<String, String>) t.getTableView().getItems().get(t.getTablePosition().getRow()));
+
+                if (!t.getNewValue().equals(t.getOldValue())) {
+                    // rename all notes of the group
+                    renameNoteWrapper(curNote, t.getNewValue());
+                }
+            });
+            
+            groupsPane.setDisable(false);
+            groupsPane.setVisible(true);
+            groupsPane.setEditor(this);
+        }
+        
         // add changelistener to pathlabel - not that you should actually change its value during runtime...
         ownCloudPath.textProperty().addListener(
             (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
@@ -300,7 +540,7 @@ public class OwnNoteEditor implements Initializable {
                 myPreferences.put(OwnNoteEditor.RECENTOWNCLOUDPATH, newValue);
 
                 // scan files in new directory
-                initFromDirectory();
+                initFromDirectory(false);
             }); 
         
         // add action to the button - open a directory search dialogue...
@@ -319,231 +559,12 @@ public class OwnNoteEditor implements Initializable {
                 ownCloudPath.setText(selectedDirectory.getAbsolutePath());
             }
         });
-        
-        
-        // buttons and stuff should only impact layout when visible
-        // https://stackoverflow.com/questions/12200195/javafx-hbox-hide-item
-        for(Node child: buttonBox.getChildren()){
-            child.managedProperty().bind(child.visibleProperty());
-        }
-        
-        // only new button visible initially
-        hideAndDisableAllCreateControls();
-        hideAndDisableAllEditControls();
-        hideNoteEditor();
-        // keep track of the visibility of the editor
-        inEditMode.bind(noteEditor.visibleProperty());
-        
-        // add listener for note name
-        noteNameText.textProperty().addListener(
-            (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
-                if (newValue != null && !newValue.equals(oldValue)) {
-                    if (this.inEditMode.get() && this.handleQuickSave) {
-                        hideAndDisableControl(quickSaveButton);
-                    }
-                }
-            });
-
-        // add listener for group name
-        groupNameText.textProperty().addListener(
-            (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
-                if (newValue != null && !newValue.equals(oldValue)) {
-                    if (this.inEditMode.get() && this.handleQuickSave) {
-                        hideAndDisableControl(quickSaveButton);
-                    }
-                }
-            });
-
-        // add listener for group combobox - but before changing values :-)
-        groupNameBox.valueProperty().addListener(
-            (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
-                if (newValue != null && !newValue.equals(oldValue)) {
-                    // only in case of "new group" selected we show the field to enter an new group name
-                    if (newValue.equals(OwnNoteFileManager.NEW_GROUP)) {
-                        showAndEnableControl(groupNameText);
-                        groupNameText.setPromptText("group title");
-                        groupNameText.clear();
-                    } else {
-                        hideAndDisableControl(groupNameText);
-                    }
-                    if (this.inEditMode.get() && this.handleQuickSave) {
-                        hideAndDisableControl(quickSaveButton);
-                    }
-                }
-            });
-       
-        // add action to the button - show initial create controls and populate combo box
-        newButton.setOnAction((ActionEvent event) -> {
-            // 1. enable initial create controls
-            showAndEnableInitialCreateControls();
-            
-            // 2. fill combo box
-            initGroupNameBox();
-            groupNameBox.setValue(OwnNoteFileManager.NOT_GROUPED);
-            groupNameBox.requestFocus();
-        });
-        
-        // cancel button simply hides all create controls
-        cancelButton.setOnAction((ActionEvent event) -> {
-            if (!inEditMode.get()) {
-                hideAndDisableAllCreateControls();
-            } else {
-                hideAndDisableAllEditControls();
-                hideNoteEditor();
-            }
-        });
-        
-        // create button creates empty note if text fields filled
-        createButton.setOnAction((ActionEvent event) -> {
-            // check if name fields are filled correctly
-            Boolean doCreate = true;
-            
-            String newNoteName = noteNameText.getText();
-            if (newNoteName.isEmpty()) {
-                // no note name entered...
-                doCreate = false;
-
-                Alert alert = new Alert(AlertType.ERROR);
-                alert.setTitle("Error Dialog");
-                alert.setHeaderText("No note title given.");
-
-                alert.showAndWait();
-            }
-            String newGroupName = "";
-            if (groupNameBox.getValue().equals(OwnNoteFileManager.NEW_GROUP)) {
-                newGroupName = groupNameText.getText();
-
-                if (newGroupName.isEmpty()) {
-                    // "new group" selected and no group name entered...
-                    doCreate = false;
-
-                    Alert alert = new Alert(AlertType.ERROR);
-                    alert.setTitle("Error Dialog");
-                    alert.setHeaderText("No group title given.");
-
-                    alert.showAndWait();
-                }
-            } else {
-                newGroupName = groupNameBox.getValue();
-            }
-            
-            if (doCreate) {
-                if (createNewNoteWrapper(newGroupName, newNoteName)) {
-                    hideAndDisableAllCreateControls();
-                    initFromDirectory();
-                }
-            }
-        });
-
-        // quicksave button saves note but stays in editor
-        quickSaveButton.setOnAction((ActionEvent event) -> {
-            // quicksave = no changes to note name and group name allowed!
-            final Map<String, Object> curNote =
-                    (Map<String, Object>) noteEditor.getUserData();
-            
-            String noteHtml = noteEditor.getHtmlText();
-            final Document doc = Jsoup.parse(noteHtml);
-            // get rid of "<font face="Segoe UI">" tags - see bug report https://bugs.openjdk.java.net/browse/JDK-8133833
-            doc.getElementsByTag("font").unwrap();
-            // only store content in <body>
-            noteHtml = doc.select("body").html();
-            
-            if (myFileManager.saveNote((String) curNote.get(OwnNoteFileManager.notesMapKeys[3]),
-                    (String) curNote.get(OwnNoteFileManager.notesMapKeys[0]),
-                    noteHtml)) {
-            } else {
-                // error message - most likely note in "Not grouped" with same name already exists
-                Alert alert = new Alert(AlertType.ERROR);
-                alert.setTitle("Error Dialog");
-                alert.setHeaderText("Note couldn't be saved.");
-
-                alert.showAndWait();
-            }
-        });
-        
-        // save button saves note but stays in editor
-        saveButton.setOnAction((ActionEvent event) -> {
-            // save = you might have changed note name & group name
-            // check if name fields are filled correctly
-            Boolean doSave = true;
-            
-            String newNoteName = noteNameText.getText();
-            if (newNoteName.isEmpty()) {
-                // no note name entered...
-                doSave = false;
-
-                Alert alert = new Alert(AlertType.ERROR);
-                alert.setTitle("Error Dialog");
-                alert.setHeaderText("No note title given.");
-
-                alert.showAndWait();
-            }
-            String newGroupName = "";
-            if (groupNameBox.getValue().equals(OwnNoteFileManager.NEW_GROUP)) {
-                newGroupName = groupNameText.getText();
-
-                if (newGroupName.isEmpty()) {
-                    // "new group" selected and no group name entered...
-                    doSave = false;
-
-                    Alert alert = new Alert(AlertType.ERROR);
-                    alert.setTitle("Error Dialog");
-                    alert.setHeaderText("No group title given.");
-
-                    alert.showAndWait();
-                }
-            } else {
-                newGroupName = groupNameBox.getValue();
-            }
-            
-            if (doSave) {
-                // check against previous note and group name - might have changed!
-                final Map<String, String> curNote =
-                        (Map<String, String>) noteEditor.getUserData();
-                final String curNoteName = (String) curNote.get(OwnNoteFileManager.notesMapKeys[0]);
-                final String curGroupName = (String) curNote.get(OwnNoteFileManager.notesMapKeys[3]);
-                
-                if (!curNoteName.equals(newNoteName) || !curGroupName.equals(newGroupName)) {
-                    // a bit of save transactions: first create new then delete old...
-                    if (!createNewNoteWrapper(newGroupName, newNoteName)) {
-                        doSave = false;
-                    } else {
-                        if (!deleteNoteWrapper(curNote)) {
-                            doSave = false;
-                            // clean up: delete new empty note - ignore return values
-                            myFileManager.deleteNote(newGroupName, newNoteName);
-                        }
-                    }
-                }
-            }
-                
-            if (doSave) {
-                String noteHtml = noteEditor.getHtmlText();
-                Document doc = Jsoup.parse(noteHtml);
-                // get rid of "<font face="Segoe UI">" tags - see bug report https://bugs.openjdk.java.net/browse/JDK-8133833
-                doc.getElementsByTag("font").unwrap();
-                // only store content in <body>
-                noteHtml = doc.select("body").html();
-
-                if (myFileManager.saveNote(newGroupName, newNoteName, noteHtml)) {
-                    hideAndDisableAllEditControls();
-                    hideNoteEditor();
-                    initFromDirectory();
-                } else {
-                    // error message - most likely note in "Not grouped" with same name already exists
-                    Alert alert = new Alert(AlertType.ERROR);
-                    alert.setTitle("Error Dialog");
-                    alert.setHeaderText("Note couldn't be saved.");
-
-                    alert.showAndWait();
-                }
-            }
-        });
-        
-        // init html editor when visible - otherwise controls aren't there
     }
 
-    private void initFromDirectory() {
+    @SuppressWarnings("unchecked")
+    public void initFromDirectory(final boolean updateOnly) {
+        checkChangedNote();
+
         // scan directory
         myFileManager.initOwnNotePath(ownCloudPath.textProperty().getValue());
         
@@ -552,145 +573,74 @@ public class OwnNoteEditor implements Initializable {
         // http://code.makery.ch/blog/javafx-8-tableview-sorting-filtering/
         
         // 1. Wrap the ObservableList in a FilteredList (initially display all data).
-        FilteredList<Map<String, String>> filteredData = new FilteredList<>(notesList, p -> true);
+        filteredData = new FilteredList<Map<String, String>>(notesList, p -> true);
 
         // 2. Set the filter Predicate whenever the filter changes.
-        // change notesTable selection based on group selected
-        groupsTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            if (newSelection != null && !newSelection.equals(oldSelection)) {
-                // select matching notes for group
-                final String groupName = groupsTable.getSelectionModel().getSelectedItem().get(OwnNoteFileManager.getGroupsMapKey(0));
-
-                filteredData.setPredicate(note -> {
-                    // If filter text is empty, display all persons. Also for "All".
-                    if (groupName == null || groupName.isEmpty() || groupName.equals(OwnNoteFileManager.ALL_GROUPS) ) {
-                        return true;
-                    }
-
-                    // Compare note name to filter text.
-                    if (note.get(OwnNoteFileManager.getNotesMapKey(3)).equals(groupName)) {
-                        return true; // Filter matches first name.
-                    }
-                    return false; // Does not match.
-                });
-            }
-        });        
+        // done in TabPane and TableView controls
 
         // 3. Wrap the FilteredList in a SortedList. 
-        SortedList<Map<String, String>> sortedData = new SortedList<>(filteredData);
+        SortedList<Map<String, String>> sortedData = new SortedList<Map<String, String>>(filteredData);
 
         // 4. Bind the SortedList comparator to the TableView comparator.
         sortedData.comparatorProperty().bind(notesTable.comparatorProperty());
 
         // 5. Add sorted (and filtered) data to the table.        
-        notesTable.setItems(null);
-        notesTable.layout();
-        notesTable.setItems(sortedData);
+        notesTable.setNotes(sortedData);
         
         ObservableList<Map<String, String>> groupsList = myFileManager.getGroupsList();
-        groupsTable.setItems(null);
-        groupsTable.layout();
-        groupsTable.setItems(myFileManager.getGroupsList());
-        groupsTable.getSelectionModel().clearAndSelect(0);
+        if (classicLook) {
+            groupsTable.setGroups(groupsList, updateOnly);
+        } else {
+            groupsPane.setGroups(groupsList, updateOnly);
+        }
         
         // and now store group names (real ones!) for later use
-        realGroupNames = new LinkedList<String> ();
+        initGroupNames();
         
-        for (Map<String, String> group: groupsList) {
-            final String groupName = group.get(OwnNoteFileManager.groupsMapKeys[0]);
-            if (!groupName.equals(OwnNoteFileManager.NOT_GROUPED) && !groupName.equals(OwnNoteFileManager.ALL_GROUPS)) {
-                realGroupNames.add(groupName);
-            }
-        }
+        // fix #14
+        // monitor directory for changes
+        myDirMonitor.setDirectoryToMonitor(ownCloudPath.textProperty().getValue());   
     }
     
-    private Callback<TableColumn<Map<String, String>, String>, TableCell<Map<String, String>, String>>
-        createObjectCellFactory(final boolean linkCursor) {
-        return (TableColumn<Map<String, String>, String> param) -> new ObjectCell(this, linkCursor, new UniversalMouseEvent(this));
-    }
-
     @SuppressWarnings("unchecked")
-    public boolean editNote(final TableCell clickedCell) {
+    public void checkChangedNote() {
+        // fix for #13: check for unsaved changes
+        if (noteEditor.hasChanged()) {
+            Alert alert = new Alert(AlertType.CONFIRMATION);
+            alert.setTitle("Unsaved changes!");
+            alert.setHeaderText("Save now?");
+
+            Optional<ButtonType> saveChanges = alert.showAndWait();
+            if (saveChanges.isPresent() && ButtonType.OK.equals(saveChanges.get())) {
+                final NoteData prevNote =
+                        new NoteData((Map<String, String>) noteEditor.getUserData());
+                if (saveNoteWrapper(prevNote.getGroupName(), prevNote.getNoteName(), noteEditor.getNoteText())) {
+                    noteEditor.hasBeenSaved();
+                }
+            }
+        }
+
+    }
+    
+    public boolean editNote(final NoteData curNote) {
         boolean result = false;
-
-        Map<String, String> curNote =
-                    (Map<String, String>) clickedCell.getTableView().getItems().get(clickedCell.getIndex());
-
+        
+        checkChangedNote();
+        
         // 1. switch views: replace NoteTable with htmlEditor
-        showNotesEditor();
+        showNoteEditor();
         initGroupNameBox();
-        noteNameText.setText(curNote.get(OwnNoteFileManager.notesMapKeys[0]));
-        groupNameBox.setValue(curNote.get(OwnNoteFileManager.notesMapKeys[3]));
+        noteNameText.setText(curNote.getNoteName());
+        groupNameBox.setValue(curNote.getGroupName());
         this.handleQuickSave = true;
 
         // 2. show content of file in editor
-        final String noteHtml = myFileManager.readNote(curNote);
-        noteEditor.setHtmlText(noteHtml);
+        noteEditor.setNoteText(myFileManager.readNote(curNote));
         
         // 3. store note reference for saving
         noteEditor.setUserData(curNote);
         
         return result;
-    }
-
-    @SuppressWarnings("unchecked")
-    public boolean deleteNote(final TableCell clickedCell) {
-        // delete note from filesystem and update list
-        Map<String, String> curNote =
-                    (Map<String, String>) clickedCell.getTableView().getItems().get(clickedCell.getIndex());
-        return deleteNoteWrapper(curNote);
-    }
-
-    @SuppressWarnings("unchecked")
-    public boolean deleteGroup(final TableCell clickedCell) {
-        Map<String, String> curGroup =
-                    (Map<String, String>) clickedCell.getTableView().getItems().get(clickedCell.getIndex());
-        
-        boolean result = false;
-                
-        final String groupName = curGroup.get(OwnNoteFileManager.groupsMapKeys[0]);
-        // no delete for "All" and "Not Grouped"
-        if (!groupName.equals(OwnNoteFileManager.ALL_GROUPS) && !groupName.equals(OwnNoteFileManager.NOT_GROUPED)) {
-            result = myFileManager.deleteGroup(curGroup);
-
-            if (!result) {
-                // error message - most likely note in "Not grouped" with same name already exists
-                Alert alert = new Alert(AlertType.ERROR);
-                alert.setTitle("Error Dialog");
-                alert.setHeaderText("An error occured while deleting the group.");
-                alert.setContentText("An ungrouped file has the same name as a file in this group.");
-
-                alert.showAndWait();
-            }
-        }
-        
-        return result;
-    }
-
-    void handleTableClick(final TableCell clickedCell) {
-        boolean reInit = false;
-                            
-        switch(clickedCell.getId()) {
-            case "noteNameCol":
-                //System.out.println("Clicked in noteNameCol");
-                reInit = editNote(clickedCell);
-                break;
-            case "noteDeleteCol":
-                //System.out.println("Clicked in noteDeleteCol");
-                reInit = deleteNote(clickedCell);
-                break;
-            case "groupDeleteCol":
-                //System.out.println("Clicked in groupDeleteCol");
-                reInit = deleteGroup(clickedCell);
-                break;
-            default:
-                //System.out.println("Ignoring click into " + clickedCell.getId() + " for controller " + this.myOwnNoteEditor.toString());
-        }
-        
-        if (reInit) {
-            // rescan diretory - also group name counters need to be updated...
-            initFromDirectory();
-        }
     }
 
     private void hideAndDisableAllCreateControls() {
@@ -732,151 +682,25 @@ public class OwnNoteEditor implements Initializable {
     private void hideNoteEditor() {
         noteEditor.setDisable(true);
         noteEditor.setVisible(false);
-
-        notesTable.setDisable(false);
-        notesTable.setVisible(true);
-    }
-
-    private void showNotesEditor() {
-        notesTable.setDisable(true);
-        notesTable.setVisible(false);
-
-        noteEditor.setDisable(false);
-        noteEditor.setVisible(true);
-        noteEditor.setHtmlText("");
-
-        // remove: foreground & background control
-        hideNode(noteEditor, ".html-editor-foreground", 1);
-        hideNode(noteEditor, ".html-editor-background", 1);
-        // remove: font type & font size control - the 2nd and 3rd control with "font-menu-button" style class
-        hideNode(noteEditor, ".font-menu-button", 2);
-        hideNode(noteEditor, ".font-menu-button", 3);
-        // add: insert link & picture + print controls
-        addNoteEditorControls();
-        // add: undo & redo button, back button
         
-        showAndEnableInitialEditControls();
-    }
-    
-    private static void hideNode(final Node startNode, final String lookupString, final int occurence) {
-        final Set<Node> nodes = startNode.lookupAll(lookupString);
-        if (nodes != null && nodes.size() >= occurence) {
-            // no simple way to ge nth member of set :-(
-            Iterator<Node> itr = nodes.iterator();
-            Node node = null;
-            for(int i = 0; itr.hasNext() && i<occurence; i++) {
-                node = itr.next();
-            }
-            if (node != null) {
-                node.setVisible(false);
-                node.setManaged(false);
-            }
+        if (classicLook) {
+            notesTable.setDisable(false);
+            notesTable.setVisible(true);
         }
     }
 
-    private void addNoteEditorControls() {
-        Node node = noteEditor.lookup(".top-toolbar");
-        if (node != null && node instanceof ToolBar) {
-            ToolBar toolbar = (ToolBar) node;
-            
-            // update edit - but only once
-            if (toolbar.lookup(".html-editor-insertlink") != null) {
-                return;
-            }
+    private void showNoteEditor() {
+        if (classicLook) {
+            notesTable.setDisable(true);
+            notesTable.setVisible(false);
+        }
 
-            // copy styles from other buttons in toolbar
-            ObservableList<String> buttonStyles = null;
-            node = toolbar.lookup(".html-editor-cut");
-            if (node != null && node instanceof Button) {
-                buttonStyles = ((Button) node).getStyleClass();
-                // not the own button style, please
-                buttonStyles.removeAll("html-editor-cut");
-            }
+        noteEditor.setDisable(false);
+        noteEditor.setVisible(true);
+        noteEditor.setNoteText("");
 
-            // add button to insert link
-            ImageView graphic =
-                    new ImageView(new Image(OwnNoteEditor.class.getResourceAsStream("/tf/ownnote/ui/css/link.png"), 22, 22, true, true));
-            final Button insertLink = new Button("", graphic);
-            insertLink.getStyleClass().add("html-editor-insertlink");
-            if (buttonStyles != null) {
-                insertLink.getStyleClass().addAll(buttonStyles);
-            }
-            insertLink.setOnAction(new EventHandler<ActionEvent>() {
-                @Override
-                public void handle(ActionEvent t) {
-                    LinkDialog linkDialog = new LinkDialog();
-                    if (linkDialog.showAndWait()) {
-                        // dialog has been ended with OK - now check if values are fine
-                        if (!linkDialog.getLinkUrl().isEmpty() && !linkDialog.getLinkText().isEmpty()) {
-                            final String hrefString = 
-                                    "<a href=\"" +
-                                    linkDialog.getLinkUrl().trim() +
-                                    "\" title=\"" +
-                                    linkDialog.getLinkTitle().trim() +
-                                    "\" target=\"" +
-                                    // decide between _self and _blank on the fly
-                                    linkDialog.getWindowMode()+
-                                    "\">" +
-                                    linkDialog.getLinkText().trim() + "</a>";
-                            noteEditor.setHtmlText(noteEditor.getHtmlText() + hrefString);
-                        }
-                    }
-                }
-            });
-            toolbar.getItems().add(insertLink);
-
-            // add button to insert image
-            graphic = 
-                    new ImageView(new Image(OwnNoteEditor.class.getResourceAsStream("/tf/ownnote/ui/css/insertimage.gif"), 22, 22, true, true));
-            final Button insertImage = new Button("", graphic);
-            insertImage.getStyleClass().add("html-editor-insertimage");
-            if (buttonStyles != null) {
-                insertImage.getStyleClass().addAll(buttonStyles);
-            }
-            insertImage.setOnAction((ActionEvent arg0) -> {
-                final List<String> extFilter = Arrays.asList("*.jpg", "*.png", "*.gif");
-                final List<String> extValues = Arrays.asList("jpg", "png", "gif");
-
-                final FileChooser fileChooser = new FileChooser();
-                fileChooser.setTitle("Embed an image");
-                fileChooser.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter("Pictures", extFilter));
-                final File selectedFile = fileChooser.showOpenDialog(null);
-
-                if (selectedFile != null) {
-                    if (extValues.contains(FilenameUtils.getExtension(selectedFile.getName()).toLowerCase())) {
-                        try {
-                            // we really have selected a picture - now add it
-                            noteEditor.setHtmlText(
-                                    noteEditor.getHtmlText() + "<img src='" + selectedFile.toURI().toURL().toExternalForm() +"'>");
-                        } catch (MalformedURLException ex) {
-                            Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                    }                        
-                }
-            });
-            toolbar.getItems().add(insertImage);
-            
-            // add separator
-            toolbar.getItems().add(new Separator());
-
-            // Issue #12 - add print button
-            // https://stackoverflow.com/questions/28847757/how-to-display-print-dialog-in-java-fx-and-print-node
-            graphic =
-                    new ImageView(new Image(OwnNoteEditor.class.getResourceAsStream("/tf/ownnote/ui/css/print.png"), 22, 22, true, true));
-            final Button printNote = new Button("", graphic);
-            printNote.getStyleClass().add("html-editor-print");
-            if (buttonStyles != null) {
-                printNote.getStyleClass().addAll(buttonStyles);
-            }
-            printNote.setOnAction((ActionEvent arg0) -> {
-                PrinterJob job = PrinterJob.createPrinterJob();
-                if (job != null && job.showPrintDialog(noteEditor.getScene().getWindow())){
-                    noteEditor.print(job);
-                    job.endJob();
-                }
-            });
-            toolbar.getItems().add(printNote);
+        if (classicLook) {
+            showAndEnableInitialEditControls();
         }
     }
     
@@ -935,19 +759,88 @@ public class OwnNoteEditor implements Initializable {
         control.setMaxWidth(Control.USE_PREF_SIZE);
     }
 
-    private Boolean getNoteAndGroupName() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
     private void initGroupNameBox() {
         groupNameBox.getItems().clear();
-        groupNameBox.getItems().add(OwnNoteFileManager.NOT_GROUPED);
-        groupNameBox.getItems().add(OwnNoteFileManager.NEW_GROUP);
+        groupNameBox.getItems().add(GroupData.NOT_GROUPED);
+        groupNameBox.getItems().add(GroupData.NEW_GROUP);
         groupNameBox.getItems().addAll(realGroupNames);
     }
 
-    private Boolean deleteNoteWrapper(Map<String, String> curNote) {
-        Boolean result = myFileManager.deleteNote(curNote);
+    public boolean createGroupWrapper(final String newGroupName) {
+        Boolean result = myFileManager.createNewGroup(newGroupName);
+
+        if (!result) {
+            // error message - most likely group with same name already exists
+            Alert alert = new Alert(AlertType.ERROR);
+            alert.setTitle("Error Dialog");
+            alert.setHeaderText("New group couldn't be created.");
+            alert.setContentText("Group with same name already exists.");
+
+            alert.showAndWait();
+        }
+        
+        return result;
+    }
+
+    public boolean renameGroupWrapper(final String oldValue, final String newValue) {
+        boolean result = false;
+
+        // no rename for "All" and "Not Grouped"
+        if (!newValue.equals(GroupData.ALL_GROUPS) && !newValue.equals(GroupData.NOT_GROUPED)) {
+            result = myFileManager.renameGroup(oldValue, newValue);
+            initGroupNames();
+
+            if (!result) {
+                // error message - most likely note in new group with same name already exists
+                Alert alert = new Alert(AlertType.ERROR);
+                alert.setTitle("Error Dialog");
+                alert.setHeaderText("An error occured while renaming the group.");
+                alert.setContentText("A file in the new group has the same name as a file in the old.");
+
+                alert.showAndWait();
+            }
+        }
+        
+        return result;
+    }
+
+    public Boolean deleteGroupWrapper(final GroupData curGroup) {
+        boolean result = false;
+                
+        final String groupName = curGroup.getGroupName();
+        // no delete for "All" and "Not Grouped"
+        if (!groupName.equals(GroupData.ALL_GROUPS) && !groupName.equals(GroupData.NOT_GROUPED)) {
+            result = myFileManager.deleteGroup(groupName);
+            initGroupNames();
+
+            if (!result) {
+                // error message - most likely note in "Not grouped" with same name already exists
+                Alert alert = new Alert(AlertType.ERROR);
+                alert.setTitle("Error Dialog");
+                alert.setHeaderText("An error occured while deleting the group.");
+                alert.setContentText("An ungrouped file has the same name as a file in this group.");
+
+                alert.showAndWait();
+            }
+        }
+        
+        return result;
+    }
+
+    private void initGroupNames() {
+        realGroupNames.clear();
+
+        final ObservableList<Map<String, String>> groupsList = myFileManager.getGroupsList();
+        for (Map<String, String> group: groupsList) {
+            final String groupName = (new GroupData(group)).getGroupName();
+            if (!groupName.equals(GroupData.NOT_GROUPED) && !groupName.equals(GroupData.ALL_GROUPS)) {
+                realGroupNames.add(groupName);
+            }
+        }
+    }
+
+    public Boolean deleteNoteWrapper(final NoteData curNote) {
+        Boolean result = myFileManager.deleteNote(curNote.getGroupName(), curNote.getNoteName());
 
         if (!result) {
             // error message - something went wrong
@@ -962,7 +855,7 @@ public class OwnNoteEditor implements Initializable {
         return result;
     }
 
-    private boolean createNewNoteWrapper(String newGroupName, String newNoteName) {
+    public boolean createNoteWrapper(final String newGroupName, final String newNoteName) {
         Boolean result = myFileManager.createNewNote(newGroupName, newNoteName);
 
         if (!result) {
@@ -977,75 +870,169 @@ public class OwnNoteEditor implements Initializable {
         
         return result;
     }
-}
 
-class UniversalMouseEvent implements EventHandler<MouseEvent> {
-    // store link back to the controller of the scene for callback
-    private OwnNoteEditor myOwnNoteEditor;
-    
-    public UniversalMouseEvent(final OwnNoteEditor ownNoteEditor) {
-        myOwnNoteEditor = ownNoteEditor;
-    }
-
-    @Override
-    public void handle(MouseEvent event) {
-        if (event.getSource() instanceof TableCell) {
-            TableCell clickedCell = (TableCell) event.getSource();
-            
-            this.myOwnNoteEditor.handleTableClick(clickedCell);
-        }
-    }
-};
-
-class ObjectCell extends TextFieldTableCell<Map<String, String>, String> {
-    private static final String valueSet = "valueSet";
-    private static final String labelClass = "myLabel";
-    
-    // store link back to the controller of the scene for callback
-    private OwnNoteEditor myOwnNoteEditor;
-    
-    public ObjectCell(final OwnNoteEditor ownNoteEditor, final boolean linkCursor, final EventHandler<MouseEvent> mouseEvent) {
-        super(new DefaultStringConverter());
+    public boolean renameNoteWrapper(final NoteData curNote, final String newValue) {
+        Boolean result = myFileManager.renameNote(curNote.getGroupName(), curNote.getNoteName(), newValue);
         
-        if (linkCursor) {
-            this.setCursor(Cursor.HAND);
+        if (!result) {
+            // error message - most likely note with same name already exists
+            Alert alert = new Alert(AlertType.ERROR);
+            alert.setTitle("Error Dialog");
+            alert.setHeaderText("An error occured while renaming the note.");
+            alert.setContentText("A note with the same name already exists.");
+
+            alert.showAndWait();
         }
         
-        this.addEventFilter(MouseEvent.MOUSE_CLICKED, mouseEvent);
+        return result;
     }
-    
-    @Override
-    public void startEdit() {
-        if (OwnNoteFileManager.ALL_GROUPS.equals(getText())
-                || OwnNoteFileManager.NOT_GROUPED.equals(getText())) {
-            return;
-        }
-        super.startEdit();
-    }
-    
-    @Override
-    public void updateItem(String item, boolean empty) {
-        super.updateItem(item, empty);
 
-        if (item != null) {
-            setText((String) item);
-            setGraphic(null);
-            
-            // add class to indicate not null content - to be used in css
-            this.getStyleClass().add(ObjectCell.valueSet);
+    public boolean moveNoteWrapper(final NoteData curNote, final String newValue) {
+        Boolean result = myFileManager.moveNote(curNote.getGroupName(), curNote.getNoteName(), newValue);
+        
+        if (!result) {
+            // error message - most likely note with same name already exists
+            Alert alert = new Alert(AlertType.ERROR);
+            alert.setTitle("Error Dialog");
+            alert.setHeaderText("An error occured while moving the note.");
+            alert.setContentText("A note with the same name already exists in the new group.");
+
+            alert.showAndWait();
+        }
+        
+        return result;
+    }
+
+    public boolean saveNoteWrapper(String newGroupName, String newNoteName, String noteText) {
+        Boolean result = myFileManager.saveNote(newGroupName, newNoteName, noteEditor.getNoteText());
+                
+        if (result) {
+            if (classicLook) {
+                hideAndDisableAllEditControls();
+                hideNoteEditor();
+                initFromDirectory(false);
+            }
         } else {
-            setText(null);
-            setGraphic(null);
-            
-            // add class to indicate null content - to be used in css
-            this.getStyleClass().removeAll(ObjectCell.valueSet);
+            // error message - most likely note in "Not grouped" with same name already exists
+            Alert alert = new Alert(AlertType.ERROR);
+            alert.setTitle("Error Dialog");
+            alert.setHeaderText("Note couldn't be saved.");
+
+            alert.showAndWait();
         }
         
-        // pass on styles to children so that css can find them
-        // TODO: getChildren() returns empty list
-        for (Node childNode: this.getChildren()) {
-            childNode.getStyleClass().removeAll(ObjectCell.labelClass);
-            childNode.getStyleClass().add(ObjectCell.labelClass);
+        return result;
+    }
+
+    public void setFilterPredicate(String groupName) {
+        filteredData.setPredicate(note -> {
+            // If filter text is empty, display all persons. Also for "All".
+            if (groupName == null || groupName.isEmpty() || groupName.equals(GroupData.ALL_GROUPS) ) {
+                return true;
+            }
+
+            // Compare note name to filter text.
+            if ((new NoteData(note)).getGroupName().equals(groupName)) {
+                return true; // Filter matches first name.
+            }
+            return false; // Does not match.
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    public void setNotesTableForNewTab(String style) {
+        notesTable.setStyle(style);
+
+        // select first or current note - if any
+        if (!notesTable.getItems().isEmpty()) {
+            // check if current edit is ongoing AND note in the select tab (can happen with drag & drop!)
+            Map<String, String> curNote = (Map<String, String>) noteEditor.getUserData();
+            
+            int selectIndex = 0;
+            if (curNote != null && notesTable.getItems().contains(curNote)) {
+                selectIndex = notesTable.getItems().indexOf(curNote);
+            }
+           
+            notesTable.selectAndFocusRow(selectIndex);
+            editNote(new NoteData((Map<String, String>) notesTable.getItems().get(selectIndex)));
+        } else {
+            noteEditor.setDisable(true);
+            noteEditor.setNoteText("");
+            noteEditor.setUserData(null);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public void processFileChange(final WatchEvent.Kind<?> eventKind, final Path filePath) {
+        // System.out.printf("Time %s: Gotcha!\n", getCurrentTimeStamp());
+        
+        if (!myFileManager.getFilesInProgress().contains(filePath.getFileName().toString())) {
+            // System.out.printf("Time %s: You're new here!\n", getCurrentTimeStamp());
+            
+            // re-init list of groups and notes - file has beeen added or removed
+            Platform.runLater(() -> {
+                if (!StandardWatchEventKinds.ENTRY_CREATE.equals(eventKind)) {
+                    // delete & modify is only relevant if we're editing this note...
+                    if (noteEditor.getUserData() != null) {
+                        final NoteData curNote =
+                                new NoteData((Map<String, String>) noteEditor.getUserData());
+                        final String curName = myFileManager.buildNoteName(curNote.getGroupName(), curNote.getNoteName());
+
+                        if (curName.equals(filePath.getFileName().toString())) {
+                            // same note! lets ask the user what to do...
+                            Alert alert = new Alert(AlertType.CONFIRMATION);
+
+                            final ButtonType buttonSave = new ButtonType("Save", ButtonData.OK_DONE);
+                            ButtonType buttonCancel = null;
+                            if (StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
+                                alert.setTitle("Note has changed in file system!");
+                                alert.setHeaderText("Save own version or load changed one?");
+                                
+                                buttonCancel = new ButtonType("Load", ButtonData.CANCEL_CLOSE);
+                            } else {
+                                alert.setTitle("Note has been deleted in file system!");
+                                alert.setHeaderText("Save own version or discard?");
+                                
+                                buttonCancel = new ButtonType("Discard", ButtonData.CANCEL_CLOSE);
+                            }
+                            
+                            alert.getButtonTypes().setAll(buttonSave, buttonCancel);
+
+                            Optional<ButtonType> saveChanges = alert.showAndWait();
+                            if (saveChanges.isPresent() && buttonSave.equals(saveChanges.get())) {
+                                final NoteData prevNote =
+                                        new NoteData((Map<String, String>) noteEditor.getUserData());
+                                if (saveNoteWrapper(prevNote.getGroupName(), prevNote.getNoteName(), noteEditor.getNoteText())) {
+                                    noteEditor.hasBeenSaved();
+                                }
+                            }
+                        }
+                    }
+                }
+            
+                // show only notes for selected group
+                String curGroupName;
+                if (classicLook) {
+                    curGroupName = groupsTable.getCurrentGroup().getGroupName();
+                } else {
+                    curGroupName = groupsPane.getCurrentGroup().getGroupName();
+                }
+
+                initFromDirectory(true);
+                
+                // but only if group still exists in the list!
+                final List<String> allGroupNames = new LinkedList<String>(realGroupNames);
+                allGroupNames.add(GroupData.ALL_GROUPS);
+                allGroupNames.add(GroupData.NOT_GROUPED);
+                
+                if (allGroupNames.contains(curGroupName)) {
+                    setFilterPredicate(curGroupName);
+                }
+            });
+        }
+    }
+
+    public String getCurrentTimeStamp() {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date());
     }
 }
