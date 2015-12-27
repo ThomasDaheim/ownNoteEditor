@@ -1,10 +1,9 @@
 package tf.ownnote.ui.helper;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
@@ -28,7 +27,7 @@ public class OwnNoteEditorParameters {
     private String ownCloudDir = null;
 
     // value for lookAndFeel, if set
-    private LookAndFeel lookAndFeel = null;
+    private LookAndFeel lookAndFeel = LookAndFeel.classic;
     
     private OwnNoteEditorParameters() {
         // Exists only to defeat instantiation.
@@ -42,15 +41,15 @@ public class OwnNoteEditorParameters {
         // thats all options we can handle
         Options options = new Options();
         options.addOption(
+                OwnNoteEditorParameters.CmdOps.lookAndFeel.toString(), 
+                OwnNoteEditorParameters.CmdOps.lookAndFeel.toString(), 
+                true, 
+                "Layout to use - \"classic\" or \"onenote\"");
+        options.addOption(
                 OwnNoteEditorParameters.CmdOps.ownCloudDir.toString(), 
                 OwnNoteEditorParameters.CmdOps.ownCloudDir.toString(), 
                 true, 
                 "Path of ownCloud Notes directory");
-        options.addOption(
-                OwnNoteEditorParameters.CmdOps.lookAndFeel.toString(), 
-                OwnNoteEditorParameters.CmdOps.lookAndFeel.toString(), 
-                true, 
-                "Layout to use");
 
         // lets parse them by code from other people
         CommandLineParser parser = new DefaultParser();
@@ -60,11 +59,13 @@ public class OwnNoteEditorParameters {
             // get path to owncloud notes directory
             if (command.hasOption(OwnNoteEditorParameters.CmdOps.ownCloudDir.toString())) {
                 ownCloudDir = command.getOptionValue(OwnNoteEditorParameters.CmdOps.ownCloudDir.toString());
+                System.out.println("Option ownCloudDir found: " + ownCloudDir);
             }
             
             String laf = "";
             if (command.hasOption(OwnNoteEditorParameters.CmdOps.lookAndFeel.toString())) {
                 laf = command.getOptionValue(OwnNoteEditorParameters.CmdOps.lookAndFeel.toString());
+                System.out.println("Option lookAndFeel found: " + laf);
             }
             switch (laf) {
                 case "classic":
@@ -77,7 +78,9 @@ public class OwnNoteEditorParameters {
                     lookAndFeel = LookAndFeel.classic;
             }
         } catch (ParseException ex) {
-            Logger.getLogger(OwnNoteEditorParameters.class.getName()).log(Level.SEVERE, null, ex);
+            //Logger.getLogger(OwnNoteEditorParameters.class.getName()).log(Level.SEVERE, null, ex);
+            // fix for issue #19: add usage screen in case of incorrect options
+            help(options);
         }
     }
 
@@ -96,4 +99,12 @@ public class OwnNoteEditorParameters {
     public void setLookAndFeel(final LookAndFeel lookAndFeel) {
         this.lookAndFeel = lookAndFeel;
     }
+    
+    private void help(final Options options) {
+        // This prints out some help
+        HelpFormatter formater = new HelpFormatter();
+
+        formater.printHelp("OwnNoteEditor", "Valid options are:", options, "Continue using only recognized options");
+        //System.exit(0);
+    }    
 }

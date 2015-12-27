@@ -193,6 +193,7 @@ public class OwnNoteEditor implements Initializable {
         try {
             myPreferences = Preferences.userNodeForPackage(OwnNoteEditor.class);
             pathname = myPreferences.get(OwnNoteEditor.RECENTOWNCLOUDPATH, "");
+            System.out.println("Using preference for ownCloudDir: " + pathname);
         } catch (SecurityException ex) {
             Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
         }
