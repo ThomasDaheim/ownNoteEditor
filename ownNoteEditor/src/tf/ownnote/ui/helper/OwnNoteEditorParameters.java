@@ -4,7 +4,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
@@ -32,10 +32,14 @@ public class OwnNoteEditorParameters {
     public void init(final String [ ] args) {
         // thats all options we can handle
         Options options = new Options();
-        options.addOption(OwnNoteEditorParameters.CmdOps.ownCloudDir.toString(), true, "Path of ownCloud Notes directory");
+        options.addOption(
+                OwnNoteEditorParameters.CmdOps.ownCloudDir.toString(), 
+                OwnNoteEditorParameters.CmdOps.ownCloudDir.toString(), 
+                true, 
+                "Path of ownCloud Notes directory");
 
         // lets parse them by code from other people
-        CommandLineParser parser = new GnuParser();
+        CommandLineParser parser = new DefaultParser();
         try {
             CommandLine command = parser.parse(options, args);
             
