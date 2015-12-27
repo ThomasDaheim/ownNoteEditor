@@ -44,7 +44,7 @@ public class OwnNoteEditorParameters {
                 OwnNoteEditorParameters.CmdOps.lookAndFeel.toString(), 
                 OwnNoteEditorParameters.CmdOps.lookAndFeel.toString(), 
                 true, 
-                "Layout to use - \"classic\" or \"onenote\"");
+                "Layout to use - <arg> can be \"classic\" or \"oneNote\"");
         options.addOption(
                 OwnNoteEditorParameters.CmdOps.ownCloudDir.toString(), 
                 OwnNoteEditorParameters.CmdOps.ownCloudDir.toString(), 
