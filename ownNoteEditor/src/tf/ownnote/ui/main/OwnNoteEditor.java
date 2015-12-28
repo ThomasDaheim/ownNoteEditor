@@ -588,6 +588,11 @@ public class OwnNoteEditor implements Initializable {
         
         // 1. Wrap the ObservableList in a FilteredList (initially display all data).
         filteredData = new FilteredList<Map<String, String>>(notesList, p -> true);
+        // re-apply filter predicate when already set
+        final String curGroupName = (String) notesTable.getTableView().getUserData();
+        if (curGroupName != null) {
+            setFilterPredicate(curGroupName);
+        }
 
         // 2. Set the filter Predicate whenever the filter changes.
         // done in TabPane and TableView controls
@@ -952,7 +957,9 @@ public class OwnNoteEditor implements Initializable {
         return result;
     }
 
-    public void setFilterPredicate(String groupName) {
+    public void setFilterPredicate(final String groupName) {
+        notesTable.getTableView().setUserData(groupName);
+        
         filteredData.setPredicate(note -> {
             // If filter text is empty, display all persons. Also for "All".
             if (groupName == null || groupName.isEmpty() || groupName.equals(GroupData.ALL_GROUPS) ) {

@@ -155,23 +155,33 @@ public class OwnNoteTableView implements IGroupListContainer {
         myTableView.getSelectionModel().setCellSelectionEnabled(false);
         myTableView.setDisable(false);
         
-        // TODO: add support for drag & drop
-        // https://stackoverflow.com/questions/28051589/tableview-drag-and-drop-a-song-in-a-row-to-a-playlist-button-on-the-side-bar-jav
-        // https://rterp.wordpress.com/2013/09/19/drag-and-drop-with-custom-components-in-javafx/
-        
         if (myTableType != null) {
             if (TableType.notesTable.equals(myTableType)) {
+                final ContextMenu newMenu = new ContextMenu();
+                final MenuItem newNote2 = new MenuItem("New Note");
+                newNote2.setOnAction((ActionEvent event) -> {
+                    // no note selected - above empty part of the table
+                    final String newGroupName = (String) getTableView().getUserData();
+                    final String newNoteName = "New Note " + getNotesCount();
+
+                    if (myEditor.createNoteWrapper(newGroupName, newNoteName)) {
+                        myEditor.initFromDirectory(true);
+                    }
+                });
+                newMenu.getItems().addAll(newNote2);
+                myTableView.setContextMenu(newMenu);
+                
                 myTableView.setRowFactory((TableView<Map<String, String>> tableView) -> {
                     final TableRow<Map<String, String>> row = new TableRow<>();
-                    final ContextMenu contextMenu = new ContextMenu();
-                    final MenuItem newNote = new MenuItem("New Note");
-                    newNote.setOnAction((ActionEvent event) -> {
+                    final ContextMenu fullMenu = new ContextMenu();
+                    
+                    final MenuItem newNote1 = new MenuItem("New Note");
+                    newNote1.setOnAction((ActionEvent event) -> {
                         final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
                         final String newNoteName = "New Note " + getNotesCount();
 
-                        // TODO: what group to use if "All" group is selected?
                         if (myEditor.createNoteWrapper(curNote.getGroupName(), newNoteName)) {
-                            myEditor.initFromDirectory(false);
+                            myEditor.initFromDirectory(true);
                         }
                     });
                     final MenuItem renameNote = new MenuItem("Rename Note");
@@ -190,12 +200,13 @@ public class OwnNoteTableView implements IGroupListContainer {
                             myEditor.initFromDirectory(false);
                         }
                     });
-                    contextMenu.getItems().addAll(newNote, renameNote, deleteNote);
+                    fullMenu.getItems().addAll(newNote1, renameNote, deleteNote);
+                    
                     // Set context menu on row, but use a binding to make it only show for non-empty rows:
                     row.contextMenuProperty().bind(
                             Bindings.when(row.emptyProperty())
-                                    .then((ContextMenu)null)
-                                    .otherwise(contextMenu)
+                                    .then((ContextMenu) null)
+                                    .otherwise(fullMenu)
                     );
                     
                     // support for dragging

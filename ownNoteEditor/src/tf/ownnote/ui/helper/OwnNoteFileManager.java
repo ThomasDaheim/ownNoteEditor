@@ -209,7 +209,7 @@ public class OwnNoteFileManager {
         
         String result = null;
         
-        if (groupName.equals(GroupData.NOT_GROUPED) || groupName.isEmpty()) {
+        if (groupName.equals(GroupData.NOT_GROUPED) || groupName.isEmpty() || groupName.equals(GroupData.ALL_GROUPS)) {
             // only the note name
             result = "";
         } else {
