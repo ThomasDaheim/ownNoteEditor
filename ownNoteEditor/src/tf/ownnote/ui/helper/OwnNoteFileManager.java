@@ -513,7 +513,7 @@ public class OwnNoteFileManager {
                     // System.out.printf("Time %s: Removed files\n", getCurrentTimeStamp());
                 }
             }, 
-            10 
+            100 
         );        
     }
 
