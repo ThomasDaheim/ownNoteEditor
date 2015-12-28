@@ -42,6 +42,8 @@ public interface IGroupListContainer {
     public abstract void setGroups(final ObservableList<Map<String, String>> groupsList, final boolean updateOnly);
     
     public abstract GroupData getCurrentGroup();
+    
+    public abstract int getNotesCount();
 
     public abstract void setStyle(final String style);
     

@@ -73,8 +73,8 @@ import javafx.scene.layout.RowConstraints;
 import javafx.scene.web.HTMLEditor;
 import javafx.stage.DirectoryChooser;
 import tf.ownnote.ui.helper.GroupData;
+import tf.ownnote.ui.helper.IGroupListContainer;
 import tf.ownnote.ui.helper.NoteData;
-import tf.ownnote.ui.helper.OwnNoteDirectoryMonitor;
 import tf.ownnote.ui.helper.OwnNoteEditorParameters;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
@@ -88,8 +88,9 @@ import tf.ownnote.ui.helper.OwnNoteTableView;
  */
 public class OwnNoteEditor implements Initializable {
 
-    private final OwnNoteFileManager myFileManager = new OwnNoteFileManager();
-    private final OwnNoteDirectoryMonitor myDirMonitor = new OwnNoteDirectoryMonitor(this);
+    private final OwnNoteFileManager myFileManager;
+    
+    private final List<String> filesInProgress = new LinkedList<String>();
 
     private final static OwnNoteEditorParameters parameters = OwnNoteEditorParameters.getInstance();
     
@@ -107,6 +108,8 @@ public class OwnNoteEditor implements Initializable {
     private boolean handleQuickSave = false;
     // should we show standard ownNote face or oneNotes?
     private boolean classicLook = true;
+    
+    private IGroupListContainer myGroupList = null;
     
     @FXML
     private BorderPane borderPane;
@@ -171,6 +174,7 @@ public class OwnNoteEditor implements Initializable {
     private OwnNoteTabPane groupsPane = null;
 
     public OwnNoteEditor() {
+        myFileManager = new OwnNoteFileManager(this);
     }
 
     @Override
@@ -179,7 +183,7 @@ public class OwnNoteEditor implements Initializable {
     }
     
     public void stop() {
-        myDirMonitor.stop();
+        myFileManager.stop();
     }
     
     public void setParameters() {
@@ -193,7 +197,7 @@ public class OwnNoteEditor implements Initializable {
         try {
             myPreferences = Preferences.userNodeForPackage(OwnNoteEditor.class);
             pathname = myPreferences.get(OwnNoteEditor.RECENTOWNCLOUDPATH, "");
-            System.out.println("Using preference for ownCloudDir: " + pathname);
+            // System.out.println("Using preference for ownCloudDir: " + pathname);
         } catch (SecurityException ex) {
             Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -264,6 +268,8 @@ public class OwnNoteEditor implements Initializable {
         hideAndDisableAllEditControls();
         
         if (classicLook) {
+            myGroupList = groupsTable;
+            
             hideNoteEditor();
             
             groupsPane.setDisable(true);
@@ -383,6 +389,7 @@ public class OwnNoteEditor implements Initializable {
                     alert.setHeaderText("No note title given.");
 
                     alert.showAndWait();
+                    alert.close();
                 }
                 String newGroupName = "";
                 if (groupNameBox.getValue().equals(GroupData.NEW_GROUP)) {
@@ -397,6 +404,7 @@ public class OwnNoteEditor implements Initializable {
                         alert.setHeaderText("No group title given.");
 
                         alert.showAndWait();
+                        alert.close();
                     }
                 } else {
                     newGroupName = groupNameBox.getValue();
@@ -426,6 +434,7 @@ public class OwnNoteEditor implements Initializable {
                     alert.setHeaderText("Note couldn't be saved.");
 
                     alert.showAndWait();
+                    alert.close();
                 }
             });
 
@@ -445,6 +454,7 @@ public class OwnNoteEditor implements Initializable {
                     alert.setHeaderText("No note title given.");
 
                     alert.showAndWait();
+                    alert.close();
                 }
                 String newGroupName = "";
                 if (groupNameBox.getValue().equals(GroupData.NEW_GROUP)) {
@@ -459,6 +469,7 @@ public class OwnNoteEditor implements Initializable {
                         alert.setHeaderText("No group title given.");
 
                         alert.showAndWait();
+                        alert.close();
                     }
                 } else {
                     newGroupName = groupNameBox.getValue();
@@ -493,6 +504,8 @@ public class OwnNoteEditor implements Initializable {
             });
         
         } else {
+            myGroupList = groupsPane;
+            
             // oneNote look and feel
             // 1. no groups table, no button list
             groupsTable.setDisable(true);
@@ -589,18 +602,10 @@ public class OwnNoteEditor implements Initializable {
         notesTable.setNotes(sortedData);
         
         ObservableList<Map<String, String>> groupsList = myFileManager.getGroupsList();
-        if (classicLook) {
-            groupsTable.setGroups(groupsList, updateOnly);
-        } else {
-            groupsPane.setGroups(groupsList, updateOnly);
-        }
+        myGroupList.setGroups(groupsList, updateOnly);
         
         // and now store group names (real ones!) for later use
         initGroupNames();
-        
-        // fix #14
-        // monitor directory for changes
-        myDirMonitor.setDirectoryToMonitor(ownCloudPath.textProperty().getValue());   
     }
     
     @SuppressWarnings("unchecked")
@@ -612,6 +617,7 @@ public class OwnNoteEditor implements Initializable {
             alert.setHeaderText("Save now?");
 
             Optional<ButtonType> saveChanges = alert.showAndWait();
+            alert.close();
             if (saveChanges.isPresent() && ButtonType.OK.equals(saveChanges.get())) {
                 final NoteData prevNote =
                         new NoteData((Map<String, String>) noteEditor.getUserData());
@@ -683,6 +689,8 @@ public class OwnNoteEditor implements Initializable {
     private void hideNoteEditor() {
         noteEditor.setDisable(true);
         noteEditor.setVisible(false);
+        noteEditor.setNoteText("");
+        noteEditor.setUserData(null);
         
         if (classicLook) {
             notesTable.setDisable(false);
@@ -699,6 +707,7 @@ public class OwnNoteEditor implements Initializable {
         noteEditor.setDisable(false);
         noteEditor.setVisible(true);
         noteEditor.setNoteText("");
+        noteEditor.setUserData(null);
 
         if (classicLook) {
             showAndEnableInitialEditControls();
@@ -778,6 +787,7 @@ public class OwnNoteEditor implements Initializable {
             alert.setContentText("Group with same name already exists.");
 
             alert.showAndWait();
+            alert.close();
         }
         
         return result;
@@ -799,6 +809,10 @@ public class OwnNoteEditor implements Initializable {
                 alert.setContentText("A file in the new group has the same name as a file in the old.");
 
                 alert.showAndWait();
+                alert.close();
+            } else {
+                //check if we just moved the current note in the editor...
+                noteEditor.checkForNameChange(oldValue, newValue);
             }
         }
         
@@ -822,6 +836,7 @@ public class OwnNoteEditor implements Initializable {
                 alert.setContentText("An ungrouped file has the same name as a file in this group.");
 
                 alert.showAndWait();
+                alert.close();
             }
         }
         
@@ -851,6 +866,7 @@ public class OwnNoteEditor implements Initializable {
             alert.setContentText("See log for details.");
 
             alert.showAndWait();
+            alert.close();
         }
         
         return result;
@@ -867,6 +883,7 @@ public class OwnNoteEditor implements Initializable {
             alert.setContentText("Note with same group and name already exists.");
 
             alert.showAndWait();
+            alert.close();
         }
         
         return result;
@@ -883,11 +900,16 @@ public class OwnNoteEditor implements Initializable {
             alert.setContentText("A note with the same name already exists.");
 
             alert.showAndWait();
+            alert.close();
+        } else {
+            //check if we just moved the current note in the editor...
+            noteEditor.checkForNameChange(curNote.getGroupName(), curNote.getGroupName(), curNote.getNoteName(), newValue);
         }
         
         return result;
     }
 
+    @SuppressWarnings("unchecked")
     public boolean moveNoteWrapper(final NoteData curNote, final String newValue) {
         Boolean result = myFileManager.moveNote(curNote.getGroupName(), curNote.getNoteName(), newValue);
         
@@ -899,6 +921,10 @@ public class OwnNoteEditor implements Initializable {
             alert.setContentText("A note with the same name already exists in the new group.");
 
             alert.showAndWait();
+            alert.close();
+        } else {
+            //check if we just moved the current note in the editor...
+            noteEditor.checkForNameChange(curNote.getGroupName(), newValue, curNote.getNoteName(), curNote.getNoteName());
         }
         
         return result;
@@ -920,6 +946,7 @@ public class OwnNoteEditor implements Initializable {
             alert.setHeaderText("Note couldn't be saved.");
 
             alert.showAndWait();
+            alert.close();
         }
         
         return result;
@@ -967,8 +994,11 @@ public class OwnNoteEditor implements Initializable {
     public void processFileChange(final WatchEvent.Kind<?> eventKind, final Path filePath) {
         // System.out.printf("Time %s: Gotcha!\n", getCurrentTimeStamp());
         
-        if (!myFileManager.getFilesInProgress().contains(filePath.getFileName().toString())) {
+        if (!filesInProgress.contains(filePath.getFileName().toString())) {
+            final String fileName = filePath.getFileName().toString();
+        
             // System.out.printf("Time %s: You're new here!\n", getCurrentTimeStamp());
+            filesInProgress.add(fileName);
             
             // re-init list of groups and notes - file has beeen added or removed
             Platform.runLater(() -> {
@@ -983,28 +1013,56 @@ public class OwnNoteEditor implements Initializable {
                             // same note! lets ask the user what to do...
                             Alert alert = new Alert(AlertType.CONFIRMATION);
 
-                            final ButtonType buttonSave = new ButtonType("Save", ButtonData.OK_DONE);
-                            ButtonType buttonCancel = null;
                             if (StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                                 alert.setTitle("Note has changed in file system!");
-                                alert.setHeaderText("Save own version or load changed one?");
-                                
-                                buttonCancel = new ButtonType("Load", ButtonData.CANCEL_CLOSE);
+                                alert.setHeaderText("Options:\nSave own note to different name\nSave own note and overwrite file system changes\nLoad changed note and discard own changes");
                             } else {
                                 alert.setTitle("Note has been deleted in file system!");
-                                alert.setHeaderText("Save own version or discard?");
-                                
-                                buttonCancel = new ButtonType("Discard", ButtonData.CANCEL_CLOSE);
+                                alert.setHeaderText("Options:\nSave own note to different name\nSave own note and overwrite file system changes\nDiscard own changes");
                             }
                             
-                            alert.getButtonTypes().setAll(buttonSave, buttonCancel);
+                            final ButtonType buttonSave = new ButtonType("Save as new", ButtonData.OTHER);
+                            final ButtonType buttonSaveNew = new ButtonType("Save own", ButtonData.OK_DONE);
+                            final ButtonType buttonDiscard = new ButtonType("Discard own", ButtonData.CANCEL_CLOSE);
+                            alert.getButtonTypes().setAll(buttonSave, buttonSaveNew, buttonDiscard);
 
                             Optional<ButtonType> saveChanges = alert.showAndWait();
-                            if (saveChanges.isPresent() && buttonSave.equals(saveChanges.get())) {
-                                final NoteData prevNote =
-                                        new NoteData((Map<String, String>) noteEditor.getUserData());
-                                if (saveNoteWrapper(prevNote.getGroupName(), prevNote.getNoteName(), noteEditor.getNoteText())) {
-                                    noteEditor.hasBeenSaved();
+                            alert.close();
+                            if (saveChanges.isPresent()) {
+                                if (saveChanges.get().equals(buttonSave)) {
+                                    // save own note independent of file system changes
+                                    final NoteData saveNote =
+                                            new NoteData((Map<String, String>) noteEditor.getUserData());
+                                    if (saveNoteWrapper(saveNote.getGroupName(), saveNote.getNoteName(), noteEditor.getNoteText())) {
+                                        noteEditor.hasBeenSaved();
+                                    }
+                                }
+
+                                if (saveChanges.get().equals(buttonSaveNew)) {
+                                    // save own note under new name
+                                    final NoteData saveNote =
+                                            new NoteData((Map<String, String>) noteEditor.getUserData());
+                                    final String newNoteName = "New Note " + myGroupList.getNotesCount();
+                                    if (createNoteWrapper(saveNote.getGroupName(), newNoteName)) {
+                                        if (saveNoteWrapper(saveNote.getGroupName(), newNoteName, noteEditor.getNoteText())) {
+                                            noteEditor.hasBeenSaved();
+
+                                            // we effectively just renamed the note...
+                                            saveNote.setNoteName(newNoteName);
+                                            noteEditor.setUserData(saveNote);
+                                            // System.out.printf("User data updated\n");
+                                        }
+                                    }
+                                }
+
+                                if (saveChanges.get().equals(buttonDiscard)) {
+                                    // nothing to do for StandardWatchEventKinds.ENTRY_DELETE - initFromDirectory(true) will take care of this
+                                    if (StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
+                                        // re-load into edit for StandardWatchEventKinds.ENTRY_MODIFY
+                                        final NoteData loadNote =
+                                                new NoteData((Map<String, String>) noteEditor.getUserData());
+                                        noteEditor.setNoteText(myFileManager.readNote(loadNote));
+                                    }
                                 }
                             }
                         }
@@ -1012,12 +1070,7 @@ public class OwnNoteEditor implements Initializable {
                 }
             
                 // show only notes for selected group
-                String curGroupName;
-                if (classicLook) {
-                    curGroupName = groupsTable.getCurrentGroup().getGroupName();
-                } else {
-                    curGroupName = groupsPane.getCurrentGroup().getGroupName();
-                }
+                final String curGroupName = myGroupList.getCurrentGroup().getGroupName();
 
                 initFromDirectory(true);
                 
@@ -1029,6 +1082,8 @@ public class OwnNoteEditor implements Initializable {
                 if (allGroupNames.contains(curGroupName)) {
                     setFilterPredicate(curGroupName);
                 }
+                
+                filesInProgress.remove(fileName);
             });
         }
     }

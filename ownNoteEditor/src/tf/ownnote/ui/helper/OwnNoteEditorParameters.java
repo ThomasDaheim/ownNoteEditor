@@ -59,7 +59,7 @@ public class OwnNoteEditorParameters {
             // get path to owncloud notes directory
             if (command.hasOption(OwnNoteEditorParameters.CmdOps.ownCloudDir.toString())) {
                 ownCloudDir = command.getOptionValue(OwnNoteEditorParameters.CmdOps.ownCloudDir.toString());
-                System.out.println("Option ownCloudDir found: " + ownCloudDir);
+                // System.out.println("Option ownCloudDir found: " + ownCloudDir);
             }
             
             String laf = "";
@@ -68,15 +68,15 @@ public class OwnNoteEditorParameters {
             }
             switch (laf) {
                 case "classic":
-                    System.out.println("Option lookAndFeel found: " + laf);
+                    // System.out.println("Option lookAndFeel found: " + laf);
                     lookAndFeel = LookAndFeel.classic;
                     break;
                 case "oneNote":
-                    System.out.println("Option lookAndFeel found: " + laf);
+                    // System.out.println("Option lookAndFeel found: " + laf);
                     lookAndFeel = LookAndFeel.oneNote;
                     break;
                 default:
-                    System.out.println("Value \"" + laf + "\" for option lookAndFeel not recognized, using \"classic\"");
+                    // System.out.println("Value \"" + laf + "\" for option lookAndFeel not recognized, using \"classic\"");
                     lookAndFeel = LookAndFeel.classic;
             }
         } catch (ParseException ex) {

@@ -124,6 +124,11 @@ public class OwnNoteTableView implements IGroupListContainer {
         return new GroupData(myTableView.getSelectionModel().getSelectedItem());
     }
     
+    @Override
+    public int getNotesCount() {
+        return myTableView.getItems().size();
+    }
+    
     public void setTableType(final TableType newTableType) {
         if (!newTableType.equals(this.myTableType)) {
             myTableType = newTableType;
@@ -162,7 +167,7 @@ public class OwnNoteTableView implements IGroupListContainer {
                     final MenuItem newNote = new MenuItem("New Note");
                     newNote.setOnAction((ActionEvent event) -> {
                         final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
-                        final String newNoteName = "New Note " + myTableView.getItems().size();
+                        final String newNoteName = "New Note " + getNotesCount();
 
                         // TODO: what group to use if "All" group is selected?
                         if (myEditor.createNoteWrapper(curNote.getGroupName(), newNoteName)) {

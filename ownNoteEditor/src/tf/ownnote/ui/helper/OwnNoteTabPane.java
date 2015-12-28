@@ -194,6 +194,11 @@ public class OwnNoteTabPane implements IGroupListContainer {
     }
     
     @Override
+    public int getNotesCount() {
+        return myTabPane.getTabs().size();
+    }
+    
+    @Override
     public GroupData getCurrentGroup() {
         return ((GroupData) myTabPane.getSelectionModel().getSelectedItem().getUserData());
     }

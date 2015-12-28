@@ -26,6 +26,7 @@
 package tf.ownnote.ui.helper;
 
 import java.io.IOException;
+import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
@@ -48,6 +49,10 @@ public class OwnNoteDirectoryMonitor {
     private ThreadWatcher fileWatcher = null;
     private Thread watchThread = null;
 
+    private OwnNoteDirectoryMonitor() {
+        super();
+    }
+
     public OwnNoteDirectoryMonitor(final OwnNoteEditor editor) {
         super();
         
@@ -61,36 +66,35 @@ public class OwnNoteDirectoryMonitor {
     public void stop() {
         // stop the old thread if running
         if (fileWatcher != null && watchThread != null) {
+            // System.out.printf("Time %s: Starting to stop\n", myEditor.getCurrentTimeStamp());
             try {
+                fileWatcher.disable();
                 fileWatcher.terminate();
                 watchThread.join();
             } catch (InterruptedException ex) {
                 Logger.getLogger(OwnNoteDirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (ClosedWatchServiceException ex) {
+                Logger.getLogger(OwnNoteDirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
             }
+            // System.out.printf("Time %s: Done stopping\n", myEditor.getCurrentTimeStamp());
         }
     }
     
+    public void enableMonitor() {
+        fileWatcher.enable();
+    }
+    
+    public void disableMonitor() {
+        fileWatcher.disable();
+    }
+    
     public void setDirectoryToMonitor(final String directory) {
-        try {
-            stop();
-            
-            final Path noteDir = Paths.get(directory);
-            final WatchService noteDirWatcher = noteDir.getFileSystem().newWatchService();
-            
-            // start the file watcher thread below
-            fileWatcher = new ThreadWatcher(noteDirWatcher, myEditor);
-
-            watchThread = new Thread(fileWatcher, "FileWatcher");
-            watchThread.start();
-
-            // register a file
-            noteDir.register(noteDirWatcher,
-                        StandardWatchEventKinds.ENTRY_CREATE,
-                        StandardWatchEventKinds.ENTRY_DELETE,
-                        StandardWatchEventKinds.ENTRY_MODIFY);
-        } catch (IOException ex) {
-            Logger.getLogger(OwnNoteDirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        stop();
+        
+        fileWatcher = new ThreadWatcher(directory, myEditor);
+        fileWatcher.enable();
+        watchThread = new Thread(fileWatcher, "FileWatcher");
+        watchThread.start();
     }
     
     /**
@@ -106,16 +110,67 @@ public class OwnNoteDirectoryMonitor {
         private OwnNoteEditor myEditor= null;
 
         /** the watchService that is passed in from above */
-        private WatchService myWatcher;
+        private WatchService watcher = null;
+        private Path watchPath = null; 
+        private String watchDir = null;
         private volatile boolean running = true;
+        private volatile boolean enabled = true;
 
-        public ThreadWatcher(final WatchService watcher, final OwnNoteEditor editor) {
-            myWatcher = watcher;
-            
+        public ThreadWatcher(final String directory, final OwnNoteEditor editor) {
+            watchDir = directory;
             myEditor = editor;
         }
         public void terminate() {
             running = false;
+        }
+        public void enable() {
+            // System.out.printf("Time %s: Starting to enable watcher\n", myEditor.getCurrentTimeStamp());
+            disable();
+
+            // initialize path and watcher if not already set
+            if (watchPath == null || watcher == null) {
+                try {
+                    watchPath = Paths.get(watchDir);
+                    
+                    if (watcher != null) {
+                        watcher.close();
+                    }
+                    watcher = watchPath.getFileSystem().newWatchService();
+
+                    // register a file
+                    watchPath.register(watcher,
+                            StandardWatchEventKinds.ENTRY_CREATE,
+                            StandardWatchEventKinds.ENTRY_DELETE,
+                            StandardWatchEventKinds.ENTRY_MODIFY);
+
+                } catch (IOException ex) {
+                    Logger.getLogger(OwnNoteDirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+
+            enabled = true;
+            // System.out.printf("Time %s: Enabled watcher\n", myEditor.getCurrentTimeStamp());
+        }
+        public void disable() {
+            // System.out.printf("Time %s: Starting to disable watcher\n", myEditor.getCurrentTimeStamp());
+            enabled = false;
+            
+            // close watcher and unset path and watcher
+            if (watchPath != null && watcher != null) {
+                try {
+                    // give some time to think about that :-)
+                    Thread.sleep(10);
+
+                    watcher.close();
+
+                    watcher = null;
+                    watchPath = null;
+                } catch (IOException | InterruptedException ex) {
+                    Logger.getLogger(OwnNoteDirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
+                }
+
+                // System.out.printf("Time %s: Disabled watcher\n", myEditor.getCurrentTimeStamp());
+            }
         }
  
         /**
@@ -128,24 +183,33 @@ public class OwnNoteDirectoryMonitor {
         public void run() {
             WatchKey key;
             while(running) {
-                key = myWatcher.poll();
-                if (key != null) {
-                    // we have a polled event, now we traverse it and
-                    // receive all the states from it
-                    for (WatchEvent event : key.pollEvents()) {
-                        // System.out.printf("Time %s: Received %s event for file: %s\n",
-                        //         myEditor.getCurrentTimeStamp(), event.kind(), event.context() );
-
-                        final WatchEvent.Kind<?> eventKind = event.kind();
-                        if (eventKind == StandardWatchEventKinds.OVERFLOW) {
-                                continue;
-                        }
-                        final Path filePath = ((WatchEvent<Path>) event).context();
-                        
-                        // let my editor handle this...
-                        myEditor.processFileChange(eventKind, filePath);
+                if (enabled) {
+                    try {
+                        key = watcher.poll();
+                    } catch (ClosedWatchServiceException ex) {
+                        // System.out.printf("Time %s: Exception\n", myEditor.getCurrentTimeStamp());
+                        Logger.getLogger(OwnNoteDirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
+                        key = null;
                     }
-                    key.reset();
+                    
+                    if (key != null) {
+                        // we have a polled event, now we traverse it and
+                        // receive all the states from it
+                        for (WatchEvent event : key.pollEvents()) {
+                            // System.out.printf("Time %s: Received %s event for file: %s\n",
+                            //          myEditor.getCurrentTimeStamp(), event.kind(), event.context() );
+
+                            final WatchEvent.Kind<?> eventKind = event.kind();
+                            if (eventKind == StandardWatchEventKinds.OVERFLOW) {
+                                    continue;
+                            }
+                            final Path filePath = ((WatchEvent<Path>) event).context();
+
+                            // let my editor handle this...
+                            myEditor.processFileChange(eventKind, filePath);
+                        }
+                        key.reset();
+                    }
                 }
             }
         }

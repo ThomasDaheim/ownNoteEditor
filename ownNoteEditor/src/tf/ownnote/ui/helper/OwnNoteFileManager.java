@@ -38,19 +38,24 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public class OwnNoteFileManager {
+    // callback to OwnNoteEditor required for e.g. delete & rename
+    private final OwnNoteEditor myEditor;
+    
+    // monitor for changes using java Watcher service
+    private final OwnNoteDirectoryMonitor myDirMonitor;
+
     public static final String deleteString = "";
     
     private String ownNotePath;
@@ -58,8 +63,25 @@ public class OwnNoteFileManager {
     private final Map<String, GroupData> groupsList = new LinkedHashMap<>();
     private final Map<String, NoteData> notesList = new LinkedHashMap<>();
     
-    private final List<String> filesInProgress = new LinkedList<String>();
+    private OwnNoteFileManager() {
+        super();
 
+        myEditor = null;
+        myDirMonitor = null;
+    }
+
+    public OwnNoteFileManager(final OwnNoteEditor editor) {
+        super();
+        
+        myEditor = editor;
+        myDirMonitor = new OwnNoteDirectoryMonitor(myEditor);
+    }
+    
+    // forward to monitor to shut down things
+    public void stop() {
+        myDirMonitor.stop();
+    }
+    
     public void initOwnNotePath(final String ownNotePath) {
         assert ownNotePath != null;
         
@@ -133,6 +155,10 @@ public class OwnNoteFileManager {
         } catch (IOException | DirectoryIteratorException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
         }
+        
+        // fix #14
+        // monitor directory for changes
+        myDirMonitor.setDirectoryToMonitor(ownNotePath);   
     }
 
     public String getOwnNotePath() {
@@ -147,10 +173,6 @@ public class OwnNoteFileManager {
         return FXCollections.observableArrayList(notesList.values());
     }
 
-    public List<String> getFilesInProgress() {
-        return filesInProgress;
-    }
-    
     public boolean deleteNote(String groupName, String noteName) {
         assert groupName != null;
         assert noteName != null;
@@ -161,7 +183,6 @@ public class OwnNoteFileManager {
         final String noteFileName = buildNoteName(groupName, noteName);
         
         try {
-            filesInProgress.add(noteFileName);
             Files.delete(Paths.get(ownNotePath, noteFileName));
             
             final GroupData groupRow = groupsList.get(groupName);
@@ -209,7 +230,6 @@ public class OwnNoteFileManager {
         final String newFileName = buildNoteName(groupName, noteName);
         
         try {
-            filesInProgress.add(newFileName);
             Path newPath = Files.createFile(Paths.get(this.ownNotePath, newFileName));
             
             // TF, 20151129
@@ -260,7 +280,6 @@ public class OwnNoteFileManager {
         final String newFileName = buildNoteName(groupName, noteName);
         
         try {
-            filesInProgress.add(newFileName);
             Files.write(Paths.get(this.ownNotePath, newFileName), htmlText.getBytes());
         } catch (IOException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
@@ -283,8 +302,6 @@ public class OwnNoteFileManager {
         final String newFileName = buildNoteName(groupName, newNoteName);
         
         try {
-            filesInProgress.add(oldFileName);
-            filesInProgress.add(newFileName);
             Files.move(Paths.get(this.ownNotePath, oldFileName), Paths.get(this.ownNotePath, newFileName));
 
             final NoteData dataRow = notesList.remove(oldFileName);
@@ -311,8 +328,6 @@ public class OwnNoteFileManager {
         final String newFileName = buildNoteName(newGroupName, noteName);
         
         try {
-            filesInProgress.add(oldFileName);
-            filesInProgress.add(newFileName);
             // System.out.printf("Time %s: Added files\n", getCurrentTimeStamp());
             Files.move(Paths.get(this.ownNotePath, oldFileName), Paths.get(this.ownNotePath, newFileName));
 
@@ -409,8 +424,6 @@ public class OwnNoteFileManager {
                     final String newFileName = newNoteNamePrefix + filename.substring(oldNoteNamePrefix.length());
 
                     try {
-                        filesInProgress.add(filename);
-                        filesInProgress.add(newFileName);
                         Files.move(Paths.get(this.ownNotePath, filename), Paths.get(this.ownNotePath, newFileName));
                         
                         // TF, 20151129
@@ -499,22 +512,13 @@ public class OwnNoteFileManager {
     }
     
     private void initFilesInProgress() {
-        // easy part: clear list before adding new things
-        filesInProgress.clear();
+        // disable watcher
+        myDirMonitor.disableMonitor();
     }
     
     private void resetFilesInProgress() {
-        // hard part: reset with some time-delay
-        new java.util.Timer().schedule( 
-            new java.util.TimerTask() {
-                @Override
-                public void run() {
-                    filesInProgress.clear();
-                    // System.out.printf("Time %s: Removed files\n", getCurrentTimeStamp());
-                }
-            }, 
-            100 
-        );        
+        // enable watcher
+        myDirMonitor.enableMonitor();
     }
 
     public String getCurrentTimeStamp() {

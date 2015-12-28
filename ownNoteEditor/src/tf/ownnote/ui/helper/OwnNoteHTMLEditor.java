@@ -30,6 +30,7 @@ import java.net.MalformedURLException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,7 +38,6 @@ import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.print.PrinterJob;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -123,6 +123,43 @@ public class OwnNoteHTMLEditor {
     public void setEditor(final OwnNoteEditor editor) {
         myEditor = editor;
     }
+    
+    public void checkForNameChange(final String oldGroupName, final String newGroupName) {
+        checkForNameChange(oldGroupName, newGroupName, "", "");
+    }
+
+    @SuppressWarnings("unchecked")
+    public void checkForNameChange(final String oldGroupName, final String newGroupName, final String oldNoteName, final String newNoteName) {
+        assert (oldGroupName != null);
+        assert (newGroupName != null);
+        assert (oldNoteName != null);
+        assert (newNoteName != null);
+        
+        if (getUserData() != null) {
+            final NoteData editNote =
+                    new NoteData((Map<String, String>) getUserData());
+            
+            boolean changed = false;
+
+            // check for group name change
+            if (!oldGroupName.equals(newGroupName)) {
+                editNote.setGroupName(newGroupName);
+                changed = true;
+            }
+            
+            // check for note name change
+            if (!oldNoteName.equals(newNoteName)) {
+                editNote.setNoteName(newNoteName);
+                changed = true;
+            }
+            
+            if (changed) {
+                // we did it! now do the house keeping...
+                setUserData(editNote);
+                // System.out.printf("User data updated\n");
+            }
+        }
+    }
 
     private void initHTMLEditor() {
         // remove: foreground & background control
@@ -194,25 +231,22 @@ public class OwnNoteHTMLEditor {
             if (buttonStyles != null) {
                 insertLink.getStyleClass().addAll(buttonStyles);
             }
-            insertLink.setOnAction(new EventHandler<ActionEvent>() {
-                @Override
-                public void handle(ActionEvent t) {
-                    LinkDialog linkDialog = new LinkDialog();
-                    if (linkDialog.showAndWait()) {
-                        // dialog has been ended with OK - now check if values are fine
-                        if (!linkDialog.getLinkUrl().isEmpty() && !linkDialog.getLinkText().isEmpty()) {
-                            final String hrefString = 
-                                    "<a href=\"" +
-                                    linkDialog.getLinkUrl().trim() +
-                                    "\" title=\"" +
-                                    linkDialog.getLinkTitle().trim() +
-                                    "\" target=\"" +
-                                    // decide between _self and _blank on the fly
-                                    linkDialog.getWindowMode()+
-                                    "\">" +
-                                    linkDialog.getLinkText().trim() + "</a>";
-                            myHTMLEditor.setHtmlText(myHTMLEditor.getHtmlText() + hrefString);
-                        }
+            insertLink.setOnAction((ActionEvent t) -> {
+                LinkDialog linkDialog = new LinkDialog();
+                if (linkDialog.showAndWait()) {
+                    // dialog has been ended with OK - now check if values are fine
+                    if (!linkDialog.getLinkUrl().isEmpty() && !linkDialog.getLinkText().isEmpty()) {
+                        final String hrefString =
+                                "<a href=\"" +
+                                linkDialog.getLinkUrl().trim() +
+                                "\" title=\"" +
+                                linkDialog.getLinkTitle().trim() +
+                                "\" target=\"" +
+                                // decide between _self and _blank on the fly
+                                linkDialog.getWindowMode()+
+                                "\">" +
+                                linkDialog.getLinkText().trim() + "</a>";
+                        myHTMLEditor.setHtmlText(myHTMLEditor.getHtmlText() + hrefString);
                     }
                 }
             });
