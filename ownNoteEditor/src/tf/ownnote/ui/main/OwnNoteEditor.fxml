@@ -105,4 +105,24 @@
          </children>
       </GridPane>
    </center>
+   <top>
+      <MenuBar fx:id="menuBar" BorderPane.alignment="CENTER">
+         <menus>
+            <Menu mnemonicParsing="false" text="Preferences">
+              <items>
+                  <Menu fx:id="menuLookAndFeel" mnemonicParsing="false" text="Look &amp; Feel">
+                     <items>
+                        <RadioMenuItem fx:id="classicLookAndFeel" mnemonicParsing="false" text="classic">
+                           <toggleGroup>
+                              <ToggleGroup fx:id="LookAndFeel" />
+                           </toggleGroup></RadioMenuItem>
+                        <RadioMenuItem fx:id="oneNoteLookAndFeel" mnemonicParsing="false" text="oneNote" toggleGroup="$LookAndFeel" />
+                        <MenuItem disable="true" mnemonicParsing="false" text="(restart required)" />
+                     </items>
+                  </Menu>
+              </items>
+            </Menu>
+         </menus>
+      </MenuBar>
+   </top>
 </BorderPane>

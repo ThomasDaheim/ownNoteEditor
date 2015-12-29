@@ -1,5 +1,6 @@
 package tf.ownnote.ui.helper;
 
+import java.util.Optional;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -27,7 +28,7 @@ public class OwnNoteEditorParameters {
     private String ownCloudDir = null;
 
     // value for lookAndFeel, if set
-    private LookAndFeel lookAndFeel = LookAndFeel.classic;
+    private LookAndFeel lookAndFeel = null;
     
     private OwnNoteEditorParameters() {
         // Exists only to defeat instantiation.
@@ -76,8 +77,7 @@ public class OwnNoteEditorParameters {
                     lookAndFeel = LookAndFeel.oneNote;
                     break;
                 default:
-                    // System.out.println("Value \"" + laf + "\" for option lookAndFeel not recognized, using \"classic\"");
-                    lookAndFeel = LookAndFeel.classic;
+                    System.out.println("Value \"" + laf + "\" for option lookAndFeel not recognized.");
             }
         } catch (ParseException ex) {
             //Logger.getLogger(OwnNoteEditorParameters.class.getName()).log(Level.SEVERE, null, ex);
@@ -94,8 +94,8 @@ public class OwnNoteEditorParameters {
         this.ownCloudDir = ownCloudDir;
     }
 
-    public LookAndFeel getLookAndFeel() {
-        return lookAndFeel;
+    public Optional<LookAndFeel> getLookAndFeel() {
+        return Optional.ofNullable(lookAndFeel);
     }
 
     public void setLookAndFeel(final LookAndFeel lookAndFeel) {

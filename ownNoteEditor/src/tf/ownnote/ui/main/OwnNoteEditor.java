@@ -59,11 +59,16 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellEditEvent;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Toggle;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -96,6 +101,7 @@ public class OwnNoteEditor implements Initializable {
     
     private Preferences myPreferences = null;
     private final static String RECENTOWNCLOUDPATH = "recentOwnCloudPath";
+    private final static String RECENTLOOKANDFEEL = "recentLookAndFeel";
     
     private final static int TEXTFIELDWIDTH = 100;
     
@@ -107,10 +113,11 @@ public class OwnNoteEditor implements Initializable {
     
     private boolean handleQuickSave = false;
     // should we show standard ownNote face or oneNotes?
-    private boolean classicLook = true;
+    private OwnNoteEditorParameters.LookAndFeel classicLook;
     
     private IGroupListContainer myGroupList = null;
     
+    private OwnNoteTabPane groupsPane = null;
     @FXML
     private BorderPane borderPane;
     @FXML
@@ -171,7 +178,16 @@ public class OwnNoteEditor implements Initializable {
     private HBox buttonBox;
     @FXML
     private TabPane groupsPaneFXML;
-    private OwnNoteTabPane groupsPane = null;
+    @FXML
+    private MenuBar menuBar;
+    @FXML
+    private RadioMenuItem classicLookAndFeel;
+    @FXML
+    private RadioMenuItem oneNoteLookAndFeel;
+    @FXML
+    private ToggleGroup LookAndFeel;
+    @FXML
+    private Menu menuLookAndFeel;
 
     public OwnNoteEditor() {
         myFileManager = new OwnNoteFileManager(this);
@@ -187,32 +203,69 @@ public class OwnNoteEditor implements Initializable {
     }
     
     public void setParameters() {
-        classicLook = OwnNoteEditorParameters.LookAndFeel.classic.equals(OwnNoteEditor.parameters.getLookAndFeel());
+        myPreferences = Preferences.userNodeForPackage(OwnNoteEditor.class);
+
+        // set look & feel    
+        // 1. use passed parameters
+        if (OwnNoteEditor.parameters.getLookAndFeel().isPresent()) {
+            classicLook = OwnNoteEditor.parameters.getLookAndFeel().get();
+        } else {
+            // fix for issue #20
+            // 2. try the preference settings - what was used last time?
+            try {
+                classicLook = OwnNoteEditorParameters.LookAndFeel.valueOf(
+                        myPreferences.get(OwnNoteEditor.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
+                // System.out.println("Using preference for classicLook: " + classicLook);
+            } catch (SecurityException ex) {
+                Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        // 3. paint the look
         initEditor();
 
         // init pathlabel to parameter or nothing
-        // 1. try the preferences setting
         String pathname = "";
-        // most recent file that was opened
-        try {
-            myPreferences = Preferences.userNodeForPackage(OwnNoteEditor.class);
-            pathname = myPreferences.get(OwnNoteEditor.RECENTOWNCLOUDPATH, "");
-            // System.out.println("Using preference for ownCloudDir: " + pathname);
-        } catch (SecurityException ex) {
-            Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
-        // 2. if nothing there use any passed parameters
-        if (pathname.isEmpty() && OwnNoteEditor.parameters.getOwnCloudDir() != null) {
+        // 1. use any passed parameters
+        if (OwnNoteEditor.parameters.getOwnCloudDir() != null) {
             pathname = OwnNoteEditor.parameters.getOwnCloudDir();
+        } else {
+            // 2. try the preferences setting - most recent file that was opened
+            try {
+                pathname = myPreferences.get(OwnNoteEditor.RECENTOWNCLOUDPATH, "");
+                // System.out.println("Using preference for ownCloudDir: " + pathname);
+            } catch (SecurityException ex) {
+                Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
-        
         // 3. set the value
         ownCloudPath.setText(pathname);
     }
 
     @SuppressWarnings("unchecked")
     private void initEditor() {
+        // init menu handling
+        // 1. add listener to track changes of layout
+        classicLookAndFeel.getToggleGroup().selectedToggleProperty().addListener(
+            (ObservableValue<? extends Toggle> arg0, Toggle arg1, Toggle arg2) -> {
+                // when starting up things might not be initialized properly
+                if (arg2 != null) {
+                    assert (arg2 instanceof RadioMenuItem);
+
+                    // store in the preferences
+                    if (((RadioMenuItem) arg2).equals(classicLookAndFeel)) {
+                        myPreferences.put(OwnNoteEditor.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name());
+                    } else {
+                        myPreferences.put(OwnNoteEditor.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.oneNote.name());
+                    }
+                }
+            });
+        // 2. select entry based on value of classicLook
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
+            classicLookAndFeel.setSelected(true);
+        } else {
+            oneNoteLookAndFeel.setSelected(true);
+        }
+        
         // init our wrappers to FXML classes...
         notesTable = new OwnNoteTableView(notesTableFXML);
         groupsTable = new OwnNoteTableView(groupsTableFXML);
@@ -231,7 +284,6 @@ public class OwnNoteEditor implements Initializable {
         noteEditor.setEditor(this);
         
         // hide borders
-        borderPane.setTop(null);
         borderPane.setBottom(null);
         borderPane.setLeft(null);
         borderPane.setRight(null);
@@ -244,7 +296,7 @@ public class OwnNoteEditor implements Initializable {
         gridPane.getRowConstraints().add(row2);
         gridPane.getColumnConstraints().clear();
         ColumnConstraints column1 = new ColumnConstraints();
-        if (classicLook) {
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
             column1.setPercentWidth(220.0/1200.0*100.0);
         } else {
             column1.setPercentWidth(400.0/1200.0*100.0);
@@ -258,7 +310,7 @@ public class OwnNoteEditor implements Initializable {
         notesTable.setEditor(this);
         notesTable.setTableType(OwnNoteTableView.TableType.notesTable);
         // set callback, width, value name, cursor type of columns
-        noteNameCol.setTableColumnProperties(this, 0.65, NoteData.getNoteDataName(0), classicLook);
+        noteNameCol.setTableColumnProperties(this, 0.65, NoteData.getNoteDataName(0), OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook));
         noteModifiedCol.setTableColumnProperties(this, 0.25, NoteData.getNoteDataName(1), false);
         noteDeleteCol.setTableColumnProperties(this, 0.10, NoteData.getNoteDataName(2), false);
         noteGroupCol.setTableColumnProperties(this, 0, NoteData.getNoteDataName(3), false);
@@ -267,7 +319,7 @@ public class OwnNoteEditor implements Initializable {
         hideAndDisableAllCreateControls();
         hideAndDisableAllEditControls();
         
-        if (classicLook) {
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
             myGroupList = groupsTable;
             
             hideNoteEditor();
@@ -719,14 +771,14 @@ public class OwnNoteEditor implements Initializable {
         noteEditor.setNoteText("");
         noteEditor.setUserData(null);
         
-        if (classicLook) {
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
             notesTable.setDisable(false);
             notesTable.setVisible(true);
         }
     }
 
     private void showNoteEditor() {
-        if (classicLook) {
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
             notesTable.setDisable(true);
             notesTable.setVisible(false);
         }
@@ -736,7 +788,7 @@ public class OwnNoteEditor implements Initializable {
         noteEditor.setNoteText("");
         noteEditor.setUserData(null);
 
-        if (classicLook) {
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
             showAndEnableInitialEditControls();
         }
     }
@@ -961,7 +1013,7 @@ public class OwnNoteEditor implements Initializable {
         Boolean result = myFileManager.saveNote(newGroupName, newNoteName, noteEditor.getNoteText());
                 
         if (result) {
-            if (classicLook) {
+            if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
                 hideAndDisableAllEditControls();
                 hideNoteEditor();
                 initFromDirectory(false);
