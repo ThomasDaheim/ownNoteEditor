@@ -614,30 +614,52 @@ public class OwnNoteEditor implements Initializable {
     }
     
     @SuppressWarnings("unchecked")
-    public void checkChangedNote() {
+    public boolean checkChangedNote() {
+        Boolean result = true;
+        
         // fix for #13: check for unsaved changes
         if (noteEditor.hasChanged()) {
             Alert alert = new Alert(AlertType.CONFIRMATION);
             alert.setTitle("Unsaved changes!");
-            alert.setHeaderText("Save now?");
+            alert.setHeaderText("Save now or discard your changes?");
+
+            final ButtonType buttonSave = new ButtonType("Save", ButtonData.OTHER);
+            final ButtonType buttonDiscard = new ButtonType("Discard", ButtonData.OTHER);
+            alert.getButtonTypes().setAll(buttonSave, buttonDiscard);
+
+            // TF: 20151229: cancel doesn#t work since there seems to be no way to avoid change of focus
+            // and clicking on other note or group => UI would show a different note than is actualy edited
+            // final ButtonType buttonCancel = new ButtonType("Cancel", ButtonData.OTHER);
+            // alert.getButtonTypes().setAll(buttonSave, buttonDiscard, buttonCancel);
 
             Optional<ButtonType> saveChanges = alert.showAndWait();
             alert.close();
-            if (saveChanges.isPresent() && ButtonType.OK.equals(saveChanges.get())) {
-                final NoteData prevNote =
-                        new NoteData((Map<String, String>) noteEditor.getUserData());
-                if (saveNoteWrapper(prevNote.getGroupName(), prevNote.getNoteName(), noteEditor.getNoteText())) {
-                    noteEditor.hasBeenSaved();
+            if (saveChanges.isPresent()) {
+                if (saveChanges.get().equals(buttonSave)) {
+                    // save note
+                    final NoteData prevNote =
+                            new NoteData((Map<String, String>) noteEditor.getUserData());
+                    if (saveNoteWrapper(prevNote.getGroupName(), prevNote.getNoteName(), noteEditor.getNoteText())) {
+                        noteEditor.hasBeenSaved();
+                    }
                 }
+                
+                // if (saveChanges.get().equals(buttonCancel)) {
+                //     // stop further processing of new file
+                //     result = false;                    
+                // }
             }
         }
 
+        return result;
     }
     
     public boolean editNote(final NoteData curNote) {
         boolean result = false;
         
-        checkChangedNote();
+        if (!checkChangedNote()) {
+            return result;
+        }
         
         // 1. switch views: replace NoteTable with htmlEditor
         showNoteEditor();
@@ -1028,9 +1050,9 @@ public class OwnNoteEditor implements Initializable {
                                 alert.setHeaderText("Options:\nSave own note to different name\nSave own note and overwrite file system changes\nDiscard own changes");
                             }
                             
-                            final ButtonType buttonSave = new ButtonType("Save own", ButtonData.OK_DONE);
+                            final ButtonType buttonSave = new ButtonType("Save own", ButtonData.OTHER);
                             final ButtonType buttonSaveNew = new ButtonType("Save as new", ButtonData.OTHER);
-                            final ButtonType buttonDiscard = new ButtonType("Discard own", ButtonData.CANCEL_CLOSE);
+                            final ButtonType buttonDiscard = new ButtonType("Discard own", ButtonData.OTHER);
                             alert.getButtonTypes().setAll(buttonSave, buttonSaveNew, buttonDiscard);
 
                             Optional<ButtonType> saveChanges = alert.showAndWait();
