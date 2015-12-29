@@ -1028,8 +1028,8 @@ public class OwnNoteEditor implements Initializable {
                                 alert.setHeaderText("Options:\nSave own note to different name\nSave own note and overwrite file system changes\nDiscard own changes");
                             }
                             
-                            final ButtonType buttonSave = new ButtonType("Save as new", ButtonData.OTHER);
-                            final ButtonType buttonSaveNew = new ButtonType("Save own", ButtonData.OK_DONE);
+                            final ButtonType buttonSave = new ButtonType("Save own", ButtonData.OK_DONE);
+                            final ButtonType buttonSaveNew = new ButtonType("Save as new", ButtonData.OTHER);
                             final ButtonType buttonDiscard = new ButtonType("Discard own", ButtonData.CANCEL_CLOSE);
                             alert.getButtonTypes().setAll(buttonSave, buttonSaveNew, buttonDiscard);
 
