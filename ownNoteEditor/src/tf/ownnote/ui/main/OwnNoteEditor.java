@@ -583,7 +583,8 @@ public class OwnNoteEditor implements Initializable {
             notesTable.setEditable(true);
             
             // From documentation - The .root style class is applied to the root node of the Scene instance.
-            notesTable.getScene().getRoot().setStyle("tab-selected-background-color: black");
+            notesTable.getScene().getRoot().setStyle("note-selected-background-color: white");
+            notesTable.getScene().getRoot().setStyle("note-selected-font-color: black");
             
             // in case the group name changes notes neeed to be renamed
             noteNameCol.setOnEditCommit((CellEditEvent<Map, String> t) -> {

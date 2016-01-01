@@ -66,18 +66,19 @@ public class OwnNoteEditorParameters {
             String laf = "";
             if (command.hasOption(OwnNoteEditorParameters.CmdOps.lookAndFeel.toString())) {
                 laf = command.getOptionValue(OwnNoteEditorParameters.CmdOps.lookAndFeel.toString());
-            }
-            switch (laf) {
-                case "classic":
-                    // System.out.println("Option lookAndFeel found: " + laf);
-                    lookAndFeel = LookAndFeel.classic;
-                    break;
-                case "oneNote":
-                    // System.out.println("Option lookAndFeel found: " + laf);
-                    lookAndFeel = LookAndFeel.oneNote;
-                    break;
-                default:
-                    System.out.println("Value \"" + laf + "\" for option lookAndFeel not recognized.");
+
+                switch (laf) {
+                    case "classic":
+                        // System.out.println("Option lookAndFeel found: " + laf);
+                        lookAndFeel = LookAndFeel.classic;
+                        break;
+                    case "oneNote":
+                        // System.out.println("Option lookAndFeel found: " + laf);
+                        lookAndFeel = LookAndFeel.oneNote;
+                        break;
+                    default:
+                        System.out.println("Value \"" + laf + "\" for option lookAndFeel not recognized.");
+                }
             }
         } catch (ParseException ex) {
             //Logger.getLogger(OwnNoteEditorParameters.class.getName()).log(Level.SEVERE, null, ex);

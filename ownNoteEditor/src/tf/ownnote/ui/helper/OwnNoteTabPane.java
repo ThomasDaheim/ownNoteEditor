@@ -59,7 +59,7 @@ public class OwnNoteTabPane implements IGroupListContainer {
     private final MenuItem deleteGroup = new MenuItem("Delete Group");
     
     // available colors for tabs to rotate through
-    private static final String[] tabColors = { "lightgreen", "lightblue", "lightsalmon", "lightyellow", "cadetblue", "goldenrod", "darkorange" };
+    private static final String[] tabColors = { "darkseagreen", "cornflowerblue", "lightsalmon", "gold", "orchid", "cadetblue", "goldenrod", "darkorange", "MediumVioletRed" };
     private int colorCount = 0;
 
     // enable renaming of tabs by showing a textfield as required

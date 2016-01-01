@@ -1,3 +1,6 @@
+/* https://stackoverflow.com/questions/12746459/how-to-change-the-colors-of-the-tableviews-rows */
+/* https://stackoverflow.com/questions/21707178/javafx-how-to-set-selected-row-text-color-in-not-focused-tableview */
+
 /* no focus rectangle and white as default background */
 .root {
     -fx-background-color: white;
@@ -11,7 +14,8 @@
     
     /* our own variables should be initialized here as well to avoid run-time warnings */
     tab-color: white;
-    tab-selected-background-color: -fx-base;
+    note-selected-background-color: -fx-base;
+    note-selected-font-color: black;
     notename-font-weight: bold;
 }
 
@@ -27,7 +31,11 @@
     -fx-background-color: -fx-base;
 }
 .table-view.notesTable .table-row-cell:selected {
-    -fx-background-color: tab-selected-background-color;
+    -fx-background-color: white;
+}
+.table-view.notesTable .table-row-cell:selected .text {
+    -fx-fill: note-selected-font-color;
+    -fx-font-weight: bold;
 }
 /* note name in bold */
 .noteNameCol {
@@ -74,6 +82,7 @@
 }
 .table-view.groupsTable .table-row-cell:selected * {
     -fx-font-color: -fx-text-base-color;
+    -fx-fill: -fx-text-base-color;
 }
 /* group name left */
 .groupNameCol {

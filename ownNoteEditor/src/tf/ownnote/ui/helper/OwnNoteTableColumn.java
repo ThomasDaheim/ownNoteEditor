@@ -28,7 +28,6 @@ package tf.ownnote.ui.helper;
 import java.util.Map;
 import javafx.event.EventHandler;
 import javafx.scene.Cursor;
-import javafx.scene.Node;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.cell.MapValueFactory;
@@ -168,7 +167,6 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
 
 class ObjectCell extends TextFieldTableCell<Map, String> {
     private static final String valueSet = "valueSet";
-    private static final String labelClass = "myLabel";
     
     // store link back to the controller of the scene for callback
     private OwnNoteEditor myOwnNoteEditor;
@@ -208,13 +206,6 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
             
             // add class to indicate null content - to be used in css
             this.getStyleClass().removeAll(ObjectCell.valueSet);
-        }
-        
-        // pass on styles to children so that css can find them
-        // TODO: getChildren() returns empty list
-        for (Node childNode: this.getChildren()) {
-            childNode.getStyleClass().removeAll(ObjectCell.labelClass);
-            childNode.getStyleClass().add(ObjectCell.labelClass);
         }
     }
 }
