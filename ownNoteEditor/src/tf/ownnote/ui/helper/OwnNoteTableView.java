@@ -162,7 +162,7 @@ public class OwnNoteTableView implements IGroupListContainer {
                 newNote2.setOnAction((ActionEvent event) -> {
                     // no note selected - above empty part of the table
                     final String newGroupName = (String) getTableView().getUserData();
-                    final String newNoteName = "New Note " + getNotesCount();
+                    final String newNoteName = myEditor.uniqueNewNoteNameForGroup(newGroupName);
 
                     if (myEditor.createNoteWrapper(newGroupName, newNoteName)) {
                         myEditor.initFromDirectory(true);
@@ -178,7 +178,7 @@ public class OwnNoteTableView implements IGroupListContainer {
                     final MenuItem newNote1 = new MenuItem("New Note");
                     newNote1.setOnAction((ActionEvent event) -> {
                         final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
-                        final String newNoteName = "New Note " + getNotesCount();
+                        final String newNoteName = myEditor.uniqueNewNoteNameForGroup(curNote.getGroupName());
 
                         if (myEditor.createNoteWrapper(curNote.getGroupName(), newNoteName)) {
                             myEditor.initFromDirectory(true);

@@ -468,6 +468,12 @@ public class OwnNoteFileManager {
         // deleting a group is removing the group name from the note name
         return renameGroup(groupName, GroupData.NOT_GROUPED);
     }
+    
+    public boolean noteExists(final String groupName, final String noteName) {
+        final String fileName = buildNoteName(groupName, noteName);
+
+        return Files.exists(Paths.get(this.ownNotePath, fileName));
+    }
 
     private String formatFileTime(final LocalDateTime filetime) {
         assert filetime != null;

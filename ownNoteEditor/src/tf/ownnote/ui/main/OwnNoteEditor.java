@@ -103,6 +103,8 @@ public class OwnNoteEditor implements Initializable {
     private final static String RECENTOWNCLOUDPATH = "recentOwnCloudPath";
     private final static String RECENTLOOKANDFEEL = "recentLookAndFeel";
     
+    private final static String NEWNOTENAME = "New Note";
+    
     private final static int TEXTFIELDWIDTH = 100;
     
     private final List<String> realGroupNames = new LinkedList<String> ();
@@ -1070,6 +1072,18 @@ public class OwnNoteEditor implements Initializable {
             noteEditor.setUserData(null);
         }
     }
+    
+    public String uniqueNewNoteNameForGroup(final String groupName) {
+        String result;
+        int newCount = myGroupList.getNotesCount();
+        
+        do {
+            result = OwnNoteEditor.NEWNOTENAME + " " + newCount;
+            newCount++;
+        } while(myFileManager.noteExists(groupName, result));
+        
+        return result;
+    }
 
     @SuppressWarnings("unchecked")
     public void processFileChange(final WatchEvent.Kind<?> eventKind, final Path filePath) {
@@ -1123,7 +1137,7 @@ public class OwnNoteEditor implements Initializable {
                                     // save own note under new name
                                     final NoteData saveNote =
                                             new NoteData((Map<String, String>) noteEditor.getUserData());
-                                    final String newNoteName = "New Note " + myGroupList.getNotesCount();
+                                    final String newNoteName = uniqueNewNoteNameForGroup(saveNote.getGroupName());
                                     if (createNoteWrapper(saveNote.getGroupName(), newNoteName)) {
                                         if (saveNoteWrapper(saveNote.getGroupName(), newNoteName, noteEditor.getNoteText())) {
                                             noteEditor.hasBeenSaved();
