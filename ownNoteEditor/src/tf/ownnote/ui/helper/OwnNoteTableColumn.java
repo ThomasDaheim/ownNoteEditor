@@ -188,6 +188,7 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
             return;
         }
         super.startEdit();
+        
     }
     
     @Override

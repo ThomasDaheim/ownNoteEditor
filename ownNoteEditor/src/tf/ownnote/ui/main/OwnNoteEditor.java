@@ -1051,10 +1051,14 @@ public class OwnNoteEditor implements Initializable {
         });
     }
 
-    @SuppressWarnings("unchecked")
     public void setNotesTableForNewTab(String style) {
         notesTable.setStyle(style);
-
+        
+        selectFirstOrCurrentNote();
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void selectFirstOrCurrentNote() {
         // select first or current note - if any
         if (!notesTable.getItems().isEmpty()) {
             // check if current edit is ongoing AND note in the select tab (can happen with drag & drop!)
@@ -1169,6 +1173,7 @@ public class OwnNoteEditor implements Initializable {
                 final String curGroupName = myGroupList.getCurrentGroup().getGroupName();
 
                 initFromDirectory(true);
+                selectFirstOrCurrentNote();
                 
                 // but only if group still exists in the list!
                 final List<String> allGroupNames = new LinkedList<String>(realGroupNames);

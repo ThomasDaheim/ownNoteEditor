@@ -47,7 +47,7 @@
     -fx-alignment: CENTER;
 }
 .table-view.notesTable .table-row-cell .noteModifiedCol {
-    -fx-opacity: 0.3;
+    -fx-opacity: 0.75;
 }
 /* delete icon only when selected, red on hover */
 .noteDeleteCol:filled {
