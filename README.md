@@ -1,9 +1,13 @@
 # ownNoteEditor
 JavaFX editor for the ownNote files locally stored in ownCloud folder
 
-This is (so far) mainly a self-learn project to understand how JavaFX works. Uploaded here since it might be useful/helpful for others.
-
 Aim was to mimic the behaviour of the ownNote web client using JavaFX and working directly on the owNote files in a local ownCloud directory. This code does NOT update any of the SQL tables used by owNote - but so far this doesn't seem to impact anything.
+
+V 2.0: Various improvements have been added:
+
+* New option to change look & feel to something similar to OneNote, incl. drag & drop of notes, reordering group tabs, ...
+* The ownCloud directory is monitored for changes and group & notes lists are updated in case of changes
+* Bugfixes
 
 See https://github.com/Fmstrat/ownnote for ownNote.
 
@@ -26,6 +30,14 @@ If you want to, you can reference your locally synced notes dir directly with a 
 ```
 --ownCloudDir="C:\owncloudpath\Notes"
 ```
+
+To change to look and feel you can use
+
+```
+--lookAndFeel="classic" or "oneNote"
+```
+
+Both things can also be changed using the UI.
 
 ## create a Mac OS X .app bundle
 

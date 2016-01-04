@@ -35,12 +35,16 @@ import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
+import tf.ownnote.ui.helper.OwnNoteEditorParameters;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public class OwnNoteEditorManager extends Application {
+
+    private final static OwnNoteEditorParameters parameters = OwnNoteEditorParameters.getInstance();
+    private OwnNoteEditor controller;
     
     /**
      * @param args the command line arguments
@@ -66,21 +70,46 @@ public class OwnNoteEditorManager extends Application {
         FXMLLoader fxmlLoader = null;
         BorderPane pane = null;
         try {
+            // now we have three kinds of parameters :-(
+            // 1) named: name, value pairs from jnlp
+            // 2) unnamed: values only from jnlp
+            // 3) raw: good, old command line parameters
+            // http://java-buddy.blogspot.de/2014/02/get-parametersarguments-in-javafx.html
+
+            // for now just use raw parameters since the code as lready there for this :-)
+            // let some one else deal with the command line parameters
+            Parameters myParams = getParameters();
+            if ((myParams.getRaw() != null) && !myParams.getRaw().isEmpty()) {
+                OwnNoteEditorManager.parameters.init(myParams.getRaw().toArray(new String[0]));
+            } else {
+                OwnNoteEditorManager.parameters.init(null);
+            }
+
             fxmlLoader = new FXMLLoader(OwnNoteEditorManager.class.getResource("OwnNoteEditor.fxml"));
             pane =(BorderPane) fxmlLoader.load();
             
+            primaryStage.setScene(new Scene(pane, 1200, 600));
+            primaryStage.setTitle("OwnNote Editor"); 
+            primaryStage.getIcons().add(new Image(OwnNoteEditorManager.class.getResourceAsStream("OwnNoteEditorManager.png")));
+            primaryStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/tf/ownnote/ui/css/ownnote.css").toExternalForm());
+            
             // set passed parameters for later use
-            OwnNoteEditor controller = fxmlLoader.getController();
-            controller.setParameters(getParameters());
+            controller = fxmlLoader.getController();
+            controller.setParameters();            
         } catch (IOException ex) {
             Logger.getLogger(OwnNoteEditorManager.class.getName()).log(Level.SEVERE, null, ex);
             System.exit(-1); 
         }
-        primaryStage.setScene(new Scene(pane, 1200, 600));
-        primaryStage.setTitle("OwnNote Editor"); 
-        primaryStage.getIcons().add(new Image(OwnNoteEditorManager.class.getResourceAsStream("OwnNoteEditorManager.png")));
-        primaryStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/tf/ownnote/ui/css/ownnote.css").toExternalForm());
         primaryStage.show();
+    }
+    
+    @Override
+    public void stop() throws Exception {
+        super.stop();
+        
+        if (controller != null) {
+            controller.stop();
+        }
     }
     
 }
