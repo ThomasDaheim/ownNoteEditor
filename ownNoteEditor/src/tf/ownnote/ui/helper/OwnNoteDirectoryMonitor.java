@@ -61,7 +61,7 @@ public class OwnNoteDirectoryMonitor {
     
     /**
      * Use to end watcher thread
-     * If not, it will keep on running until forecfully terminated
+     * If not, it will keep on running until forcefully terminated
      */
     public void stop() {
         // stop the old thread if running
@@ -181,11 +181,21 @@ public class OwnNoteDirectoryMonitor {
         @Override
         @SuppressWarnings("unchecked")
         public void run() {
-            WatchKey key;
+            WatchKey key = null;
             while(running) {
                 if (enabled) {
+                    // fix for CPU-load issue - do nothing for a while
                     try {
-                        key = watcher.poll();
+                        Thread.sleep(500);
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(OwnNoteDirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                    
+                    try {
+                        // due to wait loop above the watcher might have been deleted due to notes directory change
+                        if (watcher != null) {
+                            key = watcher.poll();
+                        }
                     } catch (ClosedWatchServiceException ex) {
                         // System.out.printf("Time %s: Exception\n", myEditor.getCurrentTimeStamp());
                         Logger.getLogger(OwnNoteDirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
