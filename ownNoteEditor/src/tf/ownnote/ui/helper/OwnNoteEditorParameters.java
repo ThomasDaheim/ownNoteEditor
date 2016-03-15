@@ -16,7 +16,8 @@ public class OwnNoteEditorParameters {
     // list of command line parameters we can understand
     public static enum CmdOps {
         ownCloudDir,
-        lookAndFeel
+        lookAndFeel,
+        leftColWidthInc
     };
 
     public static enum LookAndFeel {
@@ -30,6 +31,11 @@ public class OwnNoteEditorParameters {
     // value for lookAndFeel, if set
     private LookAndFeel lookAndFeel = null;
     
+    // value for increment of left column width in percent, if set
+    private Integer leftColWidthInc = 0;
+    private final static int MAX_LEFTCOLWIDTHINC = 20;
+    private final static int MIN_LEFTCOLWIDTHINC = -10;
+    
     private OwnNoteEditorParameters() {
         // Exists only to defeat instantiation.
     }
@@ -41,6 +47,11 @@ public class OwnNoteEditorParameters {
     public void init(final String [ ] args) {
         // thats all options we can handle
         Options options = new Options();
+        options.addOption(
+                OwnNoteEditorParameters.CmdOps.leftColWidthInc.toString(), 
+                OwnNoteEditorParameters.CmdOps.leftColWidthInc.toString(), 
+                true, 
+                "Increment in percent for left column width - <arg> can be a number from -10 to +20");
         options.addOption(
                 OwnNoteEditorParameters.CmdOps.lookAndFeel.toString(), 
                 OwnNoteEditorParameters.CmdOps.lookAndFeel.toString(), 
@@ -63,11 +74,11 @@ public class OwnNoteEditorParameters {
                 // System.out.println("Option ownCloudDir found: " + ownCloudDir);
             }
             
-            String laf = "";
+            String value = "";
             if (command.hasOption(OwnNoteEditorParameters.CmdOps.lookAndFeel.toString())) {
-                laf = command.getOptionValue(OwnNoteEditorParameters.CmdOps.lookAndFeel.toString());
+                value = command.getOptionValue(OwnNoteEditorParameters.CmdOps.lookAndFeel.toString());
 
-                switch (laf) {
+                switch (value) {
                     case "classic":
                         // System.out.println("Option lookAndFeel found: " + laf);
                         lookAndFeel = LookAndFeel.classic;
@@ -77,18 +88,30 @@ public class OwnNoteEditorParameters {
                         lookAndFeel = LookAndFeel.oneNote;
                         break;
                     default:
-                        System.out.println("Value \"" + laf + "\" for option lookAndFeel not recognized.");
+                        System.out.println("Value \"" + value + "\" for option lookAndFeel not recognized.");
                 }
             }
-        } catch (ParseException ex) {
+            
+            if (command.hasOption(OwnNoteEditorParameters.CmdOps.leftColWidthInc.toString())) {
+                value = command.getOptionValue(OwnNoteEditorParameters.CmdOps.leftColWidthInc.toString());
+                
+                leftColWidthInc = Integer.parseInt(value);
+                
+                if ((leftColWidthInc < MIN_LEFTCOLWIDTHINC) || (leftColWidthInc > MAX_LEFTCOLWIDTHINC)) {
+                    System.out.println("Value \"" + value + "\" for option leftColWidthInc outside of valid range -10 ... +20.");
+                    leftColWidthInc = 0;
+                }
+            }
+            
+        } catch (ParseException|NumberFormatException ex) {
             //Logger.getLogger(OwnNoteEditorParameters.class.getName()).log(Level.SEVERE, null, ex);
             // fix for issue #19: add usage screen in case of incorrect options
             help(options);
         }
     }
 
-    public String getOwnCloudDir() {
-        return ownCloudDir;
+    public Optional<String> getOwnCloudDir() {
+        return Optional.ofNullable(ownCloudDir);
     }
 
     public void setOwnCloudDir(final String ownCloudDir) {
@@ -101,6 +124,14 @@ public class OwnNoteEditorParameters {
 
     public void setLookAndFeel(final LookAndFeel lookAndFeel) {
         this.lookAndFeel = lookAndFeel;
+    }
+
+    public Optional<Integer> getLeftColWidthInc() {
+        return Optional.ofNullable(leftColWidthInc);
+    }
+
+    public void setLookAndFeel(final Integer leftColWidthInc) {
+        this.leftColWidthInc = leftColWidthInc;
     }
     
     private void help(final Options options) {

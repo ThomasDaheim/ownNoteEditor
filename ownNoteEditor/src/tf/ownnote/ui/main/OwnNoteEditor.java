@@ -39,7 +39,6 @@ import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.prefs.Preferences;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -81,6 +80,7 @@ import tf.ownnote.ui.helper.GroupData;
 import tf.ownnote.ui.helper.IGroupListContainer;
 import tf.ownnote.ui.helper.NoteData;
 import tf.ownnote.ui.helper.OwnNoteEditorParameters;
+import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
 import tf.ownnote.ui.helper.OwnNoteTabPane;
@@ -99,10 +99,6 @@ public class OwnNoteEditor implements Initializable {
 
     private final static OwnNoteEditorParameters parameters = OwnNoteEditorParameters.getInstance();
     
-    private Preferences myPreferences = null;
-    private final static String RECENTOWNCLOUDPATH = "recentOwnCloudPath";
-    private final static String RECENTLOOKANDFEEL = "recentLookAndFeel";
-    
     private final static String NEWNOTENAME = "New Note";
     
     private final static int TEXTFIELDWIDTH = 100;
@@ -116,7 +112,12 @@ public class OwnNoteEditor implements Initializable {
     private boolean handleQuickSave = false;
     // should we show standard ownNote face or oneNotes?
     private OwnNoteEditorParameters.LookAndFeel classicLook;
-    
+    private Double classicGroupWidth;
+    private Double oneNoteGroupWidth;
+
+    // widht increment for left column
+    private Integer leftColWidthInc;
+
     private IGroupListContainer myGroupList = null;
     
     private OwnNoteTabPane groupsPane = null;
@@ -202,11 +203,20 @@ public class OwnNoteEditor implements Initializable {
     
     public void stop() {
         myFileManager.stop();
+        
+        // store current percentage of group column width
+        // if increment is passed as parameter, we need to remove it from the current value
+        // otherwise, the percentage grows with each call :-)
+        final String percentWidth = String.valueOf(gridPane.getColumnConstraints().get(0).getPercentWidth() - leftColWidthInc);
+        // store in the preferences
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
+            OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTCLASSICGROUPWIDTH, percentWidth);
+        } else {
+            OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTONENOTEGROUPWIDTH, percentWidth);
+        }
     }
     
     public void setParameters() {
-        myPreferences = Preferences.userNodeForPackage(OwnNoteEditor.class);
-
         // set look & feel    
         // 1. use passed parameters
         if (OwnNoteEditor.parameters.getLookAndFeel().isPresent()) {
@@ -216,24 +226,43 @@ public class OwnNoteEditor implements Initializable {
             // 2. try the preference settings - what was used last time?
             try {
                 classicLook = OwnNoteEditorParameters.LookAndFeel.valueOf(
-                        myPreferences.get(OwnNoteEditor.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
+                        OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
                 // System.out.println("Using preference for classicLook: " + classicLook);
             } catch (SecurityException ex) {
                 Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        // 3. paint the look
+        
+        // issue #30: get percentages for group column width for classic and onenote look & feel
+        try {
+            classicGroupWidth = Double.valueOf(
+                    OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTCLASSICGROUPWIDTH, "18.3333333"));
+            oneNoteGroupWidth = Double.valueOf(
+                    OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTONENOTEGROUPWIDTH, "33.3333333"));
+        } catch (SecurityException ex) {
+            Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        // check for increment passed as parameter
+        if (OwnNoteEditor.parameters.getLeftColWidthInc().isPresent()) {
+            leftColWidthInc = OwnNoteEditor.parameters.getLeftColWidthInc().get();
+            
+            // add to the preferences
+            classicGroupWidth += leftColWidthInc;
+            oneNoteGroupWidth += leftColWidthInc;
+        }
+        
+        // paint the look
         initEditor();
 
         // init pathlabel to parameter or nothing
         String pathname = "";
         // 1. use any passed parameters
-        if (OwnNoteEditor.parameters.getOwnCloudDir() != null) {
-            pathname = OwnNoteEditor.parameters.getOwnCloudDir();
+        if (OwnNoteEditor.parameters.getOwnCloudDir().isPresent()) {
+            pathname = OwnNoteEditor.parameters.getOwnCloudDir().get();
         } else {
             // 2. try the preferences setting - most recent file that was opened
             try {
-                pathname = myPreferences.get(OwnNoteEditor.RECENTOWNCLOUDPATH, "");
+                pathname = OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, "");
                 // System.out.println("Using preference for ownCloudDir: " + pathname);
             } catch (SecurityException ex) {
                 Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
@@ -255,9 +284,9 @@ public class OwnNoteEditor implements Initializable {
 
                     // store in the preferences
                     if (((RadioMenuItem) arg2).equals(classicLookAndFeel)) {
-                        myPreferences.put(OwnNoteEditor.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name());
+                        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name());
                     } else {
-                        myPreferences.put(OwnNoteEditor.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.oneNote.name());
+                        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.oneNote.name());
                     }
                 }
             });
@@ -299,9 +328,9 @@ public class OwnNoteEditor implements Initializable {
         gridPane.getColumnConstraints().clear();
         ColumnConstraints column1 = new ColumnConstraints();
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
-            column1.setPercentWidth(220.0/1200.0*100.0);
+            column1.setPercentWidth(classicGroupWidth);
         } else {
-            column1.setPercentWidth(400.0/1200.0*100.0);
+            column1.setPercentWidth(oneNoteGroupWidth);
         }
         column1.setHgrow(Priority.ALWAYS);
         ColumnConstraints column2 = new ColumnConstraints();
@@ -606,7 +635,7 @@ public class OwnNoteEditor implements Initializable {
         ownCloudPath.textProperty().addListener(
             (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
                 // store in the preferences
-                myPreferences.put(OwnNoteEditor.RECENTOWNCLOUDPATH, newValue);
+                OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, newValue);
 
                 // scan files in new directory
                 initFromDirectory(false);
