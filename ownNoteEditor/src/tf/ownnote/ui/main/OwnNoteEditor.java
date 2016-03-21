@@ -61,6 +61,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.RadioMenuItem;
+import javafx.scene.control.SplitPane;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellEditEvent;
@@ -73,7 +74,9 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.RowConstraints;
+import javafx.scene.layout.StackPane;
 import javafx.scene.web.HTMLEditor;
 import javafx.stage.DirectoryChooser;
 import tf.ownnote.ui.helper.GroupData;
@@ -115,9 +118,9 @@ public class OwnNoteEditor implements Initializable {
     private Double classicGroupWidth;
     private Double oneNoteGroupWidth;
 
-    // widht increment for left column
+    // width increment for left column
     private Integer leftColWidthInc;
-
+    
     private IGroupListContainer myGroupList = null;
     
     private OwnNoteTabPane groupsPane = null;
@@ -125,6 +128,7 @@ public class OwnNoteEditor implements Initializable {
     private BorderPane borderPane;
     @FXML
     private GridPane gridPane;
+    private SplitPane dividerPane;
     @FXML
     private TableView<Map<String, String>> notesTableFXML;
     private OwnNoteTableView notesTable = null;
@@ -350,7 +354,17 @@ public class OwnNoteEditor implements Initializable {
         hideAndDisableAllCreateControls();
         hideAndDisableAllEditControls();
         
+        // issue #30: store left and right regions of the second row in the grid - they are needed later on for the divider pane
+        Region leftRegion;
+        Region rightRegion;
+        
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
+            // classic look & feel: groups table to the right, notes table or editor to the left
+            leftRegion = groupsTableFXML;
+            final StackPane rightPane = new StackPane();
+            rightPane.getChildren().addAll(notesTableFXML, noteEditorFXML);
+            rightRegion = rightPane;
+            
             myGroupList = groupsTable;
             
             hideNoteEditor();
@@ -587,6 +601,10 @@ public class OwnNoteEditor implements Initializable {
             });
         
         } else {
+            // oneNote look & feel: notes table to the right, editor to the left
+            leftRegion = notesTableFXML;
+            rightRegion = noteEditorFXML;
+            
             myGroupList = groupsPane;
             
             // oneNote look and feel
@@ -598,8 +616,8 @@ public class OwnNoteEditor implements Initializable {
             buttonBox.setVisible(false);
             
             // 2. notes table in the lower left grid panel and tab pane
-            gridPane.getChildren().remove(notesTable.getTableView());
-            gridPane.add(notesTable.getTableView(), 0, 1);
+            gridPane.getChildren().remove(notesTableFXML);
+            gridPane.add(notesTableFXML, 0, 1);
             
             // 3. and can't be deleted with trashcan
             noteNameCol.setWidthPercentage(0.75);
@@ -655,6 +673,43 @@ public class OwnNoteEditor implements Initializable {
                 //System.out.println("No Directory selected");
             } else {
                 ownCloudPath.setText(selectedDirectory.getAbsolutePath());
+            }
+        });
+
+        // issue #30: add transparent split pane on top of the grid pane to have a moveable divider
+        dividerPane = new SplitPane();
+        // add content from second grid row to the split pane
+        dividerPane.getItems().addAll(leftRegion, rightRegion);
+        dividerPane.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth() / 100f);
+        // show split pane as second row
+        gridPane.add(dividerPane, 0, 1);
+        GridPane.setColumnSpan(dividerPane, 2);
+        
+        //Constrain max size of left & right pane:
+        leftRegion.minWidthProperty().bind(dividerPane.widthProperty().multiply(0.15));
+        leftRegion.maxWidthProperty().bind(dividerPane.widthProperty().multiply(0.5));
+        rightRegion.minWidthProperty().bind(dividerPane.widthProperty().multiply(0.5));
+        rightRegion.maxWidthProperty().bind(dividerPane.widthProperty().multiply(0.85));
+
+        // move divider with gridpane on resize
+        gridPane.widthProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                // change later to avoid loop calls when resizing scene
+                Platform.runLater(() -> {
+                    dividerPane.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth() / 100f);
+                });
+            }
+        });
+        
+        // change width of gridpane when moving divider
+        dividerPane.getDividers().get(0).positionProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                // change later to avoid loop calls when resizing scene
+                Platform.runLater(() -> {
+                    final double newPercentage = newValue.doubleValue() * 100f;
+                    gridPane.getColumnConstraints().get(0).setPercentWidth(newPercentage);
+                    gridPane.getColumnConstraints().get(1).setPercentWidth(100 - newPercentage);
+                });
             }
         });
     }
