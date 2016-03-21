@@ -134,3 +134,13 @@
 .tab-pane .tab-content-area {
     -fx-background-color: tab-color;
 }
+
+/* style the invisible splitpane */
+.split-pane {  
+    -fx-box-border: transparent;  
+    -fx-background-color: transparent;
+}
+.split-pane > .split-pane-divider {  
+    -fx-padding: 0 1 0 1;  
+    -fx-background-color: darkgray;
+} 

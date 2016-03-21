@@ -61,6 +61,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.RadioMenuItem;
+import javafx.scene.control.SplitPane;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellEditEvent;
@@ -74,6 +75,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.RowConstraints;
+import javafx.scene.layout.StackPane;
 import javafx.scene.web.HTMLEditor;
 import javafx.stage.DirectoryChooser;
 import tf.ownnote.ui.helper.GroupData;
@@ -115,9 +117,9 @@ public class OwnNoteEditor implements Initializable {
     private Double classicGroupWidth;
     private Double oneNoteGroupWidth;
 
-    // widht increment for left column
+    // width increment for left column
     private Integer leftColWidthInc;
-
+    
     private IGroupListContainer myGroupList = null;
     
     private OwnNoteTabPane groupsPane = null;
@@ -125,6 +127,7 @@ public class OwnNoteEditor implements Initializable {
     private BorderPane borderPane;
     @FXML
     private GridPane gridPane;
+    private SplitPane dividerPane;
     @FXML
     private TableView<Map<String, String>> notesTableFXML;
     private OwnNoteTableView notesTable = null;
@@ -655,6 +658,41 @@ public class OwnNoteEditor implements Initializable {
                 //System.out.println("No Directory selected");
             } else {
                 ownCloudPath.setText(selectedDirectory.getAbsolutePath());
+            }
+        });
+
+        // issue #30: add transparent split pane on top of the grid pane to have a moveable divider
+        dividerPane = new SplitPane();
+        final StackPane leftSP = new StackPane();
+        final StackPane rightSP = new StackPane();
+        dividerPane.getItems().addAll(leftSP, rightSP);
+        dividerPane.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth() / 100f);
+        gridPane.add(dividerPane, 0, 1);
+        GridPane.setColumnSpan(dividerPane, 2);
+        
+        //Constrain max size of left & right pane:
+        leftSP.minWidthProperty().bind(dividerPane.widthProperty().multiply(0.15));
+        leftSP.maxWidthProperty().bind(dividerPane.widthProperty().multiply(0.5));
+        rightSP.minWidthProperty().bind(dividerPane.widthProperty().multiply(0.5));
+        rightSP.maxWidthProperty().bind(dividerPane.widthProperty().multiply(0.85));
+        
+        // move divider with gridpane on resize
+        gridPane.widthProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                Platform.runLater(() -> {
+                    dividerPane.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth() / 100f);
+                });
+            }
+        });
+        
+        // change width of gridpane when moving divider
+        dividerPane.getDividers().get(0).positionProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                Platform.runLater(() -> {
+                    final double newPercentage = newValue.doubleValue() * 100f;
+                    gridPane.getColumnConstraints().get(0).setPercentWidth(newPercentage);
+                    gridPane.getColumnConstraints().get(1).setPercentWidth(100 - newPercentage);
+                });
             }
         });
     }
