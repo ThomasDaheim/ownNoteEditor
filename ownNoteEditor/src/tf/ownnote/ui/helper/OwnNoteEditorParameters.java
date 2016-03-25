@@ -16,8 +16,7 @@ public class OwnNoteEditorParameters {
     // list of command line parameters we can understand
     public static enum CmdOps {
         ownCloudDir,
-        lookAndFeel,
-        leftColWidthInc
+        lookAndFeel
     };
 
     public static enum LookAndFeel {
@@ -31,11 +30,6 @@ public class OwnNoteEditorParameters {
     // value for lookAndFeel, if set
     private LookAndFeel lookAndFeel = null;
     
-    // value for increment of left column width in percent, if set
-    private Integer leftColWidthInc = 0;
-    private final static int MAX_LEFTCOLWIDTHINC = 20;
-    private final static int MIN_LEFTCOLWIDTHINC = -10;
-    
     private OwnNoteEditorParameters() {
         // Exists only to defeat instantiation.
     }
@@ -47,11 +41,6 @@ public class OwnNoteEditorParameters {
     public void init(final String [ ] args) {
         // thats all options we can handle
         Options options = new Options();
-        options.addOption(
-                OwnNoteEditorParameters.CmdOps.leftColWidthInc.toString(), 
-                OwnNoteEditorParameters.CmdOps.leftColWidthInc.toString(), 
-                true, 
-                "Increment in percent for left column width - <arg> can be a number from -10 to +20");
         options.addOption(
                 OwnNoteEditorParameters.CmdOps.lookAndFeel.toString(), 
                 OwnNoteEditorParameters.CmdOps.lookAndFeel.toString(), 
@@ -92,17 +81,6 @@ public class OwnNoteEditorParameters {
                 }
             }
             
-            if (command.hasOption(OwnNoteEditorParameters.CmdOps.leftColWidthInc.toString())) {
-                value = command.getOptionValue(OwnNoteEditorParameters.CmdOps.leftColWidthInc.toString());
-                
-                leftColWidthInc = Integer.parseInt(value);
-                
-                if ((leftColWidthInc < MIN_LEFTCOLWIDTHINC) || (leftColWidthInc > MAX_LEFTCOLWIDTHINC)) {
-                    System.out.println("Value \"" + value + "\" for option leftColWidthInc outside of valid range -10 ... +20.");
-                    leftColWidthInc = 0;
-                }
-            }
-            
         } catch (ParseException|NumberFormatException ex) {
             //Logger.getLogger(OwnNoteEditorParameters.class.getName()).log(Level.SEVERE, null, ex);
             // fix for issue #19: add usage screen in case of incorrect options
@@ -126,14 +104,6 @@ public class OwnNoteEditorParameters {
         this.lookAndFeel = lookAndFeel;
     }
 
-    public Optional<Integer> getLeftColWidthInc() {
-        return Optional.ofNullable(leftColWidthInc);
-    }
-
-    public void setLookAndFeel(final Integer leftColWidthInc) {
-        this.leftColWidthInc = leftColWidthInc;
-    }
-    
     private void help(final Options options) {
         // This prints out some help
         HelpFormatter formater = new HelpFormatter();

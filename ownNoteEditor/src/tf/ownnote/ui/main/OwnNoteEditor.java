@@ -117,9 +117,6 @@ public class OwnNoteEditor implements Initializable {
     private OwnNoteEditorParameters.LookAndFeel classicLook;
     private Double classicGroupWidth;
     private Double oneNoteGroupWidth;
-
-    // width increment for left column
-    private Integer leftColWidthInc;
     
     private IGroupListContainer myGroupList = null;
     
@@ -211,7 +208,7 @@ public class OwnNoteEditor implements Initializable {
         // store current percentage of group column width
         // if increment is passed as parameter, we need to remove it from the current value
         // otherwise, the percentage grows with each call :-)
-        final String percentWidth = String.valueOf(gridPane.getColumnConstraints().get(0).getPercentWidth() - leftColWidthInc);
+        final String percentWidth = String.valueOf(gridPane.getColumnConstraints().get(0).getPercentWidth());
         // store in the preferences
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
             OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTCLASSICGROUPWIDTH, percentWidth);
@@ -246,15 +243,7 @@ public class OwnNoteEditor implements Initializable {
         } catch (SecurityException ex) {
             Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
         }
-        // check for increment passed as parameter
-        if (OwnNoteEditor.parameters.getLeftColWidthInc().isPresent()) {
-            leftColWidthInc = OwnNoteEditor.parameters.getLeftColWidthInc().get();
-            
-            // add to the preferences
-            classicGroupWidth += leftColWidthInc;
-            oneNoteGroupWidth += leftColWidthInc;
-        }
-        
+
         // paint the look
         initEditor();
 
@@ -276,6 +265,27 @@ public class OwnNoteEditor implements Initializable {
         ownCloudPath.setText(pathname);
     }
 
+    //
+    // basic setup is a 2x2 gridpane with a 2 part splitpane in the lower row spanning both cols
+    //
+    // ------------------------------------------------------
+    // |                          |                         |
+    // | pathBox                  | classic: buttonBox      |
+    // |                          | oneNote: groupsPaneFXML |
+    // |                          |                         |
+    // ------------------------------------------------------
+    // |                          |                         |
+    // | dividerPane              |                         |
+    // |                          |                         |
+    // | classic: groupsTableFXML | classic: notesTableFXML |
+    // | oneNote: notesTableFXML  | both: noteEditorFXML    |
+    // |                          |                         |
+    // ------------------------------------------------------
+    //
+    // to be able to do proper layout in scenebuilder everything except the dividerPane
+    // are added to the fxml into the gridpane - code below does the re-arrangement based on 
+    // value of classicLook
+    //
     @SuppressWarnings("unchecked")
     private void initEditor() {
         // init menu handling
@@ -359,12 +369,6 @@ public class OwnNoteEditor implements Initializable {
         Region rightRegion;
         
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
-            // classic look & feel: groups table to the right, notes table or editor to the left
-            leftRegion = groupsTableFXML;
-            final StackPane rightPane = new StackPane();
-            rightPane.getChildren().addAll(notesTableFXML, noteEditorFXML);
-            rightRegion = rightPane;
-            
             myGroupList = groupsTable;
             
             hideNoteEditor();
@@ -600,11 +604,24 @@ public class OwnNoteEditor implements Initializable {
                 }
             });
         
-        } else {
-            // oneNote look & feel: notes table to the right, editor to the left
-            leftRegion = notesTableFXML;
-            rightRegion = noteEditorFXML;
+            // classic look & feel: groups table to the right, notes table or editor to the left
+            leftRegion = groupsTableFXML;
+            final StackPane rightPane = new StackPane();
+            rightPane.getChildren().addAll(notesTableFXML, noteEditorFXML);
+            rightRegion = rightPane;
             
+            // remove things not shown directly in the gridPane
+            // groupsPaneFXML: only in oneNote
+            gridPane.getChildren().remove(groupsPaneFXML);
+            // groupsTableFXML: shown in dividerPane
+            gridPane.getChildren().remove(groupsTableFXML);
+            // notesTableFXML: shown in dividerPane
+            gridPane.getChildren().remove(notesTableFXML);
+            // noteEditorFXML: shown in dividerPane
+            gridPane.getChildren().remove(noteEditorFXML);
+
+        } else {
+
             myGroupList = groupsPane;
             
             // oneNote look and feel
@@ -614,10 +631,6 @@ public class OwnNoteEditor implements Initializable {
 
             buttonBox.setDisable(true);
             buttonBox.setVisible(false);
-            
-            // 2. notes table in the lower left grid panel and tab pane
-            gridPane.getChildren().remove(notesTableFXML);
-            gridPane.add(notesTableFXML, 0, 1);
             
             // 3. and can't be deleted with trashcan
             noteNameCol.setWidthPercentage(0.75);
@@ -647,6 +660,20 @@ public class OwnNoteEditor implements Initializable {
             groupsPane.setDisable(false);
             groupsPane.setVisible(true);
             groupsPane.setEditor(this);
+            
+            // oneNote look & feel: notes table to the right, editor to the left
+            leftRegion = notesTableFXML;
+            rightRegion = noteEditorFXML;
+            
+            // remove things not shown directly in the gridPane
+            // buttonBox: only in classic
+            gridPane.getChildren().remove(buttonBox);
+            // groupsTableFXML: shown in dividerPane
+            gridPane.getChildren().remove(groupsTableFXML);
+            // notesTableFXML: shown in dividerPane
+            gridPane.getChildren().remove(notesTableFXML);
+            // noteEditorFXML: shown in dividerPane
+            gridPane.getChildren().remove(noteEditorFXML);
         }
         
         // add changelistener to pathlabel - not that you should actually change its value during runtime...
