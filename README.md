@@ -39,14 +39,6 @@ To change to look and feel you can use
 
 Both things can also be changed using the UI.
 
-To increase the width of the left panel (note names in classic, group names in oneNote)
-
-```
---leftColWidthInc="-10" to "+20"
-```
-
-The number specifies the increase / decrease of percentage of the panel width of the full width. This can't yet be set using the UI.
-
 ## create a Mac OS X .app bundle
 
 ```
