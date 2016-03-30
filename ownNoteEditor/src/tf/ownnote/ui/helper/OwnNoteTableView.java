@@ -225,7 +225,7 @@ public class OwnNoteTableView implements IGroupListContainer {
                         // use note ext as image
                         StackPane dragStagePane = new StackPane();
                         dragStagePane.setStyle("-fx-background-color:#DDDDDD;");
-                        dragStagePane.setPadding(new Insets(5));
+                        dragStagePane.setPadding(new Insets(10));
                         Text dragText = new Text(curNote.getNoteName());
                         StackPane.setAlignment(dragText, Pos.CENTER);
                         dragStagePane.getChildren().add(dragText);
@@ -236,7 +236,7 @@ public class OwnNoteTableView implements IGroupListContainer {
 
                         // https://stackoverflow.com/questions/26515326/create-a-image-from-text-with-background-and-wordwrap
                         WritableImage img =
-                                new WritableImage((int) dragText.getLayoutBounds().getWidth()+10, (int) dragText.getLayoutBounds().getHeight()+10);
+                                new WritableImage((int) dragText.getLayoutBounds().getWidth()+20, (int) dragText.getLayoutBounds().getHeight()+20);
                         dragScene.snapshot(img);
                         
                         db.setDragView(img);

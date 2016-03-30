@@ -39,7 +39,6 @@ import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.prefs.Preferences;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -62,6 +61,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.RadioMenuItem;
+import javafx.scene.control.SplitPane;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellEditEvent;
@@ -74,13 +74,16 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.RowConstraints;
+import javafx.scene.layout.StackPane;
 import javafx.scene.web.HTMLEditor;
 import javafx.stage.DirectoryChooser;
 import tf.ownnote.ui.helper.GroupData;
 import tf.ownnote.ui.helper.IGroupListContainer;
 import tf.ownnote.ui.helper.NoteData;
 import tf.ownnote.ui.helper.OwnNoteEditorParameters;
+import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
 import tf.ownnote.ui.helper.OwnNoteTabPane;
@@ -99,10 +102,6 @@ public class OwnNoteEditor implements Initializable {
 
     private final static OwnNoteEditorParameters parameters = OwnNoteEditorParameters.getInstance();
     
-    private Preferences myPreferences = null;
-    private final static String RECENTOWNCLOUDPATH = "recentOwnCloudPath";
-    private final static String RECENTLOOKANDFEEL = "recentLookAndFeel";
-    
     private final static String NEWNOTENAME = "New Note";
     
     private final static int TEXTFIELDWIDTH = 100;
@@ -116,6 +115,8 @@ public class OwnNoteEditor implements Initializable {
     private boolean handleQuickSave = false;
     // should we show standard ownNote face or oneNotes?
     private OwnNoteEditorParameters.LookAndFeel classicLook;
+    private Double classicGroupWidth;
+    private Double oneNoteGroupWidth;
     
     private IGroupListContainer myGroupList = null;
     
@@ -124,6 +125,7 @@ public class OwnNoteEditor implements Initializable {
     private BorderPane borderPane;
     @FXML
     private GridPane gridPane;
+    private SplitPane dividerPane;
     @FXML
     private TableView<Map<String, String>> notesTableFXML;
     private OwnNoteTableView notesTable = null;
@@ -202,11 +204,20 @@ public class OwnNoteEditor implements Initializable {
     
     public void stop() {
         myFileManager.stop();
+        
+        // store current percentage of group column width
+        // if increment is passed as parameter, we need to remove it from the current value
+        // otherwise, the percentage grows with each call :-)
+        final String percentWidth = String.valueOf(gridPane.getColumnConstraints().get(0).getPercentWidth());
+        // store in the preferences
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
+            OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTCLASSICGROUPWIDTH, percentWidth);
+        } else {
+            OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTONENOTEGROUPWIDTH, percentWidth);
+        }
     }
     
     public void setParameters() {
-        myPreferences = Preferences.userNodeForPackage(OwnNoteEditor.class);
-
         // set look & feel    
         // 1. use passed parameters
         if (OwnNoteEditor.parameters.getLookAndFeel().isPresent()) {
@@ -216,24 +227,35 @@ public class OwnNoteEditor implements Initializable {
             // 2. try the preference settings - what was used last time?
             try {
                 classicLook = OwnNoteEditorParameters.LookAndFeel.valueOf(
-                        myPreferences.get(OwnNoteEditor.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
+                        OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
                 // System.out.println("Using preference for classicLook: " + classicLook);
             } catch (SecurityException ex) {
                 Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        // 3. paint the look
+        
+        // issue #30: get percentages for group column width for classic and onenote look & feel
+        try {
+            classicGroupWidth = Double.valueOf(
+                    OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTCLASSICGROUPWIDTH, "18.3333333"));
+            oneNoteGroupWidth = Double.valueOf(
+                    OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTONENOTEGROUPWIDTH, "33.3333333"));
+        } catch (SecurityException ex) {
+            Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        // paint the look
         initEditor();
 
         // init pathlabel to parameter or nothing
         String pathname = "";
         // 1. use any passed parameters
-        if (OwnNoteEditor.parameters.getOwnCloudDir() != null) {
-            pathname = OwnNoteEditor.parameters.getOwnCloudDir();
+        if (OwnNoteEditor.parameters.getOwnCloudDir().isPresent()) {
+            pathname = OwnNoteEditor.parameters.getOwnCloudDir().get();
         } else {
             // 2. try the preferences setting - most recent file that was opened
             try {
-                pathname = myPreferences.get(OwnNoteEditor.RECENTOWNCLOUDPATH, "");
+                pathname = OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, "");
                 // System.out.println("Using preference for ownCloudDir: " + pathname);
             } catch (SecurityException ex) {
                 Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
@@ -243,6 +265,27 @@ public class OwnNoteEditor implements Initializable {
         ownCloudPath.setText(pathname);
     }
 
+    //
+    // basic setup is a 2x2 gridpane with a 2 part splitpane in the lower row spanning both cols
+    //
+    // ------------------------------------------------------
+    // |                          |                         |
+    // | pathBox                  | classic: buttonBox      |
+    // |                          | oneNote: groupsPaneFXML |
+    // |                          |                         |
+    // ------------------------------------------------------
+    // |                          |                         |
+    // | dividerPane              |                         |
+    // |                          |                         |
+    // | classic: groupsTableFXML | classic: notesTableFXML |
+    // | oneNote: notesTableFXML  | both: noteEditorFXML    |
+    // |                          |                         |
+    // ------------------------------------------------------
+    //
+    // to be able to do proper layout in scenebuilder everything except the dividerPane
+    // are added to the fxml into the gridpane - code below does the re-arrangement based on 
+    // value of classicLook
+    //
     @SuppressWarnings("unchecked")
     private void initEditor() {
         // init menu handling
@@ -255,9 +298,9 @@ public class OwnNoteEditor implements Initializable {
 
                     // store in the preferences
                     if (((RadioMenuItem) arg2).equals(classicLookAndFeel)) {
-                        myPreferences.put(OwnNoteEditor.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name());
+                        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name());
                     } else {
-                        myPreferences.put(OwnNoteEditor.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.oneNote.name());
+                        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.oneNote.name());
                     }
                 }
             });
@@ -299,9 +342,9 @@ public class OwnNoteEditor implements Initializable {
         gridPane.getColumnConstraints().clear();
         ColumnConstraints column1 = new ColumnConstraints();
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
-            column1.setPercentWidth(220.0/1200.0*100.0);
+            column1.setPercentWidth(classicGroupWidth);
         } else {
-            column1.setPercentWidth(400.0/1200.0*100.0);
+            column1.setPercentWidth(oneNoteGroupWidth);
         }
         column1.setHgrow(Priority.ALWAYS);
         ColumnConstraints column2 = new ColumnConstraints();
@@ -320,6 +363,10 @@ public class OwnNoteEditor implements Initializable {
         // only new button visible initially
         hideAndDisableAllCreateControls();
         hideAndDisableAllEditControls();
+        
+        // issue #30: store left and right regions of the second row in the grid - they are needed later on for the divider pane
+        Region leftRegion;
+        Region rightRegion;
         
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
             myGroupList = groupsTable;
@@ -557,7 +604,24 @@ public class OwnNoteEditor implements Initializable {
                 }
             });
         
+            // classic look & feel: groups table to the right, notes table or editor to the left
+            leftRegion = groupsTableFXML;
+            final StackPane rightPane = new StackPane();
+            rightPane.getChildren().addAll(notesTableFXML, noteEditorFXML);
+            rightRegion = rightPane;
+            
+            // remove things not shown directly in the gridPane
+            // groupsPaneFXML: only in oneNote
+            gridPane.getChildren().remove(groupsPaneFXML);
+            // groupsTableFXML: shown in dividerPane
+            gridPane.getChildren().remove(groupsTableFXML);
+            // notesTableFXML: shown in dividerPane
+            gridPane.getChildren().remove(notesTableFXML);
+            // noteEditorFXML: shown in dividerPane
+            gridPane.getChildren().remove(noteEditorFXML);
+
         } else {
+
             myGroupList = groupsPane;
             
             // oneNote look and feel
@@ -567,10 +631,6 @@ public class OwnNoteEditor implements Initializable {
 
             buttonBox.setDisable(true);
             buttonBox.setVisible(false);
-            
-            // 2. notes table in the lower left grid panel and tab pane
-            gridPane.getChildren().remove(notesTable.getTableView());
-            gridPane.add(notesTable.getTableView(), 0, 1);
             
             // 3. and can't be deleted with trashcan
             noteNameCol.setWidthPercentage(0.75);
@@ -600,13 +660,27 @@ public class OwnNoteEditor implements Initializable {
             groupsPane.setDisable(false);
             groupsPane.setVisible(true);
             groupsPane.setEditor(this);
+            
+            // oneNote look & feel: notes table to the right, editor to the left
+            leftRegion = notesTableFXML;
+            rightRegion = noteEditorFXML;
+            
+            // remove things not shown directly in the gridPane
+            // buttonBox: only in classic
+            gridPane.getChildren().remove(buttonBox);
+            // groupsTableFXML: shown in dividerPane
+            gridPane.getChildren().remove(groupsTableFXML);
+            // notesTableFXML: shown in dividerPane
+            gridPane.getChildren().remove(notesTableFXML);
+            // noteEditorFXML: shown in dividerPane
+            gridPane.getChildren().remove(noteEditorFXML);
         }
         
         // add changelistener to pathlabel - not that you should actually change its value during runtime...
         ownCloudPath.textProperty().addListener(
             (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
                 // store in the preferences
-                myPreferences.put(OwnNoteEditor.RECENTOWNCLOUDPATH, newValue);
+                OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, newValue);
 
                 // scan files in new directory
                 initFromDirectory(false);
@@ -626,6 +700,43 @@ public class OwnNoteEditor implements Initializable {
                 //System.out.println("No Directory selected");
             } else {
                 ownCloudPath.setText(selectedDirectory.getAbsolutePath());
+            }
+        });
+
+        // issue #30: add transparent split pane on top of the grid pane to have a moveable divider
+        dividerPane = new SplitPane();
+        // add content from second grid row to the split pane
+        dividerPane.getItems().addAll(leftRegion, rightRegion);
+        dividerPane.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth() / 100f);
+        // show split pane as second row
+        gridPane.add(dividerPane, 0, 1);
+        GridPane.setColumnSpan(dividerPane, 2);
+        
+        //Constrain max size of left & right pane:
+        leftRegion.minWidthProperty().bind(dividerPane.widthProperty().multiply(0.15));
+        leftRegion.maxWidthProperty().bind(dividerPane.widthProperty().multiply(0.5));
+        rightRegion.minWidthProperty().bind(dividerPane.widthProperty().multiply(0.5));
+        rightRegion.maxWidthProperty().bind(dividerPane.widthProperty().multiply(0.85));
+
+        // move divider with gridpane on resize
+        gridPane.widthProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                // change later to avoid loop calls when resizing scene
+                Platform.runLater(() -> {
+                    dividerPane.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth() / 100f);
+                });
+            }
+        });
+        
+        // change width of gridpane when moving divider
+        dividerPane.getDividers().get(0).positionProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                // change later to avoid loop calls when resizing scene
+                Platform.runLater(() -> {
+                    final double newPercentage = newValue.doubleValue() * 100f;
+                    gridPane.getColumnConstraints().get(0).setPercentWidth(newPercentage);
+                    gridPane.getColumnConstraints().get(1).setPercentWidth(100 - newPercentage);
+                });
             }
         });
     }

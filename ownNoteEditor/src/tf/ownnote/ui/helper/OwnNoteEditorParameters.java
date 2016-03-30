@@ -63,11 +63,11 @@ public class OwnNoteEditorParameters {
                 // System.out.println("Option ownCloudDir found: " + ownCloudDir);
             }
             
-            String laf = "";
+            String value = "";
             if (command.hasOption(OwnNoteEditorParameters.CmdOps.lookAndFeel.toString())) {
-                laf = command.getOptionValue(OwnNoteEditorParameters.CmdOps.lookAndFeel.toString());
+                value = command.getOptionValue(OwnNoteEditorParameters.CmdOps.lookAndFeel.toString());
 
-                switch (laf) {
+                switch (value) {
                     case "classic":
                         // System.out.println("Option lookAndFeel found: " + laf);
                         lookAndFeel = LookAndFeel.classic;
@@ -77,18 +77,19 @@ public class OwnNoteEditorParameters {
                         lookAndFeel = LookAndFeel.oneNote;
                         break;
                     default:
-                        System.out.println("Value \"" + laf + "\" for option lookAndFeel not recognized.");
+                        System.out.println("Value \"" + value + "\" for option lookAndFeel not recognized.");
                 }
             }
-        } catch (ParseException ex) {
+            
+        } catch (ParseException|NumberFormatException ex) {
             //Logger.getLogger(OwnNoteEditorParameters.class.getName()).log(Level.SEVERE, null, ex);
             // fix for issue #19: add usage screen in case of incorrect options
             help(options);
         }
     }
 
-    public String getOwnCloudDir() {
-        return ownCloudDir;
+    public Optional<String> getOwnCloudDir() {
+        return Optional.ofNullable(ownCloudDir);
     }
 
     public void setOwnCloudDir(final String ownCloudDir) {
@@ -102,7 +103,7 @@ public class OwnNoteEditorParameters {
     public void setLookAndFeel(final LookAndFeel lookAndFeel) {
         this.lookAndFeel = lookAndFeel;
     }
-    
+
     private void help(final Options options) {
         // This prints out some help
         HelpFormatter formater = new HelpFormatter();

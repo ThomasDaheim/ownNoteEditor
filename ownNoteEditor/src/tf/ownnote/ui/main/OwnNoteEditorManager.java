@@ -36,6 +36,7 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import tf.ownnote.ui.helper.OwnNoteEditorParameters;
+import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 
 /**
  *
@@ -45,6 +46,8 @@ public class OwnNoteEditorManager extends Application {
 
     private final static OwnNoteEditorParameters parameters = OwnNoteEditorParameters.getInstance();
     private OwnNoteEditor controller;
+    
+    private Stage myStage = null;
     
     /**
      * @param args the command line arguments
@@ -59,6 +62,8 @@ public class OwnNoteEditorManager extends Application {
      */
     @Override
     public void start(Stage primaryStage) {
+        // store stage for later use
+        myStage = primaryStage;
   
         //System.out.println(System.getProperty("javafx.version"));
         //Map <String,String> myParms = getParameters().getNamed();
@@ -85,27 +90,38 @@ public class OwnNoteEditorManager extends Application {
                 OwnNoteEditorManager.parameters.init(null);
             }
 
+            // issue #30: store width and height of window as well - but here so that the scene can be created accordingly
+            Double recentWindowWidth = Double.valueOf(
+                    OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, "1200"));
+            Double recentWindowHeigth = Double.valueOf(
+                    OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, "600"));
+            
             fxmlLoader = new FXMLLoader(OwnNoteEditorManager.class.getResource("OwnNoteEditor.fxml"));
             pane =(BorderPane) fxmlLoader.load();
             
-            primaryStage.setScene(new Scene(pane, 1200, 600));
-            primaryStage.setTitle("OwnNote Editor"); 
-            primaryStage.getIcons().add(new Image(OwnNoteEditorManager.class.getResourceAsStream("OwnNoteEditorManager.png")));
-            primaryStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/tf/ownnote/ui/css/ownnote.css").toExternalForm());
+            myStage.setScene(new Scene(pane, recentWindowWidth, recentWindowHeigth));
+            
+            myStage.setTitle("OwnNote Editor"); 
+            myStage.getIcons().add(new Image(OwnNoteEditorManager.class.getResourceAsStream("OwnNoteEditorManager.png")));
+            myStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/tf/ownnote/ui/css/ownnote.css").toExternalForm());
             
             // set passed parameters for later use
             controller = fxmlLoader.getController();
-            controller.setParameters();            
+            controller.setParameters(); 
+            
         } catch (IOException ex) {
             Logger.getLogger(OwnNoteEditorManager.class.getName()).log(Level.SEVERE, null, ex);
             System.exit(-1); 
         }
-        primaryStage.show();
+        myStage.show();
     }
     
     @Override
     public void stop() throws Exception {
         super.stop();
+
+        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, String.valueOf(myStage.getScene().getWidth()));
+        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, String.valueOf(myStage.getScene().getHeight()));
         
         if (controller != null) {
             controller.stop();
