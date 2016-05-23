@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.text.SimpleDateFormat;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -317,6 +318,43 @@ public class OwnNoteEditor implements Initializable {
         
         noteNameCol = new OwnNoteTableColumn(noteNameColFXML);
         noteModifiedCol = new OwnNoteTableColumn(noteModifiedColFXML);
+
+        Comparator<String> dateTimeComparator = new Comparator<String>()
+        {
+            public int compare(String arg0, String arg1)
+            {
+//                System.out.println("Compares: " + arg1 + " to " + arg0);
+
+                // ownNote says "x secs ago", "x minutes ago", , "x hours ago", "x days ago"
+                if (arg0.toLowerCase().contains("now"))
+                    return -1;
+                
+                if (arg1.toLowerCase().contains("now"))
+                    return 1;
+                
+                String[] parts0 = arg0.split(" ");
+                String[] parts1 = arg1.split(" ");
+
+                int count0 = Integer.parseInt(parts0[0]);
+                String unity0 = parts0[1].substring(0,3);
+
+                int count1 = Integer.parseInt(parts1[0]);
+                String unity1 = parts1[1].substring(0,3);
+                
+                int unity = unity0.compareTo(unity1);
+
+//                System.out.println("unity: " + unity + " and " + Integer.compare(count0, count1));
+
+                if (unity == 0) {
+                    return Integer.compare(count0, count1);
+                }
+                // compares secs/minutes/hours/days
+                return - unity;
+            }
+        };
+        
+        noteModifiedCol.setComparator(dateTimeComparator);
+
         noteDeleteCol = new OwnNoteTableColumn(noteDeleteColFXML);
         groupNameCol = new OwnNoteTableColumn(groupNameColFXML);
         groupDeleteCol = new OwnNoteTableColumn(groupDeleteColFXML);
