@@ -39,6 +39,14 @@ To change to look and feel you can use
 
 Both things can also be changed using the UI.
 
+## create a jar file or a distributable tree on Linux or Windows
+
+```
+./gradlew installDist
+```
+
+The tree will be in `build/install`.
+
 ## create a Mac OS X .app bundle
 
 ```
