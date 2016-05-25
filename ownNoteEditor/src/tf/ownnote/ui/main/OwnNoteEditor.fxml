@@ -24,7 +24,7 @@
             <TableView fx:id="notesTableFXML" prefHeight="200.0" prefWidth="200.0" styleClass="notesTable" GridPane.columnIndex="1" GridPane.rowIndex="1">
               <columns>
                 <TableColumn fx:id="noteNameColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteNameCol" text="Name" />
-                <TableColumn fx:id="noteModifiedColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteModifiedCol" text="Modified" />
+                <TableColumn fx:id="noteModifiedColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteModifiedCol" text="Modified" sortType="ASCENDING" />
                   <TableColumn fx:id="noteDeleteColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="false" styleClass="noteDeleteCol" />
                   <TableColumn fx:id="noteGroupColFXML" editable="false" maxWidth="0.0" minWidth="0.0" prefWidth="0.0" resizable="false" sortable="false" styleClass="noteGroupCol" text="Group" visible="false" />
               </columns>
