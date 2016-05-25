@@ -89,7 +89,12 @@ public class OwnNoteTableView implements IGroupListContainer {
 
     @Override
     public void setGroups(final ObservableList<Map<String, String>> groupsList, final boolean updateOnly) {
-        if (!updateOnly) {
+        // Remember the current selected row
+        int currentRow = 0;
+        if (myTableView.getSelectionModel().getSelectedItem() != null)
+        {
+            currentRow = groupsList.indexOf(getCurrentGroup());
+        }        if (!updateOnly) {
             myTableView.setItems(null);
             myTableView.layout();
         }
@@ -117,7 +122,7 @@ public class OwnNoteTableView implements IGroupListContainer {
         } else {
             myTableView.setItems(newGroups);
         }
-        selectRow(0);
+        selectRow(currentRow);
     }
     
     @Override
