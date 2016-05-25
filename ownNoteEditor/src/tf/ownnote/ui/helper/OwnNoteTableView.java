@@ -40,6 +40,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.image.WritableImage;
@@ -88,7 +89,12 @@ public class OwnNoteTableView implements IGroupListContainer {
 
     @Override
     public void setGroups(final ObservableList<Map<String, String>> groupsList, final boolean updateOnly) {
-        if (!updateOnly) {
+        // Remember the current selected row
+        int currentRow = 0;
+        if (myTableView.getSelectionModel().getSelectedItem() != null)
+        {
+            currentRow = groupsList.indexOf(getCurrentGroup());
+        }        if (!updateOnly) {
             myTableView.setItems(null);
             myTableView.layout();
         }
@@ -116,7 +122,7 @@ public class OwnNoteTableView implements IGroupListContainer {
         } else {
             myTableView.setItems(newGroups);
         }
-        selectRow(0);
+        selectRow(currentRow);
     }
     
     @Override
@@ -294,7 +300,15 @@ public class OwnNoteTableView implements IGroupListContainer {
         myTableView.setItems(null);
         myTableView.layout();
         myTableView.setItems(items);
-    }
+
+        // Add the Modified column to the default sort order
+        ObservableList<TableColumn<Map<String, String>, ?>> columns = getTableView().getColumns();
+        columns.forEach((k)->
+            {
+                if (k.textProperty().getValue().compareToIgnoreCase("modified") == 0)
+                    myTableView.getSortOrder().add(k);
+            }
+        );    }
 
     @Override
     public void setDisable(final boolean b) {
