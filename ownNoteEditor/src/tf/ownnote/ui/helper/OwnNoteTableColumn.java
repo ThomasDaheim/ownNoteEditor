@@ -25,6 +25,7 @@
  */
 package tf.ownnote.ui.helper;
 
+import java.util.Comparator;
 import java.util.Map;
 import javafx.event.EventHandler;
 import javafx.scene.Cursor;
@@ -102,6 +103,10 @@ public class OwnNoteTableColumn {
 
     public void setVisible(final boolean b) {
         myTableColumn.setVisible(b);
+    }
+
+    public final void setComparator(Comparator<String> value) {
+        myTableColumn.setComparator(value);
     }
 }
 
