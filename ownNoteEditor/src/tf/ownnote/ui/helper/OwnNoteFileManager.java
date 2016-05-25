@@ -120,10 +120,10 @@ public class OwnNoteFileManager {
                 // split filename to notes & group names
                 if (filename.startsWith("[")) {
                     groupName = filename.substring(1, filename.indexOf("]"));
-                    noteName = filename.substring(filename.indexOf("]")+2, filename.indexOf("."));
+                    noteName = filename.substring(filename.indexOf("]")+2, filename.lastIndexOf("."));
                 } else {
                     groupName = GroupData.NOT_GROUPED;
-                    noteName = filename.substring(0, filename.indexOf("."));
+                    noteName = filename.substring(0, filename.lastIndexOf("."));
                 }
 
                 if (groupsList.containsKey(groupName)) {
