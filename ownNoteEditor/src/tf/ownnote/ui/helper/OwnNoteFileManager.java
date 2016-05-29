@@ -35,7 +35,6 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -120,10 +119,12 @@ public class OwnNoteFileManager {
                 // split filename to notes & group names
                 if (filename.startsWith("[")) {
                     groupName = filename.substring(1, filename.indexOf("]"));
-                    noteName = filename.substring(filename.indexOf("]")+2, filename.indexOf("."));
+                    // see pull request #44
+                    noteName = filename.substring(filename.indexOf("]")+2, filename.lastIndexOf("."));
                 } else {
                     groupName = GroupData.NOT_GROUPED;
-                    noteName = filename.substring(0, filename.indexOf("."));
+                    // see pull request #44
+                    noteName = filename.substring(0, filename.lastIndexOf("."));
                 }
 
                 if (groupsList.containsKey(groupName)) {
@@ -145,7 +146,7 @@ public class OwnNoteFileManager {
                 
                 final NoteData noteRow = new NoteData();
                 noteRow.setNoteName(noteName);
-                noteRow.setNoteModified(formatFileTime(filetime));
+                noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
                 noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
                 noteRow.setGroupName(groupName);
                 // use filename and not notename since duplicate note names can exist in diffeent groups
@@ -238,7 +239,7 @@ public class OwnNoteFileManager {
 
             final NoteData noteRow = new NoteData();
             noteRow.setNoteName(noteName);
-            noteRow.setNoteModified(formatFileTime(filetime));
+            noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
             noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
             noteRow.setGroupName(groupName);
             // use filename and not notename since duplicate note names can exist in diffeent groups
@@ -475,48 +476,6 @@ public class OwnNoteFileManager {
         return Files.exists(Paths.get(this.ownNotePath, fileName));
     }
 
-    private String formatFileTime(final LocalDateTime filetime) {
-        assert filetime != null;
-        
-        String result = "";
-        
-        // ownNote says "x secs ago", "x minutes ago", , "x hours ago", "x days ago"
-        
-        final LocalDateTime curtime = LocalDateTime.now();
-        // start with longest interval and work your way down...
-        result = stringFromDifference(ChronoUnit.DAYS.between(filetime, curtime), "day");
-        if (result.isEmpty()) {
-            result = stringFromDifference(ChronoUnit.HOURS.between(filetime, curtime), "hour");
-            if (result.isEmpty()) {
-                result = stringFromDifference(ChronoUnit.MINUTES.between(filetime, curtime), "minute");
-                if (result.isEmpty()) {
-                    result = stringFromDifference(ChronoUnit.SECONDS.between(filetime, curtime), "second");
-                    if (result.isEmpty()) {
-                        result = "Right now";
-                    }
-                }
-            }
-        }
-        
-        return result;
-    }
-
-    private String stringFromDifference(final long difference, final String unit) {
-        assert unit != null;
-        
-        String result = "";
-        
-        if (difference > 0) {
-            if (difference == 1.0) {
-                result = "1 " + unit + " ago";
-            } else {
-                result = String.valueOf(difference) + " " + unit + "s ago";
-            }
-        }
-        
-        return result;
-    }
-    
     private void initFilesInProgress() {
         // disable watcher
         myDirMonitor.disableMonitor();

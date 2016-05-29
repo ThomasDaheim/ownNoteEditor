@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.input.*?>
 <?import javafx.scene.web.*?>
 <?import javafx.geometry.*?>
 <?import java.lang.*?>
@@ -26,7 +27,7 @@
                 <TableColumn fx:id="noteNameColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteNameCol" text="Name" />
                 <TableColumn fx:id="noteModifiedColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteModifiedCol" text="Modified" />
                   <TableColumn fx:id="noteDeleteColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="false" styleClass="noteDeleteCol" />
-                  <TableColumn fx:id="noteGroupColFXML" editable="false" maxWidth="0.0" minWidth="0.0" prefWidth="0.0" resizable="false" sortable="false" styleClass="noteGroupCol" text="Group" visible="false" />
+                  <TableColumn fx:id="noteGroupColFXML" editable="false" maxWidth="0.0" minWidth="0.0" prefWidth="0.0" resizable="false" sortable="true" styleClass="noteGroupCol" text="Group" visible="false" />
               </columns>
             </TableView>
             <HBox fx:id="pathBox" alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0">
@@ -98,7 +99,7 @@
               <columns>
                 <TableColumn fx:id="groupNameColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="groupNameCol" text="Name" />
                   <TableColumn fx:id="groupDeleteColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="false" styleClass="groupDeleteCol" />
-                  <TableColumn fx:id="groupCountColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="false" styleClass="groupCountCol" text="Count" />
+                  <TableColumn fx:id="groupCountColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="true" styleClass="groupCountCol" text="Count" />
               </columns>
             </TableView>
             <HTMLEditor fx:id="noteEditorFXML" disable="true" htmlText="&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body contenteditable=&quot;true&quot;&gt;&lt;/body&gt;&lt;/html&gt;" prefHeight="200.0" prefWidth="506.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />

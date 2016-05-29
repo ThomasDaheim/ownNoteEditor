@@ -40,12 +40,16 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.StackPane;
@@ -64,6 +68,8 @@ public class OwnNoteTableView implements IGroupListContainer {
     private TableView<Map<String, String>> myTableView = null;
     
     private TableType myTableType = null;
+    
+    private List<TableColumn<Map<String, String>,?>> mySortOrder;
 
     public static enum TableType {
         groupsTable,
@@ -88,6 +94,8 @@ public class OwnNoteTableView implements IGroupListContainer {
 
     @Override
     public void setGroups(final ObservableList<Map<String, String>> groupsList, final boolean updateOnly) {
+        assert (TableType.groupsTable.equals(myTableType));
+
         if (!updateOnly) {
             myTableView.setItems(null);
             myTableView.layout();
@@ -116,6 +124,7 @@ public class OwnNoteTableView implements IGroupListContainer {
         } else {
             myTableView.setItems(newGroups);
         }
+        this.restoreSortOrder();
         selectRow(0);
     }
     
@@ -161,12 +170,14 @@ public class OwnNoteTableView implements IGroupListContainer {
                 final MenuItem newNote2 = new MenuItem("New Note");
                 newNote2.setOnAction((ActionEvent event) -> {
                     // no note selected - above empty part of the table
-                    final String newGroupName = (String) getTableView().getUserData();
-                    final String newNoteName = myEditor.uniqueNewNoteNameForGroup(newGroupName);
-
-                    if (myEditor.createNoteWrapper(newGroupName, newNoteName)) {
-                        myEditor.initFromDirectory(true);
+                    String newGroupName = (String) getTableView().getUserData();
+                    // TF, 20160524: group name could be "All" - thats to be changed to "Not grouped"
+                    if (newGroupName.equals(GroupData.ALL_GROUPS)) {
+                        newGroupName = GroupData.NEW_GROUP;
                     }
+                    final String newNoteName = myEditor.uniqueNewNoteNameForGroup(newGroupName);
+                    
+                    this.createNoteWrapper(newGroupName, newNoteName);
                 });
                 newMenu.getItems().addAll(newNote2);
                 myTableView.setContextMenu(newMenu);
@@ -176,28 +187,43 @@ public class OwnNoteTableView implements IGroupListContainer {
                     final ContextMenu fullMenu = new ContextMenu();
                     
                     final MenuItem newNote1 = new MenuItem("New Note");
+                    // issue #41 - but only in oneNote look...
+                    if (OwnNoteEditorParameters.LookAndFeel.oneNote.equals(myEditor.getClassicLook())) {
+                        newNote1.setAccelerator(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN));
+                    }
                     newNote1.setOnAction((ActionEvent event) -> {
-                        final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
-                        final String newNoteName = myEditor.uniqueNewNoteNameForGroup(curNote.getGroupName());
-
-                        if (myEditor.createNoteWrapper(curNote.getGroupName(), newNoteName)) {
-                            myEditor.initFromDirectory(true);
+                        if (myTableView.getSelectionModel().getSelectedItem() != null) {
+                            final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
+                            final String newNoteName = myEditor.uniqueNewNoteNameForGroup(curNote.getGroupName());
+                    
+                            this.createNoteWrapper(curNote.getGroupName(), newNoteName);
                         }
                     });
                     final MenuItem renameNote = new MenuItem("Rename Note");
-                    renameNote.setDisable(true);
+                    // issue #41 - but only in oneNote look...
+                    if (OwnNoteEditorParameters.LookAndFeel.oneNote.equals(myEditor.getClassicLook())) {
+                        renameNote.setAccelerator(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN));
+                    }
                     renameNote.setOnAction((ActionEvent event) -> {
-                        final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
-
-                        // TODO: how to edit in-line from the code
+                        if (myTableView.getSelectionModel().getSelectedItem() != null) {
+                            final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
+                            
+                            this.startEditingName(myTableView.getSelectionModel().getSelectedIndex());
+                        }
                     });
                     final MenuItem deleteNote = new MenuItem("Delete Note");
+                    // issue #41 - but only in oneNote look...
+                    if (OwnNoteEditorParameters.LookAndFeel.oneNote.equals(myEditor.getClassicLook())) {
+                        deleteNote.setAccelerator(new KeyCodeCombination(KeyCode.D, KeyCombination.CONTROL_DOWN));
+                    }
                     deleteNote.setOnAction((ActionEvent event) -> {
-                        final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
+                        if (myTableView.getSelectionModel().getSelectedItem() != null) {
+                            final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
 
-                        if(myEditor.deleteNoteWrapper(curNote)) {
-                            // TODO: maintain current group selected
-                            myEditor.initFromDirectory(false);
+                            if(myEditor.deleteNoteWrapper(curNote)) {
+                                // TODO: maintain current group selected
+                                myEditor.initFromDirectory(false);
+                            }
                         }
                     });
                     fullMenu.getItems().addAll(newNote1, renameNote, deleteNote);
@@ -270,7 +296,45 @@ public class OwnNoteTableView implements IGroupListContainer {
             
         }
     }
+
+    @SuppressWarnings("unchecked")
+    private void createNoteWrapper(final String newGroupName, final String newNoteName) {
+        if (myEditor.createNoteWrapper(newGroupName, newNoteName)) {
+            myEditor.initFromDirectory(true);
+            
+            // issue 39: start editing note name
+            // https://stackoverflow.com/questions/28456215/tableview-edit-focused-cell
+
+            // find & select new entry based on note name and group name
+            int selectIndex = -1;
+            int i = 0;
+            NoteData noteData;
+            for (Map<String, String> note : this.getItems()) {
+                noteData = new NoteData(note);
+                
+                if (newNoteName.equals(noteData.getNoteName()) && newGroupName.equals(noteData.getGroupName())) {
+                    selectIndex = i;
+                    break;
+                }
+                i++;
+            }
+            
+            this.startEditingName(selectIndex);
+        }
+    }
     
+    private void startEditingName(final int selectIndex) {
+        if (selectIndex != -1) {
+            // need to run layout first, otherwise edit() doesn't do anything
+            myTableView.layout();
+
+            this.selectAndFocusRow(selectIndex);
+
+            // use selected row and always first column
+            myTableView.edit(selectIndex, myTableView.getColumns().get(0));
+        }
+    }
+
     /* Required getter and setter methods are forwarded to internal TableView */
 
     public void setEditable(final boolean b) {
@@ -291,9 +355,20 @@ public class OwnNoteTableView implements IGroupListContainer {
     }
 
     public void setNotes(final ObservableList<Map<String, String>> items) {
+        assert (TableType.notesTable.equals(myTableType));
+        
+        // that removes the sort order!!!
         myTableView.setItems(null);
         myTableView.layout();
         myTableView.setItems(items);
+        // issue #36 - but only for "oneNote" look & feel
+        if (OwnNoteEditorParameters.LookAndFeel.oneNote.equals(myEditor.getClassicLook())) {
+            // get tab color for notes group name
+            
+            // set style to corresponding color
+            // https://stackoverflow.com/questions/13697115/javafx-tableview-colors
+        }
+        this.restoreSortOrder();
     }
 
     @Override
@@ -304,6 +379,22 @@ public class OwnNoteTableView implements IGroupListContainer {
     @Override
     public void setVisible(final boolean b) {
         myTableView.setVisible(b);
+    }
+    
+    public TableSortHelper getSortOrder() {
+        return new TableSortHelper(myTableView.getSortOrder());
+    }
+    
+    public void setSortOrder(final TableSortHelper sortOrder) {
+        mySortOrder = sortOrder.toTableColumnList(myTableView.getColumns());
+        
+        this.restoreSortOrder();
+    }
+
+    private void restoreSortOrder() {
+        myTableView.getSortOrder().clear();
+        myTableView.getSortOrder().addAll(mySortOrder);
+        myTableView.sort();  
     }
 
     public ReadOnlyObjectProperty<Comparator<Map<String, String>>> comparatorProperty() {
