@@ -212,10 +212,7 @@ public class OwnNoteTableView implements IGroupListContainer {
                         }
                     });
                     final MenuItem deleteNote = new MenuItem("Delete Note");
-                    // issue #41 - but only in oneNote look...
-                    if (OwnNoteEditorParameters.LookAndFeel.oneNote.equals(myEditor.getClassicLook())) {
-                        deleteNote.setAccelerator(new KeyCodeCombination(KeyCode.D, KeyCombination.CONTROL_DOWN));
-                    }
+                    // issue #41 - no accelarator for delete...
                     deleteNote.setOnAction((ActionEvent event) -> {
                         if (myTableView.getSelectionModel().getSelectedItem() != null) {
                             final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
