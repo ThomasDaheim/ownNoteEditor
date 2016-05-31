@@ -18,6 +18,9 @@ public class OwnNoteEditorPreferences {
     public final static String RECENTONENOTEGROUPWIDTH = "recentOneNoteGroupWidth";
     public final static String RECENTWINDOWWIDTH = "recentWindowWidth";
     public final static String RECENTWINDOWHEIGTH = "recentWindowHeigth";
+    // issue #45 store sort order for tables
+    public final static String RECENTGROUPSTABLESORTORDER = "recentGroupsTableSortOrder";
+    public final static String RECENTNOTESTABLESORTORDER = "recentNotesTableSortOrder";
     
     private OwnNoteEditorPreferences() {
         // Exists only to defeat instantiation.

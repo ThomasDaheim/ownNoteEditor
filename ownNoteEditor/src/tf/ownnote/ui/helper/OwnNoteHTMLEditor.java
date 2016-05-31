@@ -41,8 +41,6 @@ import javafx.event.ActionEvent;
 import javafx.print.PrinterJob;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.MenuItem;
 import javafx.scene.control.Separator;
 import javafx.scene.control.ToolBar;
 import javafx.scene.image.Image;
@@ -50,6 +48,8 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Priority;
 import javafx.scene.web.HTMLEditor;
 import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
@@ -186,20 +186,26 @@ public class OwnNoteHTMLEditor {
         addNoteEditorControls();
         // add: undo & redo button, back button
         
-        // add a context menu for saving
-        final MenuItem saveMenu = new MenuItem("Save");
-        saveMenu.setAccelerator(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN));
-        saveMenu.setOnAction((ActionEvent event) -> {
-            saveNote();
-        });
-        if (myHTMLEditor.getContextMenu() != null) {
-            myHTMLEditor.getContextMenu().getItems().add(saveMenu);
-        } else {
-            final ContextMenu newContextMenu = new ContextMenu();
-            newContextMenu.getItems().add(saveMenu);
-            // TODO: fix 2 context menus - but how
-            myHTMLEditor.setContextMenu(newContextMenu);
-        }
+        // issue #40
+        // https://stackoverflow.com/questions/20773249/javafx-htmleditor-doesnt-take-all-free-size-on-the-container
+        GridPane.setHgrow(mWebView, Priority.ALWAYS);
+        GridPane.setVgrow(mWebView, Priority.ALWAYS);        
+        
+        // issue #41 - add CTRL+S to button and not to context menu
+        // // add a context menu for saving
+        // final MenuItem saveMenu = new MenuItem("Save");
+        // saveMenu.setAccelerator(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN));
+        // saveMenu.setOnAction((ActionEvent event) -> {
+        //     saveNote();
+        // });
+        // if (myHTMLEditor.getContextMenu() != null) {
+        //     myHTMLEditor.getContextMenu().getItems().add(saveMenu);
+        // } else {
+        //     final ContextMenu newContextMenu = new ContextMenu();
+        //     newContextMenu.getItems().add(saveMenu);
+        //     // TODO: fix 2 context menus - but how
+        //     myHTMLEditor.setContextMenu(newContextMenu);
+        // }
         
         // TODO: add a drop handler, related to issue #31
         // mWebView.setOnDragDropped((DragEvent event) -> {
@@ -344,6 +350,10 @@ public class OwnNoteHTMLEditor {
             saveNote();
         });
         mTopToolBar.getItems().add(saveNote);
+        // issue #41 - add CTRL+S to button and not to context menu
+        saveNote.getScene().getAccelerators().put(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN), () -> {
+            saveNote.fire();
+        });
     }
 
     @SuppressWarnings("unchecked")
@@ -351,11 +361,14 @@ public class OwnNoteHTMLEditor {
         assert (myEditor != null);
 
         final NoteData curNote = (NoteData) getUserData();
-        if (myEditor.saveNoteWrapper(
-                curNote.getGroupName(), 
-                curNote.getNoteName(), 
-                getNoteText())) {
-            hasBeenSaved();
+        // we might not have selected a note yet... accelerator always works :-(
+        if (curNote != null) {
+            if (myEditor.saveNoteWrapper(
+                    curNote.getGroupName(), 
+                    curNote.getNoteName(), 
+                    getNoteText())) {
+                hasBeenSaved();
+            }
         }
     }
     

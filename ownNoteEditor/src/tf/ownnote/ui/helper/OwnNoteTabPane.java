@@ -59,7 +59,8 @@ public class OwnNoteTabPane implements IGroupListContainer {
     private final MenuItem deleteGroup = new MenuItem("Delete Group");
     
     // available colors for tabs to rotate through
-    private static final String[] tabColors = { "darkseagreen", "cornflowerblue", "lightsalmon", "gold", "orchid", "cadetblue", "goldenrod", "darkorange", "MediumVioletRed" };
+    // issue #36 - have "All" without color
+    private static final String[] tabColors = { "lightgrey", "darkseagreen", "cornflowerblue", "lightsalmon", "gold", "orchid", "cadetblue", "goldenrod", "darkorange", "MediumVioletRed" };
     private int colorCount = 0;
 
     // enable renaming of tabs by showing a textfield as required
@@ -97,9 +98,9 @@ public class OwnNoteTabPane implements IGroupListContainer {
                 final String groupName = ((GroupData) newTab.getUserData()).getGroupName();
 
                 myEditor.setFilterPredicate(groupName);
+                // set color of notes table to tab color
                 myEditor.setNotesTableForNewTab(newTab.getStyle());
 
-                // set color of notes table to tab color
                 myTabPane.setStyle(newTab.getStyle());
             } 
         });            
@@ -143,7 +144,7 @@ public class OwnNoteTabPane implements IGroupListContainer {
         }
         
         // set color of tab to something fancy
-        final int curColor = (myTabPane.getTabs().size()+1) % colorCount;
+        final int curColor = (myTabPane.getTabs().size()) % colorCount;
         newTab.setStyle("tab-color: " + tabColors[curColor]);
         
         myTabPane.getTabs().add(newTab);

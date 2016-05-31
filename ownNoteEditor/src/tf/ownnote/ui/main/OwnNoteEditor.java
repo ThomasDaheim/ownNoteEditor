@@ -69,6 +69,9 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -79,6 +82,7 @@ import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.scene.web.HTMLEditor;
 import javafx.stage.DirectoryChooser;
+import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.GroupData;
 import tf.ownnote.ui.helper.IGroupListContainer;
 import tf.ownnote.ui.helper.NoteData;
@@ -89,6 +93,7 @@ import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
 import tf.ownnote.ui.helper.OwnNoteTabPane;
 import tf.ownnote.ui.helper.OwnNoteTableColumn;
 import tf.ownnote.ui.helper.OwnNoteTableView;
+import tf.ownnote.ui.helper.TableSortHelper;
 
 /**
  *
@@ -104,7 +109,7 @@ public class OwnNoteEditor implements Initializable {
     
     private final static String NEWNOTENAME = "New Note";
     
-    private final static int TEXTFIELDWIDTH = 100;
+    private final static int TEXTFIELDWIDTH = 100;  
     
     private final List<String> realGroupNames = new LinkedList<String> ();
     
@@ -115,8 +120,11 @@ public class OwnNoteEditor implements Initializable {
     private boolean handleQuickSave = false;
     // should we show standard ownNote face or oneNotes?
     private OwnNoteEditorParameters.LookAndFeel classicLook;
+
     private Double classicGroupWidth;
     private Double oneNoteGroupWidth;
+    private String groupsSortOrder;
+    private String notesSortOrder;
     
     private IGroupListContainer myGroupList = null;
     
@@ -215,6 +223,10 @@ public class OwnNoteEditor implements Initializable {
         } else {
             OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTONENOTEGROUPWIDTH, percentWidth);
         }
+        
+        // issue #45 store sort order for tables
+        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTGROUPSTABLESORTORDER, TableSortHelper.toString(groupsTable.getSortOrder()));
+        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTNOTESTABLESORTORDER, TableSortHelper.toString(notesTable.getSortOrder()));
     }
     
     public void setParameters() {
@@ -235,11 +247,15 @@ public class OwnNoteEditor implements Initializable {
         }
         
         // issue #30: get percentages for group column width for classic and onenote look & feel
+        // issue #45 store sort order for tables
         try {
             classicGroupWidth = Double.valueOf(
                     OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTCLASSICGROUPWIDTH, "18.3333333"));
             oneNoteGroupWidth = Double.valueOf(
                     OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTONENOTEGROUPWIDTH, "33.3333333"));
+
+            groupsSortOrder = OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTGROUPSTABLESORTORDER, "");
+            notesSortOrder = OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTNOTESTABLESORTORDER, "");
         } catch (SecurityException ex) {
             Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -289,7 +305,13 @@ public class OwnNoteEditor implements Initializable {
     @SuppressWarnings("unchecked")
     private void initEditor() {
         // init menu handling
-        // 1. add listener to track changes of layout
+        // 1. select entry based on value of classicLook
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
+            classicLookAndFeel.setSelected(true);
+        } else {
+            oneNoteLookAndFeel.setSelected(true);
+        }
+        // 2. add listener to track changes of layout - only after setting it initially
         classicLookAndFeel.getToggleGroup().selectedToggleProperty().addListener(
             (ObservableValue<? extends Toggle> arg0, Toggle arg1, Toggle arg2) -> {
                 // when starting up things might not be initialized properly
@@ -304,24 +326,20 @@ public class OwnNoteEditor implements Initializable {
                     }
                 }
             });
-        // 2. select entry based on value of classicLook
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
-            classicLookAndFeel.setSelected(true);
-        } else {
-            oneNoteLookAndFeel.setSelected(true);
-        }
         
         // init our wrappers to FXML classes...
-        notesTable = new OwnNoteTableView(notesTableFXML);
-        groupsTable = new OwnNoteTableView(groupsTableFXML);
-        
         noteNameCol = new OwnNoteTableColumn(noteNameColFXML);
         noteModifiedCol = new OwnNoteTableColumn(noteModifiedColFXML);
         noteDeleteCol = new OwnNoteTableColumn(noteDeleteColFXML);
+        noteGroupCol = new OwnNoteTableColumn(noteGroupColFXML);
+        notesTable = new OwnNoteTableView(notesTableFXML);
+        notesTable.setSortOrder(TableSortHelper.fromString(notesSortOrder));
+
         groupNameCol = new OwnNoteTableColumn(groupNameColFXML);
         groupDeleteCol = new OwnNoteTableColumn(groupDeleteColFXML);
         groupCountCol = new OwnNoteTableColumn(groupCountColFXML);
-        noteGroupCol = new OwnNoteTableColumn(noteGroupColFXML);
+        groupsTable = new OwnNoteTableView(groupsTableFXML);
+        groupsTable.setSortOrder(TableSortHelper.fromString(groupsSortOrder));
         
         groupsPane = new OwnNoteTabPane(groupsPaneFXML);
         
@@ -357,6 +375,8 @@ public class OwnNoteEditor implements Initializable {
         // set callback, width, value name, cursor type of columns
         noteNameCol.setTableColumnProperties(this, 0.65, NoteData.getNoteDataName(0), OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook));
         noteModifiedCol.setTableColumnProperties(this, 0.25, NoteData.getNoteDataName(1), false);
+        // see issue #42
+        noteModifiedCol.setComparator(FormatHelper.getInstance().getFileTimeComparator());
         noteDeleteCol.setTableColumnProperties(this, 0.10, NoteData.getNoteDataName(2), false);
         noteGroupCol.setTableColumnProperties(this, 0, NoteData.getNoteDataName(3), false);
 
@@ -463,6 +483,10 @@ public class OwnNoteEditor implements Initializable {
                 initGroupNameBox();
                 groupNameBox.setValue(GroupData.NOT_GROUPED);
                 groupNameBox.requestFocus();
+            });
+            // issue #41
+            newButton.getScene().getAccelerators().put(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN), () -> {
+                newButton.fire();
             });
 
             // cancel button simply hides all create controls
@@ -608,6 +632,11 @@ public class OwnNoteEditor implements Initializable {
             leftRegion = groupsTableFXML;
             final StackPane rightPane = new StackPane();
             rightPane.getChildren().addAll(notesTableFXML, noteEditorFXML);
+            // issue #40: bind height & width to parent
+            notesTableFXML.prefWidthProperty().bind(rightPane.widthProperty());
+            notesTableFXML.prefHeightProperty().bind(rightPane.heightProperty());
+            noteEditorFXML.prefWidthProperty().bind(rightPane.widthProperty());
+            noteEditorFXML.prefHeightProperty().bind(rightPane.heightProperty());
             rightRegion = rightPane;
             
             // remove things not shown directly in the gridPane
@@ -707,6 +736,10 @@ public class OwnNoteEditor implements Initializable {
         dividerPane = new SplitPane();
         // add content from second grid row to the split pane
         dividerPane.getItems().addAll(leftRegion, rightRegion);
+        // issue #40: bind height to parent
+        leftRegion.prefHeightProperty().bind(dividerPane.heightProperty());
+        rightRegion.prefHeightProperty().bind(dividerPane.heightProperty());
+        
         dividerPane.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth() / 100f);
         // show split pane as second row
         gridPane.add(dividerPane, 0, 1);
@@ -719,6 +752,7 @@ public class OwnNoteEditor implements Initializable {
         rightRegion.maxWidthProperty().bind(dividerPane.widthProperty().multiply(0.85));
 
         // move divider with gridpane on resize
+        // https://stackoverflow.com/questions/15324321/javafx-splitpane-resize-proportions
         gridPane.widthProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
                 // change later to avoid loop calls when resizing scene
@@ -1302,5 +1336,9 @@ public class OwnNoteEditor implements Initializable {
 
     public String getCurrentTimeStamp() {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date());
+    }
+
+    public OwnNoteEditorParameters.LookAndFeel getClassicLook() {
+        return classicLook;
     }
 }
