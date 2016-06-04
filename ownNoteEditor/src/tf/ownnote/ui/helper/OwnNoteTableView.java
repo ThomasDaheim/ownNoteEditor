@@ -70,6 +70,9 @@ public class OwnNoteTableView implements IGroupListContainer {
     private TableType myTableType = null;
     
     private List<TableColumn<Map<String, String>,?>> mySortOrder;
+    
+    // store selected group before changing the group lists for later re-select
+    private String selectedGroupName = GroupData.ALL_GROUPS;
 
     public static enum TableType {
         groupsTable,
@@ -95,6 +98,9 @@ public class OwnNoteTableView implements IGroupListContainer {
     @Override
     public void setGroups(final ObservableList<Map<String, String>> groupsList, final boolean updateOnly) {
         assert (TableType.groupsTable.equals(myTableType));
+        
+        // remember the current group
+        storeSelectedGroup();
 
         if (!updateOnly) {
             myTableView.setItems(null);
@@ -125,7 +131,9 @@ public class OwnNoteTableView implements IGroupListContainer {
             myTableView.setItems(newGroups);
         }
         this.restoreSortOrder();
-        selectRow(0);
+        
+        // try to restore the current group if its still there
+        restoreSelectedGroup();
     }
     
     @Override
@@ -218,8 +226,9 @@ public class OwnNoteTableView implements IGroupListContainer {
                             final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
 
                             if(myEditor.deleteNoteWrapper(curNote)) {
-                                // TODO: maintain current group selected
+                                storeSelectedGroup();
                                 myEditor.initFromDirectory(false);
+                                restoreSelectedGroup();
                             }
                         }
                     });
@@ -296,6 +305,8 @@ public class OwnNoteTableView implements IGroupListContainer {
 
     @SuppressWarnings("unchecked")
     private void createNoteWrapper(final String newGroupName, final String newNoteName) {
+        assert (TableType.notesTable.equals(myTableType));
+        
         if (myEditor.createNoteWrapper(newGroupName, newNoteName)) {
             myEditor.initFromDirectory(true);
             
@@ -330,6 +341,35 @@ public class OwnNoteTableView implements IGroupListContainer {
             // use selected row and always first column
             myTableView.edit(selectIndex, myTableView.getColumns().get(0));
         }
+    }
+
+    private void storeSelectedGroup() {
+        assert (TableType.groupsTable.equals(myTableType));
+        
+        if (myTableView.getSelectionModel().getSelectedItem() != null) {
+            selectedGroupName = getCurrentGroup().getGroupName();
+        } else {
+            selectedGroupName = GroupData.ALL_GROUPS;
+        }
+    }
+
+    private void restoreSelectedGroup() {
+        assert (TableType.groupsTable.equals(myTableType));
+        
+        int selectIndex = 0;
+        int i = 0;
+        GroupData groupData;
+        for (Map<String, String> note : this.getItems()) {
+            groupData = new GroupData(note);
+
+            if (selectedGroupName.equals(groupData.getGroupName())) {
+                selectIndex = i;
+                break;
+            }
+            i++;
+        }
+
+        selectRow(selectIndex);
     }
 
     /* Required getter and setter methods are forwarded to internal TableView */
