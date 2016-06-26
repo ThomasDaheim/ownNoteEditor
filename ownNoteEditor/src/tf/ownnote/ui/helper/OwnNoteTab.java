@@ -46,7 +46,7 @@ public class OwnNoteTab extends Tab {
     private boolean detachable;
     
     private boolean protectedTab = false;
-
+    
     static {
         markerStage = new Stage();
         markerStage.initStyle(StageStyle.UNDECORATED);
@@ -78,84 +78,88 @@ public class OwnNoteTab extends Tab {
         dragStagePane.getChildren().add(dragText);
         dragStage.setScene(new Scene(dragStagePane));
 
-        // enabled drag and drop of tabs
+        // enabled drag and drop of tabs - but not of all
         nameLabel.setOnMouseDragged((MouseEvent t) -> {
-            dragStage.setWidth(nameLabel.getWidth() + 10);
-            dragStage.setHeight(nameLabel.getHeight() + 10);
-            dragStage.setX(t.getScreenX());
-            dragStage.setY(t.getScreenY());
-            dragStage.show();
-            Point2D screenPoint = new Point2D(t.getScreenX(), t.getScreenY());
-            tabPanes.add(getTabPane());
-            InsertData data = getInsertData(screenPoint);
-            if(data == null || data.getInsertPane().getTabs().isEmpty()) {
-                markerStage.hide();
-            } else {
-                int index = data.getIndex();
-                boolean end = false;
-                if(index == data.getInsertPane().getTabs().size()) {
-                    end = true;
-                    index--;
+            if (!isProtectedTab()) {
+                dragStage.setWidth(nameLabel.getWidth() + 10);
+                dragStage.setHeight(nameLabel.getHeight() + 10);
+                dragStage.setX(t.getScreenX());
+                dragStage.setY(t.getScreenY());
+                dragStage.show();
+                Point2D screenPoint = new Point2D(t.getScreenX(), t.getScreenY());
+                tabPanes.add(getTabPane());
+                InsertData data = getInsertData(screenPoint);
+                if(data == null || data.getInsertPane().getTabs().isEmpty()) {
+                    markerStage.hide();
+                } else {
+                    int index = data.getIndex();
+                    boolean end = false;
+                    if(index == data.getInsertPane().getTabs().size()) {
+                        end = true;
+                        index--;
+                    }
+                    Rectangle2D rect = getAbsoluteRect(data.getInsertPane().getTabs().get(index));
+                    if(end) {
+                        markerStage.setX(rect.getMaxX() + 14);
+                    }
+                    else {
+                        markerStage.setX(rect.getMinX() - 4);
+                    }
+                    markerStage.setY(rect.getMaxY() + 10);
+                    markerStage.show();
                 }
-                Rectangle2D rect = getAbsoluteRect(data.getInsertPane().getTabs().get(index));
-                if(end) {
-                    markerStage.setX(rect.getMaxX() + 14);
-                }
-                else {
-                    markerStage.setX(rect.getMinX() - 4);
-                }
-                markerStage.setY(rect.getMaxY() + 10);
-                markerStage.show();
             }
         });
         nameLabel.setOnMouseReleased((MouseEvent t) -> {
-            markerStage.hide();
-            dragStage.hide();
-            if(!t.isStillSincePress()) {
-                Point2D screenPoint = new Point2D(t.getScreenX(), t.getScreenY());
-                TabPane oldTabPane = getTabPane();
-                int oldIndex = oldTabPane.getTabs().indexOf(OwnNoteTab.this);
-                tabPanes.add(oldTabPane);
-                InsertData insertData = getInsertData(screenPoint);
-                if(insertData != null) {
-                    int addIndex = insertData.getIndex();
-                    if(oldTabPane == insertData.getInsertPane() && oldTabPane.getTabs().size() == 1) {
+            if (!isProtectedTab()) {
+                markerStage.hide();
+                dragStage.hide();
+                if(!t.isStillSincePress()) {
+                    Point2D screenPoint = new Point2D(t.getScreenX(), t.getScreenY());
+                    TabPane oldTabPane = getTabPane();
+                    int oldIndex = oldTabPane.getTabs().indexOf(OwnNoteTab.this);
+                    tabPanes.add(oldTabPane);
+                    InsertData insertData = getInsertData(screenPoint);
+                    if(insertData != null) {
+                        int addIndex = insertData.getIndex();
+                        if(oldTabPane == insertData.getInsertPane() && oldTabPane.getTabs().size() == 1) {
+                            return;
+                        }
+                        oldTabPane.getTabs().remove(OwnNoteTab.this);
+                        if(oldIndex < addIndex && oldTabPane == insertData.getInsertPane()) {
+                            addIndex--;
+                        }
+                        if(addIndex > insertData.getInsertPane().getTabs().size()) {
+                            addIndex = insertData.getInsertPane().getTabs().size();
+                        }
+                        insertData.getInsertPane().getTabs().add(addIndex, OwnNoteTab.this);
+                        insertData.getInsertPane().selectionModelProperty().get().select(addIndex);
                         return;
                     }
-                    oldTabPane.getTabs().remove(OwnNoteTab.this);
-                    if(oldIndex < addIndex && oldTabPane == insertData.getInsertPane()) {
-                        addIndex--;
+                    if(!detachable) {
+                        return;
                     }
-                    if(addIndex > insertData.getInsertPane().getTabs().size()) {
-                        addIndex = insertData.getInsertPane().getTabs().size();
-                    }
-                    insertData.getInsertPane().getTabs().add(addIndex, OwnNoteTab.this);
-                    insertData.getInsertPane().selectionModelProperty().get().select(addIndex);
-                    return;
+                    final Stage newStage = new Stage();
+                    final TabPane pane = new TabPane();
+                    tabPanes.add(pane);
+                    newStage.setOnHiding((WindowEvent t1) -> {
+                        tabPanes.remove(pane);
+                    });
+                    getTabPane().getTabs().remove(OwnNoteTab.this);
+                    pane.getTabs().add(OwnNoteTab.this);
+                    pane.getTabs().addListener((ListChangeListener.Change<? extends Tab> change) -> {
+                        if(pane.getTabs().isEmpty()) {
+                            newStage.hide();
+                        }
+                    });
+                    newStage.setScene(new Scene(pane));
+                    newStage.initStyle(StageStyle.UTILITY);
+                    newStage.setX(t.getScreenX());
+                    newStage.setY(t.getScreenY());
+                    newStage.show();
+                    pane.requestLayout();
+                    pane.requestFocus();
                 }
-                if(!detachable) {
-                    return;
-                }
-                final Stage newStage = new Stage();
-                final TabPane pane = new TabPane();
-                tabPanes.add(pane);
-                newStage.setOnHiding((WindowEvent t1) -> {
-                    tabPanes.remove(pane);
-                });
-                getTabPane().getTabs().remove(OwnNoteTab.this);
-                pane.getTabs().add(OwnNoteTab.this);
-                pane.getTabs().addListener((ListChangeListener.Change<? extends Tab> change) -> {
-                    if(pane.getTabs().isEmpty()) {
-                        newStage.hide();
-                    }
-                });
-                newStage.setScene(new Scene(pane));
-                newStage.initStyle(StageStyle.UTILITY);
-                newStage.setX(t.getScreenX());
-                newStage.setY(t.getScreenY());
-                newStage.show();
-                pane.requestLayout();
-                pane.requestFocus();
             }
         });
         
@@ -235,7 +239,7 @@ public class OwnNoteTab extends Tab {
      * <p>
      * @param text the label text for this tab.
      */
-    public void setLabelText(String text) {
+    public void setLabelText(final String text) {
         nameLabel.setText(text);
         dragText.setText(text);
         setGraphic(nameLabel);            
@@ -245,7 +249,7 @@ public class OwnNoteTab extends Tab {
         return protectedTab;
     }
 
-    public void setProtectedTab(boolean protectedTab) {
+    public void setProtectedTab(final boolean protectedTab) {
         this.protectedTab = protectedTab;
     }
 
@@ -254,24 +258,35 @@ public class OwnNoteTab extends Tab {
     }
 
     private InsertData getInsertData(Point2D screenPoint) {
+        // TF, 20160618
+        // in our case we have the 
+        // ALL_GROUPS, "Not grouped" tabs to the left 
+        // "+" to the right
+        // and those shouldn't change their places and you shouldn't be able to move your tab outside of those
         for(TabPane tabPane : tabPanes) {
             Rectangle2D tabAbsolute = getAbsoluteRect(tabPane);
             if(tabAbsolute.contains(screenPoint)) {
                 int tabInsertIndex = 0;
                 if(!tabPane.getTabs().isEmpty()) {
-                    Rectangle2D firstTabRect = getAbsoluteRect(tabPane.getTabs().get(0));
+                    // ALL_GROUPS, "Not grouped" tabs to the left => start with third tab
+                    Rectangle2D firstTabRect = getAbsoluteRect(tabPane.getTabs().get(2));
                     if(firstTabRect.getMaxY()+60 < screenPoint.getY() || firstTabRect.getMinY() > screenPoint.getY()) {
                         return null;
                     }
-                    Rectangle2D lastTabRect = getAbsoluteRect(tabPane.getTabs().get(tabPane.getTabs().size() - 1));
+                    // "+" to the right => end with second last tab
+                    Rectangle2D lastTabRect = getAbsoluteRect(tabPane.getTabs().get(tabPane.getTabs().size() - 2));
                     if(screenPoint.getX() < (firstTabRect.getMinX() + firstTabRect.getWidth() / 2)) {
-                        tabInsertIndex = 0;
+                        // we have skipped the first two tabs
+                        tabInsertIndex = 2;
                     }
                     else if(screenPoint.getX() > (lastTabRect.getMaxX() - lastTabRect.getWidth() / 2)) {
-                        tabInsertIndex = tabPane.getTabs().size();
+                        // we have ignored the last tab
+                        tabInsertIndex = tabPane.getTabs().size() - 1;
                     }
                     else {
-                        for(int i = 0; i < tabPane.getTabs().size() - 1; i++) {
+                        // ALL_GROUPS, "Not grouped" tabs to the left => start with third tab
+                        // "+" to the right => end with second last tab
+                        for(int i = 2; i < tabPane.getTabs().size() - 2; i++) {
                             Tab leftTab = tabPane.getTabs().get(i);
                             Tab rightTab = tabPane.getTabs().get(i + 1);
                             if(leftTab instanceof OwnNoteTab && rightTab instanceof OwnNoteTab) {
