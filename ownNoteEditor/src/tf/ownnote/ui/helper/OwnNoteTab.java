@@ -63,10 +63,12 @@ public class OwnNoteTab extends Tab {
      * <p>
      * @param text the text to appear on the tag label.
      */
-    public OwnNoteTab(String text) {
+    public OwnNoteTab(String text, final OwnNoteEditor editor) {
         nameLabel = new Label(text);
         nameLabel.setPadding(new Insets(5));
         setGraphic(nameLabel);
+        
+        myEditor = editor;
         
         detachable = true;
         dragStage = new Stage();
@@ -213,10 +215,6 @@ public class OwnNoteTab extends Tab {
             
             event.consume();
         });
-    }
-
-    public void setEditor(final OwnNoteEditor editor) {
-        myEditor = editor;
     }
 
     /**

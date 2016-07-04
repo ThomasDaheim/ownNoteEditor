@@ -119,7 +119,8 @@ public class OwnNoteEditor implements Initializable {
     
     private boolean handleQuickSave = false;
     // should we show standard ownNote face or oneNotes?
-    private OwnNoteEditorParameters.LookAndFeel classicLook;
+    // TF, 20160630: refactored from "classicLook" to show its real meeaning
+    private OwnNoteEditorParameters.LookAndFeel currentLookAndFeel;
 
     private Double classicGroupWidth;
     private Double oneNoteGroupWidth;
@@ -127,6 +128,10 @@ public class OwnNoteEditor implements Initializable {
     private String notesSortOrder;
     
     private IGroupListContainer myGroupList = null;
+    
+    // available colors for tabs to rotate through
+    // issue #36 - have "All" without color
+    private static final String[] groupColors = { "lightgrey", "darkseagreen", "cornflowerblue", "lightsalmon", "gold", "orchid", "cadetblue", "goldenrod", "darkorange", "MediumVioletRed" };
     
     private OwnNoteTabPane groupsPane = null;
     @FXML
@@ -218,7 +223,7 @@ public class OwnNoteEditor implements Initializable {
         // otherwise, the percentage grows with each call :-)
         final String percentWidth = String.valueOf(gridPane.getColumnConstraints().get(0).getPercentWidth());
         // store in the preferences
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTCLASSICGROUPWIDTH, percentWidth);
         } else {
             OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTONENOTEGROUPWIDTH, percentWidth);
@@ -233,14 +238,14 @@ public class OwnNoteEditor implements Initializable {
         // set look & feel    
         // 1. use passed parameters
         if (OwnNoteEditor.parameters.getLookAndFeel().isPresent()) {
-            classicLook = OwnNoteEditor.parameters.getLookAndFeel().get();
+            currentLookAndFeel = OwnNoteEditor.parameters.getLookAndFeel().get();
         } else {
             // fix for issue #20
             // 2. try the preference settings - what was used last time?
             try {
-                classicLook = OwnNoteEditorParameters.LookAndFeel.valueOf(
+                currentLookAndFeel = OwnNoteEditorParameters.LookAndFeel.valueOf(
                         OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
-                // System.out.println("Using preference for classicLook: " + classicLook);
+                // System.out.println("Using preference for currentLookAndFeel: " + currentLookAndFeel);
             } catch (SecurityException ex) {
                 Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -300,13 +305,13 @@ public class OwnNoteEditor implements Initializable {
     //
     // to be able to do proper layout in scenebuilder everything except the dividerPane
     // are added to the fxml into the gridpane - code below does the re-arrangement based on 
-    // value of classicLook
+    // value of currentLookAndFeel
     //
     @SuppressWarnings("unchecked")
     private void initEditor() {
         // init menu handling
-        // 1. select entry based on value of classicLook
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
+        // 1. select entry based on value of currentLookAndFeel
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             classicLookAndFeel.setSelected(true);
         } else {
             oneNoteLookAndFeel.setSelected(true);
@@ -328,23 +333,22 @@ public class OwnNoteEditor implements Initializable {
             });
         
         // init our wrappers to FXML classes...
-        noteNameCol = new OwnNoteTableColumn(noteNameColFXML);
-        noteModifiedCol = new OwnNoteTableColumn(noteModifiedColFXML);
-        noteDeleteCol = new OwnNoteTableColumn(noteDeleteColFXML);
-        noteGroupCol = new OwnNoteTableColumn(noteGroupColFXML);
-        notesTable = new OwnNoteTableView(notesTableFXML);
+        noteNameCol = new OwnNoteTableColumn(noteNameColFXML, this);
+        noteModifiedCol = new OwnNoteTableColumn(noteModifiedColFXML, this);
+        noteDeleteCol = new OwnNoteTableColumn(noteDeleteColFXML, this);
+        noteGroupCol = new OwnNoteTableColumn(noteGroupColFXML, this);
+        notesTable = new OwnNoteTableView(notesTableFXML, this);
         notesTable.setSortOrder(TableSortHelper.fromString(notesSortOrder));
 
-        groupNameCol = new OwnNoteTableColumn(groupNameColFXML);
-        groupDeleteCol = new OwnNoteTableColumn(groupDeleteColFXML);
-        groupCountCol = new OwnNoteTableColumn(groupCountColFXML);
-        groupsTable = new OwnNoteTableView(groupsTableFXML);
+        groupNameCol = new OwnNoteTableColumn(groupNameColFXML, this);
+        groupDeleteCol = new OwnNoteTableColumn(groupDeleteColFXML, this);
+        groupCountCol = new OwnNoteTableColumn(groupCountColFXML, this);
+        groupsTable = new OwnNoteTableView(groupsTableFXML, this);
         groupsTable.setSortOrder(TableSortHelper.fromString(groupsSortOrder));
         
-        groupsPane = new OwnNoteTabPane(groupsPaneFXML);
+        groupsPane = new OwnNoteTabPane(groupsPaneFXML, this);
         
-        noteEditor = new OwnNoteHTMLEditor(noteEditorFXML);
-        noteEditor.setEditor(this);
+        noteEditor = new OwnNoteHTMLEditor(noteEditorFXML, this);
         
         // hide borders
         borderPane.setBottom(null);
@@ -359,7 +363,7 @@ public class OwnNoteEditor implements Initializable {
         gridPane.getRowConstraints().add(row2);
         gridPane.getColumnConstraints().clear();
         ColumnConstraints column1 = new ColumnConstraints();
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             column1.setPercentWidth(classicGroupWidth);
         } else {
             column1.setPercentWidth(oneNoteGroupWidth);
@@ -370,15 +374,13 @@ public class OwnNoteEditor implements Initializable {
         column2.setHgrow(Priority.ALWAYS);
         gridPane.getColumnConstraints().addAll(column1, column2);
         
-        notesTable.setEditor(this);
-        notesTable.setTableType(OwnNoteTableView.TableType.notesTable);
         // set callback, width, value name, cursor type of columns
-        noteNameCol.setTableColumnProperties(this, 0.65, NoteData.getNoteDataName(0), OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook));
-        noteModifiedCol.setTableColumnProperties(this, 0.25, NoteData.getNoteDataName(1), false);
+        noteNameCol.setTableColumnProperties(0.65, NoteData.getNoteDataName(0), OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel));
+        noteModifiedCol.setTableColumnProperties(0.25, NoteData.getNoteDataName(1), false);
         // see issue #42
         noteModifiedCol.setComparator(FormatHelper.getInstance().getFileTimeComparator());
-        noteDeleteCol.setTableColumnProperties(this, 0.10, NoteData.getNoteDataName(2), false);
-        noteGroupCol.setTableColumnProperties(this, 0, NoteData.getNoteDataName(3), false);
+        noteDeleteCol.setTableColumnProperties(0.10, NoteData.getNoteDataName(2), false);
+        noteGroupCol.setTableColumnProperties(0, NoteData.getNoteDataName(3), false);
 
         // only new button visible initially
         hideAndDisableAllCreateControls();
@@ -388,7 +390,7 @@ public class OwnNoteEditor implements Initializable {
         Region leftRegion;
         Region rightRegion;
         
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             myGroupList = groupsTable;
             
             hideNoteEditor();
@@ -396,12 +398,10 @@ public class OwnNoteEditor implements Initializable {
             groupsPane.setDisable(true);
             groupsPane.setVisible(false);
 
-            groupsTable.setEditor(this);
-            groupsTable.setTableType(OwnNoteTableView.TableType.groupsTable);
             // set callback, width, value name, cursor type of columns
-            groupNameCol.setTableColumnProperties(this, 0.65, GroupData.getGroupDataName(0), false);
-            groupDeleteCol.setTableColumnProperties(this, 0.15, GroupData.getGroupDataName(1), false);
-            groupCountCol.setTableColumnProperties(this, 0.20, GroupData.getGroupDataName(2), false);
+            groupNameCol.setTableColumnProperties(0.65, GroupData.getGroupDataName(0), false);
+            groupDeleteCol.setTableColumnProperties(0.15, GroupData.getGroupDataName(1), false);
+            groupCountCol.setTableColumnProperties(0.20, GroupData.getGroupDataName(2), false);
 
             // name can be changed - but not for all entries!
             groupsTable.setEditable(true);
@@ -688,7 +688,6 @@ public class OwnNoteEditor implements Initializable {
             
             groupsPane.setDisable(false);
             groupsPane.setVisible(true);
-            groupsPane.setEditor(this);
             
             // oneNote look & feel: notes table to the right, editor to the left
             leftRegion = notesTableFXML;
@@ -919,14 +918,14 @@ public class OwnNoteEditor implements Initializable {
         noteEditor.setNoteText("");
         noteEditor.setUserData(null);
         
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             notesTable.setDisable(false);
             notesTable.setVisible(true);
         }
     }
 
     private void showNoteEditor() {
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             notesTable.setDisable(true);
             notesTable.setVisible(false);
         }
@@ -936,7 +935,7 @@ public class OwnNoteEditor implements Initializable {
         noteEditor.setNoteText("");
         noteEditor.setUserData(null);
 
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             showAndEnableInitialEditControls();
         }
     }
@@ -1161,7 +1160,7 @@ public class OwnNoteEditor implements Initializable {
         Boolean result = myFileManager.saveNote(newGroupName, newNoteName, noteEditor.getNoteText());
                 
         if (result) {
-            if (OwnNoteEditorParameters.LookAndFeel.classic.equals(classicLook)) {
+            if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
                 hideAndDisableAllEditControls();
                 hideNoteEditor();
                 initFromDirectory(false);
@@ -1182,17 +1181,13 @@ public class OwnNoteEditor implements Initializable {
     public void setFilterPredicate(final String groupName) {
         notesTable.getTableView().setUserData(groupName);
         
-        filteredData.setPredicate(note -> {
+        filteredData.setPredicate((Map<String, String> note) -> {
             // If filter text is empty, display all persons. Also for "All".
             if (groupName == null || groupName.isEmpty() || groupName.equals(GroupData.ALL_GROUPS) ) {
                 return true;
             }
-
             // Compare note name to filter text.
-            if ((new NoteData(note)).getGroupName().equals(groupName)) {
-                return true; // Filter matches first name.
-            }
-            return false; // Does not match.
+            return (new NoteData(note)).getGroupName().equals(groupName); 
         });
     }
 
@@ -1338,7 +1333,32 @@ public class OwnNoteEditor implements Initializable {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date());
     }
 
-    public OwnNoteEditorParameters.LookAndFeel getClassicLook() {
-        return classicLook;
+    // TF, 20160630: refactored from "getClassicLook" to show its real meeaning
+    public OwnNoteEditorParameters.LookAndFeel getCurrentLookAndFeel() {
+        return currentLookAndFeel;
+    }
+
+    // TF, 20160703: to support coloring of notes table view for individual notes
+    public String getGroupColor(String groupName) {
+        final FilteredList<Map<String, String>> filteredGroups = myFileManager.getGroupsList().filtered((Map<String, String> group) -> {
+            // If filter text is empty, display all persons. Also for "All".
+            if (groupName == null || groupName.isEmpty() || groupName.equals(GroupData.ALL_GROUPS) ) {
+                return true;
+            }
+            
+            // Compare group name to filter text.
+            return (new GroupData(group)).getGroupName().equals(groupName); 
+        });
+        
+        if (filteredGroups.size() == 1) {
+            final GroupData group = (GroupData) filteredGroups.get(0);
+            final int groupIndex = myFileManager.getGroupsList().indexOf(group);
+            
+            // System.out.println("Found group: " + groupName + " as number: " + groupIndex);
+            return groupColors[groupIndex];
+        } else {
+            return groupColors[0];
+        }
+
     }
 }
