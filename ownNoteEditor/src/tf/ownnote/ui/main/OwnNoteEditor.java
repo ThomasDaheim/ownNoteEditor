@@ -1355,7 +1355,7 @@ public class OwnNoteEditor implements Initializable {
             final int groupIndex = myFileManager.getGroupsList().indexOf(group);
             
             // System.out.println("Found group: " + groupName + " as number: " + groupIndex);
-            return groupColors[groupIndex];
+            return groupColors[groupIndex % groupColors.length];
         } else {
             return groupColors[0];
         }
