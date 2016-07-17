@@ -83,10 +83,10 @@ public class OwnNoteHTMLEditor {
         super();
     }
     
-    public OwnNoteHTMLEditor(final HTMLEditor htmlEditor) {
+    public OwnNoteHTMLEditor(final HTMLEditor htmlEditor, final OwnNoteEditor editor) {
         super();
-        
         myHTMLEditor = htmlEditor;
+        myEditor = editor;
         
         // delay setup of editor - things are not available at startup...
         Platform.runLater(() -> {
@@ -130,10 +130,6 @@ public class OwnNoteHTMLEditor {
         noteText = getNoteText();
     }
 
-    public void setEditor(final OwnNoteEditor editor) {
-        myEditor = editor;
-    }
-    
     public void checkForNameChange(final String oldGroupName, final String newGroupName) {
         checkForNameChange(oldGroupName, newGroupName, "", "");
     }

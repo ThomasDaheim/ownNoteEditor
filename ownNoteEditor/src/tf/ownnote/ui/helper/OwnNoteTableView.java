@@ -83,16 +83,23 @@ public class OwnNoteTableView implements IGroupListContainer {
         super();
     }
             
-    public OwnNoteTableView(final TableView<Map<String, String>> tableView) {
+    public OwnNoteTableView(final TableView<Map<String, String>> tableView, final OwnNoteEditor editor) {
         super();
         myTableView = tableView;
+        myEditor = editor;
+        
+        // TF, 20160627: select tabletype based on passed TableView - safer than having a setTableType method
+        if (tableView.getId().equals("notesTableFXML")) {
+            myTableType = TableType.notesTable;
+        }
+        if (tableView.getId().equals("groupsTableFXML")) {
+            myTableType = TableType.groupsTable;
+        }
+
+        // stop if we haven't been passed a correct TableView
+        assert (myTableType != null);
         
         initTableView();
-    }
-
-    @Override
-    public void setEditor(final OwnNoteEditor editor) {
-        myEditor = editor;
     }
 
     @Override
@@ -146,13 +153,6 @@ public class OwnNoteTableView implements IGroupListContainer {
         return myTableView.getItems().size();
     }
     
-    public void setTableType(final TableType newTableType) {
-        if (!newTableType.equals(this.myTableType)) {
-            myTableType = newTableType;
-            initTableView();
-        }
-    }
-    
     public TableView<Map<String, String>> getTableView() {
         return myTableView;
     }
@@ -191,12 +191,36 @@ public class OwnNoteTableView implements IGroupListContainer {
                 myTableView.setContextMenu(newMenu);
                 
                 myTableView.setRowFactory((TableView<Map<String, String>> tableView) -> {
-                    final TableRow<Map<String, String>> row = new TableRow<>();
+                    final TableRow<Map<String, String>> row = new TableRow<Map<String, String>>() {
+                        @Override
+                        protected void updateItem(Map<String, String> item, boolean empty) {
+                            super.updateItem(item, empty);
+                            
+                            // issue #36 - but only for "oneNote" look & feel
+                            if (OwnNoteEditorParameters.LookAndFeel.oneNote.equals(myEditor.getCurrentLookAndFeel())) {
+                                if (item == null) {
+                                    // reset background to default
+                                    setStyle("-fx-background-color: none");
+                                } else {
+                                    // TF, 20160627: add support for issue #36 using ideas from
+                                    // https://rterp.wordpress.com/2015/04/11/atlas-trader-test/
+
+                                    // get tab color for notes group name
+                                    assert (item instanceof NoteData);
+                                    final String groupName = ((NoteData) item).getGroupName();
+
+                                    final String groupColor = myEditor.getGroupColor(groupName);
+                                    setStyle("-fx-background-color: " + groupColor);
+                                }
+                            }
+                        }
+                    };
+                    
                     final ContextMenu fullMenu = new ContextMenu();
                     
                     final MenuItem newNote1 = new MenuItem("New Note");
                     // issue #41 - but only in oneNote look...
-                    if (OwnNoteEditorParameters.LookAndFeel.oneNote.equals(myEditor.getClassicLook())) {
+                    if (OwnNoteEditorParameters.LookAndFeel.oneNote.equals(myEditor.getCurrentLookAndFeel())) {
                         newNote1.setAccelerator(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN));
                     }
                     newNote1.setOnAction((ActionEvent event) -> {
@@ -209,7 +233,7 @@ public class OwnNoteTableView implements IGroupListContainer {
                     });
                     final MenuItem renameNote = new MenuItem("Rename Note");
                     // issue #41 - but only in oneNote look...
-                    if (OwnNoteEditorParameters.LookAndFeel.oneNote.equals(myEditor.getClassicLook())) {
+                    if (OwnNoteEditorParameters.LookAndFeel.oneNote.equals(myEditor.getCurrentLookAndFeel())) {
                         renameNote.setAccelerator(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN));
                     }
                     renameNote.setOnAction((ActionEvent event) -> {
@@ -284,7 +308,18 @@ public class OwnNoteTableView implements IGroupListContainer {
                     });
 
                     return row ;  
-                });              
+                });    
+
+                myTableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+                    if (newSelection != null && !newSelection.equals(oldSelection)) {
+                        // start editing new note
+                        assert (newSelection instanceof NoteData);
+                        if (myEditor.editNote((NoteData) newSelection)) {
+                            // rescan diretory - also group name counters need to be updated...
+                            myEditor.initFromDirectory(false);
+                        }
+                    }
+                });        
             } else {
                 myTableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
                     if (newSelection != null && !newSelection.equals(oldSelection)) {
@@ -294,12 +329,7 @@ public class OwnNoteTableView implements IGroupListContainer {
                         myEditor.setFilterPredicate(groupName);
                     }
                 });        
-                
-                // TODO add support for context menu to groups table as well
-                
-                // TODO: add support for drag end
             }
-            
         }
     }
 
@@ -398,13 +428,6 @@ public class OwnNoteTableView implements IGroupListContainer {
         myTableView.setItems(null);
         myTableView.layout();
         myTableView.setItems(items);
-        // issue #36 - but only for "oneNote" look & feel
-        if (OwnNoteEditorParameters.LookAndFeel.oneNote.equals(myEditor.getClassicLook())) {
-            // get tab color for notes group name
-            
-            // set style to corresponding color
-            // https://stackoverflow.com/questions/13697115/javafx-tableview-colors
-        }
         this.restoreSortOrder();
     }
 

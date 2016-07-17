@@ -27,7 +27,6 @@ package tf.ownnote.ui.helper;
 
 import java.util.Map;
 import javafx.collections.ObservableList;
-import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
  * Things you need to provide in order to act as a container 
@@ -36,8 +35,6 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public interface IGroupListContainer {
-    
-    public abstract void setEditor(final OwnNoteEditor editor);
     
     public abstract void setGroups(final ObservableList<Map<String, String>> groupsList, final boolean updateOnly);
     

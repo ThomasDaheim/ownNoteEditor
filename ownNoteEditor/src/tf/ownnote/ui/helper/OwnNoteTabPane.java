@@ -57,11 +57,6 @@ public class OwnNoteTabPane implements IGroupListContainer {
     private final MenuItem newGroup2 = new MenuItem("New Group");
     private final MenuItem renameGroup = new MenuItem("Rename Group");
     private final MenuItem deleteGroup = new MenuItem("Delete Group");
-    
-    // available colors for tabs to rotate through
-    // issue #36 - have "All" without color
-    private static final String[] tabColors = { "lightgrey", "darkseagreen", "cornflowerblue", "lightsalmon", "gold", "orchid", "cadetblue", "goldenrod", "darkorange", "MediumVioletRed" };
-    private int colorCount = 0;
 
     // enable renaming of tabs by showing a textfield as required
     private final TextField nameField = new TextField();  
@@ -74,18 +69,20 @@ public class OwnNoteTabPane implements IGroupListContainer {
         super();
     }
     
-    public OwnNoteTabPane(final TabPane tabPane) {
+    public OwnNoteTabPane(final TabPane tabPane, final OwnNoteEditor editor) {
         super();
-        
         myTabPane = tabPane;
-
-        colorCount = tabColors.length;
+        myEditor = editor;
         
         initTabPane();
     }
 
     @SuppressWarnings("unchecked")
     private void initTabPane() {
+        // TF, 20160617 - add a new tab with a "+" tab
+        // https://community.oracle.com/thread/2535484?tstart=0
+        addPlusTab();
+        
         initNameField();
         
         initContextMenu();
@@ -94,26 +91,51 @@ public class OwnNoteTabPane implements IGroupListContainer {
             assert (myEditor != null);
         
             if (newTab != null && !newTab.equals(oldTab)) {
-                // select matching notes for group
-                final String groupName = ((GroupData) newTab.getUserData()).getGroupName();
+                assert (newTab instanceof OwnNoteTab);
+                if (((OwnNoteTab) newTab).getLabel().getText().equals("+")) {
+                    // you have clicked on the "+" tab
+                    if (myTabPane.getTabs().size() > 1) {
+                        // and we have more tabs shown - so its not the intial adding of tabs...
+                        OwnNoteTab addedTab = addNewTab();
+                        if (addedTab != null) {
+                           myTabPane.getSelectionModel().select(addedTab);
+                        }
+                    }
+                } else {
+                    // select matching notes for group
+                    assert (newTab.getUserData() instanceof GroupData);
+                    final String groupName = ((GroupData) newTab.getUserData()).getGroupName();
 
-                myEditor.setFilterPredicate(groupName);
-                // set color of notes table to tab color
-                myEditor.setNotesTableForNewTab(newTab.getStyle());
+                    myEditor.setFilterPredicate(groupName);
+                    // set color of notes table to tab color
+                    myEditor.setNotesTableForNewTab(newTab.getStyle());
 
-                myTabPane.setStyle(newTab.getStyle());
+                    myTabPane.setStyle(newTab.getStyle());
+                }
             } 
         });            
     }
 
-    private void addNewTab() {
+    private void addPlusTab() {
+        final OwnNoteTab newTab = new OwnNoteTab("+", myEditor);
+        newTab.setClosable(false);
+        newTab.setDetachable(false);
+        newTab.setProtectedTab(true);
+        
+        // special style - not a normal tab...
+        newTab.getStyleClass().add("plusTab");
+        
+        myTabPane.getTabs().add(newTab);
+    }
+
+    private OwnNoteTab addNewTab() {
         assert (myEditor != null);
         
         final String tabName = "New Group " + myTabPane.getTabs().size();
         
+        OwnNoteTab newTab = null;
         if (myEditor.createGroupWrapper(tabName)) {
-            final OwnNoteTab newTab = new OwnNoteTab(tabName);
-            newTab.setEditor(myEditor);
+            newTab = new OwnNoteTab(tabName, myEditor);
             newTab.setClosable(true);
             newTab.setDetachable(false);
             newTab.setProtectedTab(false);
@@ -127,6 +149,8 @@ public class OwnNoteTabPane implements IGroupListContainer {
 
             addOwnNoteTab(newTab);
         }
+
+        return newTab;
     }
     
     private void addOwnNoteTab(final OwnNoteTab newTab) {
@@ -144,21 +168,17 @@ public class OwnNoteTabPane implements IGroupListContainer {
         }
         
         // set color of tab to something fancy
-        final int curColor = (myTabPane.getTabs().size()) % colorCount;
-        newTab.setStyle("tab-color: " + tabColors[curColor]);
+        final String groupColor = myEditor.getGroupColor(newTab.getLabelText());
+        newTab.setStyle("tab-color: " + groupColor);
         
-        myTabPane.getTabs().add(newTab);
+        myTabPane.getTabs().add(myTabPane.getTabs().size() - 1, newTab);
     }
 
-    @Override
-    public void setEditor(final OwnNoteEditor editor) {
-        myEditor = editor;
-    }
-    
     @Override
     public void setGroups(final ObservableList<Map<String, String>> groupsList, final boolean updateOnly) {
         if (!updateOnly) {
             myTabPane.getTabs().clear();
+            addPlusTab();
         }
         final List<String> tabNames =
                 myTabPane.getTabs().stream().
@@ -174,16 +194,17 @@ public class OwnNoteTabPane implements IGroupListContainer {
            final String groupName = (new GroupData(group)).getGroupName();
             
             if (!updateOnly || !tabNames.contains(groupName)) {
-                newTab = new OwnNoteTab(groupName);
-                newTab.setEditor(myEditor);
+                newTab = new OwnNoteTab(groupName, myEditor);
                 newTab.setClosable(true);
                 newTab.setDetachable(false);
 
                 // ALL and NOT are reserved names
                 if (!groupName.equals(GroupData.NOT_GROUPED) && !groupName.equals(GroupData.ALL_GROUPS)) {
                     newTab.setProtectedTab(false);
+                    newTab.setClosable(true);
                 } else {
                     newTab.setProtectedTab(true);
+                    newTab.setClosable(false);
                 }
 
                 // store full group info for later use
@@ -191,6 +212,10 @@ public class OwnNoteTabPane implements IGroupListContainer {
 
                 addOwnNoteTab(newTab);
             }
+        }
+        if (!updateOnly) {
+            // select the "All" tab
+            myTabPane.getSelectionModel().select(0);
         }
     }
     
@@ -259,10 +284,16 @@ public class OwnNoteTabPane implements IGroupListContainer {
     @SuppressWarnings("unchecked")
     private void initContextMenu() {
         newGroup1.setOnAction((ActionEvent event) -> {
-            addNewTab();
+            OwnNoteTab addedTab = addNewTab();
+            if (addedTab != null) {
+               myTabPane.getSelectionModel().select(addedTab);
+            }
         });
         newGroup2.setOnAction((ActionEvent event) -> {
-            addNewTab();
+            OwnNoteTab addedTab = addNewTab();
+            if (addedTab != null) {
+               myTabPane.getSelectionModel().select(addedTab);
+            }
         });
         renameGroup.setOnAction((ActionEvent event) -> {
             startEditingTabLabel();

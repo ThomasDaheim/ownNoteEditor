@@ -116,7 +116,7 @@
 }
 .tab-pane
 {
-    -fx-tab-min-width: 70px;
+    -fx-tab-min-width: 60px;
     -fx-border-style: none;
 }
 .tab-pane *.tab-header-background {
@@ -133,6 +133,17 @@
 }
 .tab-pane .tab-content-area {
     -fx-background-color: tab-color;
+}
+
+/* "+" tab is special */
+.tab-header-area .plusTab {
+    -fx-background-color: white;
+    -fx-padding: 4 10 4 10;
+    -fx-border-radius: 10 10 0 0;
+    -fx-border-style: solid;
+    -fx-border-color: darkgray darkgray white darkgray;
+    -fx-font-size: 1.2em;
+    -fx-font-color: darkgray;
 }
 
 /* style the invisible splitpane */

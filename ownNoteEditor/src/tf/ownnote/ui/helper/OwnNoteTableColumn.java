@@ -49,28 +49,37 @@ public class OwnNoteTableColumn {
     
     private TableColumn<Map, String> myTableColumn = null;
     
+    // we need to know the tabletype as well...
+    private OwnNoteTableView.TableType myTableType = null;
+
     private OwnNoteTableColumn() {
         super();
     }
             
-    public OwnNoteTableColumn(final TableColumn<Map, String> tableColumn) {
+    public OwnNoteTableColumn(final TableColumn<Map, String> tableColumn, final OwnNoteEditor editor) {
         super();    
-        
         myTableColumn = tableColumn;
+        myEditor = editor;
+        
+        // TF, 20160627: select tabletype based on passed TableColumn - safer than having a setTableType method
+        if (tableColumn.getId().startsWith("note")) {
+            myTableType = OwnNoteTableView.TableType.notesTable;
+        }
+        if (tableColumn.getId().startsWith("group")) {
+            myTableType = OwnNoteTableView.TableType.groupsTable;
+        }
+
+        // stop if we haven't been passed a correct TableColumn
+        assert (myTableType != null);
 
         initTableColumn();
-    }
-    
-    public void setEditor(final OwnNoteEditor editor) {
-        myEditor = editor;
     }
     
     public void setWidthPercentage(final double percentage) {
         myTableColumn.prefWidthProperty().bind(myTableColumn.getTableView().widthProperty().multiply(percentage));
     }
     
-    public void setTableColumnProperties(final OwnNoteEditor editor, final double percentage, final String valueName, final boolean linkCursor) {
-        setEditor(editor);
+    public void setTableColumnProperties(final double percentage, final String valueName, final boolean linkCursor) {
         setWidthPercentage(percentage);
         myTableColumn.setCellValueFactory(new MapValueFactory<String>(valueName));
         myTableColumn.setCellFactory(createObjectCellFactory(linkCursor));
@@ -79,9 +88,13 @@ public class OwnNoteTableColumn {
     private Callback<TableColumn<Map, String>, TableCell<Map, String>>
         createObjectCellFactory(final boolean linkCursor) {
         assert (this.myEditor != null);
-        return (TableColumn<Map, String> param) -> new ObjectCell(this.myEditor, linkCursor, new UniversalMouseEvent(this.myEditor));
+        return (TableColumn<Map, String> param) -> new ObjectCell(this.myEditor, this, linkCursor, new UniversalMouseEvent(this.myEditor));
     }
 
+    public OwnNoteTableView.TableType getTableType() {
+        return myTableType;
+    }
+    
     private void initTableColumn() {
         // default is not editable
         myTableColumn.setEditable(false);
@@ -177,8 +190,15 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
     // store link back to the controller of the scene for callback
     private OwnNoteEditor myOwnNoteEditor;
     
-    public ObjectCell(final OwnNoteEditor ownNoteEditor, final boolean linkCursor, final EventHandler<MouseEvent> mouseEvent) {
+    private OwnNoteTableColumn myOwnNoteTableColumn;
+    
+    public ObjectCell(final OwnNoteEditor ownNoteEditor,
+            final OwnNoteTableColumn ownNoteTableColumn, 
+            final boolean linkCursor, 
+            final EventHandler<MouseEvent> mouseEvent) {
         super(new DefaultStringConverter());
+        myOwnNoteEditor = ownNoteEditor;
+        myOwnNoteTableColumn = ownNoteTableColumn;
         
         if (linkCursor) {
             this.setCursor(Cursor.HAND);
