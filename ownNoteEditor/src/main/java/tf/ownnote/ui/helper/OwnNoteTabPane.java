@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
+import javafx.scene.control.Alert;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tab;
@@ -46,6 +47,7 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public class OwnNoteTabPane implements IGroupListContainer {
+    private final String PLUS_TAB = "+";
     
     private TabPane myTabPane = null;
     
@@ -65,6 +67,9 @@ public class OwnNoteTabPane implements IGroupListContainer {
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor= null;
             
+    // store selected group before changing the group lists for later re-select
+    private String selectedGroupName = GroupData.ALL_GROUPS;
+
     private OwnNoteTabPane() {
         super();
     }
@@ -79,6 +84,9 @@ public class OwnNoteTabPane implements IGroupListContainer {
 
     @SuppressWarnings("unchecked")
     private void initTabPane() {
+        // drop down menu doesn't update when renaming tabs - would need to implement own TabPaneSkin :-(
+        // https://stackoverflow.com/questions/31734292/show-some-tabs-ahead-from-selected-tab-in-a-javafx-8-tabpane-header
+        
         // TF, 20160617 - add a new tab with a "+" tab
         // https://community.oracle.com/thread/2535484?tstart=0
         addPlusTab();
@@ -92,7 +100,7 @@ public class OwnNoteTabPane implements IGroupListContainer {
         
             if (newTab != null && !newTab.equals(oldTab)) {
                 assert (newTab instanceof OwnNoteTab);
-                if (((OwnNoteTab) newTab).getLabel().getText().equals("+")) {
+                if (((OwnNoteTab) newTab).getTabName().equals("+")) {
                     // you have clicked on the "+" tab
                     if (myTabPane.getTabs().size() > 1) {
                         // and we have more tabs shown - so its not the intial adding of tabs...
@@ -117,10 +125,11 @@ public class OwnNoteTabPane implements IGroupListContainer {
     }
 
     private void addPlusTab() {
-        final OwnNoteTab newTab = new OwnNoteTab("+", myEditor);
+        final OwnNoteTab newTab = new OwnNoteTab(PLUS_TAB, null, myEditor);
         newTab.setClosable(false);
         newTab.setDetachable(false);
         newTab.setProtectedTab(true);
+        newTab.setDroptarget(false);
         
         // special style - not a normal tab...
         newTab.getStyleClass().add("plusTab");
@@ -135,10 +144,11 @@ public class OwnNoteTabPane implements IGroupListContainer {
         
         OwnNoteTab newTab = null;
         if (myEditor.createGroupWrapper(tabName)) {
-            newTab = new OwnNoteTab(tabName, myEditor);
+            newTab = new OwnNoteTab(tabName, "0", myEditor);
             newTab.setClosable(true);
             newTab.setDetachable(false);
             newTab.setProtectedTab(false);
+            newTab.setDroptarget(true);
 
             // set user data - required for change listener
             final GroupData dataRow = new GroupData();
@@ -168,7 +178,7 @@ public class OwnNoteTabPane implements IGroupListContainer {
         }
         
         // set color of tab to something fancy
-        final String groupColor = myEditor.getGroupColor(newTab.getLabelText());
+        final String groupColor = myEditor.getGroupColor(newTab.getTabName());
         newTab.setStyle("tab-color: " + groupColor);
         
         myTabPane.getTabs().add(myTabPane.getTabs().size() - 1, newTab);
@@ -179,31 +189,45 @@ public class OwnNoteTabPane implements IGroupListContainer {
         if (!updateOnly) {
             myTabPane.getTabs().clear();
             addPlusTab();
+        } else {
+            storeSelectedGroup();
         }
-        final List<String> tabNames =
+        
+        // name lists for current and new groups
+        final List<String> currentGroupNames =
                 myTabPane.getTabs().stream().
                     map(s -> {
                         assert (s instanceof OwnNoteTab);
                         final OwnNoteTab os = (OwnNoteTab) s;
-                        return os.getLabelText();
+                        return os.getTabName();
+                    }).
+                    collect(Collectors.toList());
+        final List<String> newGroupNames =
+                groupsList.stream().
+                    map((Map<String, String> s) -> {
+                        final GroupData og = new GroupData(s);
+                        return og.getGroupName();
                     }).
                     collect(Collectors.toList());
                 
         OwnNoteTab newTab = null;
         for (Map<String, String> group: groupsList) {
            final String groupName = (new GroupData(group)).getGroupName();
+           final String groupCount = (new GroupData(group)).getGroupCount();
             
-            if (!updateOnly || !tabNames.contains(groupName)) {
-                newTab = new OwnNoteTab(groupName, myEditor);
+            if (!updateOnly || !currentGroupNames.contains(groupName)) {
+                newTab = new OwnNoteTab(groupName, groupCount, myEditor);
                 newTab.setClosable(true);
                 newTab.setDetachable(false);
 
                 // ALL and NOT are reserved names
                 if (!groupName.equals(GroupData.NOT_GROUPED) && !groupName.equals(GroupData.ALL_GROUPS)) {
                     newTab.setProtectedTab(false);
+                    newTab.setDroptarget(true);
                     newTab.setClosable(true);
                 } else {
                     newTab.setProtectedTab(true);
+                    newTab.setDroptarget(false);
                     newTab.setClosable(false);
                 }
 
@@ -211,17 +235,39 @@ public class OwnNoteTabPane implements IGroupListContainer {
                 newTab.setUserData(group);
 
                 addOwnNoteTab(newTab);
+            } else {
+                // TF, 20161105: update tabCount
+                for (Tab tab: myTabPane.getTabs()) {
+                    assert (tab instanceof OwnNoteTab);
+                    final String tabLabel = ((OwnNoteTab) tab).getTabName();
+                    
+                    if (groupName.equals(tabLabel)) {
+                        ((OwnNoteTab) tab).setTabCount(groupCount);
+                    }
+                }
             }
         }
+        // TF, 20160816: and now check reverse - a tab exists thats no longer in the groupsList (can only happen for updateOnly)
+        if (updateOnly) {
+            for (Tab tab: myTabPane.getTabs()) {
+                assert (tab instanceof OwnNoteTab);
+
+                final String tabLabel = ((OwnNoteTab) tab).getTabName();
+                if (!newGroupNames.contains(tabLabel) &&
+                        !PLUS_TAB.equals(tabLabel)) {
+                    // if tab name not in group list AND not the "+" tab: remove it
+                    myTabPane.getTabs().remove(tab);
+                }
+            }
+        }
+        
         if (!updateOnly) {
             // select the "All" tab
             myTabPane.getSelectionModel().select(0);
+        } else {
+            // select the previous tab
+            restoreSelectedGroup();
         }
-    }
-    
-    @Override
-    public int getNotesCount() {
-        return myTabPane.getTabs().size();
     }
     
     @Override
@@ -235,18 +281,24 @@ public class OwnNoteTabPane implements IGroupListContainer {
         nameField.setOnAction((ActionEvent event) -> {
             assert (myEditor != null);
         
-            // 1. check whether new name is unique
+            // 1. check whether new name is not "ALL" or "+"
+            final String newGroupName = nameField.getText();
+            if (GroupData.ALL_GROUPS.equals(newGroupName) || PLUS_TAB.equals(newGroupName)) {
+                // error message
+                myEditor.showAlert(Alert.AlertType.ERROR, "Error Dialog", "New group name invalid.", "A group cannot be named '" + GroupData.ALL_GROUPS + "' or '" + PLUS_TAB + "'.");
+                
+                return;
+            }
 
             // 2. rename group
             final GroupData curGroup = (GroupData) activeTab.getUserData();
-            final String newGroupName = nameField.getText();
             
             if (myEditor.renameGroupWrapper(curGroup.getGroupName(), newGroupName)) {
                 // 3. if tab with same name exists, delete it
                 for (Tab sameNameTab: myTabPane.getTabs()) {
                     assert (sameNameTab instanceof OwnNoteTab);
                     
-                    if (((OwnNoteTab) sameNameTab).getLabelText().equals(newGroupName)) {
+                    if (((OwnNoteTab) sameNameTab).getTabName().equals(newGroupName)) {
                         myTabPane.getTabs().remove(sameNameTab);
                         break;
                     }
@@ -266,14 +318,14 @@ public class OwnNoteTabPane implements IGroupListContainer {
         nameField.focusedProperty().addListener(
                 (ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
             if (! newValue) {
-                activeTab.setLabelText(activeTab.getLabelText());
+                activeTab.setLabelText(activeTab.getTabName());
             }  
         });  
 
         // restore on ESC
         nameField.addEventHandler(KeyEvent.KEY_PRESSED, (final KeyEvent keyEvent) -> {
             if (KeyCode.ESCAPE.equals(keyEvent.getCode())) {
-                activeTab.setLabelText(activeTab.getLabelText());
+                activeTab.setLabelText(activeTab.getTabName());
                 
                 keyEvent.consume();
             }
@@ -320,10 +372,35 @@ public class OwnNoteTabPane implements IGroupListContainer {
         activeTab = (OwnNoteTab) myTabPane.getSelectionModel().selectedItemProperty().getValue();
 
         // 1. show our textfield on tab label
-        nameField.setText(activeTab.getLabelText());  
+        nameField.setText(activeTab.getTabName());  
         activeTab.setGraphic(nameField);  
         nameField.selectAll();  
         nameField.requestFocus();  
+    }
+
+    private void storeSelectedGroup() {
+        if (myTabPane.getSelectionModel().getSelectedItem() != null) {
+            selectedGroupName = getCurrentGroup().getGroupName();
+        } else {
+            selectedGroupName = GroupData.ALL_GROUPS;
+        }
+    }
+
+    private void restoreSelectedGroup() {
+        int i = 0;
+        int selectIndex = 0;
+
+        for (Tab tab: myTabPane.getTabs()) {
+            assert (tab instanceof OwnNoteTab);
+
+            if (selectedGroupName.equals(((OwnNoteTab) tab).getTabName())) {
+                selectIndex = i;
+                break;
+            }
+            i++;
+        }
+
+        myTabPane.getSelectionModel().clearAndSelect(selectIndex);
     }
 
     /* Required getter and setter methods are forwarded to internal TableView */

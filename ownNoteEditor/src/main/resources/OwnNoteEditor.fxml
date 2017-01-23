@@ -21,7 +21,7 @@
           <RowConstraints maxHeight="535.0" minHeight="10.0" prefHeight="535.0" vgrow="SOMETIMES" />
         </rowConstraints>
          <children>
-            <TabPane fx:id="groupsPaneFXML" disable="true" prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE" visible="false" GridPane.columnIndex="1" GridPane.columnSpan="2147483647" />
+            <TabPane fx:id="groupsPaneFXML" disable="true" prefHeight="200.0" prefWidth="200.0" styleClass="groupsPane" tabClosingPolicy="UNAVAILABLE" visible="false" GridPane.columnIndex="1" GridPane.columnSpan="2147483647" />
             <TableView fx:id="notesTableFXML" prefHeight="200.0" prefWidth="200.0" styleClass="notesTable" GridPane.columnIndex="1" GridPane.rowIndex="1">
               <columns>
                 <TableColumn fx:id="noteNameColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteNameCol" text="Name" />
@@ -32,7 +32,7 @@
             </TableView>
             <HBox fx:id="pathBox" alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0">
                <children>
-                  <Label fx:id="ownCloudPath" prefHeight="30.0" prefWidth="261.0" text="...">
+                  <Label fx:id="ownCloudPath" prefHeight="30.0" prefWidth="261.0" styleClass="ownCloudPath" text="...">
                      <HBox.margin>
                         <Insets />
                      </HBox.margin>
@@ -102,7 +102,7 @@
                   <TableColumn fx:id="groupCountColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="true" styleClass="groupCountCol" text="Count" />
               </columns>
             </TableView>
-            <HTMLEditor fx:id="noteEditorFXML" disable="true" htmlText="&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body contenteditable=&quot;true&quot;&gt;&lt;/body&gt;&lt;/html&gt;" prefHeight="200.0" prefWidth="506.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+            <HTMLEditor fx:id="noteEditorFXML" disable="true" htmlText="&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body contenteditable=&quot;true&quot;&gt;&lt;/body&gt;&lt;/html&gt;" prefHeight="200.0" prefWidth="506.0" styleClass="noteEditor" GridPane.columnIndex="1" GridPane.rowIndex="1" />
          </children>
       </GridPane>
    </center>
