@@ -465,12 +465,27 @@ public class OwnNoteFileManager {
         // TF, 20151129
         // 4. update grouplist as well
         // TF, 20151215: if new group already exists only increase note count!
-        final GroupData oldGroupRow = groupsList.remove(oldGroupName);
+        // TF, 20170131; re-insert new group at same position as before - otherwise the coloring gets screwed up
+        final GroupData oldGroupRow = groupsList.get(oldGroupName);
         final GroupData newGroupRow = groupsList.get(newGroupName);
         if (newGroupRow == null) {
             oldGroupRow.setGroupName(newGroupName);
-            groupsList.put(newGroupName, oldGroupRow);
+            // we need to replace "in place" to keep coloring the same
+            // so remove & put don't do the trick since they change the order
+            // we have to copy over the list into a new one and replace the old entry
+            final LinkedHashMap<String, GroupData> oldList = new LinkedHashMap<>(groupsList);
+            groupsList.clear();
+            for (Map.Entry<String, GroupData> entry : oldList.entrySet()) {
+                if (!oldGroupName.equals(entry.getKey())) {
+                    groupsList.put(entry.getKey(), entry.getValue());
+                } else {
+                    groupsList.put(newGroupName, entry.getValue());
+                }
+            }
         } else {
+            // old map entry can simply be removed
+            groupsList.remove(oldGroupName);
+
             newGroupRow.setGroupCount(Integer.toString(Integer.valueOf(newGroupRow.getGroupCount())+Integer.valueOf(oldGroupRow.getGroupCount())));
             groupsList.replace(newGroupName, newGroupRow);
         }
