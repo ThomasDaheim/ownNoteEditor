@@ -40,8 +40,6 @@ public interface IGroupListContainer {
     
     public abstract GroupData getCurrentGroup();
     
-    public abstract int getNotesCount();
-
     public abstract void setStyle(final String style);
     
     public abstract void setDisable(final boolean b);

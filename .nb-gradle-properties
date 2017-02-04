@@ -6,10 +6,10 @@
       <display-name>debugWithArgs</display-name>
       <non-blocking>no</non-blocking>
       <task-names>
-        <name must-exist="no">${project}:debug</name>
+        <name must-exist="yes">${project}:debug</name>
       </task-names>
       <task-args>
-        <arg>-PcmdLineArgs=-lookAndFeel="classic"</arg>
+        <arg>-PcmdLineArgs=-lookAndFeel="oneNote"</arg>
       </task-args>
       <task-jvm-args/>
     </task>
@@ -17,7 +17,7 @@
       <display-name>runWithArgs</display-name>
       <non-blocking>no</non-blocking>
       <task-names>
-        <name must-exist="no">${project}:run</name>
+        <name must-exist="yes">${project}:run</name>
       </task-names>
       <task-args>
         <arg>-PcmdLineArgs=-lookAndFeel="oneNote"</arg>

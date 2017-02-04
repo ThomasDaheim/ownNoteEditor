@@ -39,11 +39,17 @@ public class OwnNoteTab extends Tab {
     private OwnNoteEditor myEditor= null;
             
     private static final Set<TabPane> tabPanes = new HashSet<>();
-    private Label nameLabel;
-    private Text dragText;
+    private Label nameLabel = new Label();
+    private Text dragText = new Text();
     private static final Stage markerStage;
     private Stage dragStage;
     private boolean detachable;
+    
+    private String tabName;
+    private String tabCount;
+
+    // can this tab be a drop target for notes?
+    private boolean droptarget;
     
     private boolean protectedTab = false;
     
@@ -59,23 +65,24 @@ public class OwnNoteTab extends Tab {
     /**
      * Create a new draggable tab. This can be added to any normal TabPane,
      * however a TabPane with draggable tabs must *only* have DraggableTabs,
-     * normal tabs and DrragableTabs mixed will cause issues!
+     * normal tabs and DragableTabs mixed will cause issues!
      * <p>
      * @param text the text to appear on the tag label.
      */
-    public OwnNoteTab(String text, final OwnNoteEditor editor) {
-        nameLabel = new Label(text);
+    public OwnNoteTab(String text, String count, final OwnNoteEditor editor) {
         nameLabel.setPadding(new Insets(5));
-        setGraphic(nameLabel);
         
         myEditor = editor;
+        tabName = text;
+        tabCount = count;
         
+        setLabelText(text);
+
         detachable = true;
         dragStage = new Stage();
         dragStage.initStyle(StageStyle.UNDECORATED);
         StackPane dragStagePane = new StackPane();
         dragStagePane.setStyle("-fx-background-color:#DDDDDD;");
-        dragText = new Text(text);
         StackPane.setAlignment(dragText, Pos.CENTER);
         dragStagePane.getChildren().add(dragText);
         dragStage.setScene(new Scene(dragStagePane));
@@ -171,7 +178,7 @@ public class OwnNoteTab extends Tab {
             // and if not the "ALL" group...
             if (event.getDragboard().hasHtml() &&
                     event.getDragboard().getHtml().equals("notesTable") &&
-                    !GroupData.ALL_GROUPS.equals(nameLabel.getText())) {
+                    droptarget) {
                 event.acceptTransferModes(TransferMode.MOVE);
             }
             
@@ -204,9 +211,12 @@ public class OwnNoteTab extends Tab {
             if (db.hasString()) {
                 final NoteData dragNote = NoteData.fromString(db.getString());
                 // 1. rename note to new group name
-                if (myEditor.moveNoteWrapper(dragNote, getLabelText())) {
+                if (myEditor.moveNoteWrapper(dragNote, getTabName())) {
                     // 2. focus on this tab
                     getTabPane().getSelectionModel().select(this);
+                    
+                    // TF, 20161105: update tab count on both tabs
+                    myEditor.initFromDirectory(true);
                     
                     success = true;
                 }
@@ -227,8 +237,19 @@ public class OwnNoteTab extends Tab {
         this.detachable = detachable;
     }
 
-    public String getLabelText() {
-        return nameLabel.getText();
+    public String getTabName() {
+        return this.tabName;
+    }
+    
+    public String getTabCount() {
+        return tabCount;
+    }
+
+    public void setTabCount(final String tabCount) {
+        this.tabCount = tabCount;
+        
+        // and now update label
+        setLabelText(tabName);
     }
     
     /**
@@ -238,9 +259,15 @@ public class OwnNoteTab extends Tab {
      * @param text the label text for this tab.
      */
     public void setLabelText(final String text) {
-        nameLabel.setText(text);
+        tabName = text;
+        
+        if (tabCount != null) {
+            nameLabel.setText(text + " ("  + tabCount + ")");
+        } else {
+            nameLabel.setText(text);
+        }
         dragText.setText(text);
-        setGraphic(nameLabel);            
+        setGraphic(nameLabel);
     }
 
     public boolean isProtectedTab() {
@@ -249,6 +276,14 @@ public class OwnNoteTab extends Tab {
 
     public void setProtectedTab(final boolean protectedTab) {
         this.protectedTab = protectedTab;
+    }
+
+    public boolean isDroptarget() {
+        return droptarget;
+    }
+
+    public void setDroptarget(final boolean inDroptarget) {
+        droptarget = inDroptarget;
     }
 
     public Label getLabel() {
@@ -311,7 +346,7 @@ public class OwnNoteTab extends Tab {
                 node.getLayoutBounds().getHeight());
     }
 
-    private Rectangle2D getAbsoluteRect(Tab tab) {
+    public Rectangle2D getAbsoluteRect(Tab tab) {
         Node node = ((OwnNoteTab) tab).getLabel();
         // loop 2 upwards to TabPaneSkin
         node = node.getParent().getParent();

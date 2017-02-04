@@ -148,11 +148,6 @@ public class OwnNoteTableView implements IGroupListContainer {
         return new GroupData(myTableView.getSelectionModel().getSelectedItem());
     }
     
-    @Override
-    public int getNotesCount() {
-        return myTableView.getItems().size();
-    }
-    
     public TableView<Map<String, String>> getTableView() {
         return myTableView;
     }
@@ -181,7 +176,7 @@ public class OwnNoteTableView implements IGroupListContainer {
                     String newGroupName = (String) getTableView().getUserData();
                     // TF, 20160524: group name could be "All" - thats to be changed to "Not grouped"
                     if (newGroupName.equals(GroupData.ALL_GROUPS)) {
-                        newGroupName = GroupData.NEW_GROUP;
+                        newGroupName = "";
                     }
                     final String newNoteName = myEditor.uniqueNewNoteNameForGroup(newGroupName);
                     
@@ -250,9 +245,7 @@ public class OwnNoteTableView implements IGroupListContainer {
                             final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
 
                             if(myEditor.deleteNoteWrapper(curNote)) {
-                                storeSelectedGroup();
                                 myEditor.initFromDirectory(false);
-                                restoreSelectedGroup();
                             }
                         }
                     });
