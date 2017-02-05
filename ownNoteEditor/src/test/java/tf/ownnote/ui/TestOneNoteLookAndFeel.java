@@ -88,6 +88,9 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         /* Do not forget to put the GUI in front of windows. Otherwise, the robots may interact with another
         window, the one in front of all the windows... */
         stage.toFront();
+        
+        // TF, 20170205: under gradle in netbeans toFront() still leves the window in the background...
+        stage.requestFocus();
     }
 
     private final Testdata myTestdata = new Testdata();
