@@ -5,7 +5,7 @@ Aim was to mimic the behaviour of the ownNote web client using JavaFX and workin
 
 V 2.1: Added TestFX test harness
 
-* Complete test harnbess for the "oneNote" look & feel using TestFX
+* Complete test harness for the "oneNote" look & feel using TestFX
 * Now showing number of notes as part of the tab header
 * Entries in the notes ist colored as their corresponding tab. So when you select the "All" group you'll get a very colorful notes list...
 
