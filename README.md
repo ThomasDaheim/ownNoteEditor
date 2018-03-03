@@ -3,11 +3,19 @@ JavaFX editor for the ownNote files locally stored in ownCloud folder
 
 Aim was to mimic the behaviour of the ownNote web client using JavaFX and working directly on the owNote files in a local ownCloud directory. This code does NOT update any of the SQL tables used by owNote - but so far this doesn't seem to impact anything.
 
+V 3.0: All You Ever Wanted
+
+* Switched from JavaFX HTMLEditor to prism.js as notes editor; add/remove html code during load and save of notes
+* Enable features from prism.js like syntax coloring, ...
+* Insert links, code, images, checkboxes
+* View source code
+
+
 V 2.1: Added TestFX test harness
 
 * Complete test harness for the "oneNote" look & feel using TestFX
 * Now showing number of notes as part of the tab header
-* Entries in the notes ist colored as their corresponding tab. So when you select the "All" group you'll get a very colorful notes list...
+* Entries in the notes list colored as their corresponding tab. So when you select the "All" group you'll get a very colorful notes list...
 
 
 V 2.0: Various improvements have been added:

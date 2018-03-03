@@ -95,6 +95,10 @@ public class OwnNoteTableColumn {
         return myTableType;
     }
     
+    public TableColumn<Map, String> getTableColumn() {
+        return myTableColumn;
+    }
+    
     private void initTableColumn() {
         // default is not editable
         myTableColumn.setEditable(false);
@@ -159,7 +163,7 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
                 //System.out.println("Clicked in noteNameCol");
                 curNoteData =
                     new NoteData((Map<String, String>) clickedCell.getTableView().getItems().get(clickedCell.getIndex()));
-                reInit = this.myEditor.editNote(curNoteData);
+                //reInit = this.myEditor.editNote(curNoteData);
                 break;
             case "noteDeleteColFXML":
                 //System.out.println("Clicked in noteDeleteCol");

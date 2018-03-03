@@ -26,6 +26,7 @@
 package tf.ownnote.ui;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -95,7 +96,7 @@ public class Testdata {
         
         try {
             Files.createFile(notename);
-        } catch (Exception e) {
+        } catch (IOException e) {
             System.err.println("already exists: " + e.getMessage());
             result = false;
         }        
@@ -111,7 +112,7 @@ public class Testdata {
         
         try {
             result = Files.deleteIfExists(notename);
-        } catch (Exception e) {
+        } catch (IOException e) {
             System.err.println("already exists: " + e.getMessage());
             result = false;
         }        
@@ -180,6 +181,22 @@ public class Testdata {
         if (groupsList.containsKey(groupName)) {
             result = Integer.parseInt(groupsList.get(groupName).getGroupCount());
         }
+        
+        return result;
+    }
+    
+    public String getCodeContent() {
+        final String result = "body {\n" +
+            "    margin: 0 !important;\n" +
+            "    padding: 0 !important;\n" +
+            "    /* border: 1px solid red; */\n" + 
+            "}";
+        
+        return result;
+    }
+    
+    public File getDragFile() {
+        final File result = new File("src/test/resources/dummy.txt");
         
         return result;
     }

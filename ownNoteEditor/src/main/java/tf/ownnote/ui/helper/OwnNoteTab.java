@@ -47,6 +47,7 @@ public class OwnNoteTab extends Tab {
     
     private String tabName;
     private String tabCount;
+    private String tabColor;
 
     // can this tab be a drop target for notes?
     private boolean droptarget;
@@ -68,6 +69,8 @@ public class OwnNoteTab extends Tab {
      * normal tabs and DragableTabs mixed will cause issues!
      * <p>
      * @param text the text to appear on the tag label.
+     * @param count number of th3 tab in the tab pane
+     * @param editor reference to the OwnNoteEditor
      */
     public OwnNoteTab(String text, String count, final OwnNoteEditor editor) {
         nameLabel.setPadding(new Insets(5));
@@ -252,6 +255,15 @@ public class OwnNoteTab extends Tab {
         setLabelText(tabName);
     }
     
+    public String getTabColor() {
+        return tabColor;
+    }
+
+    public void setTabColor(final String newTabColor) {
+        tabColor = newTabColor;
+        setStyle("tab-color: " + newTabColor);
+    }
+
     /**
      * Set the label text on this draggable tab. This must be used instead of
      * setText() to set the label, otherwise weird side effects will result!
