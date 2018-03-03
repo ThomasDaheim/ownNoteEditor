@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2014 Thomas Feuster
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+3. The name of the author may not be used to endorse or promote products
+   derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+<html>
+    <head>
+        <title></title>
+        <link rel="stylesheet" type="text/css" href="editor.css">
+        <!-- jquery -->
+        <script src='jquery-3.2.1.slim.min.js'></script>
+        <!-- jquery ui -->
+        <link rel="stylesheet" type="text/css" href="jquery-ui.min.css">
+        <script src='jquery-ui.min.js'></script>
+        <!-- basic stuff for prism -->
+        <link rel="stylesheet" type="text/css" href="prism.css">
+        <script src='prism.js'></script>
+
+        <script>
+            // https://stackoverflow.com/questions/31512442/apply-jqueryui-resizable-widget-to-dynamically-created-elements
+            function ApplyResizablePlugin(elements){
+                elements.resizable({
+                    aspectRatio: true,
+                    minHeight: 10,
+                    minWidth: 10,
+                    grid: [10, 10],
+                    handles: "e, s, se",
+                    autohide: false,
+                    helper: "ui-resizable-helper",
+                    stop: function(event, ui) {
+                        ui.originalElement.width(ui.size.width);
+                        ui.originalElement.height(ui.size.height);
+                    }
+                    // TODO: resizable handle not showing
+                });
+            }
+            function DestroyResizablePlugin(elements){
+                elements.resizable("destroy");
+            }
+            function ApplyCheckboxMonitor(elements){
+                elements.change(function(event) {
+                    if ($(event.target).is(':checked')) {
+                            $(event.target).attr('checked', 'checked');
+                    } else {
+                            $(event.target).removeAttr('checked');
+                    }
+                });
+            }
+
+            function saveSetContent(content) {
+                //console.log('saveSetContent: ' + content);
+                document.body.innerHTML = content;
+                Prism.highlightAll(true);
+                ApplyResizablePlugin($('img'));
+                ApplyCheckboxMonitor($("input[type='checkbox']"));
+            }
+            
+            function saveGetContent() {
+                //console.log('saveGetContent');
+                DestroyResizablePlugin($('img'));
+                var content = document.body.outerHTML;
+                ApplyResizablePlugin($('img'));
+                return content;
+            }
+            
+            function saveInsertContent(content) {
+                var sel, range;
+                if (window.getSelection) {
+                    sel = window.getSelection();
+                    if (sel.getRangeAt && sel.rangeCount) {
+                        range = sel.getRangeAt(0);
+                        range.deleteContents();
+                        var el = document.createElement("div");
+                        el.innerHTML = content;
+                        var frag = document.createDocumentFragment(), node, lastNode;
+                        while ((node = el.firstChild)) {
+                            lastNode = frag.appendChild(node);
+                        }
+                        range.insertNode(frag);
+                        if (lastNode) {
+                            range = range.cloneRange();
+                            range.setStartAfter(lastNode);
+                            range.collapse(true);
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                        }
+                    }
+                }
+                else if (document.selection && document.selection.type !== "Control") {
+                    document.selection.createRange().pasteHTML(content);
+                }
+                ApplyResizablePlugin($('img'));
+                ApplyCheckboxMonitor($("input[type='checkbox']"));
+            }
+            
+            function saveReplaceContent(oldContent, newContent) {
+                //console.log('saveReplaceCodeContent');
+                //console.log('oldContent: ' + oldContent);
+                //console.log('newContent: ' + newContent);
+                
+                // http://stackoverflow.com/questions/4886319/replace-text-in-html-page-with-jquery/4893386#4893386
+                var replaced = document.body.innerHTML.replace(oldContent, newContent);
+                //console.log('old html: ' + document.body.innerHTML);
+                //console.log('new html: ' + replaced);
+                document.body.innerHTML = replaced;
+            }
+            
+            function saveGetCodeContent() {
+                //console.log('saveGetCodeContent');
+                
+                var codeSpan = "";
+                var codeLang = "";
+                var anchorNode = document.getSelection().anchorNode;
+                //console.log('anchorNode: ' + anchorNode);
+                if ($(anchorNode).parents('[class*=language-]').length > 0) {
+                    //console.log('code found');
+                    var preNode = $(anchorNode).parents('[class*=language-]').last();
+                    
+                    // return outer html
+                    codeSpan = preNode[0].outerHTML;
+                    codeLang = preNode.attr('class').split("-")[1];
+                    
+                    //console.log('codeSpan: ' + codeSpan);
+                    //console.log('codeLang ' + codeLang);
+                }
+                
+                // return conatenated string instead of array...
+                // https://www.w3schools.com/jsref/jsref_concat_string.asp
+                // http://gergerconsulting.blogspot.de/2011/01/passing-function-parameters-from.html
+                return codeLang + "|" + codeSpan;
+            }
+            
+            window.onload = function() {
+                //console.log('onload');
+            };
+        </script>
+    </head>
+    <body contenteditable="true">
+    </body>
+</html>

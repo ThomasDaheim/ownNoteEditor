@@ -281,7 +281,14 @@ public class OwnNoteFileManager {
         final String newFileName = buildNoteName(groupName, noteName);
         
         try {
-            Files.write(Paths.get(this.ownNotePath, newFileName), htmlText.getBytes());
+            final Path savePath = Files.write(Paths.get(this.ownNotePath, newFileName), htmlText.getBytes());
+            
+            // // TF, 20170723: update modified date of the file
+            final LocalDateTime filetime = LocalDateTime.ofInstant((new Date(savePath.toFile().lastModified())).toInstant(), ZoneId.systemDefault());
+            final NoteData dataRow = notesList.get(newFileName);
+            dataRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
+            notesList.put(newFileName, dataRow);
+            
         } catch (IOException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = false;

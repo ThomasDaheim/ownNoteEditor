@@ -98,7 +98,9 @@ public class OwnNoteEditorManager extends Application {
     public void start(Stage primaryStage) {
         // store stage for later use
         myStage = primaryStage;
-        primaryStage.setUserData(this);
+        myStage.setUserData(this);
+        // save host services for later use
+        myStage.getProperties().put("hostServices", this.getHostServices());
 
         FXMLLoader fxmlLoader = null;
         try {
@@ -116,7 +118,7 @@ public class OwnNoteEditorManager extends Application {
             myStage.setTitle("OwnNote Editor"); 
             myStage.getIcons().clear();
             myStage.getIcons().add(new Image(OwnNoteEditorManager.class.getResourceAsStream("/OwnNoteEditorManager.png")));
-            myStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/ownnote.css").toExternalForm());
+            myStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/css/ownnote.css").toExternalForm());
             
             // TF, 20160620: suppress warnings from css parsing for "-fx-font-weight" - not correctly implemented in the css parrser for javafx 8...
             // Logging.getCSSLogger().setLevel(PlatformLogger.Level.SEVERE);
@@ -173,7 +175,7 @@ public class OwnNoteEditorManager extends Application {
         myStage.setX((primScreenBounds.getWidth() - myStage.getWidth()) / 2); 
         myStage.setY((primScreenBounds.getHeight() - myStage.getHeight()) / 2);
     }
-    
+
     public OwnNoteEditor getController() {
         return controller;
     }
@@ -240,7 +242,7 @@ public class OwnNoteEditorManager extends Application {
      * Shows the application stage and ensures that it is brought to the front of all stages.
      */
     private void showStage() {
-        if (myStage != null) {
+        if (myStage != null && myStage.isIconified()) {
             myStage.setIconified(false);
             myStage.show();
             restoreStagePos();
@@ -250,20 +252,26 @@ public class OwnNoteEditorManager extends Application {
     }
     
     private void hideStage() {
-        if (myStage != null) {
+        if (myStage != null && !myStage.isIconified()) {
             myStage.hide();
         }
     }
 
     public void closeStage() {
+        // TF, 20170421: show before close - otherwise check by "save changed" isn't shown...
+        showStage();
+
         try {
             super.stop();
         } catch (Exception ex) {
             Logger.getLogger(OwnNoteEditorManager.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, String.valueOf(myStage.getScene().getWidth()));
-        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, String.valueOf(myStage.getScene().getHeight()));
+        // TF, 20170904: maximized gives wrong values for width & height - surely same with minimized...
+        if (!myStage.isMaximized() && !myStage.isIconified()) {
+            OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, String.valueOf(myStage.getScene().getWidth()));
+            OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, String.valueOf(myStage.getScene().getHeight()));
+        }
         
         if (controller != null) {
             controller.stop();

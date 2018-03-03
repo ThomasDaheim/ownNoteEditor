@@ -45,7 +45,6 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
-import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -114,7 +113,6 @@ public class OwnNoteEditor implements Initializable {
     private final List<String> realGroupNames = new LinkedList<> ();
     
     private ObservableList<Map<String, String>> notesList = null;
-    private FilteredList<Map<String, String>> filteredData = null;
     
     private final BooleanProperty inEditMode = new SimpleBooleanProperty();
     
@@ -342,6 +340,7 @@ public class OwnNoteEditor implements Initializable {
         noteGroupCol = new OwnNoteTableColumn(noteGroupColFXML, this);
         notesTable = new OwnNoteTableView(notesTableFXML, this);
         notesTable.setSortOrder(TableSortHelper.fromString(notesSortOrder));
+        notesTable.setFilterColumn(noteGroupCol);
 
         groupNameCol = new OwnNoteTableColumn(groupNameColFXML, this);
         groupDeleteCol = new OwnNoteTableColumn(groupDeleteColFXML, this);
@@ -773,6 +772,11 @@ public class OwnNoteEditor implements Initializable {
         notesList = myFileManager.getNotesList();
         // http://code.makery.ch/blog/javafx-8-tableview-sorting-filtering/
         
+        // Issue #59: advanced filtering & sorting
+        // do the stuff in the OwnNoteTableView - thats the right place!
+        notesTable.setNotes(notesList);
+        
+        /*
         // 1. Wrap the ObservableList in a FilteredList (initially display all data).
         filteredData = new FilteredList<>(notesList, p -> true);
         // re-apply filter predicate when already set
@@ -792,6 +796,7 @@ public class OwnNoteEditor implements Initializable {
 
         // 5. Add sorted (and filtered) data to the table.        
         notesTable.setNotes(sortedData);
+        */
         
         ObservableList<Map<String, String>> groupsList = myFileManager.getGroupsList();
         myGroupList.setGroups(groupsList, updateOnly);
@@ -898,8 +903,6 @@ public class OwnNoteEditor implements Initializable {
     private void hideNoteEditor() {
         noteEditor.setDisable(true);
         noteEditor.setVisible(false);
-        noteEditor.setNoteText("");
-        noteEditor.setUserData(null);
         
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             notesTable.setDisable(false);
@@ -915,8 +918,6 @@ public class OwnNoteEditor implements Initializable {
 
         noteEditor.setDisable(false);
         noteEditor.setVisible(true);
-        noteEditor.setNoteText("");
-        noteEditor.setUserData(null);
 
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             showAndEnableInitialEditControls();
@@ -1105,6 +1106,9 @@ public class OwnNoteEditor implements Initializable {
                 hideAndDisableAllEditControls();
                 hideNoteEditor();
                 initFromDirectory(false);
+            } else {
+                // TF, 20170723: refresh notes list since modified has changed
+                notesTableFXML.refresh();
             }
         } else {
             // error message - most likely note in "Not grouped" with same name already exists
@@ -1115,6 +1119,11 @@ public class OwnNoteEditor implements Initializable {
     }
 
     public void setFilterPredicate(final String groupName) {
+        notesTable.setFilterPredicate(groupName);
+        
+        // Issue #59: advanced filtering & sorting
+        // do the stuff in the OwnNoteTableView - thats the right place!
+        /*
         notesTable.getTableView().setUserData(groupName);
         
         filteredData.setPredicate((Map<String, String> note) -> {
@@ -1125,6 +1134,7 @@ public class OwnNoteEditor implements Initializable {
             // Compare note name to filter text.
             return (new NoteData(note)).getGroupName().equals(groupName); 
         });
+        */
     }
 
     public void setNotesTableForNewTab(String style) {
@@ -1272,8 +1282,15 @@ public class OwnNoteEditor implements Initializable {
         return currentLookAndFeel;
     }
 
+    // TF, 20170528: determine color from tabpane for groupname for existing colors
+    public String getExistingGroupColor(final String groupName) {
+        
+        return groupsPane.getMatchingPaneColor(groupName);
+    }
+
     // TF, 20160703: to support coloring of notes table view for individual notes
-    public String getGroupColor(String groupName) {
+    // TF, 20170528: determine color from groupname for new colors
+    public String getNewGroupColor(String groupName) {
         final FilteredList<Map<String, String>> filteredGroups = myFileManager.getGroupsList().filtered((Map<String, String> group) -> {
             // Compare group name to filter text.
             return (new GroupData(group)).getGroupName().equals(groupName); 

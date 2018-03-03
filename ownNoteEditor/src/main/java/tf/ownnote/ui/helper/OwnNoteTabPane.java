@@ -178,8 +178,9 @@ public class OwnNoteTabPane implements IGroupListContainer {
         }
         
         // set color of tab to something fancy
-        final String groupColor = myEditor.getGroupColor(newTab.getTabName());
-        newTab.setStyle("tab-color: " + groupColor);
+        final String groupColor = myEditor.getNewGroupColor(newTab.getTabName());
+        newTab.setTabColor(groupColor);
+        //System.out.println("addOwnNoteTab - groupName, groupColor: " + newTab.getTabName() + ", " + groupColor);
         
         myTabPane.getTabs().add(myTabPane.getTabs().size() - 1, newTab);
     }
@@ -273,6 +274,29 @@ public class OwnNoteTabPane implements IGroupListContainer {
     @Override
     public GroupData getCurrentGroup() {
         return ((GroupData) myTabPane.getSelectionModel().getSelectedItem().getUserData());
+    }
+    
+    public String getMatchingPaneColor(final String groupName) {
+        String groupColor = "darkgrey";
+
+        // name lists for current and new groups
+        final List<String> groupNames =
+            myTabPane.getTabs().stream().
+                map(s -> {
+                    assert (s instanceof OwnNoteTab);
+                    final OwnNoteTab os = (OwnNoteTab) s;
+                    return os.getTabName();
+                }).
+                collect(Collectors.toList());
+        
+        // find tab for group name and return its tab-color style value
+        if (groupNames.contains(groupName)) {
+            final OwnNoteTab groupTab = (OwnNoteTab) myTabPane.getTabs().get(groupNames.indexOf(groupName));
+             
+            groupColor = groupTab.getTabColor();
+        }
+        
+        return groupColor;
     }
     
     @SuppressWarnings("unchecked")

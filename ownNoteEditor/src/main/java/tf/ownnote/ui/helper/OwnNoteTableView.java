@@ -34,6 +34,8 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -66,6 +68,9 @@ public class OwnNoteTableView implements IGroupListContainer {
     private OwnNoteEditor myEditor= null;
     
     private TableView<Map<String, String>> myTableView = null;
+    // Issue #59: advanced filtering & sorting
+    private OwnNoteTableColumn myFilterColumn = null;
+    private FilteredList<Map<String, String>> filteredData = null;
     
     private TableType myTableType = null;
     
@@ -102,6 +107,10 @@ public class OwnNoteTableView implements IGroupListContainer {
         initTableView();
     }
 
+    public void setFilterColumn(final OwnNoteTableColumn filterColumn) {
+        myFilterColumn = filterColumn;
+    }
+
     @Override
     public void setGroups(final ObservableList<Map<String, String>> groupsList, final boolean updateOnly) {
         assert (TableType.groupsTable.equals(myTableType));
@@ -114,7 +123,7 @@ public class OwnNoteTableView implements IGroupListContainer {
             myTableView.layout();
         }
         
-        final List<String> listNames = new LinkedList<String>();
+        final List<String> listNames = new LinkedList<>();
         if (myTableView.getItems() != null) {
             listNames.addAll(
                 myTableView.getItems().stream().
@@ -204,8 +213,10 @@ public class OwnNoteTableView implements IGroupListContainer {
                                     assert (item instanceof NoteData);
                                     final String groupName = ((NoteData) item).getGroupName();
 
-                                    final String groupColor = myEditor.getGroupColor(groupName);
+                                    // get the color for the pane with the same groupname - not the same as get color for groupname!
+                                    final String groupColor = myEditor.getExistingGroupColor(groupName);
                                     setStyle("-fx-background-color: " + groupColor);
+                                    //System.out.println("updateItem - groupName, groupColor: " + groupName + ", " + groupColor);
                                 }
                             }
                         }
@@ -417,11 +428,42 @@ public class OwnNoteTableView implements IGroupListContainer {
     public void setNotes(final ObservableList<Map<String, String>> items) {
         assert (TableType.notesTable.equals(myTableType));
         
+        // 1. Wrap the ObservableList in a FilteredList (initially display all data).
+        filteredData = new FilteredList<>(items, p -> true);
+        // re-apply filter predicate when already set
+        final String curGroupName = (String) getTableView().getUserData();
+        if (curGroupName != null) {
+            setFilterPredicate(curGroupName);
+        }
+
+        // 2. Create sorted list
+        SortedList<Map<String, String>> sortedData = new SortedList<>(filteredData);
+
+        // 3. Bind the SortedList comparator to the TableView comparator.
+        sortedData.comparatorProperty().bind(comparatorProperty());
+        
+        // 4. update item list in table filter
         // that removes the sort order!!!
         myTableView.setItems(null);
         myTableView.layout();
-        myTableView.setItems(items);
+        myTableView.setItems(sortedData);
         this.restoreSortOrder();
+    }
+    
+    public void setFilterPredicate(final String filterValue) {
+        assert (TableType.notesTable.equals(myTableType));
+        assert (myFilterColumn != null);
+        
+        getTableView().setUserData(filterValue);
+        
+        filteredData.setPredicate((Map<String, String> note) -> {
+            // If filter text is empty, display all persons. Also for "All".
+            if (filterValue == null || filterValue.isEmpty() || filterValue.equals(GroupData.ALL_GROUPS) ) {
+                return true;
+            }
+            // Compare note name to filter text.
+            return (new NoteData(note)).getGroupName().equals(filterValue); 
+        });
     }
 
     @Override
