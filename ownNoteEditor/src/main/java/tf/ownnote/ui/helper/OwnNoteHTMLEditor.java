@@ -45,8 +45,11 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import javafx.application.HostServices;
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -59,6 +62,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBase;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.Separator;
@@ -162,6 +166,7 @@ public class OwnNoteHTMLEditor {
         });  
     }
     
+    @SuppressWarnings("unchecked") 
     private void initHTMLEditor() {
         myTopToolBar = (ToolBar) myHTMLEditor.lookup(TOP_TOOLBAR);
         myBottomToolBar = (ToolBar) myHTMLEditor.lookup(BOTTOM_TOOLBAR);
@@ -172,8 +177,33 @@ public class OwnNoteHTMLEditor {
         // hideNode(myHTMLEditor, ".html-editor-background", 1);
         
         // remove: font type & font size control - the 2nd and 3rd control with "font-menu-button" style class
-        hideNode(myHTMLEditor, ".font-menu-button", 2);
-        hideNode(myHTMLEditor, ".font-menu-button", 3);
+        // TFE, 20180304: htmleditor throws NPE if no font is set and empty line is added... 
+        Node node;
+        node = getNode(myHTMLEditor, ".font-menu-button", 2);
+        if (node != null) {
+            node.setVisible(false);
+            node.setManaged(false);
+            if (node instanceof ComboBox) {
+                // can't set item now since list is still empty :-(
+                // need to wait until its populated...
+                final ComboBox box = (ComboBox) node;
+                box.itemsProperty().addListener(new ChangeListener() {
+                    @Override
+                    public void changed(ObservableValue observable, Object oldValue, Object newValue) {
+                        box.getSelectionModel().selectFirst();
+                    }
+                });
+            }
+        }
+        node = getNode(myHTMLEditor, ".font-menu-button", 3);
+        if (node != null) {
+            node.setVisible(false);
+            node.setManaged(false);
+            if (node instanceof ComboBox) {
+                final ComboBox box = (ComboBox) node;
+                box.getSelectionModel().selectFirst();
+            }
+        }
         
         // add: insert link & picture controls
         addNoteEditorControls();
@@ -184,7 +214,9 @@ public class OwnNoteHTMLEditor {
         GridPane.setVgrow(myWebView, Priority.ALWAYS);        
     }
 
-    private static void hideNode(final Node startNode, final String lookupString, final int occurence) {
+    private static Node getNode(final Node startNode, final String lookupString, final int occurence) {
+        Node result = null;
+        
         final Set<Node> nodes = startNode.lookupAll(lookupString);
         if (nodes != null && nodes.size() >= occurence) {
             // no simple way to ge nth member of set :-(
@@ -194,10 +226,10 @@ public class OwnNoteHTMLEditor {
                 node = itr.next();
             }
             if (node != null) {
-                node.setVisible(false);
-                node.setManaged(false);
+                result = node;
             }
         }
+        return result;
     }
 
     private void addNoteEditorControls() {
@@ -816,7 +848,7 @@ public class OwnNoteHTMLEditor {
         doc.getElementsByAttributeValueStarting("style", "font-family").unwrap();
         // get rid of "<font face="Segoe UI">" tags - see bug report https://bugs.openjdk.java.net/browse/JDK-8133833
         // TF, 20160724: match only font + face since we also want to allow foreground / background colors
-        doc.getElementsByAttributeValue("face", "Segoe UI").unwrap();
+        doc.getElementsByAttributeValueMatching("face", Pattern.compile(".*")).unwrap();
         // get rid of spans added by prism.js: <span class="token BUT only inside <code class="language-
         final Elements elements = doc.getElementsByAttributeValueMatching("class", "language-*");
         for (Element element : elements) {
