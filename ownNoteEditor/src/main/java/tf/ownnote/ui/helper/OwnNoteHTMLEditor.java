@@ -29,6 +29,10 @@ import com.sun.javafx.scene.control.skin.ContextMenuContent;
 import com.sun.javafx.scene.control.skin.ContextMenuContent.MenuItemContainer;
 import com.sun.javafx.webkit.Accessor;
 import com.sun.webkit.WebPage;
+import de.jensd.fx.glyphs.GlyphIcons;
+import de.jensd.fx.glyphs.GlyphsDude;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -61,8 +65,6 @@ import javafx.scene.control.Separator;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToolBar;
 import javafx.scene.control.Tooltip;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
@@ -73,6 +75,7 @@ import javafx.scene.input.TransferMode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
 import javafx.scene.web.HTMLEditor;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
@@ -224,7 +227,7 @@ public class OwnNoteHTMLEditor {
         
         // add button to insert checkbox
         final ButtonBase insertCheckbox = 
-                    createEditorButton(ButtonType.ClickButton, "checkbox.png", "Insert Checkbox", "html-editor-insertcheckbox", clickButtonStyles);
+                    createEditorButton(ButtonType.ClickButton, MaterialDesignIcon.CHECKBOX_MARKED_OUTLINE, "Insert Checkbox", "html-editor-insertcheckbox", clickButtonStyles);
         insertCheckbox.setOnAction((ActionEvent t) -> {
             insertContentAfterCursor("<input type='checkbox'>");
         });
@@ -233,7 +236,7 @@ public class OwnNoteHTMLEditor {
 
         // add button to insert table
 //        final ButtonBase insertTable = 
-//                    createEditorButton(ButtonType.ClickButton, "table.png", "Insert Table", "html-editor-inserttable", clickButtonStyles);
+//                    createEditorButton(ButtonType.ClickButton, MaterialDesignIcon.TABLE_LARGE, "Insert Table", "html-editor-inserttable", clickButtonStyles);
 //        // TODO: add action
 //        myBottomToolBar.getItems().add(insertTable);
         
@@ -242,7 +245,7 @@ public class OwnNoteHTMLEditor {
         
         // add button to insert link
         final ButtonBase insertLink = 
-                    createEditorButton(ButtonType.ClickButton, "link.png", "Insert Link", "html-editor-insertlink", clickButtonStyles);
+                    createEditorButton(ButtonType.ClickButton, FontAwesomeIcon.LINK, "Insert Link", "html-editor-insertlink", clickButtonStyles);
         insertLink.setOnAction((ActionEvent t) -> {
             LinkDialog linkDialog = new LinkDialog();
             if (linkDialog.showAndWait()) {
@@ -267,7 +270,7 @@ public class OwnNoteHTMLEditor {
 
         // add button to insert image
         final ButtonBase insertImage = 
-                createEditorButton(ButtonType.ClickButton, "insertimage.gif", "Insert Image", "html-editor-insertimage", clickButtonStyles);
+                createEditorButton(ButtonType.ClickButton, FontAwesomeIcon.IMAGE, "Insert Image", "html-editor-insertimage", clickButtonStyles);
         insertImage.setOnAction((ActionEvent arg0) -> {
             final List<String> extFilter = Arrays.asList("*.jpg", "*.png", "*.gif");
             final List<String> extValues = Arrays.asList("jpg", "png", "gif");
@@ -292,7 +295,7 @@ public class OwnNoteHTMLEditor {
         
         // add button to insert formatted text
         final ButtonBase insertCode = 
-                createEditorButton(ButtonType.ClickButton, "insertcode.png", "Insert code sample", "html-editor-insertcode", clickButtonStyles);
+                createEditorButton(ButtonType.ClickButton, MaterialDesignIcon.CODE_BRACES, "Insert code sample", "html-editor-insertcode", clickButtonStyles);
         insertCode.setOnAction((ActionEvent arg0) -> {
             // check if the cursor is in a code section - in that case we do replace and not insert!
             String prevLanguage = "";
@@ -342,7 +345,7 @@ public class OwnNoteHTMLEditor {
 
         // add source button
         final ToggleButton viewSource = 
-                (ToggleButton) createEditorButton(ButtonType.ToggleButton, "source.png", "View Source", "html-editor-bold", toggleButtonStyles);
+                (ToggleButton) createEditorButton(ButtonType.ToggleButton, FontAwesomeIcon.CODE, "View Source", "html-editor-bold", toggleButtonStyles);
         viewSource.setOnAction((ActionEvent arg0) -> {
             if (viewSource.isSelected()) {
                 rawViewer.show();
@@ -363,7 +366,7 @@ public class OwnNoteHTMLEditor {
         // Issue #12 - add print button
         // https://stackoverflow.com/questions/28847757/how-to-display-print-dialog-in-java-fx-and-print-node
         final ButtonBase printNote = 
-                createEditorButton(ButtonType.ClickButton, "print.png", "Print Note", "html-editor-print", clickButtonStyles);
+                createEditorButton(ButtonType.ClickButton, FontAwesomeIcon.PRINT, "Print Note", "html-editor-print", clickButtonStyles);
         printNote.setOnAction((ActionEvent arg0) -> {
             PrinterJob job = PrinterJob.createPrinterJob();
             if (job != null && job.showPrintDialog(myHTMLEditor.getScene().getWindow())){
@@ -379,7 +382,7 @@ public class OwnNoteHTMLEditor {
 
         // add save button
         final ButtonBase saveNote = 
-                createEditorButton(ButtonType.ClickButton, "save.png", "Save Note", "html-editor-save", clickButtonStyles);
+                createEditorButton(ButtonType.ClickButton, FontAwesomeIcon.SAVE, "Save Note", "html-editor-save", clickButtonStyles);
         saveNote.setOnAction((ActionEvent arg0) -> {
             saveNote();
             setUndoRedo();
@@ -397,7 +400,7 @@ public class OwnNoteHTMLEditor {
         myTopToolBar.getItems().clear();
 
         // add undo button
-        undoEdit = createEditorButton(ButtonType.ClickButton, "undo.png", "Undo", "html-editor-undo", clickButtonStyles);
+        undoEdit = createEditorButton(ButtonType.ClickButton, MaterialDesignIcon.UNDO, "Undo", "html-editor-undo", clickButtonStyles);
         undoEdit.setOnAction((ActionEvent arg0) -> {
             if (myWebPage.queryCommandEnabled(UNDO_COMMAND)) {
                 final String curText = getNoteText();
@@ -416,7 +419,7 @@ public class OwnNoteHTMLEditor {
         });
         
         // add redo button
-        redoEdit = createEditorButton(ButtonType.ClickButton, "redo.png", "Redo", "html-editor-redo", clickButtonStyles);
+        redoEdit = createEditorButton(ButtonType.ClickButton, MaterialDesignIcon.REDO, "Redo", "html-editor-redo", clickButtonStyles);
         redoEdit.setOnAction((ActionEvent arg0) -> {
             if (myWebPage.queryCommandEnabled(REDO_COMMAND)) {
                 final String curText = getNoteText();
@@ -461,25 +464,24 @@ public class OwnNoteHTMLEditor {
     
     private ButtonBase createEditorButton(
             final ButtonType buttonType, 
-            final String iconName, 
+            final GlyphIcons iconName, 
             final String tooltipText, 
             final String cssStyleClass, 
             final ObservableList<String> buttonStyles) {
-        final ImageView graphic =
-                new ImageView(new Image(OwnNoteEditor.class.getResourceAsStream("/css/" + iconName), 20, 20, true, true));
+        final Text fontAwesomeIcon = GlyphsDude.createIcon(iconName, "16");
 
         ButtonBase newButton;
         switch (buttonType) {
             case ClickButton: 
-                newButton = new Button("", graphic);
+                newButton = new Button("", fontAwesomeIcon);
                 break;
 
             case ToggleButton: 
-                newButton = new ToggleButton("", graphic);
+                newButton = new ToggleButton("", fontAwesomeIcon);
                 break;
 
             default: 
-                newButton = new Button("", graphic);
+                newButton = new Button("", fontAwesomeIcon);
                 break;
         }
 
