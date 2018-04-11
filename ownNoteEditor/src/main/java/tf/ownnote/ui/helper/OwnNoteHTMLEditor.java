@@ -48,8 +48,6 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javafx.application.HostServices;
 import javafx.application.Platform;
-import javafx.beans.InvalidationListener;
-import javafx.beans.Observable;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;

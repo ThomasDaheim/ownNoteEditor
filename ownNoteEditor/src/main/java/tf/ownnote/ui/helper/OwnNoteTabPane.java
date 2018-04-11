@@ -381,7 +381,7 @@ public class OwnNoteTabPane implements IGroupListContainer {
             final GroupData curGroup = new GroupData((Map<String, String>) deleteTab.getUserData());
             
             if (myEditor.deleteGroupWrapper(curGroup)) {
-                myTabPane.getTabs().remove(deleteTab);
+                myEditor.initFromDirectory(false);
             }
         });
         
