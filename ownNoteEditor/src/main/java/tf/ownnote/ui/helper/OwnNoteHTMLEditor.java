@@ -578,7 +578,7 @@ public class OwnNoteHTMLEditor {
             final byte[] data = org.apache.commons.io.FileUtils.readFileToByteArray(file);
             final String base64data = java.util.Base64.getEncoder().encodeToString(data);
             final String htmlData = String.format(
-                    "<img src='data:%s;base64,%s' type='%s' />",
+                    "<img src='data:%s;base64,%s' />",
                     type, base64data, type);
             //insert html
             insertContentAfterCursor(htmlData);
@@ -684,7 +684,7 @@ public class OwnNoteHTMLEditor {
     }
     
     private void startHTMLEditor() {
-        //enableFirebug(myWebEngine);
+        enableFirebug(myWebEngine);
         
         JSObject window = (JSObject) wrapExecuteScript(myWebEngine, "window");
 
