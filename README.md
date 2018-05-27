@@ -3,6 +3,11 @@ JavaFX editor for the ownNote files locally stored in ownCloud folder
 
 Aim was to mimic the behaviour of the ownNote web client using JavaFX and working directly on the owNote files in a local ownCloud directory. This code does NOT update any of the SQL tables used by owNote - but so far this doesn't seem to impact anything.
 
+V 3.1: Minor changes
+
+* Using FontAwesome for button images
+
+
 V 3.0: All You Ever Wanted
 
 * Switched from JavaFX HTMLEditor to prism.js as notes editor; add/remove html code during load and save of notes

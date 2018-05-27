@@ -72,15 +72,15 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 //console.log('saveSetContent: ' + content);
                 document.body.innerHTML = content;
                 Prism.highlightAll(true);
-                ApplyResizablePlugin($('img'));
+                //ApplyResizablePlugin($('img'));
                 ApplyCheckboxMonitor($("input[type='checkbox']"));
             }
             
             function saveGetContent() {
                 //console.log('saveGetContent');
-                DestroyResizablePlugin($('img'));
+                //DestroyResizablePlugin($('img'));
                 var content = document.body.outerHTML;
-                ApplyResizablePlugin($('img'));
+                //ApplyResizablePlugin($('img'));
                 return content;
             }
             
@@ -110,7 +110,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 else if (document.selection && document.selection.type !== "Control") {
                     document.selection.createRange().pasteHTML(content);
                 }
-                ApplyResizablePlugin($('img'));
+                //ApplyResizablePlugin($('img'));
                 ApplyCheckboxMonitor($("input[type='checkbox']"));
             }
             
