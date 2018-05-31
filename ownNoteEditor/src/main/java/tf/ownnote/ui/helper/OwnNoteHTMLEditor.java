@@ -684,7 +684,7 @@ public class OwnNoteHTMLEditor {
     }
     
     private void startHTMLEditor() {
-        enableFirebug(myWebEngine);
+        //enableFirebug(myWebEngine);
         
         JSObject window = (JSObject) wrapExecuteScript(myWebEngine, "window");
 
