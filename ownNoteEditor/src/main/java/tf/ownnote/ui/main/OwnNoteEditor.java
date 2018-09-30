@@ -80,6 +80,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.scene.web.HTMLEditor;
+import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.GroupData;
@@ -186,7 +187,7 @@ public class OwnNoteEditor implements Initializable {
     @FXML
     private TextField noteNameText;
     @FXML
-    private HTMLEditor noteEditorFXML;
+    private WebView noteEditorFXML;
     private OwnNoteHTMLEditor noteEditor = null;
     @FXML
     private Button quickSaveButton;
@@ -206,6 +207,8 @@ public class OwnNoteEditor implements Initializable {
     private ToggleGroup LookAndFeel;
     @FXML
     private Menu menuLookAndFeel;
+    @FXML
+    private StackPane noteEditorPaneFXML;
 
     public OwnNoteEditor() {
         myFileManager = new OwnNoteFileManager(this);
@@ -673,7 +676,7 @@ public class OwnNoteEditor implements Initializable {
             
             // oneNote look & feel: notes table to the right, editor to the left
             leftRegion = notesTableFXML;
-            rightRegion = noteEditorFXML;
+            rightRegion = noteEditorPaneFXML;
             
             // remove things not shown directly in the gridPane
             // buttonBox: only in classic

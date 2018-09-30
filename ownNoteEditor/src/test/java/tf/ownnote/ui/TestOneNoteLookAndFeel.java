@@ -25,17 +25,16 @@
  */
 package tf.ownnote.ui;
 
-import com.sun.javafx.webkit.Accessor;
-import com.sun.webkit.WebPage;
 import java.awt.MouseInfo;
 import java.awt.Point;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
@@ -46,27 +45,15 @@ import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
-import javafx.scene.control.ButtonBase;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
-import javafx.scene.input.ClipboardContent;
-import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.input.TransferMode;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Pane;
-import javafx.scene.web.HTMLEditor;
-import javafx.scene.web.WebEngine;
-import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
@@ -76,7 +63,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.testfx.api.FxRobot;
 import org.testfx.framework.junit.ApplicationTest;
-import org.testfx.util.WaitForAsyncUtils;
 import tf.ownnote.ui.helper.GroupData;
 import tf.ownnote.ui.helper.NoteData;
 import tf.ownnote.ui.helper.OwnNoteEditorParameters;
@@ -134,6 +120,10 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
 
         // copy test files to directory
         testpath = Files.createTempDirectory("TestNotes");
+        // TFE, 20180930: set read/write/ exec for all to avoid exceptions in monitoring thread
+        testpath.toFile().setReadable(true, false);
+        testpath.toFile().setWritable(true, false);
+        testpath.toFile().setExecutable(true, false);
         try {
             myTestdata.copyTestFiles(testpath);
         } catch (Throwable ex) {
@@ -149,7 +139,6 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     private Label ownCloudPath;
     private TableView<Map<String, String>> notesTableFXML;
     private TabPane groupsPaneFXML;
-    private HTMLEditor noteEditorFXML;
     private OwnNoteTab allTab;
     private OwnNoteTab test1Tab;
     private OwnNoteTab test2Tab;
@@ -170,7 +159,6 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         ownCloudPath = (Label) find(".ownCloudPath");
         notesTableFXML = (TableView<Map<String, String>>) find(".notesTable");
         groupsPaneFXML = (TabPane) find(".groupsPane");
-        noteEditorFXML = (HTMLEditor) find(".noteEditor");
         
         // tabs are not nodes!!! So we have to find them the hard way
         final ObservableList<Tab> tabsList = groupsPaneFXML.getTabs();
@@ -244,7 +232,10 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     
     private void selectTab(final int tabIndex) {
         interact(() -> {
-            groupsPaneFXML.getSelectionModel().select(tabIndex);
+            // only do select if tab has changed
+            if (groupsPaneFXML.getSelectionModel().getSelectedIndex() != tabIndex) {
+                groupsPaneFXML.getSelectionModel().select(tabIndex);
+            }
         });
     }
     
@@ -273,14 +264,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         testGroups();
         resetForNextTest();
         
+        // TFE, 20180930: must be last test and no resetForNextTest() afterwards - to avoid "File has changed" dialogue
         testFileSystemChange();
-        resetForNextTest();
-        
-        testEditNote();
-        resetForNextTest();
-        
-        testDragAndDrop();
-        resetForNextTest();
     }
     
     private void testNodes() {
@@ -289,7 +274,6 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         assertNotNull(ownCloudPath);
         assertNotNull(notesTableFXML);
         assertNotNull(groupsPaneFXML);
-        assertNotNull(noteEditorFXML);
         assertNotNull(allTab);
         assertNotNull(test1Tab);
         assertNotNull(test2Tab);
@@ -531,10 +515,16 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     
     @SuppressWarnings("unchecked")
     private void testFileSystemChange() {
+        long sleepTime = 1000;
+        
+        // TFE, 20190930: switch to correct tab initially to avoid later chanegs that might trigger hasChanged() calls
+        selectTab(0);
+        
         // #1 ------------------------------------------------------------------
-        // add a new file to group Test1 and gie UI some time to discover it
+        // add a new file to group Test1 and give UI some time to discover it
         assertTrue(myTestdata.createTestFile(testpath, "[Test1] test3.htm"));
-        sleep(500, TimeUnit.MILLISECONDS);
+        sleep(sleepTime, TimeUnit.MILLISECONDS);
+//        System.out.println("after sleep for: add a new file to group Test1");
         
         // check new count
         testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS) + 1);
@@ -542,7 +532,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // #2 ------------------------------------------------------------------
         // delete the new file
         assertTrue(myTestdata.deleteTestFile(testpath, "[Test1] test3.htm"));
-        sleep(500, TimeUnit.MILLISECONDS);
+        sleep(sleepTime, TimeUnit.MILLISECONDS);
+//        System.out.println("after sleep for: delete the new file");
         
         // check new count
         testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
@@ -550,14 +541,16 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // #3 ------------------------------------------------------------------
         // add a new file to a new group
         assertTrue(myTestdata.createTestFile(testpath, "[Test4] test4.htm"));
-        sleep(1000, TimeUnit.MILLISECONDS);
+        sleep(sleepTime, TimeUnit.MILLISECONDS);
+//        System.out.println("after sleep for: add a new file to a new group");
         
         // All, Not Grouped, Test1, Test2, Test3, Test4, + => 7 tabs
         assertTrue(groupsPaneFXML.getTabs().size() == myTestdata.getGroupsList().size() + 2);
 
         // delete the new file
         assertTrue(myTestdata.deleteTestFile(testpath, "[Test4] test4.htm"));
-        sleep(1000, TimeUnit.MILLISECONDS);
+        sleep(sleepTime, TimeUnit.MILLISECONDS);
+//        System.out.println("after sleep for: delete the new file");
 
         // All, Not Grouped, Test1, Test2, Test3, + => 7 tabs
         assertTrue(groupsPaneFXML.getTabs().size() == myTestdata.getGroupsList().size() + 1);
@@ -565,17 +558,23 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // #4 ------------------------------------------------------------------
         // delete file in editor BUT "Save own"
         assertTrue(myTestdata.deleteTestFile(testpath, "[Test1] test1.htm"));
-        sleep(1000, TimeUnit.MILLISECONDS);
+        sleep(sleepTime, TimeUnit.MILLISECONDS);
+//        System.out.println("after sleep for: delete file in editor BUT \"Save own\"");
+
         testAlert("Options:\nSave own note to different name\nSave own note and overwrite file system changes\nDiscard own changes", ButtonBar.ButtonData.OK_DONE);
+        sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify old count
         testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
 
         // #5 ------------------------------------------------------------------
-        // delete file in editor BUT "Save own"
+        // delete file in editor BUT "Save as new"
         assertTrue(myTestdata.deleteTestFile(testpath, "[Test1] test1.htm"));
-        sleep(1000, TimeUnit.MILLISECONDS);
+        sleep(sleepTime, TimeUnit.MILLISECONDS);
+//        System.out.println("after sleep for: delete file in editor BUT \"Save as new\"");
+
         testAlert("Options:\nSave own note to different name\nSave own note and overwrite file system changes\nDiscard own changes", ButtonBar.ButtonData.OTHER);
+        sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify old count
         testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
@@ -598,143 +597,22 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // #6 ------------------------------------------------------------------
         // delete file in editor AND "Discard own"
         assertTrue(myTestdata.deleteTestFile(testpath, "[Test1] test1.htm"));
-        sleep(1000, TimeUnit.MILLISECONDS);
+        sleep(sleepTime, TimeUnit.MILLISECONDS);
+//        System.out.println("after sleep for: delete file in editor AND \"Discard own\"");
+        
         testAlert("Options:\nSave own note to different name\nSave own note and overwrite file system changes\nDiscard own changes", ButtonBar.ButtonData.CANCEL_CLOSE);
+        sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify new count
         testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS) - 1);
         
         // create back again
         assertTrue(myTestdata.createTestFile(testpath, "[Test1] test1.htm"));
-        sleep(1000, TimeUnit.MILLISECONDS);
+        sleep(sleepTime, TimeUnit.MILLISECONDS);
+//        System.out.println("after sleep for: create back again");
 
         // verify old count
         testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
-    }
-    
-    @SuppressWarnings("unchecked")
-    private void testEditNote() {
-        final WebView myWebView = (WebView) noteEditorFXML.lookup(".web-view");
-        final WebEngine myWebEngine = myWebView.getEngine();
-        final WebPage myWebPage = Accessor.getPageFor(myWebEngine);
-        
-        clickOn(noteEditorFXML);
-
-        final ButtonBase undoButton = (ButtonBase) find(".html-editor-undo");
-        assertNotNull("Undo-Button", undoButton);
-        assertTrue("Undo-Button", undoButton.isDisable());
-
-        final ButtonBase redoButton = (ButtonBase) find(".html-editor-redo");
-        assertNotNull("Redo-Button", redoButton);
-        assertTrue("Redo-Button", redoButton.isDisable());
-
-        // #1 ------------------------------------------------------------------
-        // verify initial content
-        final String noteText = noteEditorFXML.getHtmlText();
-        assertNotNull("Content of [Test1] test1", noteText);
-        
-        // #2 ------------------------------------------------------------------
-        // add text and verify content
-        write("Add some test text...");
-        assertTrue(!noteText.equals(noteEditorFXML.getHtmlText()));
-        assertTrue("Content of [Test1] test1", noteEditorFXML.getHtmlText().contains("Add some test text..."));
-        
-        // #3 ------------------------------------------------------------------
-        // undo and verify content
-        assertTrue("Undo-Button", !undoButton.isDisable());
-        clickOn(undoButton);
-        assertTrue("Content of [Test1] test1", !noteEditorFXML.getHtmlText().contains("Add some test text..."));
-        // TODO: figure out the issue with <p><br></p> fo empty lines
-        //assertTrue("Undo-Button", undoButton.isDisable());
-        
-        // #4 ------------------------------------------------------------------
-        // redo and verify content
-        assertTrue("Redo-Button", !redoButton.isDisable());
-        clickOn(redoButton);
-        assertTrue(!noteText.equals(noteEditorFXML.getHtmlText()));
-        assertTrue("Content of [Test1] test1", noteEditorFXML.getHtmlText().contains("Add some test text..."));
-        assertTrue("Redo-Button", redoButton.isDisable());
-        
-        // #5 ------------------------------------------------------------------
-        // insert link and verify content
-        final ButtonBase insertLinkButton = (ButtonBase) find(".html-editor-insertlink");
-        assertNotNull("InsertLink-Button", insertLinkButton);
-        clickOn(insertLinkButton);
-        final TextField textField = (TextField) find(".linkurlField");
-        assertNotNull("LinkDialog", textField);
-        clickOn(textField);
-        write("http://testurl.com");
-        push(KeyCode.TAB);
-        write("http://testurl.com");
-        push(KeyCode.TAB);
-        write("http://testurl.com");
-        push(KeyCode.TAB);
-        push(KeyCode.TAB);
-        push(KeyCode.ENTER);
-        assertTrue("Content of [Test1] test1", noteEditorFXML.getHtmlText().contains("http://testurl.com"));
-        
-        // #6 ------------------------------------------------------------------
-        // insert image and verify content
-        // DOESN'T WORK SINCE FileChooser CAN'T BE TESTED
-        // final ButtonBase insertImageButton = (ButtonBase) find(".html-editor-insertimage");
-        // assertNotNull("InsertImage-Button", insertImageButton);
-        // clickOn(insertImageButton);
-        // write(testpath.toString());
-        // write("OwnNoteEditorManager.jpg");
-        // push(KeyCode.TAB);
-        // push(KeyCode.ENTER);
-        // assertTrue("Content of [Test1] test1", noteEditorFXML.getHtmlText().contains("image/jpeg"));
-        
-        // #7 ------------------------------------------------------------------
-        // insert code and verify content
-        final ButtonBase insertCodeButton = (ButtonBase) find(".html-editor-insertcode");
-        assertNotNull("InsertCode-Button", insertCodeButton);
-        clickOn(insertCodeButton);
-        final ChoiceBox<String> codeType = (ChoiceBox<String>) find(".codetypeField");
-        assertNotNull("CodeInsertDialog", codeType);
-        clickOn(codeType);
-        push(KeyCode.DOWN);
-        push(KeyCode.ENTER);
-        final TextArea insertCodeText = (TextArea) find(".codeareaField");
-        assertNotNull("InsertCode-Text", insertCodeText);
-        clickOn(insertCodeText);
-        write(myTestdata.getCodeContent());
-        final Button insertCodeBtn = (Button) find(".codeareaInsert");
-        assertNotNull("InsertCode-Button", insertCodeBtn);
-        clickOn(insertCodeBtn);
-        assertTrue("Content of [Test1] test1", noteEditorFXML.getHtmlText().contains("<pre class=\" language-css\" contenteditable=\"false\">"));
-    }
-    
-    @SuppressWarnings("unchecked")
-    private void testDragAndDrop() {
-        clickOn(noteEditorFXML);
-        
-        // create test node, add it to sceen, drag it and attach file while dragging
-        final Label dragLabel = new Label("DragMe");
-        dragLabel.setOnDragDetected((MouseEvent event) -> {
-            /* drag was detected, start drag-and-drop gesture*/
-            
-            /* allow copy transfer mode */
-            final Dragboard db = dragLabel.startDragAndDrop(TransferMode.COPY);
-            
-            /* put the testfile on dragboard */
-            final ClipboardContent content = new ClipboardContent();
-            final List<File> fileList = new ArrayList<>();
-            fileList.add(myTestdata.getDragFile());
-            content.putFiles(fileList);
-            
-            db.setContent(content);
-            
-            event.consume();
-        });
-        
-        interact(() -> {
-            ((Pane) noteEditorFXML.getScene().getRoot()).getChildren().add(dragLabel);
-            drag(dragLabel).dropTo(noteEditorFXML);
-        });
-        
-        WaitForAsyncUtils.waitForFxEvents();
-        assertTrue("Content of [Test1] test1", noteEditorFXML.getHtmlText().contains("das ist mal ein sinnvoller text..."));
     }
     
     private void resetForNextTest() {
