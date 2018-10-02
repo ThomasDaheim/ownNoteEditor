@@ -28,6 +28,7 @@ package tf.ownnote.ui.helper;
 import com.sun.javafx.scene.control.skin.ContextMenuContent;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -51,6 +52,8 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.DragEvent;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -91,6 +94,43 @@ public class OwnNoteHTMLEditor {
     // https://stackoverflow.com/a/41908133
     private JavascriptLogger javascriptLogger;
     private EditorCallback editorCallback;
+    
+    // TFE, 20181002: enums to support drag & drop
+    // what do we need to do with a file that is dropped on us?
+    private static enum FileCopyMode {
+        COPY,
+        IMPORT
+    }
+
+    // what extensions can we accept?
+    private static enum AcceptableFileType {
+        TXT("txt", FileCopyMode.COPY),
+        HTM("htm", FileCopyMode.COPY),
+        HTML("html", FileCopyMode.COPY),
+        XML("xml", FileCopyMode.COPY),
+        JAVA("java", FileCopyMode.COPY),
+        JS("js", FileCopyMode.COPY),
+        CSS("css", FileCopyMode.COPY),
+        JPG("jpg", FileCopyMode.IMPORT),
+        PNG("png", FileCopyMode.IMPORT),
+        GIF("gif", FileCopyMode.IMPORT);
+        
+        private final String extension;
+        private final FileCopyMode copyMode;
+        
+        AcceptableFileType(final String ext, final FileCopyMode cMode) {
+            extension = ext;
+            copyMode = cMode;
+        }
+        
+        String getExtension() {
+            return extension;
+        }
+        
+        FileCopyMode getFileCopyMode() {
+            return copyMode;
+        }
+    }
     
     private OwnNoteHTMLEditor() {
         super();
@@ -141,6 +181,8 @@ public class OwnNoteHTMLEditor {
         GridPane.setHgrow(myWebView, Priority.ALWAYS);
         GridPane.setVgrow(myWebView, Priority.ALWAYS);
         
+        myWebEngine.setJavaScriptEnabled(true);
+
         // https://stackoverflow.com/questions/10021433/jsexception-in-webview-of-java-fx
         myWebEngine.getLoadWorker().stateProperty().addListener(new ChangeListener<Worker.State>() {
             @Override
@@ -172,6 +214,8 @@ public class OwnNoteHTMLEditor {
                         getPopupWindow();
                     });
                     
+                    // support for drag & drop
+                    // https://stackoverflow.com/a/39118740
                     myWebView.setOnDragOver(myself::handleOnDragOver);
                     myWebView.setOnDragDropped(myself::handleOnDragDropped);
                 }
@@ -187,97 +231,62 @@ public class OwnNoteHTMLEditor {
     // http://stackoverflow.com/questions/24655437/javafx-webview-html5-draganddrop/39118740#39118740
     //
     
-    private void handleOnDragOver(DragEvent e) {
-        e.acceptTransferModes();
-        e.consume();
-        
-        // TODO: enable drag & drop support
-        //Dragboard db = e.getDragboard();
-        //if (db.hasFiles()) {
-        //    e.acceptTransferModes(TransferMode.COPY);
-        //    injectDragOverEvent(e);
-        //} else {
-        //    e.consume();
-        //}
-    }
-
-    private void injectDragOverEvent(DragEvent e) {
-        inject(join("",
-            "{",
-            "  //console.log('injectDragOverEvent');",
-            "  var newElement=document.elementFromPoint(%d,%d);",
-            "  if (window.lastInjectedEvent && window.lastInjectedEvent != newElement) {",
-            "     //fire dragout",
-            "     window.lastInjectedEvent.dispatchEvent(%s)",
-            "  }",
-            "  window.lastInjectedEvent = newElement",
-            "  newElement.dispatchEvent(%s);",
-            "}"),
-            (int) e.getX(), (int) e.getY(), dragLeaveEvent(e), dragOverEvent(e));
-    }
-
-    private String join(String... lines) {
-        return String.join("\n", Arrays.asList(lines));
-    }
-
-    private void inject(String text, Object... args) {
-        wrapExecuteScript(myWebEngine, String.format(text, args));
-    }
-
-    private String dragLeaveEvent(DragEvent e) {
-        return join("",
-            "function() {",
-            "  //console.log('dragLeaveEvent');",
-            "  var e = new Event('dragleave');",
-            "  e.dataTransfer={ types: ['Files']};",
-            "  return e;",
-            "}()");
-    }
-
-    private String dragOverEvent(DragEvent e) {
-        return join("",
-            "function() {",
-            "  //console.log('dragOverEvent');",
-            "  var e = new Event('dragover');",
-            "  e.dataTransfer={ types: ['Files']};",
-            "  return e;",
-            "}()");
-    }
-
-    private String dropEvent(DragEvent e) {
-        String files = e.getDragboard().getFiles()
-            .stream()
-            .map(File::getAbsolutePath)
-            .map(f -> "{ name: '" + f + "'}")
-            .collect(Collectors.joining(",", "[", "]"));
-
-        return String.format(join("",
-            "function() {",
-            "  //console.log('dropEvent');",
-            "  var e = new Event('drop');",
-            " e.dataTransfer={ files: %s};",
-            "  return e;",
-            "}()"),
-            files);
-    }
-
-    private void handleOnDragDropped(DragEvent e) {
-        boolean success = false;
-        if (e.getDragboard().hasFiles()) {
-            success = true;
-            injectDropEvent(e);
+    private void handleOnDragOver(final DragEvent event) {
+        final Dragboard db = event.getDragboard();
+        if (db.hasFiles()) {
+            for (File file:db.getFiles()) {
+                // check file types against acceptable ones
+                if (acceptableDragboard(file) != null) {
+                    // one is enough...
+                    event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
+                    break;
+                }
+            }
+        } else {
+            event.consume();
         }
-        e.setDropCompleted(success);
-        e.consume();
     }
 
-    private void injectDropEvent(DragEvent e) {
-        inject(join("",
-            "{",
-            "  var newElement=document.elementFromPoint(%d,%d);",
-            "  newElement.dispatchEvent(%s);",
-            "}"),
-            (int) e.getX(), (int) e.getY(), dropEvent(e));
+    private void handleOnDragDropped(final DragEvent event) {
+        boolean success = false;
+
+        final Dragboard db = event.getDragboard();
+        if (db.hasFiles()) {
+            for (File file:db.getFiles()) {
+                // check file types against acceptable ones
+                final AcceptableFileType result = acceptableDragboard(file);
+                if (result != null) {
+                    // add to note as file type teels us
+                    addFileToNote(file, result);
+                }
+            }
+        }
+
+        event.setDropCompleted(success);
+        event.consume();
+    }
+    
+    private AcceptableFileType acceptableDragboard(final File file) {
+        AcceptableFileType result = null;
+        
+        for (AcceptableFileType fileType : AcceptableFileType.values()) { 
+            if (fileType.getExtension().equals(FilenameUtils.getExtension(file.getName()).toLowerCase())) {
+                result = fileType;
+                break;
+            }
+        }
+        
+        return result;
+    }
+    
+    private void addFileToNote(final File file, final AcceptableFileType fileType) {
+        if (FileCopyMode.COPY.equals(fileType.getFileCopyMode())) {
+            // read text and insert...
+            importTextFile(file);
+        } else {
+            // a picture... luckily we already know how to deal with that :-)
+            importImageFile(file);
+        }
     }
     
     //
@@ -312,7 +321,7 @@ public class OwnNoteHTMLEditor {
                 // we really have selected a picture - now add it
                 // issue #31: we shouldn't add the link but the image data instead!
                 // see https://github.com/dipu-bd/CustomControlFX/blob/master/CustomHTMLEditor/src/org/sandsoft/components/htmleditor/CustomHTMLEditor.java
-                importDataFile(selectedFile);
+                importImageFile(selectedFile);
             }                        
         }
     }
@@ -322,7 +331,7 @@ public class OwnNoteHTMLEditor {
      *
      * @param file Image file.
      */
-    private void importDataFile(File file) {
+    private void importImageFile(File file) {
         try {
             //check if file is too big
             if (file.length() > 1024 * 1024) {
@@ -336,6 +345,34 @@ public class OwnNoteHTMLEditor {
             
             //insert html
             wrapExecuteScript(myWebEngine, "insertImage('" + type + "', '" + base64data + "');");
+        } catch (IOException ex) {
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    /**
+     * Imports a text file.
+     * No conversions done, content is inserted as is
+     *
+     * @param file Text file.
+     */
+    private void importTextFile(File file) {
+        try {
+            //check if file is too big
+            if (file.length() > 1024 * 1024) {
+                throw new VerifyError("File is too big.");
+            }
+            
+            // read file as text
+            String content = new String(Files.readAllBytes(file.toPath()));
+            
+            content = content.replace("'", "\\'");
+            content = content.replace(System.getProperty("line.separator"), "\\n");
+            content = content.replace("\n", "\\n");
+            content = content.replace("\r", "\\n");
+            
+            //insert text
+            wrapExecuteScript(myWebEngine, "insertText('" + content + "');");
         } catch (IOException ex) {
             Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
         }
