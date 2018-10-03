@@ -16,9 +16,10 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.RowConstraints?>
-<?import javafx.scene.web.HTMLEditor?>
+<?import javafx.scene.web.WebView?>
 
 <BorderPane fx:id="borderPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="400.0" minWidth="600.0" prefHeight="600.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tf.ownnote.ui.main.OwnNoteEditor">
    <center>
@@ -113,7 +114,11 @@
                   <TableColumn fx:id="groupCountColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="true" styleClass="groupCountCol" text="Count" />
               </columns>
             </TableView>
-            <HTMLEditor fx:id="noteEditorFXML" disable="true" htmlText="&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body contenteditable=&quot;true&quot;&gt;&lt;/body&gt;&lt;/html&gt;" prefHeight="200.0" prefWidth="506.0" styleClass="noteEditor" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+            <StackPane fx:id="noteEditorPaneFXML" prefHeight="150.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+               <children>
+                  <WebView fx:id="noteEditorFXML" disable="true" prefHeight="200.0" prefWidth="506.0" />
+               </children>
+            </StackPane>
          </children>
       </GridPane>
    </center>

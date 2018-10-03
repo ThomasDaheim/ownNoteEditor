@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2014 Thomas Feuster
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+3. The name of the author may not be used to endorse or promote products
+   derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+<html>
+    <head>
+        <script>
+            // https://stackoverflow.com/a/10556743
+            window.onerror = function(msg, url, line, col, error) {
+               // Note that col & error are new to the HTML 5 spec and may not be 
+               // supported in every browser.  It worked for me in Chrome.
+               var extra = !col ? '' : '\ncolumn: ' + col;
+               extra += !error ? '' : '\nerror: ' + error;
+
+               // You can view the information in an alert to see things working like this:
+               alert("Error: " + msg + "\nurl: " + url + "\nline: " + line + extra);
+               console.log("Error: " + msg + "\nurl: " + url + "\nline: " + line + extra);
+
+               // TODO: Report this error via ajax so you can keep track
+               //       of what pages have JS issues
+
+               var suppressErrorAlert = true;
+               // If you return true, then error alerts (like in older versions of 
+               // Internet Explorer) will be suppressed.
+               return suppressErrorAlert;
+            };
+        </script>
+
+        <link rel="stylesheet" type="text/css" href="editor.css">
+        <script src='jquery-3.3.1.slim.min.js'></script>
+        <script src='tinymce.min.js'></script>
+        <script>
+            var insertImageButton;
+            var insertCheckBoxButton;
+            var printNoteButton;
+            var saveNoteButton;
+            
+            function initEditor() {
+                tinymce.init({
+                    selector: '#mytextarea',
+                    width: '99.8%',
+                    autoresize_min_height: 10,
+                    autoresize_max_height: 10,
+                    autoresize_bottom_margin: 0,
+                    autoresize_overflow_padding: 0,
+                    autoresize_on_init: false,
+                    resize: false,
+                    readonly: false,
+                    forced_root_blocks : false,
+                    // solution to the issue that the image added is always stored as 
+                    // <img src="blob:jar:///ef5feeab-a950-4630-b11e-6e1fa903c3ef">
+                    relative_urls: false,
+                    remove_script_host: false,
+                    plugins: [
+                            "autoresize codesample wordcount visualchars textcolor advlist autolink lists link charmap preview anchor",
+                            "searchreplace visualblocks code insertdatetime media table contextmenu autoresize emoticons help toc hr"
+                    ],
+                    codesample_languages: [
+                            {text: 'HTML/XML', value: 'markup'},
+                            {text: 'JavaScript', value: 'javascript'},
+                            {text: 'CSS', value: 'css'},
+                            {text: 'PHP', value: 'php'},
+                            {text: 'Java', value: 'java'},
+                            {text: 'C', value: 'c'},
+                            {text: 'C#', value: 'csharp'},
+                            {text: 'C++', value: 'cpp'}
+                    ],
+                    extended_valid_elements: "form[name|id|action|method|enctype|accept-charset|onsubmit|onreset|target],input[id|name|type|value|size|maxlength|checked|accept|src|width|height|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|onkeyup|onkeydown|required|style],textarea[id|name|rows|cols|maxlength|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|onkeyup|onkeydown|required|style],option[name|id|value|selected|style],select[id|name|type|value|size|maxlength|checked|width|height|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|multiple|style]",
+                    toolbar1: "saveNote printNote searchreplace | undo redo | styleselect fontselect fontsizeselect | bold italic underline strikethrough subscript superscript | charmap emoticons",
+                    toolbar2: "forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | table insertCheckBox | link insertImage insertdatetime hr toc | codesample | visualchars visualblocks code | help",
+                    menubar: false,
+                    branding: false,
+                    allow_html_data_urls: true,
+                    allow_script_urls: true,
+                    paste_data_images: true,
+                    content_style: ".mce-content-body {font-size:10pt;}",
+                    // https://github.com/angular-ui/ui-tinymce/issues/260
+                    save_enablewhendirty: false,
+                    save_onsavecallback: function () { 
+                        console.log('Save was pressed.');
+                        editorCallback.saveNote();
+                    },
+                    setup: function (editor) {
+                        //http://archive.tinymce.com/wiki.php/api4:class.tinymce.ContentEvent
+                        editor.on('init', function (ed) { 
+                            // support for check boxes and such...
+                            // https://stackoverflow.com/a/38653970
+                            $(editor.getBody()).on("change", ":checkbox", function(el){
+                                if(el.target.checked){
+                                    $(el.target).attr('checked','checked');
+                                }else{
+                                    $(el.target).removeAttr('checked');
+                                }
+                            });
+                            // Radiobuttons
+                            $(editor.getBody()).on("change", "input:radio", function(el){
+                                var name =  'input:radio[name="'+el.target.name+'"]';
+                                $(editor.getBody()).find(name).removeAttr('checked');
+                                $(el.target).attr('checked','checked');
+                                $(el.target).prop('checked',true);
+                            });
+                            // Selects
+                            $(editor.getBody()).on("change", "select", function(el){
+                                $(el.target).children('option').each(function(index) {
+                                    if(this.selected){
+                                        $(this).attr('selected','selected');
+                                    }else{
+                                        $(this).removeAttr('selected');
+                                    }
+                                });
+                            });
+                            
+                            //console.log('Editor was initialized.');
+                            editorCallback.initEditorDone();
+                        });
+                        editor.on('change', function(ed) {
+                            //console.log('change event');
+                        });                        
+                        editor.on('GetContent', function (ed) { 
+                            //console.log('GetContent done.');
+                        });
+                        editor.on('SetContent', function (ed) { 
+                            // console.log('SetContent done.');
+                            // try {
+                            //     console.log(tinymce.activeEditor.getContent());
+                            // }
+                            // catch(err) {
+                            //     console.log(err.message);
+                            // }
+                            //console.log('JavaScript: SetContent was called.');
+                            resizeEditor();
+                            // don't return ed.content - it differs from editor.getContent()!
+                            // TF, 20170415: editor.getContent() fails for images!
+                            editorCallback.setContentDone(); 
+                            //console.log('JavaScript: SetContent done.');
+                        });
+                        editor.addButton('insertImage', {
+                            image: "insertimage.png",
+                            tooltip: "Upload image",
+                            onPostRender: function() { insertImageButton = this; },
+                            onclick: function () {
+                                try {
+                                    //console.log('JavaScript: insertImage was clicked.');
+                                    editorCallback.insertImage();
+                                    //console.log('JavaScript: insertImage done.');
+                                }
+                                catch(err) {
+                                    console.log('Error in insertImage: ' + err.message + "\n" + err.stack);
+                                }
+                            }
+                        });
+                        editor.addButton('insertCheckBox', {
+                            image: "insertcheckbox.png",
+                            tooltip: "Insert CheckBox",
+                            onPostRender: function() { insertCheckBoxButton = this; },
+                            onclick: function () {
+                                try {
+                                    //console.log('JavaScript: insertCheckBox was clicked.');
+                                    tinymce.activeEditor.execCommand("mceInsertContent", false, "<input type='checkbox'>");
+                                    //console.log('JavaScript: insertCheckBox done.');
+                                }
+                                catch(err) {
+                                    console.log('Error in insertImage: ' + err.message + "\n" + err.stack);
+                                }
+                            }
+                        });
+                        editor.addButton('printNote', {
+                            icon: 'print',
+                            tooltip: "Print note",
+                            onPostRender: function() { printNoteButton = this; },
+                            onclick: function () {
+                                try {
+                                    //console.log('JavaScript: printNote was clicked.');
+                                    editorCallback.printNote();
+                                    //console.log('JavaScript: printNote done.');
+                                }
+                                catch(err) {
+                                    console.log('Error in printNote ' + err.message + "\n" + err.stack);
+                                }
+                            }
+                        });
+                        editor.addButton('saveNote', {
+                            icon: 'save',
+                            tooltip: "Save note",
+                            onPostRender: function() { saveNoteButton = this; },
+                            onclick: function () {
+                                try {
+                                    //console.log('JavaScript: saveNote was clicked.');
+                                    editorCallback.saveNote();
+                                    //console.log('JavaScript: saveNote done.');
+                                }
+                                catch(err) {
+                                    console.log('Error in saveNote: ' + err.message + "\n" + err.stack);
+                                }
+                            }
+                        });
+                        
+                    }
+                });
+            }
+            
+            // Helper: find all locations of toSearch in str and return as array
+            // indexof: http://stackoverflow.com/questions/3365902/search-for-all-instances-of-a-string-inside-a-string/20968478#20968478
+            //function allIndicesOf(str, toSearch) {
+            //    var indices = [];
+            //    for(var pos = str.indexOf(toSearch); pos !== -1; pos = str.indexOf(toSearch, pos + 1)) {
+            //        indices.push(pos);
+            //    }
+            //    return indices;
+            //}
+            // regexp: https://translate.googleusercontent.com/translate_c?depth=1&hl=de&prev=search&rurl=translate.google.de&sl=en&sp=nmt4&u=https://jsperf.com/javascript-find-all&usg=ALkJrhibd28b-l4QHJgA0etgl5aMEj68yw
+            function allIndicesOf(str, toSearch)  {
+                var regex = new RegExp (toSearch, "g" );
+                var result;
+                var indices = [];
+                while ((result = regex.exec(str))) {
+                    indices.push(result.index);
+                }
+
+                return indices;
+            } 
+    
+            function insertImage(imgType, imgData) {
+                //console.log('insertImage ' + imgData);
+                try {
+                    var imageString = "<img src='data:" + imgType + ";base64," + imgData + "' >";
+                            
+                    tinymce.activeEditor.execCommand("mceInsertContent", false, imageString);
+                }
+                catch(err) {
+                    console.log('Error in insertImage: ' + err.message + "\n" + err.stack);
+                }
+            }
+
+            function insertText(content) {
+                //console.log('insertText ' + content);
+                try {
+                    tinymce.activeEditor.execCommand("mceInsertContent", false, content);
+                }
+                catch(err) {
+                    console.log('Error in insertText: ' + err.message + "\n" + err.stack);
+                }
+            }
+
+            function saveSetContent(content) {
+                try {
+                    //console.log('JavaScript: saveSetContent was called.');
+                    tinymce.activeEditor.setContent(content);
+                            
+                    // https://www.tinymce.com/docs/advanced/events/#dirty
+                    tinymce.activeEditor.setDirty(false);
+                    //console.log('JavaScript: saveSetContent done.');
+                }
+                catch(err) {
+                    console.log('Error in saveSetContent(): ' + err.message + "\n" + err.stack);
+                }
+            }
+
+            // try getContent() and if fails use tinymce.activeEditor.getBody().innerHTML AND replace img blobs by real base64 data
+            function saveGetContent() {
+                //console.log('JavaScript: saveGetContent was called.');
+                var content = "";
+                try {
+                    content = tinymce.activeEditor.getContent();
+
+                    // and now check for any remaining tinymce tags and get rid of them...
+
+                    // <p>&nbsp;</p> => <p></p>
+                    //console.log('content: ' + content);
+                    content = content.replace(new RegExp('<p>&nbsp;</p>', 'g'), '<p></p>');
+                    //console.log('content: ' + content);
+                }
+                catch(err) {
+                    console.log('Error in saveGetContent(): ' + err.message + "\n" + err.stack);
+                }
+                        
+                //console.log('JavaScript: saveGetContent done.');
+                return content;
+            }
+            
+            function resizeEditor(myHeight) {
+                //console.log('resizeEditor: ' + tinymce.activeEditor);
+                myEditor = tinymce.get('mytextarea');
+                if (myEditor) {
+                    try {
+                        if (!myHeight) {            
+                            var targetHeight = window.innerHeight; // Change this to the height of your wrapper element
+                            // TF, 20170411: below code doesn't work on initial loading of text since .mce-* height values are garbage
+                            //var mce_bars_height = 0;
+                            //$('.mce-toolbar, .mce-statusbar, .mce-menubar').each(function(){
+                            //    mce_bars_height += $(this).height();
+                            //});
+                            //window.console.log('mce bars height total: ' + mce_bars_height);                          
+                            //myHeight = targetHeight - mce_bars_height - 8;  // the extra 8 is for margin added between the toolbars
+                            myHeight = targetHeight - 100 - 8;  // the extra 8 is for margin added between the toolbars
+                        }
+                        //console.log('resizeEditor: ' + myHeight);
+                        myEditor.theme.resizeTo('100%', myHeight);  // sets the dimensions of the editable area
+                    }
+                    catch (err) {
+                        console.log('Error in resizeEditor(): ' + err.message + "\n" + err.stack);
+                    }
+                }
+            }
+            
+            window.onresize = function() {
+                //console.log('Window was resized! outerWidth: ' + window.outerWidth + " outerHeight " + window.outerHeight);
+                resizeEditor();
+            }
+        </script>
+    </head>
+
+    <body>
+        <textarea id="mytextarea"></textarea>
+    </body>
+</html>

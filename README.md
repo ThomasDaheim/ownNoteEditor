@@ -3,6 +3,14 @@ JavaFX editor for the ownNote files locally stored in ownCloud folder
 
 Aim was to mimic the behaviour of the ownNote web client using JavaFX and working directly on the owNote files in a local ownCloud directory. This code does NOT update any of the SQL tables used by owNote - but so far this doesn't seem to impact anything.
 
+
+V 4.0: Lets go TinyMCE
+
+* Switched from prism.js to TinyMCE as notes editor (thanks to a lot of experience collected when building GPXEditor...)
+* Synched toolbar items with nextnote
+* added drag & drop support for text files and images
+
+
 V 3.1: Minor changes
 
 * Using FontAwesome for button images
@@ -82,3 +90,18 @@ The resulting application will be in the directory `build/macApp`.
 ```
 
 The resulting file will be in the directory `build/distributions`.
+
+
+## Dependencies
+
+Of course, such a project depends on the results of many others! I've tried to add comments with links to stackoverflow, ... wherever I have re-used the ideas and code of others. In case I have forgotten someone: that was only by accident/incompetency but never intentionally. I'm grateful for anyone that provides his/her results for public use!
+
+Explicit dependencies:
+
+* 'org.slf4j:slf4j-api:1.7.12'
+* 'commons-cli:commons-cli:1.3.1'
+* 'commons-io:commons-io:2.4'
+* 'org.apache.commons:commons-lang3:3.5'
+* 'org.testfx:testfx-junit:4.0.+'
+* 'org.testfx:testfx-core:4.0.+'
+* 'junit:junit:4.12'
