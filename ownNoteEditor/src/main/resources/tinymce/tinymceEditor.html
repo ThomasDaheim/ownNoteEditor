@@ -99,7 +99,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     // https://github.com/angular-ui/ui-tinymce/issues/260
                     save_enablewhendirty: false,
                     save_onsavecallback: function () { 
-                        console.log('Save was pressed.');
+                        //console.log('Save was pressed.');
                         editorCallback.saveNote();
                     },
                     setup: function (editor) {
@@ -131,6 +131,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                     }
                                 });
                             });
+                            
+                            // TODO: not working...
+                            // overwrite CNTRL+S with our save method
+                            // editor.shortcuts.add("ctrl+s", "Save", editorCallback.saveNote());
                             
                             //console.log('Editor was initialized.');
                             editorCallback.initEditorDone();
@@ -216,7 +220,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                 }
                             }
                         });
-                        
                     }
                 });
             }

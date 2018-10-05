@@ -52,6 +52,7 @@ import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.StackPane;
@@ -146,7 +147,7 @@ public class OwnNoteTableView implements IGroupListContainer {
         } else {
             myTableView.setItems(newGroups);
         }
-        this.restoreSortOrder();
+        restoreSortOrder();
         
         // try to restore the current group if its still there
         restoreSelectedGroup();
@@ -189,7 +190,7 @@ public class OwnNoteTableView implements IGroupListContainer {
                     }
                     final String newNoteName = myEditor.uniqueNewNoteNameForGroup(newGroupName);
                     
-                    this.createNoteWrapper(newGroupName, newNoteName);
+                    createNoteWrapper(newGroupName, newNoteName);
                 });
                 newMenu.getItems().addAll(newNote2);
                 myTableView.setContextMenu(newMenu);
@@ -234,7 +235,7 @@ public class OwnNoteTableView implements IGroupListContainer {
                             final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
                             final String newNoteName = myEditor.uniqueNewNoteNameForGroup(curNote.getGroupName());
                     
-                            this.createNoteWrapper(curNote.getGroupName(), newNoteName);
+                            createNoteWrapper(curNote.getGroupName(), newNoteName);
                         }
                     });
                     final MenuItem renameNote = new MenuItem("Rename Note");
@@ -246,7 +247,7 @@ public class OwnNoteTableView implements IGroupListContainer {
                         if (myTableView.getSelectionModel().getSelectedItem() != null) {
                             final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
                             
-                            this.startEditingName(myTableView.getSelectionModel().getSelectedIndex());
+                            startEditingName(myTableView.getSelectionModel().getSelectedIndex());
                         }
                     });
                     final MenuItem deleteNote = new MenuItem("Delete Note");
@@ -351,7 +352,7 @@ public class OwnNoteTableView implements IGroupListContainer {
             int selectIndex = -1;
             int i = 0;
             NoteData noteData;
-            for (Map<String, String> note : this.getItems()) {
+            for (Map<String, String> note : getItems()) {
                 noteData = new NoteData(note);
                 
                 if (newNoteName.equals(noteData.getNoteName()) && newGroupName.equals(noteData.getGroupName())) {
@@ -361,7 +362,7 @@ public class OwnNoteTableView implements IGroupListContainer {
                 i++;
             }
             
-            this.startEditingName(selectIndex);
+            startEditingName(selectIndex);
         }
     }
     
@@ -370,7 +371,7 @@ public class OwnNoteTableView implements IGroupListContainer {
             // need to run layout first, otherwise edit() doesn't do anything
             myTableView.layout();
 
-            this.selectAndFocusRow(selectIndex);
+            selectAndFocusRow(selectIndex);
 
             // use selected row and always first column
             myTableView.edit(selectIndex, myTableView.getColumns().get(0));
@@ -393,7 +394,7 @@ public class OwnNoteTableView implements IGroupListContainer {
         int selectIndex = 0;
         int i = 0;
         GroupData groupData;
-        for (Map<String, String> note : this.getItems()) {
+        for (Map<String, String> note : getItems()) {
             groupData = new GroupData(note);
 
             if (selectedGroupName.equals(groupData.getGroupName())) {
@@ -447,7 +448,7 @@ public class OwnNoteTableView implements IGroupListContainer {
         myTableView.setItems(null);
         myTableView.layout();
         myTableView.setItems(sortedData);
-        this.restoreSortOrder();
+        restoreSortOrder();
     }
     
     public void setFilterPredicate(final String filterValue) {
@@ -483,7 +484,7 @@ public class OwnNoteTableView implements IGroupListContainer {
     public void setSortOrder(final TableSortHelper sortOrder) {
         mySortOrder = sortOrder.toTableColumnList(myTableView.getColumns());
         
-        this.restoreSortOrder();
+        restoreSortOrder();
     }
 
     private void restoreSortOrder() {

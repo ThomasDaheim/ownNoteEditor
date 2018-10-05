@@ -30,11 +30,7 @@ import java.awt.Point;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
@@ -310,10 +306,12 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     @SuppressWarnings("unchecked")
     private void testAddDeleteNote() {
         // #1 ------------------------------------------------------------------
-        // add new note with right click + CTRL+N
+        // add new note with right click + menu item
         rightClickOn(notesTableFXML);
-        push(KeyCode.CONTROL, KeyCode.N);
+        push(KeyCode.DOWN);
         push(KeyCode.ENTER);
+        push(KeyCode.ENTER);
+        // TFE, 20181003: java 9: somwhow one more "ENTER" is needed
         push(KeyCode.ENTER);
 
         final int newCount = myTestdata.getNotesList().size() + 1;
@@ -331,7 +329,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         rightClickOn();
         push(KeyCode.DOWN);
         push(KeyCode.DOWN);
-        push(KeyCode.DOWN);
+        // TFE, 20181003: java 9: right click selects the first menu item... so one "DOWN" less here
+        //push(KeyCode.DOWN);
         push(KeyCode.ENTER);
         assertTrue("Check new notes count", (notesTableFXML.getItems().size() == myTestdata.getNotesList().size()));
     }
@@ -507,7 +506,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         rightClickOn();
         push(KeyCode.DOWN);
         push(KeyCode.DOWN);
-        push(KeyCode.DOWN);
+        // TFE, 20181003: java 9: right click selects the first menu item... so one "DOWN" less here
+        //push(KeyCode.DOWN);
         push(KeyCode.ENTER);
 
         assertTrue(groupsPaneFXML.getTabs().size() == myTestdata.getGroupsList().size() + 1);
@@ -589,7 +589,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         clickOn(notesTableFXML);
         moveBy(0, - notesTableFXML.getHeight() / 2 * 0.9);
         rightClickOn();
-        push(KeyCode.CONTROL, KeyCode.R);
+        push(KeyCode.DOWN);
+        push(KeyCode.ENTER);
         write("test1");
         push(KeyCode.ENTER);
         push(KeyCode.ENTER);
