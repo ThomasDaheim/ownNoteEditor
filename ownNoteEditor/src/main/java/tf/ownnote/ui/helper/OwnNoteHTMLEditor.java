@@ -25,24 +25,23 @@
  */
 package tf.ownnote.ui.helper;
 
-import com.sun.javafx.scene.control.skin.ContextMenuContent;
+import com.sun.javafx.scene.control.ContextMenuContent;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.ObservableList;
 import javafx.concurrent.Worker;
 import javafx.event.ActionEvent;
 import javafx.print.PrinterJob;
@@ -53,6 +52,9 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
@@ -403,12 +405,9 @@ public class OwnNoteHTMLEditor {
     }
     
     private PopupWindow getPopupWindow() {
-        @SuppressWarnings("deprecation") 
-        final Iterator<Window> windows = Window.impl_getWindows();
+        final ObservableList<Window> windows = Window.getWindows();
 
-        while (windows.hasNext()) {
-            final Window window = windows.next();
-
+        for (Window window : windows) {
             if (window instanceof ContextMenu) {
                 if (window.getScene() != null && window.getScene().getRoot() != null) { 
                     final Parent root = window.getScene().getRoot();
@@ -418,6 +417,7 @@ public class OwnNoteHTMLEditor {
                         Node popup = root.getChildrenUnmodifiable().get(0);
                         if (popup.lookup(CONTEXT_MENU) != null) {
                             final Node bridge = popup.lookup(CONTEXT_MENU);
+
                             final ContextMenuContent cmc = (ContextMenuContent)((Parent) bridge).getChildrenUnmodifiable().get(0);
 
                             final VBox itemsContainer = cmc.getItemsContainer();
@@ -444,6 +444,7 @@ public class OwnNoteHTMLEditor {
                             saveMenu.setOnAction((ActionEvent event) -> {
                                 saveNote();
                             });
+                            saveMenu.setAccelerator(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN));
                             
                             // add new item:
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(saveMenu));
