@@ -10,6 +10,8 @@ V 4.0: Lets go TinyMCE
 * Synched toolbar items with nextnote
 * added drag & drop support for text files and images
 
+Note on Java 10: Minor updates where made to make this run under Java 10. In OwnNoteHTMLEditor a non-exported API from com.sun.javafx.scene.control.ContextMenuContent is used to delete unwanted ContextMenu entries like "Reload page". To make this work under Java 10 as well the trick from https://stackoverflow.com/a/47265102 had to be used in the compile options.
+
 
 V 3.1: Minor changes
 
