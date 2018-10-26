@@ -37,6 +37,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -75,11 +76,16 @@ import tf.ownnote.ui.main.OwnNoteEditor;
 public class OwnNoteHTMLEditor {
     private static final String CONTEXT_MENU = ".context-menu";
     private static final String RELOAD_PAGE = "Reload page";
-    private static final String OPEN_FRAME = "Open Frame in New Window";
+    private static final String OPEN_FRAME_NEW_WINDOW = "Open Frame in New Window";
+    private static final String OPEN_LINK = "Open Link";
+    private static final String OPEN_LINK_NEW_WINDOW = "Open Link in New Window";
+    private static final List<String> REMOVE_MENUES =  List.of(RELOAD_PAGE, OPEN_FRAME_NEW_WINDOW, OPEN_LINK, OPEN_LINK_NEW_WINDOW);
 
     private WebView myWebView;
     private WebEngine myWebEngine;
     final private OwnNoteHTMLEditor myself = this;
+    
+    private HostServices myHostServices = null;
     
     // https://github.com/Namek/TheConsole/blob/5fd635e14d16f2058a557b06ef2c30c71142280a/src/net/namekdev/theconsole/view/ConsoleOutput.xtend
     // have a command queue during the startup phase
@@ -145,6 +151,8 @@ public class OwnNoteHTMLEditor {
 
         myWebView = webView;
         myWebEngine = myWebView.getEngine();
+        
+        myHostServices = (HostServices) myWebView.getScene().getWindow().getProperties().get("hostServices");
 
         // delay setup of editor - things are not available at startup...
         Platform.runLater(() -> {
@@ -190,8 +198,8 @@ public class OwnNoteHTMLEditor {
             @Override
             public void changed(ObservableValue ov, Worker.State oldState, Worker.State newState) {
                 if (newState == Worker.State.SUCCEEDED && !editorInitialized) {
+
                     // add debugger to webviewer
-                    // TODO: add "debug" flag or similar to trigger this
                     //enableFirebug(myWebEngine);
 
                     JSObject window = (JSObject) myWebEngine.executeScript("window");
@@ -423,20 +431,17 @@ public class OwnNoteHTMLEditor {
                             final VBox itemsContainer = cmc.getItemsContainer();
                             
                             // check for "Reload page", ... entry and remove it...
-                            List<Node> deletNodes = new ArrayList<>();
+                            List<Node> deleteNodes = new ArrayList<>();
                             for (Node n: itemsContainer.getChildren()) {
                                 assert n instanceof ContextMenuContent.MenuItemContainer;
                                 
                                 final ContextMenuContent.MenuItemContainer item = (ContextMenuContent.MenuItemContainer) n;
-                                if (RELOAD_PAGE.equals(item.getItem().getText())) {
-                                    deletNodes.add(n);
-                                }
-                                if (OPEN_FRAME.equals(item.getItem().getText())) {
-                                    deletNodes.add(n);
+                                if (REMOVE_MENUES.contains(item.getItem().getText())) {
+                                    deleteNodes.add(n);
                                 }
                             }
-                            if (!deletNodes.isEmpty()) {
-                                itemsContainer.getChildren().removeAll(deletNodes);
+                            if (!deleteNodes.isEmpty()) {
+                                itemsContainer.getChildren().removeAll(deleteNodes);
                             }
 
                             // adding save item
@@ -462,6 +467,13 @@ public class OwnNoteHTMLEditor {
     //
     // javascript callbacks
     //
+    
+    private void openLinkInDefaultBrowser(final String url) {
+        // first load is OK :-)
+        if (myHostServices != null && editorInitialized) {
+            myHostServices.showDocument(url);
+        }        
+    }
     
     private void startTask(final Runnable task) {
         if (!editorInitialized) {
@@ -644,6 +656,9 @@ public class OwnNoteHTMLEditor {
 //            System.out.println("Java: saveNote() called");
             myself.saveNote();
 //            System.out.println("Java: saveNote() done");
+        }
+        public void openLinkInDefaultBrowser(final String url) {
+            myself.openLinkInDefaultBrowser(url);
         }
     }
 }
