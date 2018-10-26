@@ -109,7 +109,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             // https://stackoverflow.com/a/38653970
                             $(editor.getBody()).on("change", ":checkbox", function(el){
                                 if(el.target.checked){
-                                    $(el.target).attr('checked','checked');
+                                    $(el.target).attr('checked', 'checked');
                                 }else{
                                     $(el.target).removeAttr('checked');
                                 }
@@ -118,18 +118,26 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             $(editor.getBody()).on("change", "input:radio", function(el){
                                 var name =  'input:radio[name="'+el.target.name+'"]';
                                 $(editor.getBody()).find(name).removeAttr('checked');
-                                $(el.target).attr('checked','checked');
+                                $(el.target).attr('checked', 'checked');
                                 $(el.target).prop('checked',true);
                             });
                             // Selects
                             $(editor.getBody()).on("change", "select", function(el){
                                 $(el.target).children('option').each(function(index) {
                                     if(this.selected){
-                                        $(this).attr('selected','selected');
+                                        $(this).attr('selected', 'selected');
                                     }else{
                                         $(this).removeAttr('selected');
                                     }
                                 });
+                            });
+                            
+                            // links
+                            $(editor.getBody()).on("click", "a", function(el) {
+                                el.preventDefault();
+
+                                // callback to java to open in standard browser
+                                editorCallback.openLinkInDefaultBrowser($(el.target).attr('href'));
                             });
                             
                             // TODO: not working...
