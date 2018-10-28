@@ -59,6 +59,7 @@ import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TabPane;
@@ -82,6 +83,7 @@ import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
+import tf.ownnote.ui.general.AboutMenu;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.GroupData;
 import tf.ownnote.ui.helper.IGroupListContainer;
@@ -211,6 +213,10 @@ public class OwnNoteEditor implements Initializable {
     private Label pathLabel;
     @FXML
     private TextField noteNameFilter;
+    @FXML
+    private Menu infoMenu;
+    @FXML
+    private MenuItem aboutMenuItem;
 
     public OwnNoteEditor() {
         myFileManager = new OwnNoteFileManager(this);
@@ -780,6 +786,10 @@ public class OwnNoteEditor implements Initializable {
                 ownCloudPath.setText(selectedDirectory.getAbsolutePath());
             }
         });
+        
+        //AboutMenu.getInstance().addAboutMenu(menuBar, "OwnNoteEditor", "v4.0", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AboutMenu.getInstance().setAboutMenuImage(infoMenu);
+        AboutMenu.getInstance().setAboutAlert(borderPane.getScene().getWindow(), aboutMenuItem, "OwnNoteEditor", "v4.0", "https://github.com/ThomasDaheim/ownNoteEditor");
     }
 
     @SuppressWarnings("unchecked")

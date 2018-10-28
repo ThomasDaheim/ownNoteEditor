@@ -472,7 +472,7 @@ public class OwnNoteHTMLEditor {
         // first load is OK :-)
         if (myHostServices != null && editorInitialized) {
             myHostServices.showDocument(url);
-        }        
+        }
     }
     
     private void startTask(final Runnable task) {
