@@ -71,6 +71,7 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -79,7 +80,6 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
-import javafx.scene.web.HTMLEditor;
 import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
 import tf.ownnote.ui.helper.FormatHelper;
@@ -292,10 +292,11 @@ public class OwnNoteEditor implements Initializable {
 
     //
     // basic setup is a 2x2 gridpane with a 2 part splitpane in the lower row spanning both cols
+    // TFE: 20181028: pathBox has moved to menu to make room for filterBox
     //
     // ------------------------------------------------------
     // |                          |                         |
-    // | pathBox                  | classic: buttonBox      |
+    // | filterBox                | classic: buttonBox      |
     // |                          | oneNote: groupsPaneFXML |
     // |                          |                         |
     // ------------------------------------------------------
@@ -343,7 +344,6 @@ public class OwnNoteEditor implements Initializable {
         noteGroupCol = new OwnNoteTableColumn(noteGroupColFXML, this);
         notesTable = new OwnNoteTableView(notesTableFXML, this);
         notesTable.setSortOrder(TableSortHelper.fromString(notesSortOrder));
-        notesTable.setFilterColumn(noteGroupCol);
 
         groupNameCol = new OwnNoteTableColumn(groupNameColFXML, this);
         groupDeleteCol = new OwnNoteTableColumn(groupDeleteColFXML, this);
@@ -689,6 +689,8 @@ public class OwnNoteEditor implements Initializable {
             gridPane.getChildren().remove(noteEditorFXML);
         }
         
+        // init menus
+        
         // add changelistener to pathlabel - not that you should actually change its value during runtime...
         ownCloudPath.textProperty().addListener(
             (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
@@ -698,6 +700,12 @@ public class OwnNoteEditor implements Initializable {
                 // scan files in new directory
                 initFromDirectory(false);
             }); 
+        // TFE, 20181028: open file chooser also when left clicking on pathBox
+        ownCloudPath.setOnMouseClicked((event) -> {
+            if (MouseButton.PRIMARY.equals(event.getButton())) {
+                setOwnCloudPath.fire();
+            }
+        });
         
         // add action to the button - open a directory search dialogue...
         setOwnCloudPath.setOnAction((ActionEvent event) -> {
@@ -785,7 +793,7 @@ public class OwnNoteEditor implements Initializable {
         // re-apply filter predicate when already set
         final String curGroupName = (String) notesTable.getTableView().getUserData();
         if (curGroupName != null) {
-            setFilterPredicate(curGroupName);
+            setGroupNameFilter(curGroupName);
         }
 
         // 2. Set the filter Predicate whenever the filter changes.
@@ -1121,8 +1129,8 @@ public class OwnNoteEditor implements Initializable {
         return result;
     }
 
-    public void setFilterPredicate(final String groupName) {
-        notesTable.setFilterPredicate(groupName);
+    public void setGroupNameFilter(final String groupName) {
+        notesTable.setGroupNameFilter(groupName);
         
         // Issue #59: advanced filtering & sorting
         // do the stuff in the OwnNoteTableView - thats the right place!
@@ -1268,7 +1276,7 @@ public class OwnNoteEditor implements Initializable {
                 allGroupNames.add(GroupData.NOT_GROUPED);
                 
                 if (allGroupNames.contains(curGroupName)) {
-                    setFilterPredicate(curGroupName);
+                    setGroupNameFilter(curGroupName);
                 }
                 
                 filesInProgress.remove(fileName);
