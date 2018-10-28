@@ -148,8 +148,6 @@ public class OwnNoteEditor implements Initializable {
     private TableView<Map<String, String>> groupsTableFXML;
     private OwnNoteTableView groupsTable = null;
     @FXML
-    private HBox pathBox;
-    @FXML
     private Label ownCloudPath;
     @FXML
     private Button setOwnCloudPath;
@@ -209,6 +207,8 @@ public class OwnNoteEditor implements Initializable {
     private Menu menuLookAndFeel;
     @FXML
     private StackPane noteEditorPaneFXML;
+    @FXML
+    private Label pathLabel;
 
     public OwnNoteEditor() {
         myFileManager = new OwnNoteFileManager(this);

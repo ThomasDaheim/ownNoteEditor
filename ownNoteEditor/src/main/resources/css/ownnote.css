@@ -158,7 +158,15 @@
     -fx-background-color: darkgray;
 } 
 
-/* buttons in htmleditor */
-.html-editor-source:selected {
-    -fx-background-color: darkgray;
+/* style box, label, button or path selection */
+.pathLabel {
+    -fx-font-color: -fx-text-base-color;
+    -fx-text-fill: -fx-text-base-color;
+}
+.ownCloudPath {
+    -fx-border-radius: 4;
+    -fx-border-style: solid;
+    -fx-border-color: darkgray;
+    -fx-font-color: -fx-text-base-color;
+    -fx-text-fill: -fx-text-base-color;
 }
