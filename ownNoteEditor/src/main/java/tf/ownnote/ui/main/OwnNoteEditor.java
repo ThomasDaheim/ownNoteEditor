@@ -213,10 +213,6 @@ public class OwnNoteEditor implements Initializable {
     private Label pathLabel;
     @FXML
     private TextField noteNameFilter;
-    @FXML
-    private Menu infoMenu;
-    @FXML
-    private MenuItem aboutMenuItem;
 
     public OwnNoteEditor() {
         myFileManager = new OwnNoteFileManager(this);
@@ -787,9 +783,7 @@ public class OwnNoteEditor implements Initializable {
             }
         });
         
-        //AboutMenu.getInstance().addAboutMenu(menuBar, "OwnNoteEditor", "v4.0", "https://github.com/ThomasDaheim/ownNoteEditor");
-        AboutMenu.getInstance().setAboutMenuImage(infoMenu);
-        AboutMenu.getInstance().setAboutAlert(borderPane.getScene().getWindow(), aboutMenuItem, "OwnNoteEditor", "v4.0", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AboutMenu.getInstance().addAboutMenu(borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v4.0", "https://github.com/ThomasDaheim/ownNoteEditor");
     }
 
     @SuppressWarnings("unchecked")

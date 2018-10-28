@@ -161,11 +161,6 @@
                   </Menu>
               </items>
             </Menu>
-            <Menu fx:id="infoMenu" mnemonicParsing="false" text="Info">
-               <items>
-                  <MenuItem fx:id="aboutMenuItem" mnemonicParsing="false" text="About" />
-               </items>
-            </Menu>
          </menus>
       </MenuBar>
    </top>

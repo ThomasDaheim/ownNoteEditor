@@ -39,7 +39,7 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
-import javafx.scene.control.MenuItem;
+import javafx.scene.control.MenuBar;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
@@ -67,56 +67,31 @@ public class AboutMenu {
         return INSTANCE;
     }
     
-    // TFE, 20181028: can't get the event to fire to show alert...
-//    public void addAboutMenu(final MenuBar menuBar, final String appName, final String version, final String link) {
-//        // create alert from data with OK button
-//        final Alert myAlert = new Alert(AlertType.INFORMATION);
-//        myAlert.setTitle(appName);
-//        myAlert.setHeaderText(appName + " " + version);
-//        myAlert.setContentText("This software is provided under the \"The 3-Clause BSD License\"" + "\n" + "See " + link + " for source code.");
-//        
-//        // create menu, add image and onclick handler to show alert
-//        final ImageView menuImage = new ImageView();
-//        menuImage.setImage(menuIcon);
-//        menuImage.setPreserveRatio(true);
-//        menuImage.setFitHeight(12);
-//        menuImage.setOnMouseClicked((event) -> {
-//            myAlert.showAndWait();
-//        });
-//
-//        final Menu myMenu = new Menu();
-//        myMenu.setGraphic(menuImage);
-//        myMenu.setOnShown((event) -> {
-//            System.out.println("setOnShown");
-//            myAlert.showAndWait();
-//        });
-//        myMenu.setOnShowing((event) -> {
-//            System.out.println("setOnShowing");
-//            myAlert.showAndWait();
-//        });
-//        //myMenu.addEventHandler(MouseEvent.MOUSE_CLICKED, (event) -> {
-//        myMenu.addEventHandler(EventType.ROOT, (event) -> {
-//            System.out.println("addEventHandler: " + event.getEventType().toString());
-////            if (MouseButton.PRIMARY.equals(event.getButton())) {
-////                alert.showAndWait();
-////            }
-//        });
-//        
-//        // add menu to menuBar
-//        menuBar.getMenus().add(myMenu);
-//    };
-    
-    public void setAboutMenuImage(final Menu menu) {
-        menu.setText("");
+    public void addAboutMenu(final Window window, final MenuBar menuBar, final String appName, final String appVersion, final String sourceURL) {
+        // create alert from data with OK button
+        final Alert alert = createAboutAlert(window, appName, appVersion, sourceURL);
         
+        // create menu, add image and onclick handler to show alert
         final ImageView menuImage = new ImageView();
         menuImage.setImage(menuIcon);
         menuImage.setPreserveRatio(true);
-        menuImage.setFitHeight(12); 
-        menu.setGraphic(menuImage);
-    }
+        menuImage.setFitHeight(12);
+
+        // setOnMouseClicked works only on Label, not directly on ImageView...
+        final Label menuLabel = new Label("");
+        menuLabel.setGraphic(menuImage);
+        menuLabel.setOnMouseClicked((event) -> {
+            alert.showAndWait();
+        });
+        
+        final Menu menu = new Menu();
+        menu.setGraphic(menuLabel);
+
+        // add menu to menuBar
+        menuBar.getMenus().add(menu);
+    };
     
-    public void setAboutAlert(final Window window, final MenuItem menuItem, final String appName, final String appVersion, final String sourceURL) {
+    private Alert createAboutAlert(final Window window, final String appName, final String appVersion, final String sourceURL) {
         // create alert from data with OK button
         final Alert alert = new Alert(AlertType.INFORMATION);
         alert.setTitle(appName);
@@ -128,7 +103,7 @@ public class AboutMenu {
         // http://bekwam.blogspot.com/2015/07/dont-just-tell-me-show-me-with-custom.html
         final GridPane pane = new GridPane();
         
-        final Label lbl1 = new Label("This software is provided under the \"The 3-Clause BSD License\"" + "\n\n");
+        final Label lbl1 = new Label("This software is provided under the \"The 3-Clause BSD License\"." + "\n\n");
         pane.add(lbl1, 0, 0, 2, 1);
         
         final Label lbl2 = new Label("See ");
@@ -149,10 +124,7 @@ public class AboutMenu {
         
         alert.getDialogPane().contentProperty().set(pane);
         
-        menuItem.setOnAction((event) -> {
-            System.out.println("setOnAction");
-            alert.showAndWait();
-        });
+        return alert;
     }
     
     private static BufferedImage decodeToImage(String imageString) {
