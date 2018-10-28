@@ -170,3 +170,8 @@
     -fx-font-color: -fx-text-base-color;
     -fx-text-fill: -fx-text-base-color;
 }
+
+/* style filter textfield */
+.noteNameFilter {
+    -fx-focus-color: darkgray;
+}

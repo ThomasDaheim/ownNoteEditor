@@ -209,6 +209,8 @@ public class OwnNoteEditor implements Initializable {
     private StackPane noteEditorPaneFXML;
     @FXML
     private Label pathLabel;
+    @FXML
+    private TextField noteNameFilter;
 
     public OwnNoteEditor() {
         myFileManager = new OwnNoteFileManager(this);
@@ -337,6 +339,8 @@ public class OwnNoteEditor implements Initializable {
                 }
             });
         
+        initMenus();
+        
         // init our wrappers to FXML classes...
         noteNameCol = new OwnNoteTableColumn(noteNameColFXML, this);
         noteModifiedCol = new OwnNoteTableColumn(noteModifiedColFXML, this);
@@ -390,6 +394,12 @@ public class OwnNoteEditor implements Initializable {
         // only new button visible initially
         hideAndDisableAllCreateControls();
         hideAndDisableAllEditControls();
+        
+        // issue #59: support filtering of note names
+        // https://code.makery.ch/blog/javafx-8-tableview-sorting-filtering/
+        noteNameFilter.textProperty().addListener((observable, oldValue, newValue) -> {
+            notesTable.setNoteNameFilter(newValue);
+        });
         
         // issue #30: store left and right regions of the second row in the grid - they are needed later on for the divider pane
         Region leftRegion;
@@ -689,46 +699,6 @@ public class OwnNoteEditor implements Initializable {
             gridPane.getChildren().remove(noteEditorFXML);
         }
         
-        // init menus
-        
-        // add changelistener to pathlabel - not that you should actually change its value during runtime...
-        ownCloudPath.textProperty().addListener(
-            (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
-                // store in the preferences
-                OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, newValue);
-
-                // scan files in new directory
-                initFromDirectory(false);
-            }); 
-        // TFE, 20181028: open file chooser also when left clicking on pathBox
-        ownCloudPath.setOnMouseClicked((event) -> {
-            if (MouseButton.PRIMARY.equals(event.getButton())) {
-                setOwnCloudPath.fire();
-            }
-        });
-        
-        // add action to the button - open a directory search dialogue...
-        setOwnCloudPath.setOnAction((ActionEvent event) -> {
-            // open directory chooser dialog - starting from current path, if any
-            DirectoryChooser directoryChooser = new DirectoryChooser();
-            directoryChooser.setTitle("Select ownCloud Notes directory");
-            if (ownCloudPath != null && !ownCloudPath.getText().isEmpty()) {
-                final File ownFile = new File(ownCloudPath.getText());
-                // TF, 20160820: directory might not exist anymore!
-                // in that case directoryChooser.showDialog throws an error and you can't change to an existing dir...
-                if (ownFile.exists() && ownFile.isDirectory() && ownFile.canRead()) {
-                    directoryChooser.setInitialDirectory(ownFile);
-                }
-            }
-            File selectedDirectory = directoryChooser.showDialog(setOwnCloudPath.getScene().getWindow());
-
-            if(selectedDirectory == null){
-                //System.out.println("No Directory selected");
-            } else {
-                ownCloudPath.setText(selectedDirectory.getAbsolutePath());
-            }
-        });
-
         // issue #30: add transparent split pane on top of the grid pane to have a moveable divider
         dividerPane = new SplitPane();
         // add content from second grid row to the split pane
@@ -768,6 +738,46 @@ public class OwnNoteEditor implements Initializable {
                     gridPane.getColumnConstraints().get(0).setPercentWidth(newPercentage);
                     gridPane.getColumnConstraints().get(1).setPercentWidth(100 - newPercentage);
                 });
+            }
+        });
+    }
+    
+    private void initMenus() {
+        // add changelistener to pathlabel - not that you should actually change its value during runtime...
+        ownCloudPath.textProperty().addListener(
+            (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
+                // store in the preferences
+                OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, newValue);
+
+                // scan files in new directory
+                initFromDirectory(false);
+            }); 
+        // TFE, 20181028: open file chooser also when left clicking on pathBox
+        ownCloudPath.setOnMouseClicked((event) -> {
+            if (MouseButton.PRIMARY.equals(event.getButton())) {
+                setOwnCloudPath.fire();
+            }
+        });
+        
+        // add action to the button - open a directory search dialogue...
+        setOwnCloudPath.setOnAction((ActionEvent event) -> {
+            // open directory chooser dialog - starting from current path, if any
+            DirectoryChooser directoryChooser = new DirectoryChooser();
+            directoryChooser.setTitle("Select ownCloud Notes directory");
+            if (ownCloudPath != null && !ownCloudPath.getText().isEmpty()) {
+                final File ownFile = new File(ownCloudPath.getText());
+                // TF, 20160820: directory might not exist anymore!
+                // in that case directoryChooser.showDialog throws an error and you can't change to an existing dir...
+                if (ownFile.exists() && ownFile.isDirectory() && ownFile.canRead()) {
+                    directoryChooser.setInitialDirectory(ownFile);
+                }
+            }
+            File selectedDirectory = directoryChooser.showDialog(setOwnCloudPath.getScene().getWindow());
+
+            if(selectedDirectory == null){
+                //System.out.println("No Directory selected");
+            } else {
+                ownCloudPath.setText(selectedDirectory.getAbsolutePath());
             }
         });
     }

@@ -473,9 +473,11 @@ public class OwnNoteTableView implements IGroupListContainer {
         getTableView().setUserData(groupNameFilter);
         
         filteredData.setPredicate((Map<String, String> note) -> {
-            // If group filter text is empty, display all notes. Also for "All".
+            boolean result = false;
+            // If group filter text is empty, display all notes, also for "All"
             if (groupNameFilter == null || groupNameFilter.isEmpty() || groupNameFilter.equals(GroupData.ALL_GROUPS) ) {
-                return true;
+                // still filter for name in that case!
+                return filterNoteName(note);
             }
             // Compare group name to group filter text
             if (!(new NoteData(note)).getGroupName().equals(groupNameFilter)) {
@@ -483,13 +485,16 @@ public class OwnNoteTableView implements IGroupListContainer {
             }
             
             // TFE, 20181028: and now also check for note names
-            // If name filter text is empty, display all notes.
-            if (noteNameFilter == null || noteNameFilter.isEmpty()) {
-                return true;
-            }
-            // Compare note name to note filter text
-            return (new NoteData(note)).getNoteName().contains(noteNameFilter); 
+            return filterNoteName(note);
         });
+    }
+    private boolean filterNoteName(Map<String, String> note) {
+        // If name filter text is empty, display all notes.
+        if (noteNameFilter == null || noteNameFilter.isEmpty()) {
+            return true;
+        }
+        // Compare note name to note filter text
+        return (new NoteData(note)).getNoteName().contains(noteNameFilter); 
     }
 
     @Override
