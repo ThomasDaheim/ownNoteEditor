@@ -4,6 +4,11 @@ JavaFX editor for the ownNote files locally stored in ownCloud folder
 Aim was to mimic the behaviour of the ownNote web client using JavaFX and working directly on the owNote files in a local ownCloud directory. This code does NOT update any of the SQL tables used by owNote - but so far this doesn't seem to impact anything.
 
 
+V 4.1: Filter notes
+
+* added a filter for note names
+* added info menu dialogue
+
 V 4.0: Lets go TinyMCE
 
 * Switched from prism.js to TinyMCE as notes editor (thanks to a lot of experience collected when building GPXEditor...)

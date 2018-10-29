@@ -152,7 +152,6 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     public void getNodes() {
         //System.out.println("running getNodes()");
 
-        ownCloudPath = (Label) find(".ownCloudPath");
         notesTableFXML = (TableView<Map<String, String>>) find(".notesTable");
         groupsPaneFXML = (TabPane) find(".groupsPane");
         
@@ -267,7 +266,6 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     private void testNodes() {
         //System.out.println("running testNodes()");
 
-        assertNotNull(ownCloudPath);
         assertNotNull(notesTableFXML);
         assertNotNull(groupsPaneFXML);
         assertNotNull(allTab);
@@ -279,8 +277,6 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     
     @SuppressWarnings("unchecked")
     private void testInitialSetup() {
-        assertTrue("Check ownCloudPath", testpath.toString().equals(ownCloudPath.getText()));
-        
         // #1 ------------------------------------------------------------------
         // check "ALL" tab, that should have 4 entries
         testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));

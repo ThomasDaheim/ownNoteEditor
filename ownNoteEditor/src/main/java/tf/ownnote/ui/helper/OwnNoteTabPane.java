@@ -114,7 +114,7 @@ public class OwnNoteTabPane implements IGroupListContainer {
                     assert (newTab.getUserData() instanceof GroupData);
                     final String groupName = ((GroupData) newTab.getUserData()).getGroupName();
 
-                    myEditor.setFilterPredicate(groupName);
+                    myEditor.setGroupNameFilter(groupName);
                     // set color of notes table to tab color
                     myEditor.setNotesTableForNewTab(newTab.getStyle());
 
@@ -334,7 +334,7 @@ public class OwnNoteTabPane implements IGroupListContainer {
                 activeTab.setUserData(curGroup);
                 
                 // update notes list
-                myEditor.setFilterPredicate(newGroupName);
+                myEditor.setGroupNameFilter(newGroupName);
             }
         });
 

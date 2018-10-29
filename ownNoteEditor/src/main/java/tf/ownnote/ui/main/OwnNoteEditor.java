@@ -71,6 +71,7 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -79,9 +80,9 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
-import javafx.scene.web.HTMLEditor;
 import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
+import tf.ownnote.ui.general.AboutMenu;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.GroupData;
 import tf.ownnote.ui.helper.IGroupListContainer;
@@ -148,8 +149,6 @@ public class OwnNoteEditor implements Initializable {
     private TableView<Map<String, String>> groupsTableFXML;
     private OwnNoteTableView groupsTable = null;
     @FXML
-    private HBox pathBox;
-    @FXML
     private Label ownCloudPath;
     @FXML
     private Button setOwnCloudPath;
@@ -209,6 +208,10 @@ public class OwnNoteEditor implements Initializable {
     private Menu menuLookAndFeel;
     @FXML
     private StackPane noteEditorPaneFXML;
+    @FXML
+    private Label pathLabel;
+    @FXML
+    private TextField noteNameFilter;
 
     public OwnNoteEditor() {
         myFileManager = new OwnNoteFileManager(this);
@@ -292,10 +295,11 @@ public class OwnNoteEditor implements Initializable {
 
     //
     // basic setup is a 2x2 gridpane with a 2 part splitpane in the lower row spanning both cols
+    // TFE: 20181028: pathBox has moved to menu to make room for filterBox
     //
     // ------------------------------------------------------
     // |                          |                         |
-    // | pathBox                  | classic: buttonBox      |
+    // | filterBox                | classic: buttonBox      |
     // |                          | oneNote: groupsPaneFXML |
     // |                          |                         |
     // ------------------------------------------------------
@@ -336,6 +340,8 @@ public class OwnNoteEditor implements Initializable {
                 }
             });
         
+        initMenus();
+        
         // init our wrappers to FXML classes...
         noteNameCol = new OwnNoteTableColumn(noteNameColFXML, this);
         noteModifiedCol = new OwnNoteTableColumn(noteModifiedColFXML, this);
@@ -343,7 +349,6 @@ public class OwnNoteEditor implements Initializable {
         noteGroupCol = new OwnNoteTableColumn(noteGroupColFXML, this);
         notesTable = new OwnNoteTableView(notesTableFXML, this);
         notesTable.setSortOrder(TableSortHelper.fromString(notesSortOrder));
-        notesTable.setFilterColumn(noteGroupCol);
 
         groupNameCol = new OwnNoteTableColumn(groupNameColFXML, this);
         groupDeleteCol = new OwnNoteTableColumn(groupDeleteColFXML, this);
@@ -390,6 +395,12 @@ public class OwnNoteEditor implements Initializable {
         // only new button visible initially
         hideAndDisableAllCreateControls();
         hideAndDisableAllEditControls();
+        
+        // issue #59: support filtering of note names
+        // https://code.makery.ch/blog/javafx-8-tableview-sorting-filtering/
+        noteNameFilter.textProperty().addListener((observable, oldValue, newValue) -> {
+            notesTable.setNoteNameFilter(newValue);
+        });
         
         // issue #30: store left and right regions of the second row in the grid - they are needed later on for the divider pane
         Region leftRegion;
@@ -689,38 +700,6 @@ public class OwnNoteEditor implements Initializable {
             gridPane.getChildren().remove(noteEditorFXML);
         }
         
-        // add changelistener to pathlabel - not that you should actually change its value during runtime...
-        ownCloudPath.textProperty().addListener(
-            (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
-                // store in the preferences
-                OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, newValue);
-
-                // scan files in new directory
-                initFromDirectory(false);
-            }); 
-        
-        // add action to the button - open a directory search dialogue...
-        setOwnCloudPath.setOnAction((ActionEvent event) -> {
-            // open directory chooser dialog - starting from current path, if any
-            DirectoryChooser directoryChooser = new DirectoryChooser();
-            directoryChooser.setTitle("Select ownCloud Notes directory");
-            if (ownCloudPath != null && !ownCloudPath.getText().isEmpty()) {
-                final File ownFile = new File(ownCloudPath.getText());
-                // TF, 20160820: directory might not exist anymore!
-                // in that case directoryChooser.showDialog throws an error and you can't change to an existing dir...
-                if (ownFile.exists() && ownFile.isDirectory() && ownFile.canRead()) {
-                    directoryChooser.setInitialDirectory(ownFile);
-                }
-            }
-            File selectedDirectory = directoryChooser.showDialog(setOwnCloudPath.getScene().getWindow());
-
-            if(selectedDirectory == null){
-                //System.out.println("No Directory selected");
-            } else {
-                ownCloudPath.setText(selectedDirectory.getAbsolutePath());
-            }
-        });
-
         // issue #30: add transparent split pane on top of the grid pane to have a moveable divider
         dividerPane = new SplitPane();
         // add content from second grid row to the split pane
@@ -763,6 +742,48 @@ public class OwnNoteEditor implements Initializable {
             }
         });
     }
+    
+    private void initMenus() {
+        // add changelistener to pathlabel - not that you should actually change its value during runtime...
+        ownCloudPath.textProperty().addListener(
+            (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
+                // store in the preferences
+                OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, newValue);
+
+                // scan files in new directory
+                initFromDirectory(false);
+            }); 
+        // TFE, 20181028: open file chooser also when left clicking on pathBox
+        ownCloudPath.setOnMouseClicked((event) -> {
+            if (MouseButton.PRIMARY.equals(event.getButton())) {
+                setOwnCloudPath.fire();
+            }
+        });
+        
+        // add action to the button - open a directory search dialogue...
+        setOwnCloudPath.setOnAction((ActionEvent event) -> {
+            // open directory chooser dialog - starting from current path, if any
+            DirectoryChooser directoryChooser = new DirectoryChooser();
+            directoryChooser.setTitle("Select ownCloud Notes directory");
+            if (ownCloudPath != null && !ownCloudPath.getText().isEmpty()) {
+                final File ownFile = new File(ownCloudPath.getText());
+                // TF, 20160820: directory might not exist anymore!
+                // in that case directoryChooser.showDialog throws an error and you can't change to an existing dir...
+                if (ownFile.exists() && ownFile.isDirectory() && ownFile.canRead()) {
+                    directoryChooser.setInitialDirectory(ownFile);
+                }
+            }
+            File selectedDirectory = directoryChooser.showDialog(setOwnCloudPath.getScene().getWindow());
+
+            if(selectedDirectory == null){
+                //System.out.println("No Directory selected");
+            } else {
+                ownCloudPath.setText(selectedDirectory.getAbsolutePath());
+            }
+        });
+        
+        AboutMenu.getInstance().addAboutMenu(borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v4.1", "https://github.com/ThomasDaheim/ownNoteEditor");
+    }
 
     @SuppressWarnings("unchecked")
     public void initFromDirectory(final boolean updateOnly) {
@@ -785,7 +806,7 @@ public class OwnNoteEditor implements Initializable {
         // re-apply filter predicate when already set
         final String curGroupName = (String) notesTable.getTableView().getUserData();
         if (curGroupName != null) {
-            setFilterPredicate(curGroupName);
+            setGroupNameFilter(curGroupName);
         }
 
         // 2. Set the filter Predicate whenever the filter changes.
@@ -1121,8 +1142,8 @@ public class OwnNoteEditor implements Initializable {
         return result;
     }
 
-    public void setFilterPredicate(final String groupName) {
-        notesTable.setFilterPredicate(groupName);
+    public void setGroupNameFilter(final String groupName) {
+        notesTable.setGroupNameFilter(groupName);
         
         // Issue #59: advanced filtering & sorting
         // do the stuff in the OwnNoteTableView - thats the right place!
@@ -1268,7 +1289,7 @@ public class OwnNoteEditor implements Initializable {
                 allGroupNames.add(GroupData.NOT_GROUPED);
                 
                 if (allGroupNames.contains(curGroupName)) {
-                    setFilterPredicate(curGroupName);
+                    setGroupNameFilter(curGroupName);
                 }
                 
                 filesInProgress.remove(fileName);
