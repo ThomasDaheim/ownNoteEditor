@@ -492,6 +492,8 @@ public class OwnNoteHTMLEditor {
         Runnable task = () -> {
             // https://stackoverflow.com/questions/17802239/jsexception-while-loading-a-file-in-a-codemirror-based-editor-using-java-using-s
             String content = text;
+            // TFE, 20181030: for tinymce we also need to escape \
+            content = content.replace("\\", "\\\\");
             content = content.replace("'", "\\'");
             content = content.replace(System.getProperty("line.separator"), "\\n");
             content = content.replace("\n", "\\n");
