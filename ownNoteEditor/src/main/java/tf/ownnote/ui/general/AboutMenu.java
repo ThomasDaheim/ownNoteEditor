@@ -122,6 +122,11 @@ public class AboutMenu {
         final Label lbl3 = new Label("for more information.");
         pane.add(lbl3, 0, 2, 2, 1);
         
+        final String javaVersion = System.getProperty("java.version");
+        final String javafxVersion = System.getProperty("javafx.version");
+        final Label lbl4 = new Label("\nRunning on Java " + javaVersion + " with JavaFX " + javafxVersion + ".");
+        pane.add(lbl4, 0, 3, 2, 1);
+        
         alert.getDialogPane().contentProperty().set(pane);
         
         return alert;

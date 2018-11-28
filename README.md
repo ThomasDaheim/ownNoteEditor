@@ -3,6 +3,12 @@ JavaFX editor for the ownNote files locally stored in ownCloud folder
 
 Aim was to mimic the behaviour of the ownNote web client using JavaFX and working directly on the owNote files in a local ownCloud directory. This code does NOT update any of the SQL tables used by owNote - but so far this doesn't seem to impact anything.
 
+Note on Java 11: After various tweaks to build.gradle this now also runs under Java 11. See e.g. https://github.com/kelemen/netbeans-gradle-project/issues/403 an some of the discussion that where required to get there... Unfortunately, there is one isseu with the TestFX framework when trying to drag & drop notes. Since I wasn't able to fix this I had to disable the "testDragNote()" test step.
+
+V 4.2: Java11
+
+* changes for Java11
+* added About menu
 
 V 4.1: Filter notes
 
@@ -11,7 +17,7 @@ V 4.1: Filter notes
 
 V 4.0: Lets go TinyMCE
 
-* Switched from prism.js to TinyMCE as notes editor (thanks to a lot of experience collected when building GPXEditor...)
+* Switched from prism.js to TinyMCE as notes editor (thanks to a lot of experience collected while working on GPXEditor...)
 * Synched toolbar items with nextnote
 * added drag & drop support for text files and images
 
@@ -112,3 +118,4 @@ Explicit dependencies:
 * 'org.testfx:testfx-junit:4.0.+'
 * 'org.testfx:testfx-core:4.0.+'
 * 'junit:junit:4.12'
+* 'org.hamcrest:hamcrest-all:1.3'

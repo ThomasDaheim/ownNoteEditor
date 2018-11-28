@@ -7,6 +7,16 @@
  * user guide available at https://docs.gradle.org/2.7/userguide/tutorial_java_projects.html
  */
 
+// support for javafx11 - see https://openjfx.io/openjfx-docs/#gradle
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.google.gradle:osdetector-gradle-plugin:1.6.0'
+    }
+}
+
 // Use a plugin (https://github.com/crotwell/gradle-macappbundle) to create a Mac OS X .app and .dmg
 plugins {
     id "edu.sc.seis.macAppBundle" version "2.1.5"
@@ -25,8 +35,11 @@ macAppBundle {
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
 apply plugin: 'application'
+apply plugin: 'com.google.osdetector'
 
 mainClassName = 'tf.ownnote.ui.main.OwnNoteEditorManager'
+
+ext.platform = osdetector.os == 'osx' ? 'mac' : osdetector.os == 'windows' ? 'win' : osdetector.os
 
 // In this section you declare where to find the dependencies of your project
 repositories {
@@ -37,6 +50,15 @@ repositories {
 
 // In this section you declare the dependencies for your production and test code
 dependencies {
+    // JavaFX11 explicit dependencies
+    compile "org.openjfx:javafx-base:11:$platform"
+    compile "org.openjfx:javafx-graphics:11:$platform"
+    compile "org.openjfx:javafx-controls:11:$platform"
+    compile "org.openjfx:javafx-fxml:11:$platform"
+    compile "org.openjfx:javafx-swing:11:$platform"
+    compile "org.openjfx:javafx-web:11:$platform"
+    compile "org.openjfx:javafx-media:11:$platform"
+    
     // The production code uses the SLF4J logging API at compile time
     compile 'org.slf4j:slf4j-api:1.7.12'
     compile 'commons-cli:commons-cli:1.3.1'
@@ -46,14 +68,52 @@ dependencies {
     testCompile "org.testfx:testfx-junit:4.0.+"
     testCompile "org.testfx:testfx-core:4.0.+"
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.3.1'
+    testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: '1.3'
 }
 
-allprojects {
-    gradle.projectsEvaluated {
-        tasks.withType(JavaCompile) {
-            // tweak for java 9: com.sun.javafx.scene.control is not exported for public use
-            // https://stackoverflow.com/a/47265102
-            options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation" << "--add-exports=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED"
-        }
+compileJava {
+    doFirst {
+        options.compilerArgs = [
+                '--module-path', classpath.asPath,
+                '--add-modules', 'javafx.controls,javafx.graphics,javafx.base,javafx.fxml,javafx.web,javafx.swing,javafx.media',
+                '-Xlint:unchecked',
+                '-Xlint:deprecation',
+        ]
+    }
+}
+
+// see https://github.com/kelemen/netbeans-gradle-project/issues/403 on how to extend gradle tasks
+def newArgs = [ '--add-modules', 'javafx.controls,javafx.graphics,javafx.base,javafx.fxml,javafx.web,javafx.swing,javafx.media',
+                // various exports needed at run time - see https://stackoverflow.com/a/52142071
+                '--add-exports', 'javafx.graphics/com.sun.javafx.util=ALL-UNNAMED',
+                '--add-exports', 'javafx.base/com.sun.javafx.reflect=ALL-UNNAMED',
+                '--add-exports', 'javafx.base/com.sun.javafx.beans=ALL-UNNAMED',
+                '--add-exports', 'javafx.base/com.sun.javafx.logging=ALL-UNNAMED',
+                '--add-exports', 'javafx.graphics/com.sun.prism=ALL-UNNAMED',
+                '--add-exports', 'javafx.graphics/com.sun.javafx.sg.prism=ALL-UNNAMED',
+                '--add-exports', 'javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED',
+                '--add-exports', 'javafx.media/com.sun.media.jfxmedia=ALL-UNNAMED',
+                '--add-exports', 'javafx.media/com.sun.media.jfxmedia.events=ALL-UNNAMED',
+    ]
+    
+// extend Netbeans Gradle "Run" task
+run {
+    doFirst {
+        jvmArgs = jvmArgs.plus(['--module-path', classpath.asPath,])
+        jvmArgs = jvmArgs.plus(newArgs)
+    }
+}
+
+// extend Netbeans Gradle "Debug" task
+task(debug, dependsOn: 'classes', type: JavaExec) {
+    doFirst {
+        main = 'tf.ownnote.ui.main.OwnNoteEditorManager'
+        classpath = sourceSets.main.runtimeClasspath
+        jvmArgs = jvmArgs.plus([
+                '--module-path', classpath.asPath,
+                "-Xdebug",
+                "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
+        ])
+        jvmArgs = jvmArgs.plus(newArgs)
     }
 }
