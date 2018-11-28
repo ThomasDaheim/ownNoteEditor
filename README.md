@@ -5,6 +5,11 @@ Aim was to mimic the behaviour of the ownNote web client using JavaFX and workin
 
 Note on Java 11: After various tweaks to build.gradle this now also runs under Java 11. See e.g. https://github.com/kelemen/netbeans-gradle-project/issues/403 an some of the discussion that where required to get there... Unfortunately, there is one isseu with the TestFX framework when trying to drag & drop notes. Since I wasn't able to fix this I had to disable the "testDragNote()" test step.
 
+V 4.2: Java11
+
+* changes for Java11
+* added About menu
+
 V 4.1: Filter notes
 
 * added a filter for note names
@@ -113,3 +118,4 @@ Explicit dependencies:
 * 'org.testfx:testfx-junit:4.0.+'
 * 'org.testfx:testfx-core:4.0.+'
 * 'junit:junit:4.12'
+* 'org.hamcrest:hamcrest-all:1.3'
