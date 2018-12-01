@@ -72,7 +72,10 @@ public class OwnNoteTableView implements IGroupListContainer {
     
     // Issue #59: filter group names and note names
     private String groupNameFilter;
-    private String noteNameFilter;
+    private String noteFilterText;
+    // default: don't search in files
+    private Boolean noteFilterMode = false;
+    private List<String> noteFilterNotes;
     
     private TableType myTableType = null;
     
@@ -459,10 +462,23 @@ public class OwnNoteTableView implements IGroupListContainer {
         setFilterPredicate();
     }
     
-    public void setNoteNameFilter(final String filterValue) {
+    public void setNoteFilterText(final String filterValue) {
         assert (TableType.notesTable.equals(myTableType));
 
-        noteNameFilter = filterValue;
+        noteFilterText = filterValue;
+        // force re-run of filtering since refilter() is a private method...
+        setFilterPredicate();
+    }
+    
+    public void setNoteFilterMode(final Boolean findInFiles) {
+        assert (TableType.notesTable.equals(myTableType));
+
+        noteFilterMode = findInFiles;
+        if(noteFilterMode) {
+            noteFilterNotes = myEditor.getNotesWithText(noteFilterText);
+        } else {
+            noteFilterNotes = null;
+        }
         // force re-run of filtering since refilter() is a private method...
         setFilterPredicate();
     }
@@ -489,12 +505,21 @@ public class OwnNoteTableView implements IGroupListContainer {
         });
     }
     private boolean filterNoteName(Map<String, String> note) {
-        // If name filter text is empty, display all notes.
-        if (noteNameFilter == null || noteNameFilter.isEmpty()) {
-            return true;
+        if(noteFilterMode) {
+            // we find in files, so use name list
+            if (noteFilterNotes == null || noteFilterNotes.isEmpty()) {
+                return true;
+            }
+            // compare note name against list of matches
+            return (noteFilterNotes.contains((new NoteData(note)).getNoteName()));
+        } else {
+            // If name filter text is empty, display all notes.
+            if (noteFilterText == null || noteFilterText.isEmpty()) {
+                return true;
+            }
+            // Compare note name to note filter text
+            return (new NoteData(note)).getNoteName().contains(noteFilterText); 
         }
-        // Compare note name to note filter text
-        return (new NoteData(note)).getNoteName().contains(noteNameFilter); 
     }
 
     @Override

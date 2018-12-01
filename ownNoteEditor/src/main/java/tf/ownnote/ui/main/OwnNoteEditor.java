@@ -54,7 +54,9 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
@@ -211,7 +213,9 @@ public class OwnNoteEditor implements Initializable {
     @FXML
     private Label pathLabel;
     @FXML
-    private TextField noteNameFilter;
+    private TextField noteFilterText;
+    @FXML
+    private Label noteFilterMode;
 
     public OwnNoteEditor() {
         myFileManager = new OwnNoteFileManager(this);
@@ -398,10 +402,21 @@ public class OwnNoteEditor implements Initializable {
         
         // issue #59: support filtering of note names
         // https://code.makery.ch/blog/javafx-8-tableview-sorting-filtering/
-        noteNameFilter.textProperty().addListener((observable, oldValue, newValue) -> {
-            notesTable.setNoteNameFilter(newValue);
+        noteFilterText.textProperty().addListener((observable, oldValue, newValue) -> {
+            notesTable.setNoteFilterText(newValue);
         });
-        
+        noteFilterText.setOnKeyReleased((t) -> {
+            if (KeyCode.ESCAPE.equals(t.getCode())) {
+                noteFilterText.setText("");
+            }
+        });
+        final CheckBox noteFilterCheck = new CheckBox();
+        noteFilterCheck.selectedProperty().addListener((o) -> {
+            notesTable.setNoteFilterMode(noteFilterCheck.isSelected());
+        });
+        noteFilterMode.setGraphic(noteFilterCheck);
+        noteFilterMode.setContentDisplay(ContentDisplay.RIGHT);
+
         // issue #30: store left and right regions of the second row in the grid - they are needed later on for the divider pane
         Region leftRegion;
         Region rightRegion;
@@ -1368,5 +1383,9 @@ public class OwnNoteEditor implements Initializable {
         result.close();
         
         return buttonPressed;
+    }
+    
+    public List<String> getNotesWithText(final String searchText) {
+        return myFileManager.getNotesWithText(searchText);
     }
 }
