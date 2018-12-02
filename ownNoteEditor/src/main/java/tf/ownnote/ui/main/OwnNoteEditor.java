@@ -796,7 +796,7 @@ public class OwnNoteEditor implements Initializable {
             }
         });
         
-        AboutMenu.getInstance().addAboutMenu(borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v4.2", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AboutMenu.getInstance().addAboutMenu(borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v4.3", "https://github.com/ThomasDaheim/ownNoteEditor");
     }
 
     @SuppressWarnings("unchecked")
