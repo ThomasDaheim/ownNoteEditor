@@ -5,15 +5,19 @@ Aim was to mimic the behaviour of the ownNote web client using JavaFX and workin
 
 Note on Java 11: After various tweaks to build.gradle this now also runs under Java 11. See e.g. https://github.com/kelemen/netbeans-gradle-project/issues/403 an some of the discussion that where required to get there... Unfortunately, there is one isseu with the TestFX framework when trying to drag & drop notes. Since I wasn't able to fix this I had to disable the "testDragNote()" test step.
 
+V 4.3: Find in files
+
+* added option to find in files instead of note names
+* added test case for filtering
+
 V 4.2: Java11
 
 * changes for Java11
-* added About menu
 
 V 4.1: Filter notes
 
 * added a filter for note names
-* added info menu dialogue
+* added About menu
 
 V 4.0: Lets go TinyMCE
 

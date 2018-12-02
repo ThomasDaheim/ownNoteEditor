@@ -26,6 +26,7 @@
 package tf.ownnote.ui.helper;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.DirectoryIteratorException;
 import java.nio.file.DirectoryStream;
@@ -35,11 +36,15 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import tf.ownnote.ui.main.OwnNoteEditor;
@@ -166,11 +171,11 @@ public class OwnNoteFileManager {
         return ownNotePath;
     }
     
-    public ObservableList<Map<String, String>> getGroupsList() {
+    public ObservableList<GroupData> getGroupsList() {
         return FXCollections.observableArrayList(groupsList.values());
     }
 
-    public ObservableList<Map<String, String>> getNotesList() {
+    public ObservableList<NoteData> getNotesList() {
         return FXCollections.observableArrayList(notesList.values());
     }
 
@@ -526,5 +531,30 @@ public class OwnNoteFileManager {
 
     public String getCurrentTimeStamp() {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date());
+    }
+    
+    public List<NoteData> getNotesWithText(final String searchText) {
+        if (searchText == null || searchText.isEmpty()) {
+            return notesList.values().stream().collect(Collectors.toList());
+        }
+        
+        final List<NoteData> result = new ArrayList<>();
+        
+        // iterate over all file and check context for searchText
+        for (Map.Entry<String, NoteData> note : notesList.entrySet()) {
+            // see https://stackoverflow.com/questions/4886154/whats-the-fastest-way-to-scan-a-very-large-file-in-java/4886765#4886765 for fast algo
+            final File noteFile = new File(this.ownNotePath, buildNoteName(note.getValue().getGroupName(), note.getValue().getNoteName()));
+            
+            try (final Scanner scanner = new Scanner(noteFile)) {
+                if (scanner.findWithinHorizon(searchText, 0) != null) {
+                    result.add(note.getValue());
+                }
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+        }
+        
+        return result;
     }
 }

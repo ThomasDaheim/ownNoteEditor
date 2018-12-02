@@ -51,13 +51,13 @@ repositories {
 // In this section you declare the dependencies for your production and test code
 dependencies {
     // JavaFX11 explicit dependencies
-    compile "org.openjfx:javafx-base:11:$platform"
-    compile "org.openjfx:javafx-graphics:11:$platform"
-    compile "org.openjfx:javafx-controls:11:$platform"
-    compile "org.openjfx:javafx-fxml:11:$platform"
-    compile "org.openjfx:javafx-swing:11:$platform"
-    compile "org.openjfx:javafx-web:11:$platform"
-    compile "org.openjfx:javafx-media:11:$platform"
+    compile "org.openjfx:javafx-base:11.0.1:$platform"
+    compile "org.openjfx:javafx-graphics:11.0.1:$platform"
+    compile "org.openjfx:javafx-controls:11.0.1:$platform"
+    compile "org.openjfx:javafx-fxml:11.0.1:$platform"
+    compile "org.openjfx:javafx-swing:11.0.1:$platform"
+    compile "org.openjfx:javafx-web:11.0.1:$platform"
+    compile "org.openjfx:javafx-media:11.0.1:$platform"
     
     // The production code uses the SLF4J logging API at compile time
     compile 'org.slf4j:slf4j-api:1.7.12'

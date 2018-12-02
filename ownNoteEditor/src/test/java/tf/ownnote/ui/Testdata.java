@@ -185,6 +185,18 @@ public class Testdata {
         return result;
     }
     
+    public int getNotesCountForName(final String noteName) {
+        int result = 0;
+
+        for (NoteData noteData : notesList.values()) {
+            if (noteData.getNoteName().contains(noteName)) {
+                result++;
+            }
+        }
+        
+        return result;
+    }
+    
     public String getCodeContent() {
         final String result = "body {\n" +
             "    margin: 0 !important;\n" +

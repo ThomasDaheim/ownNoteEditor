@@ -186,7 +186,7 @@ public class OwnNoteTabPane implements IGroupListContainer {
     }
 
     @Override
-    public void setGroups(final ObservableList<Map<String, String>> groupsList, final boolean updateOnly) {
+    public void setGroups(final ObservableList<GroupData> groupsList, final boolean updateOnly) {
         if (!updateOnly) {
             myTabPane.getTabs().clear();
             addPlusTab();
@@ -205,16 +205,15 @@ public class OwnNoteTabPane implements IGroupListContainer {
                     collect(Collectors.toList());
         final List<String> newGroupNames =
                 groupsList.stream().
-                    map((Map<String, String> s) -> {
-                        final GroupData og = new GroupData(s);
-                        return og.getGroupName();
+                    map((GroupData s) -> {
+                        return s.getGroupName();
                     }).
                     collect(Collectors.toList());
                 
         OwnNoteTab newTab = null;
-        for (Map<String, String> group: groupsList) {
-           final String groupName = (new GroupData(group)).getGroupName();
-           final String groupCount = (new GroupData(group)).getGroupCount();
+        for (GroupData group: groupsList) {
+           final String groupName = group.getGroupName();
+           final String groupCount = group.getGroupCount();
             
             if (!updateOnly || !currentGroupNames.contains(groupName)) {
                 newTab = new OwnNoteTab(groupName, groupCount, myEditor);
@@ -378,7 +377,7 @@ public class OwnNoteTabPane implements IGroupListContainer {
             assert (myEditor != null);
             
             final Tab deleteTab = myTabPane.getSelectionModel().selectedItemProperty().getValue();
-            final GroupData curGroup = new GroupData((Map<String, String>) deleteTab.getUserData());
+            final GroupData curGroup = (GroupData) deleteTab.getUserData();
             
             if (myEditor.deleteGroupWrapper(curGroup)) {
                 myEditor.initFromDirectory(false);

@@ -40,16 +40,8 @@ public class NoteData extends HashMap<String,String> {
         super();
     }
     
-    public NoteData(final NoteData noteData) {
-        super(noteData);
-    }
-    
     public NoteData(final Map<String,String> noteData) {
         super(noteData);
-    }
-    
-    public Map<String,String> getAsMap() {
-        return this;
     }
     
     public static String getNoteDataName(final int i) {
