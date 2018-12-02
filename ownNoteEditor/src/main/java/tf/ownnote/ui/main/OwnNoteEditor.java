@@ -116,7 +116,7 @@ public class OwnNoteEditor implements Initializable {
     
     private final List<String> realGroupNames = new LinkedList<> ();
     
-    private ObservableList<Map<String, String>> notesList = null;
+    private ObservableList<NoteData> notesList = null;
     
     private final BooleanProperty inEditMode = new SimpleBooleanProperty();
     
@@ -411,6 +411,7 @@ public class OwnNoteEditor implements Initializable {
             }
         });
         final CheckBox noteFilterCheck = new CheckBox();
+        noteFilterCheck.getStyleClass().add("noteFilterCheck");
         noteFilterCheck.selectedProperty().addListener((o) -> {
             notesTable.setNoteFilterMode(noteFilterCheck.isSelected());
         });
@@ -567,8 +568,7 @@ public class OwnNoteEditor implements Initializable {
             // quicksave button saves note but stays in editor
             quickSaveButton.setOnAction((ActionEvent event) -> {
                 // quicksave = no changes to note name and group name allowed!
-                final NoteData curNote =
-                        new NoteData((Map<String, String>) noteEditor.getUserData());
+                final NoteData curNote = noteEditor.getUserData();
 
                 if (myFileManager.saveNote(curNote.getGroupName(),
                         curNote.getNoteName(),
@@ -608,8 +608,7 @@ public class OwnNoteEditor implements Initializable {
 
                 if (doSave) {
                     // check against previous note and group name - might have changed!
-                    final NoteData curNote =
-                        new NoteData((Map<String, String>) noteEditor.getUserData());
+                    final NoteData curNote = noteEditor.getUserData();
                     final String curNoteName = curNote.getNoteName();
                     final String curGroupName = curNote.getGroupName();
 
@@ -837,7 +836,7 @@ public class OwnNoteEditor implements Initializable {
         notesTable.setNotes(sortedData);
         */
         
-        ObservableList<Map<String, String>> groupsList = myFileManager.getGroupsList();
+        ObservableList<GroupData> groupsList = myFileManager.getGroupsList();
         myGroupList.setGroups(groupsList, updateOnly);
         
         // and now store group names (real ones!) for later use
@@ -863,8 +862,7 @@ public class OwnNoteEditor implements Initializable {
             if (saveChanges.isPresent()) {
                 if (saveChanges.get().equals(buttonSave)) {
                     // save note
-                    final NoteData prevNote =
-                            new NoteData((Map<String, String>) noteEditor.getUserData());
+                    final NoteData prevNote = noteEditor.getUserData();
                     if (saveNoteWrapper(prevNote.getGroupName(), prevNote.getNoteName(), noteEditor.getNoteText())) {
                         noteEditor.hasBeenSaved();
                     }
@@ -1077,9 +1075,9 @@ public class OwnNoteEditor implements Initializable {
     private void initGroupNames() {
         realGroupNames.clear();
 
-        final ObservableList<Map<String, String>> groupsList = myFileManager.getGroupsList();
-        for (Map<String, String> group: groupsList) {
-            final String groupName = (new GroupData(group)).getGroupName();
+        final ObservableList<GroupData> groupsList = myFileManager.getGroupsList();
+        for (GroupData group: groupsList) {
+            final String groupName = group.getGroupName();
             if (!groupName.equals(GroupData.NOT_GROUPED) && !groupName.equals(GroupData.ALL_GROUPS)) {
                 realGroupNames.add(groupName);
             }
@@ -1187,7 +1185,7 @@ public class OwnNoteEditor implements Initializable {
         // select first or current note - if any
         if (!notesTable.getItems().isEmpty()) {
             // check if current edit is ongoing AND note in the select tab (can happen with drag & drop!)
-            Map<String, String> curNote = (Map<String, String>) noteEditor.getUserData();
+            NoteData curNote = noteEditor.getUserData();
             
             int selectIndex = 0;
             if (curNote != null && notesTable.getItems().contains(curNote)) {
@@ -1230,8 +1228,7 @@ public class OwnNoteEditor implements Initializable {
                 if (!StandardWatchEventKinds.ENTRY_CREATE.equals(eventKind)) {
                     // delete & modify is only relevant if we're editing this note...
                     if (noteEditor.getUserData() != null) {
-                        final NoteData curNote =
-                                new NoteData((Map<String, String>) noteEditor.getUserData());
+                        final NoteData curNote = noteEditor.getUserData();
                         final String curName = myFileManager.buildNoteName(curNote.getGroupName(), curNote.getNoteName());
 
                         if (curName.equals(filePath.getFileName().toString())) {
@@ -1254,8 +1251,7 @@ public class OwnNoteEditor implements Initializable {
                             if (saveChanges.isPresent()) {
                                 if (saveChanges.get().equals(buttonSave)) {
                                     // save own note independent of file system changes
-                                    final NoteData saveNote =
-                                            new NoteData((Map<String, String>) noteEditor.getUserData());
+                                    final NoteData saveNote = noteEditor.getUserData();
                                     if (saveNoteWrapper(saveNote.getGroupName(), saveNote.getNoteName(), noteEditor.getNoteText())) {
                                         noteEditor.hasBeenSaved();
                                     }
@@ -1263,8 +1259,7 @@ public class OwnNoteEditor implements Initializable {
 
                                 if (saveChanges.get().equals(buttonSaveNew)) {
                                     // save own note under new name
-                                    final NoteData saveNote =
-                                            new NoteData((Map<String, String>) noteEditor.getUserData());
+                                    final NoteData saveNote = noteEditor.getUserData();
                                     final String newNoteName = uniqueNewNoteNameForGroup(saveNote.getGroupName());
                                     if (createNoteWrapper(saveNote.getGroupName(), newNoteName)) {
                                         if (saveNoteWrapper(saveNote.getGroupName(), newNoteName, noteEditor.getNoteText())) {
@@ -1282,8 +1277,7 @@ public class OwnNoteEditor implements Initializable {
                                     // nothing to do for StandardWatchEventKinds.ENTRY_DELETE - initFromDirectory(true) will take care of this
                                     if (StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                                         // re-load into edit for StandardWatchEventKinds.ENTRY_MODIFY
-                                        final NoteData loadNote =
-                                                new NoteData((Map<String, String>) noteEditor.getUserData());
+                                        final NoteData loadNote = noteEditor.getUserData();
                                         noteEditor.setNoteText(myFileManager.readNote(loadNote));
                                     }
                                 }
@@ -1330,9 +1324,9 @@ public class OwnNoteEditor implements Initializable {
     // TF, 20160703: to support coloring of notes table view for individual notes
     // TF, 20170528: determine color from groupname for new colors
     public String getNewGroupColor(String groupName) {
-        final FilteredList<Map<String, String>> filteredGroups = myFileManager.getGroupsList().filtered((Map<String, String> group) -> {
+        final FilteredList<GroupData> filteredGroups = myFileManager.getGroupsList().filtered((GroupData group) -> {
             // Compare group name to filter text.
-            return (new GroupData(group)).getGroupName().equals(groupName); 
+            return group.getGroupName().equals(groupName); 
         });
         
         String groupColor = "darkgrey";
@@ -1385,7 +1379,7 @@ public class OwnNoteEditor implements Initializable {
         return buttonPressed;
     }
     
-    public List<String> getNotesWithText(final String searchText) {
+    public List<NoteData> getNotesWithText(final String searchText) {
         return myFileManager.getNotesWithText(searchText);
     }
 }

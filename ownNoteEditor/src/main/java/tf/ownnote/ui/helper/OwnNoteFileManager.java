@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import tf.ownnote.ui.main.OwnNoteEditor;
@@ -170,11 +171,11 @@ public class OwnNoteFileManager {
         return ownNotePath;
     }
     
-    public ObservableList<Map<String, String>> getGroupsList() {
+    public ObservableList<GroupData> getGroupsList() {
         return FXCollections.observableArrayList(groupsList.values());
     }
 
-    public ObservableList<Map<String, String>> getNotesList() {
+    public ObservableList<NoteData> getNotesList() {
         return FXCollections.observableArrayList(notesList.values());
     }
 
@@ -532,8 +533,12 @@ public class OwnNoteFileManager {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date());
     }
     
-    public List<String> getNotesWithText(final String searchText) {
-        final List<String> result = new ArrayList<>();
+    public List<NoteData> getNotesWithText(final String searchText) {
+        if (searchText == null || searchText.isEmpty()) {
+            return notesList.values().stream().collect(Collectors.toList());
+        }
+        
+        final List<NoteData> result = new ArrayList<>();
         
         // iterate over all file and check context for searchText
         for (Map.Entry<String, NoteData> note : notesList.entrySet()) {
@@ -542,7 +547,7 @@ public class OwnNoteFileManager {
             
             try (final Scanner scanner = new Scanner(noteFile)) {
                 if (scanner.findWithinHorizon(searchText, 0) != null) {
-                    result.add(note.getValue().getNoteName());
+                    result.add(note.getValue());
                 }
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);

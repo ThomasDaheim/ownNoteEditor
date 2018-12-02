@@ -577,8 +577,7 @@ public class OwnNoteHTMLEditor {
         assert (newNoteName != null);
         
         if (getUserData() != null) {
-            final NoteData editNote =
-                    new NoteData((Map<String, String>) getUserData());
+            final NoteData editNote = (NoteData) getUserData();
             
             boolean changed = false;
 
@@ -612,11 +611,11 @@ public class OwnNoteHTMLEditor {
         myWebView.setVisible(b);
     }
     
-    public Object getUserData() {
-        return myWebView.getUserData();
+    public NoteData getUserData() {
+        return (NoteData) myWebView.getUserData();
     }
 
-    public void setUserData(final Object data) {
+    public void setUserData(final NoteData data) {
         myWebView.setUserData(data);
     }
     

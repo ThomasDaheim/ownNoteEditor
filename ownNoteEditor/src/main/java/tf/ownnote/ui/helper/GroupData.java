@@ -45,16 +45,8 @@ public class GroupData extends HashMap<String,String> {
         super();
     }
     
-    public GroupData(final GroupData dataRow) {
-        super(dataRow);
-    }
-    
     public GroupData(final Map<String,String> dataRow) {
         super(dataRow);
-    }
-    
-    public Map<String,String> getAsMap() {
-        return this;
     }
     
     public static String getGroupDataName(final int i) {

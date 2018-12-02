@@ -107,7 +107,7 @@
             </StackPane>
             <HBox spacing="10.0">
                <children>
-                  <TextField fx:id="noteFilterText" prefHeight="25.0" prefWidth="218.0" promptText="Search" styleClass="noteNameFilter" />
+                  <TextField fx:id="noteFilterText" prefHeight="25.0" prefWidth="218.0" promptText="Search" styleClass="noteFilterText" />
                   <Label fx:id="noteFilterMode" minWidth="65.0" prefHeight="17.0" prefWidth="65.0" styleClass="noteFilterMode" text="in Files">
                      <HBox.margin>
                         <Insets bottom="5.0" top="5.0" />

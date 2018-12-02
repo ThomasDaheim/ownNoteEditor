@@ -68,14 +68,14 @@ public class OwnNoteTableView implements IGroupListContainer {
     private OwnNoteEditor myEditor= null;
     
     private TableView<Map<String, String>> myTableView = null;
-    private FilteredList<Map<String, String>> filteredData = null;
+    private FilteredList<NoteData> filteredData = null;
     
     // Issue #59: filter group names and note names
     private String groupNameFilter;
     private String noteFilterText;
     // default: don't search in files
     private Boolean noteFilterMode = false;
-    private List<String> noteFilterNotes;
+    private List<NoteData> noteFilterNotes;
     
     private TableType myTableType = null;
     
@@ -113,7 +113,7 @@ public class OwnNoteTableView implements IGroupListContainer {
     }
 
     @Override
-    public void setGroups(final ObservableList<Map<String, String>> groupsList, final boolean updateOnly) {
+    public void setGroups(final ObservableList<GroupData> groupsList, final boolean updateOnly) {
         assert (TableType.groupsTable.equals(myTableType));
         
         // remember the current group
@@ -135,8 +135,8 @@ public class OwnNoteTableView implements IGroupListContainer {
         }
         
         final ObservableList<Map<String, String>> newGroups = FXCollections.observableArrayList();
-        for (Map<String, String> group: groupsList) {
-           final String groupName = (new GroupData(group)).getGroupName();
+        for (GroupData group: groupsList) {
+           final String groupName = group.getGroupName();
 
            if (!updateOnly || !listNames.contains(groupName)) {
                newGroups.add(group);
@@ -426,7 +426,7 @@ public class OwnNoteTableView implements IGroupListContainer {
         return myTableView.getItems();
     }
     
-    public void setNotes(final ObservableList<Map<String, String>> items) {
+    public void setNotes(final ObservableList<NoteData> items) {
         assert (TableType.notesTable.equals(myTableType));
         
         // 1. Wrap the ObservableList in a FilteredList (initially display all data).
@@ -466,6 +466,12 @@ public class OwnNoteTableView implements IGroupListContainer {
         assert (TableType.notesTable.equals(myTableType));
 
         noteFilterText = filterValue;
+        if(noteFilterMode) {
+            noteFilterNotes = myEditor.getNotesWithText(noteFilterText);
+        } else {
+            noteFilterNotes = null;
+        }
+
         // force re-run of filtering since refilter() is a private method...
         setFilterPredicate();
     }
@@ -488,7 +494,7 @@ public class OwnNoteTableView implements IGroupListContainer {
         
         getTableView().setUserData(groupNameFilter);
         
-        filteredData.setPredicate((Map<String, String> note) -> {
+        filteredData.setPredicate((NoteData note) -> {
             boolean result = false;
             // If group filter text is empty, display all notes, also for "All"
             if (groupNameFilter == null || groupNameFilter.isEmpty() || groupNameFilter.equals(GroupData.ALL_GROUPS) ) {
@@ -496,7 +502,7 @@ public class OwnNoteTableView implements IGroupListContainer {
                 return filterNoteName(note);
             }
             // Compare group name to group filter text
-            if (!(new NoteData(note)).getGroupName().equals(groupNameFilter)) {
+            if (!note.getGroupName().equals(groupNameFilter)) {
                 return false;
             }
             
@@ -504,21 +510,23 @@ public class OwnNoteTableView implements IGroupListContainer {
             return filterNoteName(note);
         });
     }
-    private boolean filterNoteName(Map<String, String> note) {
+    private boolean filterNoteName(NoteData note) {
         if(noteFilterMode) {
             // we find in files, so use name list
-            if (noteFilterNotes == null || noteFilterNotes.isEmpty()) {
+            if (noteFilterNotes == null) {
                 return true;
             }
-            // compare note name against list of matches
-            return (noteFilterNotes.contains((new NoteData(note)).getNoteName()));
+            // compare note name & group name against list of matches
+            return (noteFilterNotes.stream().filter((t) -> {
+                return (t.getNoteName().equals(note.getNoteName()) && t.getGroupName().equals(note.getGroupName()));
+            }).count() > 0);
         } else {
             // If name filter text is empty, display all notes.
             if (noteFilterText == null || noteFilterText.isEmpty()) {
                 return true;
             }
             // Compare note name to note filter text
-            return (new NoteData(note)).getNoteName().contains(noteFilterText); 
+            return note.getNoteName().contains(noteFilterText); 
         }
     }
 

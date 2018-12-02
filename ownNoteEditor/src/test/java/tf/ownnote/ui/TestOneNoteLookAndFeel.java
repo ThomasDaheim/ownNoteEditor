@@ -42,11 +42,13 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.GridPane;
@@ -140,6 +142,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     private OwnNoteTab test2Tab;
     private OwnNoteTab test3Tab;
     private OwnNoteTab testPLUSTab;
+    private TextField noteFilterText;
+    private CheckBox noteFilterCheck;
 
     /* Just a shortcut to retrieve widgets in the GUI. */
     public <T extends Node> T find(final String query) {
@@ -172,6 +176,9 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         testPLUSTab = (OwnNoteTab) tabsList.stream().filter(x -> {
                                                         return "+".equals(((Label) x.getGraphic()).getText());
                                                     }).findFirst().orElse(null);
+        
+        noteFilterText = (TextField) find(".noteFilterText");
+        noteFilterCheck = (CheckBox) find(".noteFilterCheck");
     }
     
     /* IMO, it is quite recommended to clear the ongoing events, in case of. */
@@ -259,8 +266,11 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         testGroups();
         resetForNextTest();
         
+        testNotesFilter();
+        resetForNextTest();
+        
         // TFE, 20180930: must be last test and no resetForNextTest() afterwards - to avoid "File has changed" dialogue
-        testFileSystemChange();
+//        testFileSystemChange();
     }
     
     private void testNodes() {
@@ -273,6 +283,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         assertNotNull(test2Tab);
         assertNotNull(test3Tab);
         assertNotNull(testPLUSTab);
+        assertNotNull(noteFilterText);
+        assertNotNull(noteFilterCheck);
     }
     
     @SuppressWarnings("unchecked")
@@ -507,6 +519,58 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         push(KeyCode.ENTER);
 
         assertTrue(groupsPaneFXML.getTabs().size() == myTestdata.getGroupsList().size() + 1);
+    }
+
+    
+    @SuppressWarnings("unchecked")
+    private void testNotesFilter() {
+        // leerer filter -> alle sichtbar
+        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        
+        //////////////////////////
+        // namensfilter
+        //////////////////////////
+
+        // "Test1" als namensfilter -> 2 sichtbar
+        clickOn(noteFilterText);
+        write("Test1");
+        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForName("Test1"));
+        
+        // "ESC" -> alle sichtbar
+        clickOn(noteFilterText);
+        push(KeyCode.ESCAPE);
+        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        
+        // "SUCH" als namensfilter -> 0 sichtbar
+        clickOn(noteFilterText);
+        write("SUCH");
+        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForName("SUCH"));
+        
+        // "ESC" -> alle sichtbar
+        clickOn(noteFilterText);
+        push(KeyCode.ESCAPE);
+        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        
+        //////////////////////////
+        // inhaltsfilter
+        //////////////////////////
+
+        clickOn(noteFilterCheck);
+        
+        // "Test1" als inhaltsfilter -> 2 sichtbar
+        clickOn(noteFilterText);
+        write("Test1");
+        testTab(0, GroupData.ALL_GROUPS, 2);
+        
+        // "ESC" -> alle sichtbar
+        clickOn(noteFilterText);
+        push(KeyCode.ESCAPE);
+        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        
+        // "SUCH" als inhaltsfilter -> 1 sichtbar
+        clickOn(noteFilterText);
+        write("SUCH");
+        testTab(0, GroupData.ALL_GROUPS, 1);
     }
     
     @SuppressWarnings("unchecked")
