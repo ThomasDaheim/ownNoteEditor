@@ -75,7 +75,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     remove_script_host: false,
                     plugins: [
                             "autoresize codesample wordcount visualchars textcolor advlist autolink lists link charmap preview anchor",
-                            "searchreplace visualblocks code insertdatetime media table contextmenu autoresize emoticons help toc hr"
+                            "searchreplace visualblocks code insertdatetime media table contextmenu autoresize emoticons help toc hr paste"
                     ],
                     codesample_languages: [
                             {text: 'HTML/XML', value: 'markup'},
@@ -95,6 +95,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     allow_html_data_urls: true,
                     allow_script_urls: true,
                     paste_data_images: true,
+                    // TFE, 20181203: we only want to have the content...
+                    paste_as_text: true,
                     content_style: ".mce-content-body {font-size:10pt;}",
                     // https://github.com/angular-ui/ui-tinymce/issues/260
                     save_enablewhendirty: false,
@@ -283,6 +285,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     // https://www.tinymce.com/docs/advanced/events/#dirty
                     tinymce.activeEditor.setDirty(false);
                     //console.log('JavaScript: saveSetContent done.');
+                    
+                    // TFE, 20181203: reset undo history since it would re-create previous note text...
+                    // https://community.tiny.cloud/communityQuestion?id=9066100000097T2AAI
+                    tinymce.activeEditor.undoManager.clear();
                 }
                 catch(err) {
                     console.log('Error in saveSetContent(): ' + err.message + "\n" + err.stack);
