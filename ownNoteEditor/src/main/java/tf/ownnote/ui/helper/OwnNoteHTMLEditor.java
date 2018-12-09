@@ -32,7 +32,6 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
@@ -45,17 +44,21 @@ import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Worker;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.print.PrinterJob;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
@@ -67,6 +70,7 @@ import javafx.stage.PopupWindow;
 import javafx.stage.Window;
 import netscape.javascript.JSObject;
 import org.apache.commons.io.FilenameUtils;
+import tf.ownnote.ui.general.KeyCodesHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
@@ -80,6 +84,7 @@ public class OwnNoteHTMLEditor {
     private static final String OPEN_LINK = "Open Link";
     private static final String OPEN_LINK_NEW_WINDOW = "Open Link in New Window";
     private static final List<String> REMOVE_MENUES =  List.of(RELOAD_PAGE, OPEN_FRAME_NEW_WINDOW, OPEN_LINK, OPEN_LINK_NEW_WINDOW);
+    private static final String COPY_SELECTION = "Copy";
 
     private WebView myWebView;
     private WebEngine myWebEngine;
@@ -228,6 +233,20 @@ public class OwnNoteHTMLEditor {
                     // https://stackoverflow.com/a/39118740
                     myWebView.setOnDragOver(myself::handleOnDragOver);
                     myWebView.setOnDragDropped(myself::handleOnDragDropped);
+                    
+                    
+                    // listeners for CTRL+S and CTRL+C
+                    myWebView.addEventHandler(KeyEvent.KEY_PRESSED, new EventHandler<KeyEvent>() {
+                        @Override
+                        public void handle(KeyEvent event) {
+                            if (KeyCodesHelper.KeyCodes.CNTRL_C.match(event)) {
+                                copyToClipboard();
+                            }
+                            if (KeyCodesHelper.KeyCodes.CNTRL_S.match(event)) {
+                                saveNote();
+                            }
+                        }
+                    });
                 }
             }
         });
@@ -439,6 +458,13 @@ public class OwnNoteHTMLEditor {
                                 if (REMOVE_MENUES.contains(item.getItem().getText())) {
                                     deleteNodes.add(n);
                                 }
+                                
+                                // TFE, 20181209: need to monitor "Copy" in order to add copied text to the OS clipboard as well
+                                if (COPY_SELECTION.equals(item.getItem().getText())) {
+                                    item.getItem().setOnAction((t) -> {
+                                        copyToClipboard();
+                                    });
+                                }
                             }
                             if (!deleteNodes.isEmpty()) {
                                 itemsContainer.getChildren().removeAll(deleteNodes);
@@ -449,6 +475,8 @@ public class OwnNoteHTMLEditor {
                             saveMenu.setOnAction((ActionEvent event) -> {
                                 saveNote();
                             });
+                            // not working... BUT still here to show short cut :-) 
+                            // work is done in myWebView.addEventHandler(KeyEvent.KEY_PRESSED...
                             saveMenu.setAccelerator(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN));
                             
                             // add new item:
@@ -463,6 +491,20 @@ public class OwnNoteHTMLEditor {
         }
         return null;
     }    
+    private void copyToClipboard() {
+        Platform.runLater(() -> {
+            Object dummy = wrapExecuteScript(myWebEngine, "saveGetSelection();");
+            
+            assert (dummy instanceof String);
+            final String selection = (String) dummy;
+            
+            final Clipboard clipboard = Clipboard.getSystemClipboard();
+            final ClipboardContent content = new ClipboardContent();
+            content.putString(selection);
+            content.putHtml(selection);
+            clipboard.setContent(content);
+        });
+    }
     
     //
     // javascript callbacks

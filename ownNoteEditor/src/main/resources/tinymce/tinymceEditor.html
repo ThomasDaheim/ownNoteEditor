@@ -317,6 +317,28 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 return content;
             }
             
+            // similar to saveGetContent() - only for current selection
+            function saveGetSelection() {
+                //console.log('JavaScript: saveGetSelection was called.');
+                var content = "";
+                try {
+                    content = tinymce.activeEditor.selection.getContent();
+
+                    // and now check for any remaining tinymce tags and get rid of them...
+
+                    // <p>&nbsp;</p> => <p></p>
+                    //console.log('content: ' + content);
+                    content = content.replace(new RegExp('<p>&nbsp;</p>', 'g'), '<p></p>');
+                    //console.log('content: ' + content);
+                }
+                catch(err) {
+                    console.log('Error in saveGetSelection(): ' + err.message + "\n" + err.stack);
+                }
+                        
+                //console.log('JavaScript: saveGetSelection done.');
+                return content;
+            }
+            
             function resizeEditor(myHeight) {
                 //console.log('resizeEditor: ' + tinymce.activeEditor);
                 myEditor = tinymce.get('mytextarea');
