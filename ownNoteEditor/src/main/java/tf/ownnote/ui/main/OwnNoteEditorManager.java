@@ -25,6 +25,8 @@
  */
 package tf.ownnote.ui.main;
 
+import com.sun.javafx.logging.PlatformLogger;
+import com.sun.javafx.util.Logging;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -120,8 +122,13 @@ public class OwnNoteEditorManager extends Application {
             myStage.getIcons().add(new Image(OwnNoteEditorManager.class.getResourceAsStream("/OwnNoteEditorManager.png")));
             myStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/css/ownnote.css").toExternalForm());
             
+            // new look & feel for old code :-)
+            // TFE, 20181209: not working with Java9+
+//            new JMetro(JMetro.Style.LIGHT).applyTheme(myStage.getScene());
+            
             // TF, 20160620: suppress warnings from css parsing for "-fx-font-weight" - not correctly implemented in the css parrser for javafx 8...
-            // Logging.getCSSLogger().setLevel(PlatformLogger.Level.SEVERE);
+            // TFE, 20181209: times and meethods change :-)
+            Logging.getCSSLogger().disableLogging();
             
             // set passed parameters for later use
             controller = fxmlLoader.getController();
