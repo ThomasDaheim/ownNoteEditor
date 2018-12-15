@@ -89,7 +89,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     ],
                     extended_valid_elements: "form[name|id|action|method|enctype|accept-charset|onsubmit|onreset|target],input[id|name|type|value|size|maxlength|checked|accept|src|width|height|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|onkeyup|onkeydown|required|style],textarea[id|name|rows|cols|maxlength|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|onkeyup|onkeydown|required|style],option[name|id|value|selected|style],select[id|name|type|value|size|maxlength|checked|width|height|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|multiple|style]",
                     toolbar1: "saveNote printNote searchreplace | undo redo | styleselect fontselect fontsizeselect | bold italic underline strikethrough subscript superscript | charmap emoticons",
-                    toolbar2: "forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | table insertCheckBox | link insertImage insertdatetime hr toc | codesample | visualchars visualblocks code | help",
+                    toolbar2: "forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | table insertCheckBox | link insertImage media insertdatetime hr toc | codesample | visualchars visualblocks code | help",
                     menubar: false,
                     branding: false,
                     allow_html_data_urls: true,
@@ -100,6 +100,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     content_style: ".mce-content-body {font-size:10pt;}",
                     // https://github.com/angular-ui/ui-tinymce/issues/260
                     save_enablewhendirty: false,
+                    media_live_embeds: true,
+                    media_alt_source: false,
+                    media_poster: false,
                     save_onsavecallback: function () { 
                         //console.log('Save was pressed.');
                         editorCallback.saveNote();
@@ -141,10 +144,35 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                 // callback to java to open in standard browser
                                 editorCallback.openLinkInDefaultBrowser($(el.target).attr('href'));
                             });
-                            
-                            // TODO: not working...
-                            // overwrite CNTRL+S with our save method
-                            // editor.shortcuts.add("ctrl+s", "Save", editorCallback.saveNote());
+                            // TODO: catch links from help view as well
+                            editor.on('OpenWindow', function (win) { 
+                                //console.log('OpenWindow was called.');
+                                
+                                //console.log('win: ' + document.getElementById(win.win._id).innerHTML);
+                                $(document.getElementById(win.win._id)).on("click", "a", function(el) {
+                                    el.preventDefault();
+
+                                    // callback to java to open in standard browser
+                                    editorCallback.openLinkInDefaultBrowser($(el.target).attr('href'));
+                                });
+
+                                // TFE, 20181215: for documentation purposes - scanning through all attributes to find handle to new window
+                                //Object.entries(win).forEach(entry => {
+                                //    console.log('key ' + entry[0] + ', value: ' + entry[1]);
+
+                                //    if (entry[1] instanceof Object) {
+                                //        Object.entries(entry[1]).forEach(entry => {
+                                //            console.log('  key ' + entry[0] + ', value: ' + entry[1]);
+
+                                //            if (entry[1] instanceof Object) {
+                                //                Object.entries(entry[1]).forEach(entry => {
+                                //                    console.log('    key ' + entry[0] + ', value: ' + entry[1]);
+                                //                });
+                                //            }
+                                //        });
+                                //    }
+                                //});
+                            });
                             
                             //console.log('Editor was initialized.');
                             editorCallback.initEditorDone();
@@ -175,14 +203,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             tooltip: "Upload image",
                             onPostRender: function() { insertImageButton = this; },
                             onclick: function () {
-                                try {
-                                    //console.log('JavaScript: insertImage was clicked.');
-                                    editorCallback.insertImage();
-                                    //console.log('JavaScript: insertImage done.');
-                                }
-                                catch(err) {
-                                    console.log('Error in insertImage: ' + err.message + "\n" + err.stack);
-                                }
+                                //console.log('JavaScript: insertImage was clicked.');
+                                editorCallback.insertImage();
+                                //console.log('JavaScript: insertImage done.');
                             }
                         });
                         editor.addButton('insertCheckBox', {
@@ -190,14 +213,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             tooltip: "Insert CheckBox",
                             onPostRender: function() { insertCheckBoxButton = this; },
                             onclick: function () {
-                                try {
-                                    //console.log('JavaScript: insertCheckBox was clicked.');
-                                    tinymce.activeEditor.execCommand("mceInsertContent", false, "<input type='checkbox'>");
-                                    //console.log('JavaScript: insertCheckBox done.');
-                                }
-                                catch(err) {
-                                    console.log('Error in insertImage: ' + err.message + "\n" + err.stack);
-                                }
+                                //console.log('JavaScript: insertCheckBox was clicked.');
+                                tinymce.activeEditor.execCommand("mceInsertContent", false, "<input type='checkbox'>");
+                                //console.log('JavaScript: insertCheckBox done.');
                             }
                         });
                         editor.addButton('printNote', {
@@ -205,14 +223,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             tooltip: "Print note",
                             onPostRender: function() { printNoteButton = this; },
                             onclick: function () {
-                                try {
-                                    //console.log('JavaScript: printNote was clicked.');
-                                    editorCallback.printNote();
-                                    //console.log('JavaScript: printNote done.');
-                                }
-                                catch(err) {
-                                    console.log('Error in printNote ' + err.message + "\n" + err.stack);
-                                }
+                                //console.log('JavaScript: printNote was clicked.');
+                                editorCallback.printNote();
+                                //console.log('JavaScript: printNote done.');
                             }
                         });
                         editor.addButton('saveNote', {
@@ -220,14 +233,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             tooltip: "Save note",
                             onPostRender: function() { saveNoteButton = this; },
                             onclick: function () {
-                                try {
-                                    //console.log('JavaScript: saveNote was clicked.');
-                                    editorCallback.saveNote();
-                                    //console.log('JavaScript: saveNote done.');
-                                }
-                                catch(err) {
-                                    console.log('Error in saveNote: ' + err.message + "\n" + err.stack);
-                                }
+                                //console.log('JavaScript: saveNote was clicked.');
+                                editorCallback.saveNote();
+                                //console.log('JavaScript: saveNote done.');
                             }
                         });
                     }
@@ -255,63 +263,43 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 return indices;
             } 
     
-            function insertImage(imgType, imgData) {
+            function insertMedia(mediaType, mediaData) {
                 //console.log('insertImage ' + imgData);
-                try {
-                    var imageString = "<img src='data:" + imgType + ";base64," + imgData + "' >";
-                            
-                    tinymce.activeEditor.execCommand("mceInsertContent", false, imageString);
-                }
-                catch(err) {
-                    console.log('Error in insertImage: ' + err.message + "\n" + err.stack);
-                }
+                var mediaString = "<img src='data:" + mediaType + ";base64," + mediaData + "' >";
+
+                tinymce.activeEditor.execCommand("mceInsertContent", false, mediaString);
             }
 
             function insertText(content) {
                 //console.log('insertText ' + content);
-                try {
-                    tinymce.activeEditor.execCommand("mceInsertContent", false, content);
-                }
-                catch(err) {
-                    console.log('Error in insertText: ' + err.message + "\n" + err.stack);
-                }
+                tinymce.activeEditor.execCommand("mceInsertContent", false, content);
             }
 
             function saveSetContent(content) {
-                try {
-                    //console.log('JavaScript: saveSetContent was called.');
-                    tinymce.activeEditor.setContent(content);
-                            
-                    // https://www.tinymce.com/docs/advanced/events/#dirty
-                    tinymce.activeEditor.setDirty(false);
-                    //console.log('JavaScript: saveSetContent done.');
-                    
-                    // TFE, 20181203: reset undo history since it would re-create previous note text...
-                    // https://community.tiny.cloud/communityQuestion?id=9066100000097T2AAI
-                    tinymce.activeEditor.undoManager.clear();
-                }
-                catch(err) {
-                    console.log('Error in saveSetContent(): ' + err.message + "\n" + err.stack);
-                }
+                //console.log('JavaScript: saveSetContent was called.');
+                tinymce.activeEditor.setContent(content);
+
+                // https://www.tinymce.com/docs/advanced/events/#dirty
+                tinymce.activeEditor.setDirty(false);
+                //console.log('JavaScript: saveSetContent done.');
+
+                // TFE, 20181203: reset undo history since it would re-create previous note text...
+                // https://community.tiny.cloud/communityQuestion?id=9066100000097T2AAI
+                tinymce.activeEditor.undoManager.clear();
             }
 
             // try getContent() and if fails use tinymce.activeEditor.getBody().innerHTML AND replace img blobs by real base64 data
             function saveGetContent() {
                 //console.log('JavaScript: saveGetContent was called.');
                 var content = "";
-                try {
-                    content = tinymce.activeEditor.getContent();
+                content = tinymce.activeEditor.getContent();
 
-                    // and now check for any remaining tinymce tags and get rid of them...
+                // and now check for any remaining tinymce tags and get rid of them...
 
-                    // <p>&nbsp;</p> => <p></p>
-                    //console.log('content: ' + content);
-                    content = content.replace(new RegExp('<p>&nbsp;</p>', 'g'), '<p></p>');
-                    //console.log('content: ' + content);
-                }
-                catch(err) {
-                    console.log('Error in saveGetContent(): ' + err.message + "\n" + err.stack);
-                }
+                // <p>&nbsp;</p> => <p></p>
+                //console.log('content: ' + content);
+                content = content.replace(new RegExp('<p>&nbsp;</p>', 'g'), '<p></p>');
+                //console.log('content: ' + content);
                         
                 //console.log('JavaScript: saveGetContent done.');
                 return content;
@@ -321,19 +309,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             function saveGetSelection() {
                 //console.log('JavaScript: saveGetSelection was called.');
                 var content = "";
-                try {
-                    content = tinymce.activeEditor.selection.getContent();
+                content = tinymce.activeEditor.selection.getContent();
 
-                    // and now check for any remaining tinymce tags and get rid of them...
+                // and now check for any remaining tinymce tags and get rid of them...
 
-                    // <p>&nbsp;</p> => <p></p>
-                    //console.log('content: ' + content);
-                    content = content.replace(new RegExp('<p>&nbsp;</p>', 'g'), '<p></p>');
-                    //console.log('content: ' + content);
-                }
-                catch(err) {
-                    console.log('Error in saveGetSelection(): ' + err.message + "\n" + err.stack);
-                }
+                // <p>&nbsp;</p> => <p></p>
+                //console.log('content: ' + content);
+                content = content.replace(new RegExp('<p>&nbsp;</p>', 'g'), '<p></p>');
+                //console.log('content: ' + content);
                         
                 //console.log('JavaScript: saveGetSelection done.');
                 return content;
@@ -343,24 +326,19 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 //console.log('resizeEditor: ' + tinymce.activeEditor);
                 myEditor = tinymce.get('mytextarea');
                 if (myEditor) {
-                    try {
-                        if (!myHeight) {            
-                            var targetHeight = window.innerHeight; // Change this to the height of your wrapper element
-                            // TF, 20170411: below code doesn't work on initial loading of text since .mce-* height values are garbage
-                            //var mce_bars_height = 0;
-                            //$('.mce-toolbar, .mce-statusbar, .mce-menubar').each(function(){
-                            //    mce_bars_height += $(this).height();
-                            //});
-                            //window.console.log('mce bars height total: ' + mce_bars_height);                          
-                            //myHeight = targetHeight - mce_bars_height - 8;  // the extra 8 is for margin added between the toolbars
-                            myHeight = targetHeight - 100 - 8;  // the extra 8 is for margin added between the toolbars
-                        }
-                        //console.log('resizeEditor: ' + myHeight);
-                        myEditor.theme.resizeTo('100%', myHeight);  // sets the dimensions of the editable area
+                    if (!myHeight) {            
+                        var targetHeight = window.innerHeight; // Change this to the height of your wrapper element
+                        // TF, 20170411: below code doesn't work on initial loading of text since .mce-* height values are garbage
+                        //var mce_bars_height = 0;
+                        //$('.mce-toolbar, .mce-statusbar, .mce-menubar').each(function(){
+                        //    mce_bars_height += $(this).height();
+                        //});
+                        //window.console.log('mce bars height total: ' + mce_bars_height);                          
+                        //myHeight = targetHeight - mce_bars_height - 8;  // the extra 8 is for margin added between the toolbars
+                        myHeight = targetHeight - 100 - 8;  // the extra 8 is for margin added between the toolbars
                     }
-                    catch (err) {
-                        console.log('Error in resizeEditor(): ' + err.message + "\n" + err.stack);
-                    }
+                    //console.log('resizeEditor: ' + myHeight);
+                    myEditor.theme.resizeTo('100%', myHeight);  // sets the dimensions of the editable area
                 }
             }
             
