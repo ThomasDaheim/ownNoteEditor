@@ -55,9 +55,6 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.GridPane;
@@ -85,12 +82,15 @@ public class OwnNoteHTMLEditor {
     private static final String OPEN_LINK_NEW_WINDOW = "Open Link in New Window";
     private static final List<String> REMOVE_MENUES =  List.of(RELOAD_PAGE, OPEN_FRAME_NEW_WINDOW, OPEN_LINK, OPEN_LINK_NEW_WINDOW);
     private static final String COPY_SELECTION = "Copy";
+    private static final String PASTE_SELECTION = "Paste";
 
     private WebView myWebView;
     private WebEngine myWebEngine;
     final private OwnNoteHTMLEditor myself = this;
     
     private HostServices myHostServices = null;
+    
+    final Clipboard myClipboard = Clipboard.getSystemClipboard();
     
     // https://github.com/Namek/TheConsole/blob/5fd635e14d16f2058a557b06ef2c30c71142280a/src/net/namekdev/theconsole/view/ConsoleOutput.xtend
     // have a command queue during the startup phase
@@ -203,10 +203,6 @@ public class OwnNoteHTMLEditor {
             @Override
             public void changed(ObservableValue ov, Worker.State oldState, Worker.State newState) {
                 if (newState == Worker.State.SUCCEEDED && !editorInitialized) {
-
-                    // add debugger to webviewer
-                    //enableFirebug(myWebEngine);
-
                     JSObject window = (JSObject) myWebEngine.executeScript("window");
 
                     javascriptLogger = new JavascriptLogger();
@@ -234,7 +230,6 @@ public class OwnNoteHTMLEditor {
                     myWebView.setOnDragOver(myself::handleOnDragOver);
                     myWebView.setOnDragDropped(myself::handleOnDragDropped);
                     
-                    
                     // listeners for CTRL+S and CTRL+C
                     myWebView.addEventHandler(KeyEvent.KEY_PRESSED, new EventHandler<KeyEvent>() {
                         @Override
@@ -247,11 +242,14 @@ public class OwnNoteHTMLEditor {
                             }
                         }
                     });
+
+                    // add debugger to webviewer
+                    //enableFirebug(myWebEngine);
                 }
             }
         });
 
-        final String editor_script = OwnNoteHTMLEditor.class.getResource("/tinymce/tinymceEditor.html").toExternalForm();
+        final String editor_script = OwnNoteHTMLEditor.class.getResource("/tinymceEditor.html").toExternalForm();
         myWebView.getEngine().load(editor_script);
     }
     
@@ -314,7 +312,7 @@ public class OwnNoteHTMLEditor {
             importTextFile(file);
         } else {
             // a picture... luckily we already know how to deal with that :-)
-            importImageFile(file);
+            importMediaFile(file);
         }
     }
     
@@ -334,13 +332,13 @@ public class OwnNoteHTMLEditor {
         setContentDone = true;
     }
 
-    private void insertImage() {
-        //System.out.println("insertImage");
+    private void insertMedia() {
+        //System.out.println("insertMedia");
         final List<String> extFilter = Arrays.asList("*.jpg", "*.png", "*.gif");
         final List<String> extValues = Arrays.asList("jpg", "png", "gif");
 
         final FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Embed an image");
+        fileChooser.setTitle("Embed an image (Size < 1MB)");
         fileChooser.getExtensionFilters().addAll(
             new FileChooser.ExtensionFilter("Pictures", extFilter));
         final File selectedFile = fileChooser.showOpenDialog(null);
@@ -350,7 +348,7 @@ public class OwnNoteHTMLEditor {
                 // we really have selected a picture - now add it
                 // issue #31: we shouldn't add the link but the image data instead!
                 // see https://github.com/dipu-bd/CustomControlFX/blob/master/CustomHTMLEditor/src/org/sandsoft/components/htmleditor/CustomHTMLEditor.java
-                importImageFile(selectedFile);
+                importMediaFile(selectedFile);
             }                        
         }
     }
@@ -360,7 +358,7 @@ public class OwnNoteHTMLEditor {
      *
      * @param file Image file.
      */
-    private void importImageFile(File file) {
+    private void importMediaFile(File file) {
         try {
             //check if file is too big
             if (file.length() > 1024 * 1024) {
@@ -373,7 +371,7 @@ public class OwnNoteHTMLEditor {
             String base64data = java.util.Base64.getEncoder().encodeToString(data);
             
             //insert html
-            wrapExecuteScript(myWebEngine, "insertImage('" + type + "', '" + base64data + "');");
+            wrapExecuteScript(myWebEngine, "insertMedia('" + type + "', '" + base64data + "');");
         } catch (IOException ex) {
             Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
         }
@@ -477,7 +475,7 @@ public class OwnNoteHTMLEditor {
                             });
                             // not working... BUT still here to show short cut :-) 
                             // work is done in myWebView.addEventHandler(KeyEvent.KEY_PRESSED...
-                            saveMenu.setAccelerator(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN));
+                            saveMenu.setAccelerator(KeyCodesHelper.KeyCodes.CNTRL_S.getKeyCode());
                             
                             // add new item:
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(saveMenu));
@@ -498,11 +496,10 @@ public class OwnNoteHTMLEditor {
             assert (dummy instanceof String);
             final String selection = (String) dummy;
             
-            final Clipboard clipboard = Clipboard.getSystemClipboard();
-            final ClipboardContent content = new ClipboardContent();
-            content.putString(selection);
-            content.putHtml(selection);
-            clipboard.setContent(content);
+            final ClipboardContent clipboardContent = new ClipboardContent();
+            clipboardContent.putString(selection);
+            clipboardContent.putHtml(selection);
+            myClipboard.setContent(clipboardContent);
         });
     }
     
@@ -532,22 +529,26 @@ public class OwnNoteHTMLEditor {
         
     public void setNoteText(final String text) {
         Runnable task = () -> {
-            // https://stackoverflow.com/questions/17802239/jsexception-while-loading-a-file-in-a-codemirror-based-editor-using-java-using-s
-            String content = text;
-            // TFE, 20181030: for tinymce we also need to escape \
-            content = content.replace("\\", "\\\\");
-            content = content.replace("'", "\\'");
-            content = content.replace(System.getProperty("line.separator"), "\\n");
-            content = content.replace("\n", "\\n");
-            content = content.replace("\r", "\\n");
-            
             //System.out.println("setEditorText " + text);
             setContentDone = false;
-            wrapExecuteScript(myWebEngine, "saveSetContent('" + content + "');");
+            wrapExecuteScript(myWebEngine, "saveSetContent('" + replaceForEditor(text) + "');");
         };
         
         startTask(task);
         editorText = text;
+    }
+    private String replaceForEditor(final String text) {
+        String result = text;
+
+        // https://stackoverflow.com/questions/17802239/jsexception-while-loading-a-file-in-a-codemirror-based-editor-using-java-using-s
+        // TFE, 20181030: for tinymce we also need to escape \
+        result = result.replace("\\", "\\\\");
+        result = result.replace("'", "\\'");
+        result = result.replace(System.getProperty("line.separator"), "\\n");
+        result = result.replace("\n", "\\n");
+        result = result.replace("\r", "\\n");
+        
+        return result;
     }
 
     public String getNoteText() {
@@ -686,9 +687,9 @@ public class OwnNoteHTMLEditor {
 //            System.out.println("Java: setContentDone() done");
         }
         public void insertImage() {
-//            System.out.println("Java: insertImage() called");
-            myself.insertImage();
-//            System.out.println("Java: insertImage() done");
+//            System.out.println("Java: insertMedia() called");
+            myself.insertMedia();
+//            System.out.println("Java: insertMedia() done");
         }
         public void printNote() {
 //            System.out.println("Java: saveNote() called");
