@@ -249,7 +249,7 @@ public class OwnNoteHTMLEditor {
             }
         });
 
-        final String editor_script = OwnNoteHTMLEditor.class.getResource("/tinymce/tinymceEditor.html").toExternalForm();
+        final String editor_script = OwnNoteHTMLEditor.class.getResource("/tinymceEditor.html").toExternalForm();
         myWebView.getEngine().load(editor_script);
     }
     
