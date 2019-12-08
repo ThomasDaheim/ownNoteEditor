@@ -28,6 +28,11 @@ package tf.ownnote.ui.helper;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
+import javafx.scene.control.TextField;
+import javafx.scene.control.TextFormatter;
+import javafx.scene.control.Tooltip;
+import org.apache.commons.lang3.SystemUtils;
+import tf.ownnote.ui.general.TooltipHelper;
 
 /**
  * Helper for formating and sorting special values in OwnNoteTableColumn
@@ -175,5 +180,26 @@ public class FormatHelper {
     // and here the matching comparator
     public Comparator<String> getFileTimeComparator() {
         return fileTimeComparator;
+    }
+    
+    public void initNameTextField(final TextField textField) {
+        // https://stackoverflow.com/a/54552791
+        // https://stackoverflow.com/a/49918923
+        // https://stackoverflow.com/a/45201446
+        // to check for illegal chars in note & group names
+        // use more restrictive windows rules to make sure notes can be stored anywhere
+
+        textField.setTextFormatter(new TextFormatter<>(change ->
+            (change.getControlNewText().matches("([^\u0001-\u001f<>:\"/\\\\|?*\u007f]*)?")) ? change : null));
+
+        final Tooltip t = new Tooltip();
+        final StringBuilder tooltext = new StringBuilder();
+        tooltext.append("Chars not allowed:\n");
+        tooltext.append("<>,\"/\\|?* and chars 00-31");
+        t.setText(tooltext.toString());
+        t.getStyleClass().addAll("nametooltip");
+        TooltipHelper.updateTooltipBehavior(t, 0, 10000, 0, true);
+
+        Tooltip.install(textField, t);
     }
 }

@@ -5,6 +5,10 @@ Aim was to mimic the behaviour of the ownNote web client using JavaFX and workin
 
 Note on Java 11: After various tweaks to build.gradle this now also runs under Java 11. See e.g. https://github.com/kelemen/netbeans-gradle-project/issues/403 an some of the discussion that where required to get there... Unfortunately, there is one isseu with the TestFX framework when trying to drag & drop notes. Since I wasn't able to fix this I had to disable the "testDragNote()" test step.
 
+V 4.5: Check names
+
+* Ensure that note & group names are valid filenames under WINDOWS & UNIX
+
 V 4.4: Updated TinyMCE
 
 * Updated TinyMCE to 4.9.1

@@ -51,18 +51,18 @@ repositories {
 // In this section you declare the dependencies for your production and test code
 dependencies {
     // JavaFX11 explicit dependencies
-    compile "org.openjfx:javafx-base:11.0.1:$platform"
-    compile "org.openjfx:javafx-graphics:11.0.1:$platform"
-    compile "org.openjfx:javafx-controls:11.0.1:$platform"
-    compile "org.openjfx:javafx-fxml:11.0.1:$platform"
-    compile "org.openjfx:javafx-swing:11.0.1:$platform"
-    compile "org.openjfx:javafx-web:11.0.1:$platform"
-    compile "org.openjfx:javafx-media:11.0.1:$platform"
+    compile "org.openjfx:javafx-base:11.0.2:$platform"
+    compile "org.openjfx:javafx-graphics:11.0.2:$platform"
+    compile "org.openjfx:javafx-controls:11.0.2:$platform"
+    compile "org.openjfx:javafx-fxml:11.0.2:$platform"
+    compile "org.openjfx:javafx-swing:11.0.2:$platform"
+    compile "org.openjfx:javafx-web:11.0.2:$platform"
+    compile "org.openjfx:javafx-media:11.0.2:$platform"
     
     compile 'org.slf4j:slf4j-api:1.7.12'
-    compile 'commons-cli:commons-cli:1.3.1'
-    compile 'commons-io:commons-io:2.4'
-    compile 'org.apache.commons:commons-lang3:3.5'
+    compile 'commons-cli:commons-cli:1.4'
+    compile 'commons-io:commons-io:2.6'
+    compile 'org.apache.commons:commons-lang3:3.9'
     
     // new look & feel for old code :-)
     // TFE, 20181209: not working with Java9+
@@ -70,7 +70,7 @@ dependencies {
 
     testCompile "org.testfx:testfx-junit:4.0.+"
     testCompile "org.testfx:testfx-core:4.0.+"
-    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.3.1'
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.5.1'
 }
 
 compileJava {
@@ -118,5 +118,20 @@ task(debug, dependsOn: 'classes', type: JavaExec) {
                 "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
         ])
         jvmArgs = jvmArgs.plus(newArgs)
+    }
+}
+
+jar {
+    manifest {
+        attributes(
+            'Built-By'       : System.properties['user.name'],
+            'Build-Timestamp': new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
+            'Created-By'     : "Gradle ${gradle.gradleVersion}",
+            'Build-Jdk'      : "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})",
+            'Build-OS'       : "${System.properties['os.name']} ${System.properties['os.arch']} ${System.properties['os.version']}",
+            'App-Name'       : "ownNoteEditor",
+            'App-Version'    : "4.5",
+            'App-URL'        : "https://github.com/ThomasDaheim/ownNoteEditor"
+        )
     }
 }
