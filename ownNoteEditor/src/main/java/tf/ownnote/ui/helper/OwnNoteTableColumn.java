@@ -31,11 +31,17 @@ import javafx.event.EventHandler;
 import javafx.scene.Cursor;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TextField;
+import javafx.scene.control.TextFormatter;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.MapValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.input.MouseEvent;
 import javafx.util.Callback;
 import javafx.util.converter.DefaultStringConverter;
+import org.apache.commons.lang3.SystemUtils;
+import tf.ownnote.ui.general.CellUtils;
+import tf.ownnote.ui.general.TooltipHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
@@ -126,6 +132,10 @@ public class OwnNoteTableColumn {
     public final void setComparator(Comparator<String> value) {
         myTableColumn.setComparator(value);
     }
+    
+    public void setCellFactory(final Callback<TableColumn<Map, String>, TableCell<Map, String>> value) {
+        myTableColumn.setCellFactory(value);
+    }
 }
 
 class UniversalMouseEvent implements EventHandler<MouseEvent> {
@@ -191,6 +201,8 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
 class ObjectCell extends TextFieldTableCell<Map, String> {
     private static final String valueSet = "valueSet";
     
+    private TextField textField;
+    
     // store link back to the controller of the scene for callback
     private OwnNoteEditor myOwnNoteEditor;
     
@@ -219,24 +231,46 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
         }
         super.startEdit();
         
+        if (isEditing()) {
+            if (textField == null) {
+                // TFE, 20191208: check for valid file names!
+                // https://stackoverflow.com/a/54552791
+                // https://stackoverflow.com/a/49918923
+                // https://stackoverflow.com/a/45201446
+                // to check for illegal chars in note & group names
+
+                textField = CellUtils.createTextField(this, getConverter());
+                
+                // TFE, 20191208: check for valid file names!
+                FormatHelper.getInstance().initNameTextField(textField);
+            }
+            
+            CellUtils.startEdit(this, getConverter(), null, null, textField);
+        }
+    }
+    
+    @Override
+    public void cancelEdit() {
+        super.cancelEdit();
+
+        setTooltip(null);
+        CellUtils.cancelEdit(this, getConverter(), null);
     }
     
     @Override
     public void updateItem(String item, boolean empty) {
         super.updateItem(item, empty);
+        
+        CellUtils.updateItem(this, getConverter(), null, null, textField);
 
         if (item != null) {
-            setText((String) item);
-            setGraphic(null);
-            
             // add class to indicate not null content - to be used in css
             this.getStyleClass().add(ObjectCell.valueSet);
         } else {
-            setText(null);
-            setGraphic(null);
-            
             // add class to indicate null content - to be used in css
             this.getStyleClass().removeAll(ObjectCell.valueSet);
         }
+
+        setTooltip(null);
     }
 }

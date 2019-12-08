@@ -21,6 +21,17 @@
     notename-font-weight: bold;
 }
 
+.nametooltip {
+    -fx-background-color: white;
+    -fx-background: white;
+    -fx-border-style: none;
+    -fx-border-width: 0;
+    -fx-font-color: -fx-text-base-color;
+    -fx-text-fill: -fx-text-base-color;
+    -fx-font-size: 1em;
+    -fx-font-weight: normal;
+}
+
 /* No background color in table header, please */
 .table-view.notesTable,
 .table-view.notesTable .column-header,

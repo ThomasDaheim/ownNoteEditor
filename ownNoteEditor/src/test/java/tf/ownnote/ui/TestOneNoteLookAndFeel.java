@@ -101,7 +101,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
 
     @Override
     public void init() throws Exception {
-        // System.out.println("running init()");
+        System.out.println("running init()");
         super.init();
 
         // get current look & feel and notes path
@@ -154,7 +154,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     @Before
     @SuppressWarnings("unchecked")
     public void getNodes() {
-        //System.out.println("running getNodes()");
+        System.out.println("running getNodes()");
 
         notesTableFXML = (TableView<Map<String, String>>) find(".notesTable");
         groupsPaneFXML = (TabPane) find(".groupsPane");
@@ -184,7 +184,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     /* IMO, it is quite recommended to clear the ongoing events, in case of. */
     @After
     public void tearDown() throws TimeoutException, IOException {
-        //System.out.println("running tearDown()");
+        System.out.println("running tearDown()");
 
         /* Close the window. It will be re-opened at the next test. */
         release(new KeyCode[] {});
@@ -274,7 +274,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     }
     
     private void testNodes() {
-        //System.out.println("running testNodes()");
+        System.out.println("running testNodes()");
 
         assertNotNull(notesTableFXML);
         assertNotNull(groupsPaneFXML);
@@ -289,6 +289,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     
     @SuppressWarnings("unchecked")
     private void testInitialSetup() {
+        System.out.println("running testInitialSetup()");
+
         // #1 ------------------------------------------------------------------
         // check "ALL" tab, that should have 4 entries
         testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
@@ -313,6 +315,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     
     @SuppressWarnings("unchecked")
     private void testAddDeleteNote() {
+        System.out.println("running testAddDeleteNote()");
+
         // #1 ------------------------------------------------------------------
         // add new note with right click + menu item
         rightClickOn(notesTableFXML);
@@ -345,6 +349,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     
     @SuppressWarnings("unchecked")
     private void testRenameNote() {
+        System.out.println("running testRenameNote()");
+
         // #1 ------------------------------------------------------------------
         // rename note via right click + menu item
         clickOn(notesTableFXML);
@@ -410,6 +416,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     
     @SuppressWarnings("unchecked")
     private void testDragNote() {
+        System.out.println("running testDragNote()");
+
         // #1 ------------------------------------------------------------------
         // get x, y coordinates from tab 2
         Label testLabel = test2Tab.getLabel();
@@ -486,6 +494,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     
     @SuppressWarnings("unchecked")
     private void testGroups() {
+        System.out.println("running testGroups()");
+
         // #1 ------------------------------------------------------------------
         // add group
         // get x, y coordinates from PLUS tab
@@ -524,6 +534,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     
     @SuppressWarnings("unchecked")
     private void testNotesFilter() {
+        System.out.println("running testNotesFilter()");
+
         // leerer filter -> alle sichtbar
         testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
         
@@ -575,6 +587,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     
     @SuppressWarnings("unchecked")
     private void testFileSystemChange() {
+        System.out.println("running testFileSystemChange()");
+
         long sleepTime = 1000;
         
         // TFE, 20190930: switch to correct tab initially to avoid later chanegs that might trigger hasChanged() calls
