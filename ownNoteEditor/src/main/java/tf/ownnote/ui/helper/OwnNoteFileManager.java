@@ -28,11 +28,13 @@ package tf.ownnote.ui.helper;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.DirectoryIteratorException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -317,16 +319,19 @@ public class OwnNoteFileManager {
         final Path newFile = Paths.get(this.ownNotePath, newFileName);
         
         // TF, 20160815: check existence of the file - not something that should be done by catching the exception...
-        if (Files.exists(newFile)) {
+        // TFE, 20191211: handle the case of only changing upper/lower chars in the file name...
+        // tricky under windows, e.g.: https://stackoverflow.com/a/34730781, so handle separately
+        final boolean caseSensitiveRename = oldFileName.toLowerCase().equals(newFileName.toLowerCase());
+        if (!caseSensitiveRename && Files.exists(newFile)) {
             result = false;
         } else {
             try {
-                Files.move(oldFile, newFile);
+                Files.move(oldFile, newFile, StandardCopyOption.ATOMIC_MOVE);
 
                 final NoteData dataRow = notesList.remove(oldFileName);
                 dataRow.setNoteName(newNoteName);
                 notesList.put(newFileName, dataRow);
-            } catch (IOException ex) {
+            } catch (Exception ex) {
                 Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
                 result = false;
             }
@@ -350,6 +355,7 @@ public class OwnNoteFileManager {
         final Path newFile = Paths.get(this.ownNotePath, newFileName);
         
         // TF, 20160815: check existence of the file - not something that should be done by catching the exception...
+        // TFE, 20191211: here we don't want to be as case insensitive as  the OS is
         if (Files.exists(newFile)) {
             result = false;
         } else {
@@ -428,6 +434,7 @@ public class OwnNoteFileManager {
                 
                 final String newFileName = newNoteNamePrefix + filename.substring(oldNoteNamePrefix.length());
                 
+                // TFE, 20191211: here we don't want to be as case insensitive as  the OS is
                 if (Files.exists(Paths.get(this.ownNotePath, newFileName))) {
                     result = false;
                     break;
