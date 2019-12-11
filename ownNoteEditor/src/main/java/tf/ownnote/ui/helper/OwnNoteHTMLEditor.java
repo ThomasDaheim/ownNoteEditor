@@ -67,6 +67,7 @@ import javafx.stage.PopupWindow;
 import javafx.stage.Window;
 import netscape.javascript.JSObject;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import tf.ownnote.ui.general.KeyCodesHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
@@ -235,7 +236,7 @@ public class OwnNoteHTMLEditor {
                         @Override
                         public void handle(KeyEvent event) {
                             if (KeyCodesHelper.KeyCodes.CNTRL_C.match(event)) {
-                                copyToClipboard();
+                                copyToClipboard(true);
                             }
                             if (KeyCodesHelper.KeyCodes.CNTRL_S.match(event)) {
                                 saveNote();
@@ -448,6 +449,8 @@ public class OwnNoteHTMLEditor {
                             final VBox itemsContainer = cmc.getItemsContainer();
                             
                             // check for "Reload page", ... entry and remove it...
+                            int index = 0;
+                            int copyIndex = -1;
                             List<Node> deleteNodes = new ArrayList<>();
                             for (Node n: itemsContainer.getChildren()) {
                                 assert n instanceof ContextMenuContent.MenuItemContainer;
@@ -460,9 +463,23 @@ public class OwnNoteHTMLEditor {
                                 // TFE, 20181209: need to monitor "Copy" in order to add copied text to the OS clipboard as well
                                 if (COPY_SELECTION.equals(item.getItem().getText())) {
                                     item.getItem().setOnAction((t) -> {
-                                        copyToClipboard();
+                                        copyToClipboard(true);
                                     });
+                                    
+                                    copyIndex = index;
                                 }
+                                
+                                index++;
+                            }
+                            if (copyIndex != -1) {
+                                // TFE, 20191211: add option to copy plain text as well
+                                final MenuItem copyPlain = new MenuItem("Copy Text");
+                                copyPlain.setOnAction((ActionEvent event) -> {
+                                    copyToClipboard(false);
+                                });
+
+                                // add new item:
+                                itemsContainer.getChildren().add(copyIndex+1, cmc.new MenuItemContainer(copyPlain));
                             }
                             if (!deleteNodes.isEmpty()) {
                                 itemsContainer.getChildren().removeAll(deleteNodes);
@@ -489,12 +506,20 @@ public class OwnNoteHTMLEditor {
         }
         return null;
     }    
-    private void copyToClipboard() {
+    private void copyToClipboard(final boolean copyFullHTML) {
         Platform.runLater(() -> {
             Object dummy = wrapExecuteScript(myWebEngine, "saveGetSelection();");
             
             assert (dummy instanceof String);
-            final String selection = (String) dummy;
+            String selection = (String) dummy;
+            
+            if (!copyFullHTML) {
+                // TFE, 2091211: remove html tags BUT convert </p> to </p> + line break
+                selection = selection.replaceAll("\\</p\\>", "</p>" + System.lineSeparator());
+                selection = selection.replaceAll("\\<.*?\\>", "");
+                // convert all &uml; back to &
+                selection = StringEscapeUtils.unescapeHtml4(selection);
+            }
             
             final ClipboardContent clipboardContent = new ClipboardContent();
             clipboardContent.putString(selection);

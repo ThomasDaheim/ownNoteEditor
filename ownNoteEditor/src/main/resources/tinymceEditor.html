@@ -307,8 +307,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             
             // similar to saveGetContent() - only for current selection
             function saveGetSelection() {
-                //console.log('JavaScript: saveGetSelection was called.');
+                //console.log('JavaScript: saveGetSelection was called. ' + copyFullHTML);
                 var content = "";
+                
                 content = tinymce.activeEditor.selection.getContent();
 
                 // and now check for any remaining tinymce tags and get rid of them...

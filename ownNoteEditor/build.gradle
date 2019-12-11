@@ -63,6 +63,7 @@ dependencies {
     compile 'commons-cli:commons-cli:1.4'
     compile 'commons-io:commons-io:2.6'
     compile 'org.apache.commons:commons-lang3:3.9'
+    compile group: 'org.apache.commons', name: 'commons-text', version: '1.8'
     
     // new look & feel for old code :-)
     // TFE, 20181209: not working with Java9+
