@@ -409,6 +409,8 @@ public class OwnNoteFileManager {
         assert oldGroupName != null;
         assert newGroupName != null;
         
+        final boolean caseSensitiveRename = oldGroupName.toLowerCase().equals(newGroupName.toLowerCase());
+
         Boolean result = true;
         initFilesInProgress();
         
@@ -435,6 +437,7 @@ public class OwnNoteFileManager {
                 final String newFileName = newNoteNamePrefix + filename.substring(oldNoteNamePrefix.length());
                 
                 // TFE, 20191211: here we don't want to be as case insensitive as  the OS is
+                // TODO: what is the proper logic to figure out if we can move the note?
                 if (Files.exists(Paths.get(this.ownNotePath, newFileName))) {
                     result = false;
                     break;
