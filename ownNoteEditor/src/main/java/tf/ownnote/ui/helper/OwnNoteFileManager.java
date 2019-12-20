@@ -28,7 +28,6 @@ package tf.ownnote.ui.helper;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.DirectoryIteratorException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -428,21 +427,24 @@ public class OwnNoteFileManager {
             // 1. get all note names for group
             notesForGroup = Files.newDirectoryStream(Paths.get(this.ownNotePath), escapedNoteNamePrefix + "*.htm");
 
-            // 2. check all note names against new group name and fail if one already existing
-            for (Path path: notesForGroup) {
-                final File file = path.toFile();
-                final String filename = file.getName();
-                //System.out.println("Checking " + filename);
-                
-                final String newFileName = newNoteNamePrefix + filename.substring(oldNoteNamePrefix.length());
-                
-                // TFE, 20191211: here we don't want to be as case insensitive as  the OS is
-                // TODO: what is the proper logic to figure out if we can move the note?
-                if (Files.exists(Paths.get(this.ownNotePath, newFileName))) {
-                    result = false;
-                    break;
-                }
-           }
+            // TFE, 20191211: here we don't want to be as case insensitive as  the OS is
+            // in theory we could have groups that only differ by case: TEST and Test
+            // since thats not possible under Windows we will exclude it for all platforms...
+            if (!caseSensitiveRename) {
+                // 2. check all note names against new group name and fail if one already existing
+                for (Path path: notesForGroup) {
+                    final File file = path.toFile();
+                    final String filename = file.getName();
+                    //System.out.println("Checking " + filename);
+
+                    final String newFileName = newNoteNamePrefix + filename.substring(oldNoteNamePrefix.length());
+
+                    if (Files.exists(Paths.get(this.ownNotePath, newFileName))) {
+                        result = false;
+                        break;
+                    }
+               }
+            }
         } catch (IOException | DirectoryIteratorException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = false;
@@ -463,7 +465,7 @@ public class OwnNoteFileManager {
                     final String newFileName = newNoteNamePrefix + filename.substring(oldNoteNamePrefix.length());
 
                     try {
-                        Files.move(Paths.get(this.ownNotePath, filename), Paths.get(this.ownNotePath, newFileName));
+                        Files.move(Paths.get(this.ownNotePath, filename), Paths.get(this.ownNotePath, newFileName), StandardCopyOption.ATOMIC_MOVE);
                         
                         // TF, 20151129
                         // update notelist as well
