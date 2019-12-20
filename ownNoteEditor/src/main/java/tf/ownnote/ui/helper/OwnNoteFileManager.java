@@ -33,6 +33,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -317,16 +318,19 @@ public class OwnNoteFileManager {
         final Path newFile = Paths.get(this.ownNotePath, newFileName);
         
         // TF, 20160815: check existence of the file - not something that should be done by catching the exception...
-        if (Files.exists(newFile)) {
+        // TFE, 20191211: handle the case of only changing upper/lower chars in the file name...
+        // tricky under windows, e.g.: https://stackoverflow.com/a/34730781, so handle separately
+        final boolean caseSensitiveRename = oldFileName.toLowerCase().equals(newFileName.toLowerCase());
+        if (!caseSensitiveRename && Files.exists(newFile)) {
             result = false;
         } else {
             try {
-                Files.move(oldFile, newFile);
+                Files.move(oldFile, newFile, StandardCopyOption.ATOMIC_MOVE);
 
                 final NoteData dataRow = notesList.remove(oldFileName);
                 dataRow.setNoteName(newNoteName);
                 notesList.put(newFileName, dataRow);
-            } catch (IOException ex) {
+            } catch (Exception ex) {
                 Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
                 result = false;
             }
@@ -350,6 +354,7 @@ public class OwnNoteFileManager {
         final Path newFile = Paths.get(this.ownNotePath, newFileName);
         
         // TF, 20160815: check existence of the file - not something that should be done by catching the exception...
+        // TFE, 20191211: here we don't want to be as case insensitive as  the OS is
         if (Files.exists(newFile)) {
             result = false;
         } else {
@@ -403,6 +408,8 @@ public class OwnNoteFileManager {
         assert oldGroupName != null;
         assert newGroupName != null;
         
+        final boolean caseSensitiveRename = oldGroupName.toLowerCase().equals(newGroupName.toLowerCase());
+
         Boolean result = true;
         initFilesInProgress();
         
@@ -420,19 +427,24 @@ public class OwnNoteFileManager {
             // 1. get all note names for group
             notesForGroup = Files.newDirectoryStream(Paths.get(this.ownNotePath), escapedNoteNamePrefix + "*.htm");
 
-            // 2. check all note names against new group name and fail if one already existing
-            for (Path path: notesForGroup) {
-                final File file = path.toFile();
-                final String filename = file.getName();
-                //System.out.println("Checking " + filename);
-                
-                final String newFileName = newNoteNamePrefix + filename.substring(oldNoteNamePrefix.length());
-                
-                if (Files.exists(Paths.get(this.ownNotePath, newFileName))) {
-                    result = false;
-                    break;
-                }
-           }
+            // TFE, 20191211: here we don't want to be as case insensitive as  the OS is
+            // in theory we could have groups that only differ by case: TEST and Test
+            // since thats not possible under Windows we will exclude it for all platforms...
+            if (!caseSensitiveRename) {
+                // 2. check all note names against new group name and fail if one already existing
+                for (Path path: notesForGroup) {
+                    final File file = path.toFile();
+                    final String filename = file.getName();
+                    //System.out.println("Checking " + filename);
+
+                    final String newFileName = newNoteNamePrefix + filename.substring(oldNoteNamePrefix.length());
+
+                    if (Files.exists(Paths.get(this.ownNotePath, newFileName))) {
+                        result = false;
+                        break;
+                    }
+               }
+            }
         } catch (IOException | DirectoryIteratorException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = false;
@@ -453,7 +465,7 @@ public class OwnNoteFileManager {
                     final String newFileName = newNoteNamePrefix + filename.substring(oldNoteNamePrefix.length());
 
                     try {
-                        Files.move(Paths.get(this.ownNotePath, filename), Paths.get(this.ownNotePath, newFileName));
+                        Files.move(Paths.get(this.ownNotePath, filename), Paths.get(this.ownNotePath, newFileName), StandardCopyOption.ATOMIC_MOVE);
                         
                         // TF, 20151129
                         // update notelist as well

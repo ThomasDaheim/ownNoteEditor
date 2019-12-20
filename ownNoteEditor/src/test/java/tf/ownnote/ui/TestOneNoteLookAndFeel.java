@@ -359,12 +359,13 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         push(KeyCode.DOWN);
         push(KeyCode.DOWN);
         push(KeyCode.ENTER);
-        write("rename1");
+        // TFE, 20191220: note names can be CaSe sensitive
+        write("TEST1");
         push(KeyCode.ENTER);
 
         assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof NoteData));
         NoteData renamedNote = (NoteData) notesTableFXML.getSelectionModel().getSelectedItem();
-        assertTrue("Check renamed note label", renamedNote.getNoteName().startsWith("rename1"));
+        assertTrue("Check renamed note label", renamedNote.getNoteName().startsWith("TEST1"));
 
         // #2 ------------------------------------------------------------------
         // rename note via right click + CTRL+R

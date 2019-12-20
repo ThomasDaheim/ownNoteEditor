@@ -8,6 +8,8 @@ Note on Java 11: After various tweaks to build.gradle this now also runs under J
 V 4.5: Check names
 
 * Ensure that note & group names are valid filenames under WINDOWS & UNIX
+* Added option to copy selection as plain text
+* Allowed changing of note and group names CaSe only
 
 V 4.4: Updated TinyMCE
 
