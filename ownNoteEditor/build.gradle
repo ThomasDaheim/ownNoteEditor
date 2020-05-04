@@ -18,26 +18,29 @@ buildscript {
 }
 
 //// Use a plugin (https://github.com/crotwell/gradle-macappbundle) to create a Mac OS X .app and .dmg
-//plugins {
-//    id "edu.sc.seis.macAppBundle" version "2.1.5"
-//}
-//
-//macAppBundle {
-//    mainClassName = "tf.ownnote.ui.main.OwnNoteEditorManager"
-//    icon          = "src/main/resources/ownNoteEditor.icns"
-//    volumeName    = "ownNoteEditor"
-//    dmgName       = "ownNoteEditor"
-//    javaProperties.put("apple.laf.useScreenMenuBar", "true")
-//    // Uncomment the next line to bundle the JRE with the Mac OS X application
-//    //bundleJRE     = true
-//}
+plugins {
+    id "edu.sc.seis.macAppBundle" version "2.1.5"
+}
+
+macAppBundle {
+    mainClassName   = "tf.ownnote.ui.main.OwnNoteEditorManager"
+    icon            = "src/main/resources/ownNoteEditor.icns"
+    volumeName      = "ownNoteEditor"
+    dmgName         = "ownNoteEditor"
+    // TFE, 20200504: some change in Gradle now requires values for below attributes - but I have no clue what to put here...
+    backgroundImage = "TBD"
+    certIdentity    = "TBD"
+    jreHome         = "TBD"
+    keyChain        = "TBD"
+    javaProperties.put("apple.laf.useScreenMenuBar", "true")
+    // Uncomment the next line to bundle the JRE with the Mac OS X application
+    //bundleJRE     = true
+}
 
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'com.google.osdetector'
-
-mainClassName = 'tf.ownnote.ui.main.OwnNoteEditorManager'
 
 ext.platform = osdetector.os == 'osx' ? 'mac' : osdetector.os == 'windows' ? 'win' : osdetector.os
 
@@ -48,16 +51,26 @@ repositories {
     jcenter()
 }
 
+if (!hasProperty('mainClass')) {
+    ext.mainClass = 'tf.ownnote.ui.main.OwnNoteEditorManager'
+}
+mainClassName = 'tf.ownnote.ui.main.OwnNoteEditorManager'
+def appName='OwnNoteEditor'
+group='tf.OwnNoteEditor'
+version='4.6'
+
 // In this section you declare the dependencies for your production and test code
 dependencies {
     // JavaFX11 explicit dependencies
-    compile "org.openjfx:javafx-base:11.0.2:$platform"
-    compile "org.openjfx:javafx-graphics:11.0.2:$platform"
-    compile "org.openjfx:javafx-controls:11.0.2:$platform"
-    compile "org.openjfx:javafx-fxml:11.0.2:$platform"
-    compile "org.openjfx:javafx-swing:11.0.2:$platform"
-    compile "org.openjfx:javafx-web:11.0.2:$platform"
-    compile "org.openjfx:javafx-media:11.0.2:$platform"
+//    def javafx_version='11.0.2'
+    def javafx_version='14'
+    compile "org.openjfx:javafx-base:$javafx_version:$platform"
+    compile "org.openjfx:javafx-graphics:$javafx_version:$platform"
+    compile "org.openjfx:javafx-controls:$javafx_version:$platform"
+    compile "org.openjfx:javafx-fxml:$javafx_version:$platform"
+    compile "org.openjfx:javafx-swing:$javafx_version:$platform"
+    compile "org.openjfx:javafx-web:$javafx_version:$platform"
+    compile "org.openjfx:javafx-media:$javafx_version:$platform"
     
     compile 'org.slf4j:slf4j-api:1.7.12'
     compile 'commons-cli:commons-cli:1.4'
@@ -72,6 +85,15 @@ dependencies {
     testCompile "org.testfx:testfx-junit:4.0.+"
     testCompile "org.testfx:testfx-core:4.0.+"
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.5.1'
+}
+
+
+task unzip(type: Copy) {
+    def zipFile = file("${buildDir}/distributions/OwnNoteEditor-${version}.zip")
+    def outputDir = file("dist")
+ 
+    from zipTree(zipFile)
+    into outputDir
 }
 
 compileJava {
@@ -105,6 +127,7 @@ run {
     doFirst {
         jvmArgs = jvmArgs.plus(['--module-path', classpath.asPath,])
         jvmArgs = jvmArgs.plus(newArgs)
+        enableAssertions = true
     }
 }
 
@@ -119,6 +142,7 @@ task(debug, dependsOn: 'classes', type: JavaExec) {
                 "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
         ])
         jvmArgs = jvmArgs.plus(newArgs)
+        enableAssertions = true
     }
 }
 
@@ -130,8 +154,8 @@ jar {
             'Created-By'     : "Gradle ${gradle.gradleVersion}",
             'Build-Jdk'      : "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})",
             'Build-OS'       : "${System.properties['os.name']} ${System.properties['os.arch']} ${System.properties['os.version']}",
-            'App-Name'       : "ownNoteEditor",
-            'App-Version'    : "4.5",
+            'App-Name'       : appName,
+            'App-Version'    : version,
             'App-URL'        : "https://github.com/ThomasDaheim/ownNoteEditor"
         )
     }

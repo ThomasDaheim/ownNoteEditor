@@ -50,7 +50,6 @@ import javafx.scene.layout.GridPane;
 import javafx.stage.Modality;
 import javafx.stage.Window;
 import javax.imageio.ImageIO;
-import tf.ownnote.ui.general.JarFileLoader;
 
 /**
  *
