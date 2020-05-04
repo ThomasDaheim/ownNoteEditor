@@ -76,14 +76,18 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public class OwnNoteHTMLEditor {
+    // TFE, 20200504: support more than one language here
     private static final String CONTEXT_MENU = ".context-menu";
-    private static final String RELOAD_PAGE = "Reload page";
-    private static final String OPEN_FRAME_NEW_WINDOW = "Open Frame in New Window";
-    private static final String OPEN_LINK = "Open Link";
-    private static final String OPEN_LINK_NEW_WINDOW = "Open Link in New Window";
-    private static final List<String> REMOVE_MENUES =  List.of(RELOAD_PAGE, OPEN_FRAME_NEW_WINDOW, OPEN_LINK, OPEN_LINK_NEW_WINDOW);
-    private static final String COPY_SELECTION = "Copy";
-    private static final String PASTE_SELECTION = "Paste";
+    private static final List<String> RELOAD_PAGE = List.of("Reload page", "Seite neu laden");
+    private static final List<String> OPEN_FRAME_NEW_WINDOW = List.of("Open Frame in New Window", "Frame in neuem Fenster öffnen");
+    private static final List<String> OPEN_LINK = List.of("Open Link", "Link öffnen");
+    private static final List<String> OPEN_LINK_NEW_WINDOW = List.of("Open Link in New Window", "Link in neuem Fenster öffnen");
+    private static final List<List<String>> REMOVE_MENUES =  List.of(RELOAD_PAGE, OPEN_FRAME_NEW_WINDOW, OPEN_LINK, OPEN_LINK_NEW_WINDOW);
+    private static final List<String> COPY_SELECTION = List.of("Copy", "Kopieren");
+    private static final List<String> COPY_TEXT_SELECTION = List.of("Copy Text", "Kopieren als Text");
+    private static final List<String> SAVE_NOTE = List.of("Save", "Speichern");
+    
+    private int language;
 
     private WebView myWebView;
     private WebEngine myWebEngine;
@@ -456,12 +460,12 @@ public class OwnNoteHTMLEditor {
                                 assert n instanceof ContextMenuContent.MenuItemContainer;
                                 
                                 final ContextMenuContent.MenuItemContainer item = (ContextMenuContent.MenuItemContainer) n;
-                                if (REMOVE_MENUES.contains(item.getItem().getText())) {
+                                if (removeMenu(item.getItem().getText())) {
                                     deleteNodes.add(n);
                                 }
                                 
                                 // TFE, 20181209: need to monitor "Copy" in order to add copied text to the OS clipboard as well
-                                if (COPY_SELECTION.equals(item.getItem().getText())) {
+                                if (COPY_SELECTION.contains(item.getItem().getText())) {
                                     item.getItem().setOnAction((t) -> {
                                         copyToClipboard(true);
                                     });
@@ -473,7 +477,7 @@ public class OwnNoteHTMLEditor {
                             }
                             if (copyIndex != -1) {
                                 // TFE, 20191211: add option to copy plain text as well
-                                final MenuItem copyPlain = new MenuItem("Copy Text");
+                                final MenuItem copyPlain = new MenuItem(COPY_TEXT_SELECTION.get(language));
                                 copyPlain.setOnAction((ActionEvent event) -> {
                                     copyToClipboard(false);
                                 });
@@ -486,7 +490,7 @@ public class OwnNoteHTMLEditor {
                             }
 
                             // adding save item
-                            final MenuItem saveMenu = new MenuItem("Save");
+                            final MenuItem saveMenu = new MenuItem(SAVE_NOTE.get(language));
                             saveMenu.setOnAction((ActionEvent event) -> {
                                 saveNote();
                             });
@@ -505,7 +509,21 @@ public class OwnNoteHTMLEditor {
             }
         }
         return null;
-    }    
+    }  
+    private boolean removeMenu(final String menuname) {
+        boolean result = false;
+        
+        for (List<String> strings : REMOVE_MENUES) {
+            final int nameIndex = strings.indexOf(menuname);
+            
+            if (nameIndex != -1) {
+                language = nameIndex;
+                result = true;
+            }
+        }
+        
+        return result;
+    }
     private void copyToClipboard(final boolean copyFullHTML) {
         Platform.runLater(() -> {
             Object dummy = wrapExecuteScript(myWebEngine, "saveGetSelection();");
@@ -728,6 +746,9 @@ public class OwnNoteHTMLEditor {
         }
         public void openLinkInDefaultBrowser(final String url) {
             myself.openLinkInDefaultBrowser(url);
+        }
+        public void copyToClipboard() {
+            myself.copyToClipboard(false);
         }
     }
 }
