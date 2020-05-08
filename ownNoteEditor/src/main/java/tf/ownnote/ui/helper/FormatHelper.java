@@ -31,7 +31,6 @@ import java.util.Comparator;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.control.Tooltip;
-import org.apache.commons.lang3.SystemUtils;
 import tf.ownnote.ui.general.TooltipHelper;
 
 /**

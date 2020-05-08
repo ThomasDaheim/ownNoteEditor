@@ -25,7 +25,6 @@
  */
 package tf.ownnote.ui.main;
 
-import com.sun.javafx.logging.PlatformLogger;
 import com.sun.javafx.util.Logging;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
@@ -124,7 +123,8 @@ public class OwnNoteEditorManager extends Application {
             
             // new look & feel for old code :-)
             // TFE, 20181209: not working with Java9+
-//            new JMetro(JMetro.Style.LIGHT).applyTheme(myStage.getScene());
+            // TFE, 20200508: should work now... - needs investigation
+//            new JMetro(Style.LIGHT).setScene(myStage.getScene());
             
             // TF, 20160620: suppress warnings from css parsing for "-fx-font-weight" - not correctly implemented in the css parrser for javafx 8...
             // TFE, 20181209: times and meethods change :-)
