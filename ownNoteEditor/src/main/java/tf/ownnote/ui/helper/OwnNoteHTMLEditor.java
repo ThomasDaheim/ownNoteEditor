@@ -532,7 +532,7 @@ public class OwnNoteHTMLEditor {
             String selection = (String) dummy;
             
             if (!copyFullHTML) {
-                // TFE, 2091211: remove html tags BUT convert </p> to </p> + line break
+                // TFE, 20191211: remove html tags BUT convert </p> to </p> + line break
                 selection = selection.replaceAll("\\</p\\>", "</p>" + System.lineSeparator());
                 selection = selection.replaceAll("\\<.*?\\>", "");
                 // convert all &uml; back to &
@@ -746,9 +746,6 @@ public class OwnNoteHTMLEditor {
         }
         public void openLinkInDefaultBrowser(final String url) {
             myself.openLinkInDefaultBrowser(url);
-        }
-        public void copyToClipboard() {
-            myself.copyToClipboard(false);
         }
     }
 }
