@@ -26,6 +26,9 @@
 package tf.ownnote.ui.helper;
 
 import com.sun.javafx.scene.control.ContextMenuContent;
+import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -95,7 +98,8 @@ public class OwnNoteHTMLEditor {
     
     private HostServices myHostServices = null;
     
-    final Clipboard myClipboard = Clipboard.getSystemClipboard();
+    final Clipboard myClipboardFx = Clipboard.getSystemClipboard();
+    final java.awt.datatransfer.Clipboard myClipboardAwt = Toolkit.getDefaultToolkit().getSystemClipboard();
     
     // https://github.com/Namek/TheConsole/blob/5fd635e14d16f2058a557b06ef2c30c71142280a/src/net/namekdev/theconsole/view/ConsoleOutput.xtend
     // have a command queue during the startup phase
@@ -542,13 +546,34 @@ public class OwnNoteHTMLEditor {
             final ClipboardContent clipboardContent = new ClipboardContent();
             clipboardContent.putString(selection);
             clipboardContent.putHtml(selection);
-            myClipboard.setContent(clipboardContent);
+            myClipboardFx.setContent(clipboardContent);
         });
     }
     
     //
     // javascript callbacks
     //
+    
+    private String getClipboardContent() {
+        // TFE, 20200711: tinyMCE manages an own clipboard. Once something has been copied in tinyMCE the system clipboard is ignored during paste...
+        // https://stackoverrun.com/de/q/9359780#39265109
+        String result = "";
+
+        try {
+            if (myClipboardFx.hasHtml()) {
+                result = myClipboardFx.getHtml();
+            } else {
+                // We use the AWT clipboard if we want to retreive text because the FX implementation delivers funky characters
+                // when pasting from e.g. Command Prompt
+                result = (String) myClipboardAwt.getData(DataFlavor.stringFlavor);
+                result = result.replaceAll("(\n|\r|\n\r|\r\n)", "<br />");
+            }
+        } catch (UnsupportedFlavorException | IOException ex) {
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return result;
+    }
     
     private void openLinkInDefaultBrowser(final String url) {
         // first load is OK :-)
@@ -746,6 +771,10 @@ public class OwnNoteHTMLEditor {
         }
         public void openLinkInDefaultBrowser(final String url) {
             myself.openLinkInDefaultBrowser(url);
+        }
+        
+        public String getClipboardContent() {
+            return myself.getClipboardContent();
         }
     }
 }
