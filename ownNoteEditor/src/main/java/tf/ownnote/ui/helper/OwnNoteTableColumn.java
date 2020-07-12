@@ -32,16 +32,12 @@ import javafx.scene.Cursor;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TextField;
-import javafx.scene.control.TextFormatter;
-import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.MapValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.input.MouseEvent;
 import javafx.util.Callback;
 import javafx.util.converter.DefaultStringConverter;
-import org.apache.commons.lang3.SystemUtils;
 import tf.ownnote.ui.general.CellUtils;
-import tf.ownnote.ui.general.TooltipHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**

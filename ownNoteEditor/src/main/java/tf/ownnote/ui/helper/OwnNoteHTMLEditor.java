@@ -26,6 +26,9 @@
 package tf.ownnote.ui.helper;
 
 import com.sun.javafx.scene.control.ContextMenuContent;
+import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -76,14 +79,18 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public class OwnNoteHTMLEditor {
+    // TFE, 20200504: support more than one language here
     private static final String CONTEXT_MENU = ".context-menu";
-    private static final String RELOAD_PAGE = "Reload page";
-    private static final String OPEN_FRAME_NEW_WINDOW = "Open Frame in New Window";
-    private static final String OPEN_LINK = "Open Link";
-    private static final String OPEN_LINK_NEW_WINDOW = "Open Link in New Window";
-    private static final List<String> REMOVE_MENUES =  List.of(RELOAD_PAGE, OPEN_FRAME_NEW_WINDOW, OPEN_LINK, OPEN_LINK_NEW_WINDOW);
-    private static final String COPY_SELECTION = "Copy";
-    private static final String PASTE_SELECTION = "Paste";
+    private static final List<String> RELOAD_PAGE = List.of("Reload page", "Seite neu laden");
+    private static final List<String> OPEN_FRAME_NEW_WINDOW = List.of("Open Frame in New Window", "Frame in neuem Fenster öffnen");
+    private static final List<String> OPEN_LINK = List.of("Open Link", "Link öffnen");
+    private static final List<String> OPEN_LINK_NEW_WINDOW = List.of("Open Link in New Window", "Link in neuem Fenster öffnen");
+    private static final List<List<String>> REMOVE_MENUES =  List.of(RELOAD_PAGE, OPEN_FRAME_NEW_WINDOW, OPEN_LINK, OPEN_LINK_NEW_WINDOW);
+    private static final List<String> COPY_SELECTION = List.of("Copy", "Kopieren");
+    private static final List<String> COPY_TEXT_SELECTION = List.of("Copy Text", "Kopieren als Text");
+    private static final List<String> SAVE_NOTE = List.of("Save", "Speichern");
+    
+    private int language;
 
     private WebView myWebView;
     private WebEngine myWebEngine;
@@ -91,7 +98,8 @@ public class OwnNoteHTMLEditor {
     
     private HostServices myHostServices = null;
     
-    final Clipboard myClipboard = Clipboard.getSystemClipboard();
+    final Clipboard myClipboardFx = Clipboard.getSystemClipboard();
+    final java.awt.datatransfer.Clipboard myClipboardAwt = Toolkit.getDefaultToolkit().getSystemClipboard();
     
     // https://github.com/Namek/TheConsole/blob/5fd635e14d16f2058a557b06ef2c30c71142280a/src/net/namekdev/theconsole/view/ConsoleOutput.xtend
     // have a command queue during the startup phase
@@ -456,12 +464,12 @@ public class OwnNoteHTMLEditor {
                                 assert n instanceof ContextMenuContent.MenuItemContainer;
                                 
                                 final ContextMenuContent.MenuItemContainer item = (ContextMenuContent.MenuItemContainer) n;
-                                if (REMOVE_MENUES.contains(item.getItem().getText())) {
+                                if (removeMenu(item.getItem().getText())) {
                                     deleteNodes.add(n);
                                 }
                                 
                                 // TFE, 20181209: need to monitor "Copy" in order to add copied text to the OS clipboard as well
-                                if (COPY_SELECTION.equals(item.getItem().getText())) {
+                                if (COPY_SELECTION.contains(item.getItem().getText())) {
                                     item.getItem().setOnAction((t) -> {
                                         copyToClipboard(true);
                                     });
@@ -473,7 +481,7 @@ public class OwnNoteHTMLEditor {
                             }
                             if (copyIndex != -1) {
                                 // TFE, 20191211: add option to copy plain text as well
-                                final MenuItem copyPlain = new MenuItem("Copy Text");
+                                final MenuItem copyPlain = new MenuItem(COPY_TEXT_SELECTION.get(language));
                                 copyPlain.setOnAction((ActionEvent event) -> {
                                     copyToClipboard(false);
                                 });
@@ -486,7 +494,7 @@ public class OwnNoteHTMLEditor {
                             }
 
                             // adding save item
-                            final MenuItem saveMenu = new MenuItem("Save");
+                            final MenuItem saveMenu = new MenuItem(SAVE_NOTE.get(language));
                             saveMenu.setOnAction((ActionEvent event) -> {
                                 saveNote();
                             });
@@ -505,7 +513,21 @@ public class OwnNoteHTMLEditor {
             }
         }
         return null;
-    }    
+    }  
+    private boolean removeMenu(final String menuname) {
+        boolean result = false;
+        
+        for (List<String> strings : REMOVE_MENUES) {
+            final int nameIndex = strings.indexOf(menuname);
+            
+            if (nameIndex != -1) {
+                language = nameIndex;
+                result = true;
+            }
+        }
+        
+        return result;
+    }
     private void copyToClipboard(final boolean copyFullHTML) {
         Platform.runLater(() -> {
             Object dummy = wrapExecuteScript(myWebEngine, "saveGetSelection();");
@@ -514,7 +536,7 @@ public class OwnNoteHTMLEditor {
             String selection = (String) dummy;
             
             if (!copyFullHTML) {
-                // TFE, 2091211: remove html tags BUT convert </p> to </p> + line break
+                // TFE, 20191211: remove html tags BUT convert </p> to </p> + line break
                 selection = selection.replaceAll("\\</p\\>", "</p>" + System.lineSeparator());
                 selection = selection.replaceAll("\\<.*?\\>", "");
                 // convert all &uml; back to &
@@ -524,13 +546,34 @@ public class OwnNoteHTMLEditor {
             final ClipboardContent clipboardContent = new ClipboardContent();
             clipboardContent.putString(selection);
             clipboardContent.putHtml(selection);
-            myClipboard.setContent(clipboardContent);
+            myClipboardFx.setContent(clipboardContent);
         });
     }
     
     //
     // javascript callbacks
     //
+    
+    private String getClipboardContent() {
+        // TFE, 20200711: tinyMCE manages an own clipboard. Once something has been copied in tinyMCE the system clipboard is ignored during paste...
+        // https://stackoverrun.com/de/q/9359780#39265109
+        String result = "";
+
+        try {
+            if (myClipboardFx.hasHtml()) {
+                result = myClipboardFx.getHtml();
+            } else {
+                // We use the AWT clipboard if we want to retreive text because the FX implementation delivers funky characters
+                // when pasting from e.g. Command Prompt
+                result = (String) myClipboardAwt.getData(DataFlavor.stringFlavor);
+                result = result.replaceAll("(\n|\r|\n\r|\r\n)", "<br />");
+            }
+        } catch (UnsupportedFlavorException | IOException ex) {
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return result;
+    }
     
     private void openLinkInDefaultBrowser(final String url) {
         // first load is OK :-)
@@ -728,6 +771,10 @@ public class OwnNoteHTMLEditor {
         }
         public void openLinkInDefaultBrowser(final String url) {
             myself.openLinkInDefaultBrowser(url);
+        }
+        
+        public String getClipboardContent() {
+            return myself.getClipboardContent();
         }
     }
 }

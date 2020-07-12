@@ -26,7 +26,6 @@
 package tf.ownnote.ui.helper;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
@@ -37,13 +36,9 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
-import javafx.scene.control.TextFormatter;
-import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
-import org.apache.commons.lang3.SystemUtils;
-import tf.ownnote.ui.general.TooltipHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**

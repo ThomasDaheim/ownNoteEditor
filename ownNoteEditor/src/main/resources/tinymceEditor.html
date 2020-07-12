@@ -57,6 +57,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             var printNoteButton;
             var saveNoteButton;
             
+            // TFE, 20200711: tinyMCE manages an own clipboard. Once something has been copied in tinyMCE the system clipboard is ignored during paste...
+            // https://stackoverrun.com/de/q/9359780#39265109
+            var regularPaste = false;
+            
             function initEditor() {
                 tinymce.init({
                     selector: '#mytextarea',
@@ -103,6 +107,21 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     media_live_embeds: true,
                     media_alt_source: false,
                     media_poster: false,
+                    paste_preprocess : function(plugin, args) {
+                        if(!regularPaste) {
+                            args.content = ""; // Ignore what TinyMCE think it should insert
+
+                            regularPaste = true;
+
+                            var clipboardData = editorCallback.getClipboardContent();
+
+                            tinymce.activeEditor.execCommand('mceInsertClipboardContent', false, {
+                              content: clipboardData
+                            }); // This will call paste_preprocess again
+                        }
+
+                        regularPaste = false;
+                    },
                     save_onsavecallback: function () { 
                         //console.log('Save was pressed.');
                         editorCallback.saveNote();
@@ -309,6 +328,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             function saveGetSelection() {
                 //console.log('JavaScript: saveGetSelection was called. ' + copyFullHTML);
                 var content = "";
+                
+                // TODO: check, if code window is shown
+                // if yes, get selection from there
+                // https://github.com/tinymce/tinymce-dist/blob/master/tinymce.js
+                // https://github.com/tinymce/tinymce-dist/blob/master/plugins/code/plugin.js
+                // NOT WORKING: tinymce.activeEditor.windowManager.getTopDialog().selection.getContent(); THERE IS NO getTopDialog()
                 
                 content = tinymce.activeEditor.selection.getContent();
 

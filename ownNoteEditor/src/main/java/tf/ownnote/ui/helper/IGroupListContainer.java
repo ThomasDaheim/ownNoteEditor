@@ -25,7 +25,6 @@
  */
 package tf.ownnote.ui.helper;
 
-import java.util.Map;
 import javafx.collections.ObservableList;
 
 /**

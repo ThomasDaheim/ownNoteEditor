@@ -8,7 +8,11 @@ package tf.ownnote.ui.general;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collection;
 import java.util.jar.JarFile;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 
 /**
  *
@@ -34,8 +38,10 @@ public class JarFileLoader {
         int beginIndex = s.indexOf("file:/") + "file:/".length();
         int endIndex = s.indexOf(".jar!");
         
+        final boolean insideIDE = (endIndex == -1);
+        
         String f = null;
-        if (endIndex == -1) {
+        if (insideIDE) {
             // TFE, 20190823: we might be running in the editor... below works for netbeans under windows
             // so add some simple checks - not sure how this looks in any other possible IDE
             beginIndex = 1;
@@ -51,7 +57,7 @@ public class JarFileLoader {
                 return null;
             final String jarName = fElements[fElements.length-2];
             
-            f += "libs/" + jarName + ".jar";
+            f += "libs/" + jarName + "*.jar";
         } else {
             endIndex += ".jar".length();
             f = s.substring(beginIndex, endIndex);
@@ -62,7 +68,26 @@ public class JarFileLoader {
         // TFE, 20190823: replace spaces in filename - at least under windows
         f = f.replaceAll("%20", "\\ ");
         
-        final File file = new File(f);
+        File file = null;
+        if (insideIDE) {
+            // scan for first match - name of jar file can contain a version number!
+            // get directory where to search
+            final String jarDir = FilenameUtils.getFullPath(f);
+            final String jarName = FilenameUtils.getName(f);
+            
+            final File directory = new File(jarDir);
+            final Collection<File> jarFiles = FileUtils.listFiles(directory, new WildcardFileFilter(jarName), null);
+            
+            if (jarFiles.isEmpty()) {
+                return null;
+            } else {
+                file = jarFiles.iterator().next();
+            }
+            
+        } else {
+            file = new File(f);
+        }
+
         try {
             return file.getAbsoluteFile().exists() ? new JarFile(file) : null;
         } catch (IOException e) {
