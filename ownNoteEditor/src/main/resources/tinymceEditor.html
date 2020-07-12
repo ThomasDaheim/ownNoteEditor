@@ -333,7 +333,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 // if yes, get selection from there
                 // https://github.com/tinymce/tinymce-dist/blob/master/tinymce.js
                 // https://github.com/tinymce/tinymce-dist/blob/master/plugins/code/plugin.js
-                // ??? tinymce.activeEditor.windowManager.getTopDialog().selection.getContent();
+                // NOT WORKING: tinymce.activeEditor.windowManager.getTopDialog().selection.getContent(); THERE IS NO getTopDialog()
                 
                 content = tinymce.activeEditor.selection.getContent();
 

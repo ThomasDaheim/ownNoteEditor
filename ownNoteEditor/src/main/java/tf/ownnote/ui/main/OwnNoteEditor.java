@@ -61,6 +61,7 @@ import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TabPane;
@@ -111,6 +112,9 @@ public class OwnNoteEditor implements Initializable {
     private final static OwnNoteEditorParameters parameters = OwnNoteEditorParameters.getInstance();
     
     private final static String NEWNOTENAME = "New Note";
+    
+    // TFE, 20200712: add search of unchecked boxes
+    private final static String UNCHECKED_BOXES = "<input type=\"checkbox\" />";
     
     private final static int TEXTFIELDWIDTH = 100;  
     
@@ -216,6 +220,12 @@ public class OwnNoteEditor implements Initializable {
     private TextField noteFilterText;
     @FXML
     private Label noteFilterMode;
+    @FXML
+    private MenuItem searchUnchecked;
+
+    final CheckBox noteFilterCheck = new CheckBox();
+    @FXML
+    private MenuItem clearSearch;
 
     public OwnNoteEditor() {
         myFileManager = new OwnNoteFileManager(this);
@@ -410,7 +420,6 @@ public class OwnNoteEditor implements Initializable {
                 noteFilterText.setText("");
             }
         });
-        final CheckBox noteFilterCheck = new CheckBox();
         noteFilterCheck.getStyleClass().add("noteFilterCheck");
         noteFilterCheck.selectedProperty().addListener((o) -> {
             notesTable.setNoteFilterMode(noteFilterCheck.isSelected());
@@ -795,7 +804,19 @@ public class OwnNoteEditor implements Initializable {
                 ownCloudPath.setText(selectedDirectory.getAbsolutePath());
             }
         });
+       
         
+        // TFE, 20200712: find unchecked boxes via menu
+        searchUnchecked.setOnAction((ActionEvent event) -> {
+            noteFilterText.setText(UNCHECKED_BOXES);
+            noteFilterCheck.setSelected(true);
+        });
+        
+        clearSearch.setOnAction((ActionEvent event) -> {
+            noteFilterText.setText("");
+            noteFilterCheck.setSelected(false);
+        });
+
         AboutMenu.getInstance().addAboutMenu(borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v4.6", "https://github.com/ThomasDaheim/ownNoteEditor");
     }
 

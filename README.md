@@ -7,6 +7,7 @@ Note on Java 11: After various tweaks to build.gradle this now also runs under J
 
 V 4.6: Fixes
 
+* Search for unchecked items
 * PASTE always uses context of system clipboard
 * Cntrl+C now defaults to copy as plain text
 * Cntrl+C works in code view window
