@@ -55,11 +55,13 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public class OwnNoteFileManager {
+    private final static OwnNoteFileManager INSTANCE = new OwnNoteFileManager();
+
     // callback to OwnNoteEditor required for e.g. delete & rename
-    private final OwnNoteEditor myEditor;
+    private OwnNoteEditor myEditor;
     
     // monitor for changes using java Watcher service
-    private final OwnNoteDirectoryMonitor myDirMonitor;
+    private OwnNoteDirectoryMonitor myDirMonitor;
 
     public static final String deleteString = "";
     
@@ -72,13 +74,16 @@ public class OwnNoteFileManager {
         super();
 
         myEditor = null;
-        myDirMonitor = null;
+        myDirMonitor = new OwnNoteDirectoryMonitor(null);
     }
 
-    public OwnNoteFileManager(final OwnNoteEditor editor) {
-        super();
-        
+    public static OwnNoteFileManager getInstance() {
+        return INSTANCE;
+    }
+
+    public void setCallback(final OwnNoteEditor editor) {
         myEditor = editor;
+
         myDirMonitor = new OwnNoteDirectoryMonitor(myEditor);
     }
     
@@ -178,6 +183,23 @@ public class OwnNoteFileManager {
 
     public ObservableList<NoteData> getNotesList() {
         return FXCollections.observableArrayList(notesList.values());
+    }
+    
+    public NoteData getNoteData(String groupName, String noteName) {
+        if (groupName == null || noteName == null) {
+            return null;
+        }
+        
+        NoteData result = null;
+        
+        final String noteFileName = buildNoteName(groupName, noteName);
+        for (Map.Entry<String, NoteData> note : notesList.entrySet()) {
+            if (note.getKey().equals(noteFileName)) {
+                result = note.getValue();
+            }
+        }
+        
+        return result;
     }
 
     public boolean deleteNote(String groupName, String noteName) {

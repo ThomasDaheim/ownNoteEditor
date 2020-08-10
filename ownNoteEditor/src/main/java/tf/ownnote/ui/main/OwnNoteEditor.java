@@ -85,7 +85,8 @@ import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
-import tf.ownnote.ui.general.AboutMenu;
+import org.controlsfx.control.CheckListView;
+import tf.helper.javafx.AboutMenu;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.GroupData;
 import tf.ownnote.ui.helper.IGroupListContainer;
@@ -98,6 +99,8 @@ import tf.ownnote.ui.helper.OwnNoteTabPane;
 import tf.ownnote.ui.helper.OwnNoteTableColumn;
 import tf.ownnote.ui.helper.OwnNoteTableView;
 import tf.ownnote.ui.helper.TableSortHelper;
+import tf.ownnote.ui.tasks.TaskData;
+import tf.ownnote.ui.tasks.TaskList;
 
 /**
  *
@@ -105,8 +108,6 @@ import tf.ownnote.ui.helper.TableSortHelper;
  */
 public class OwnNoteEditor implements Initializable {
 
-    private final OwnNoteFileManager myFileManager;
-    
     private final List<String> filesInProgress = new LinkedList<>();
 
     private final static OwnNoteEditorParameters parameters = OwnNoteEditorParameters.getInstance();
@@ -114,7 +115,9 @@ public class OwnNoteEditor implements Initializable {
     private final static String NEWNOTENAME = "New Note";
     
     // TFE, 20200712: add search of unchecked boxes
-    private final static String UNCHECKED_BOXES = "<input type=\"checkbox\" />";
+    public final static String UNCHECKED_BOXES = "<input type=\"checkbox\" />";
+    public final static String CHECKED_BOXES = "<input type=\"checkbox\" checked=\"checked\" />";
+    public final static String ANY_BOXES = "<input type=\"checkbox\"";
     
     private final static int TEXTFIELDWIDTH = 100;  
     
@@ -131,6 +134,7 @@ public class OwnNoteEditor implements Initializable {
 
     private Double classicGroupWidth;
     private Double oneNoteGroupWidth;
+    private Double taskListWidth;
     private String groupsSortOrder;
     private String notesSortOrder;
     
@@ -222,13 +226,21 @@ public class OwnNoteEditor implements Initializable {
     private Label noteFilterMode;
     @FXML
     private MenuItem searchUnchecked;
-
-    final CheckBox noteFilterCheck = new CheckBox();
     @FXML
     private MenuItem clearSearch;
+    @FXML
+    private StackPane taskPaneFXML;
+    @FXML
+    private Label taskFilterMode;
+    @FXML
+    private CheckListView<TaskData> taskListFXML;
+    private TaskList taskList = null;
+
+    final CheckBox noteFilterCheck = new CheckBox();
+    final CheckBox taskFilterCheck = new CheckBox();
 
     public OwnNoteEditor() {
-        myFileManager = new OwnNoteFileManager(this);
+        OwnNoteFileManager.getInstance().setCallback(this);
     }
 
     @Override
@@ -237,7 +249,7 @@ public class OwnNoteEditor implements Initializable {
     }
     
     public void stop() {
-        myFileManager.stop();
+        OwnNoteFileManager.getInstance().stop();
         
         // store current percentage of group column width
         // if increment is passed as parameter, we need to remove it from the current value
@@ -279,6 +291,8 @@ public class OwnNoteEditor implements Initializable {
                     OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTCLASSICGROUPWIDTH, "18.3333333"));
             oneNoteGroupWidth = Double.valueOf(
                     OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTONENOTEGROUPWIDTH, "33.3333333"));
+            
+            taskListWidth = 15d;
 
             groupsSortOrder = OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTGROUPSTABLESORTORDER, "");
             notesSortOrder = OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTNOTESTABLESORTORDER, "");
@@ -308,22 +322,23 @@ public class OwnNoteEditor implements Initializable {
     }
 
     //
-    // basic setup is a 2x2 gridpane with a 2 part splitpane in the lower row spanning both cols
+    // basic setup is a 32x2 gridpane with a 2 part splitpane in the lower row spanning 2 cols
     // TFE: 20181028: pathBox has moved to menu to make room for filterBox
+    // TFE, 20200810: 3rd column added for task handling
     //
-    // ------------------------------------------------------
-    // |                          |                         |
-    // | filterBox                | classic: buttonBox      |
-    // |                          | oneNote: groupsPaneFXML |
-    // |                          |                         |
-    // ------------------------------------------------------
-    // |                          |                         |
-    // | dividerPane              |                         |
-    // |                          |                         |
-    // | classic: groupsTableFXML | classic: notesTableFXML |
-    // | oneNote: notesTableFXML  | both: noteEditorFXML    |
-    // |                          |                         |
-    // ------------------------------------------------------
+    // --------------------------------------------------------------------------------
+    // |                          |                         |                         |
+    // | both: noteFilterBox      | classic: buttonBox      | both: taskFilterBox     |
+    // |                          | oneNote: groupsPaneFXML |                         |
+    // |                          |                         |                         |
+    // --------------------------------------------------------------------------------
+    // |                          |                         |                         |
+    // | dividerPane              |                         |                         |
+    // |                          |                         |                         |
+    // | classic: groupsTableFXML | both: noteEditorFXML    | both: taskListFXML      |
+    // | oneNote: notesTableFXML  |                         |                         |
+    // |                          |                         |                         |
+    // --------------------------------------------------------------------------------
     //
     // to be able to do proper layout in scenebuilder everything except the dividerPane
     // are added to the fxml into the gridpane - code below does the re-arrangement based on 
@@ -385,6 +400,7 @@ public class OwnNoteEditor implements Initializable {
         RowConstraints row2 = new RowConstraints(160, 560, Double.MAX_VALUE);
         row2.setVgrow(Priority.ALWAYS);
         gridPane.getRowConstraints().add(row2);
+        
         gridPane.getColumnConstraints().clear();
         ColumnConstraints column1 = new ColumnConstraints();
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
@@ -394,9 +410,12 @@ public class OwnNoteEditor implements Initializable {
         }
         column1.setHgrow(Priority.ALWAYS);
         ColumnConstraints column2 = new ColumnConstraints();
-        column2.setPercentWidth(100 - column1.getPercentWidth());
+        column2.setPercentWidth((100d - taskListWidth) - column1.getPercentWidth());
         column2.setHgrow(Priority.ALWAYS);
-        gridPane.getColumnConstraints().addAll(column1, column2);
+        ColumnConstraints column3 = new ColumnConstraints();
+        column3.setPercentWidth(taskListWidth);
+        column3.setHgrow(Priority.ALWAYS);
+        gridPane.getColumnConstraints().addAll(column1, column2, column3);
         
         // set callback, width, value name, cursor type of columns
         noteNameCol.setTableColumnProperties(0.65, NoteData.getNoteDataName(0), OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel));
@@ -579,7 +598,7 @@ public class OwnNoteEditor implements Initializable {
                 // quicksave = no changes to note name and group name allowed!
                 final NoteData curNote = noteEditor.getUserData();
 
-                if (myFileManager.saveNote(curNote.getGroupName(),
+                if (OwnNoteFileManager.getInstance().saveNote(curNote.getGroupName(),
                         curNote.getNoteName(),
                         noteEditor.getNoteText())) {
                 } else {
@@ -629,7 +648,7 @@ public class OwnNoteEditor implements Initializable {
                             if (!deleteNoteWrapper(curNote)) {
                                 doSave = false;
                                 // clean up: delete new empty note - ignore return values
-                                myFileManager.deleteNote(newGroupName, newNoteName);
+                                OwnNoteFileManager.getInstance().deleteNote(newGroupName, newNoteName);
                             }
                         }
                     }
@@ -676,9 +695,9 @@ public class OwnNoteEditor implements Initializable {
             buttonBox.setVisible(false);
             
             // 3. and can't be deleted with trashcan
-            noteNameCol.setWidthPercentage(0.75);
+            noteNameCol.setWidthPercentage(0.74);
             noteNameCol.setStyle("notename-font-weight: normal");
-            noteModifiedCol.setWidthPercentage(0.25);
+            noteModifiedCol.setWidthPercentage(0.24);
             noteDeleteCol.setVisible(false);
             
             // name can be changed - but not for all entries!
@@ -731,7 +750,8 @@ public class OwnNoteEditor implements Initializable {
         leftRegion.prefHeightProperty().bind(dividerPane.heightProperty());
         rightRegion.prefHeightProperty().bind(dividerPane.heightProperty());
         
-        dividerPane.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth() / 100f);
+        // needs to take 3 column into account
+        dividerPane.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth() / (100d - taskListWidth));
         // show split pane as second row
         gridPane.add(dividerPane, 0, 1);
         GridPane.setColumnSpan(dividerPane, 2);
@@ -748,7 +768,8 @@ public class OwnNoteEditor implements Initializable {
             if (newValue != null) {
                 // change later to avoid loop calls when resizing scene
                 Platform.runLater(() -> {
-                    dividerPane.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth() / 100f);
+                    // needs to take 3 column into account
+                    dividerPane.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth() / (100d - taskListWidth));
                 });
             }
         });
@@ -758,12 +779,24 @@ public class OwnNoteEditor implements Initializable {
             if (newValue != null) {
                 // change later to avoid loop calls when resizing scene
                 Platform.runLater(() -> {
-                    final double newPercentage = newValue.doubleValue() * 100f;
+                    // needs to take 3 column into account
+                    final double newPercentage = newValue.doubleValue() * (100d - taskListWidth);
                     gridPane.getColumnConstraints().get(0).setPercentWidth(newPercentage);
-                    gridPane.getColumnConstraints().get(1).setPercentWidth(100 - newPercentage);
+                    gridPane.getColumnConstraints().get(1).setPercentWidth((100d - taskListWidth) - newPercentage);
                 });
             }
         });
+        
+        // TFE, 20200810: adding third gridpane column for task handling
+        taskList = new TaskList(taskListFXML, this);
+        
+        taskFilterCheck.getStyleClass().add("noteFilterCheck");
+        taskFilterCheck.selectedProperty().addListener((o) -> {
+            taskList.setTaskFilterMode(taskFilterCheck.isSelected());
+        });
+        taskFilterCheck.setSelected(false);
+        taskFilterMode.setGraphic(taskFilterCheck);
+        taskFilterMode.setContentDisplay(ContentDisplay.RIGHT);
     }
     
     private void initMenus() {
@@ -805,7 +838,6 @@ public class OwnNoteEditor implements Initializable {
             }
         });
        
-        
         // TFE, 20200712: find unchecked boxes via menu
         searchUnchecked.setOnAction((ActionEvent event) -> {
             noteFilterText.setText(UNCHECKED_BOXES);
@@ -817,7 +849,7 @@ public class OwnNoteEditor implements Initializable {
             noteFilterCheck.setSelected(false);
         });
 
-        AboutMenu.getInstance().addAboutMenu(borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v4.6", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v4.6", "https://github.com/ThomasDaheim/ownNoteEditor");
     }
 
     @SuppressWarnings("unchecked")
@@ -825,10 +857,10 @@ public class OwnNoteEditor implements Initializable {
         checkChangedNote();
 
         // scan directory
-        myFileManager.initOwnNotePath(ownCloudPath.textProperty().getValue());
+        OwnNoteFileManager.getInstance().initOwnNotePath(ownCloudPath.textProperty().getValue());
         
         // add new table entries & disable & enable accordingly
-        notesList = myFileManager.getNotesList();
+        notesList = OwnNoteFileManager.getInstance().getNotesList();
         // http://code.makery.ch/blog/javafx-8-tableview-sorting-filtering/
         
         // Issue #59: advanced filtering & sorting
@@ -857,7 +889,7 @@ public class OwnNoteEditor implements Initializable {
         notesTable.setNotes(sortedData);
         */
         
-        ObservableList<GroupData> groupsList = myFileManager.getGroupsList();
+        ObservableList<GroupData> groupsList = OwnNoteFileManager.getInstance().getGroupsList();
         myGroupList.setGroups(groupsList, updateOnly);
         
         // and now store group names (real ones!) for later use
@@ -914,7 +946,7 @@ public class OwnNoteEditor implements Initializable {
         this.handleQuickSave = true;
 
         // 2. show content of file in editor
-        noteEditor.setNoteText(myFileManager.readNote(curNote));
+        noteEditor.setNoteText(OwnNoteFileManager.getInstance().readNote(curNote));
         
         // 3. store note reference for saving
         noteEditor.setUserData(curNote);
@@ -1045,7 +1077,7 @@ public class OwnNoteEditor implements Initializable {
     }
 
     public boolean createGroupWrapper(final String newGroupName) {
-        Boolean result = myFileManager.createNewGroup(newGroupName);
+        Boolean result = OwnNoteFileManager.getInstance().createNewGroup(newGroupName);
 
         if (!result) {
             // error message - most likely group with same name already exists
@@ -1060,7 +1092,7 @@ public class OwnNoteEditor implements Initializable {
 
         // no rename for "All" and "Not Grouped"
         if (!newValue.equals(GroupData.ALL_GROUPS) && !newValue.equals(GroupData.NOT_GROUPED)) {
-            result = myFileManager.renameGroup(oldValue, newValue);
+            result = OwnNoteFileManager.getInstance().renameGroup(oldValue, newValue);
             initGroupNames();
 
             if (!result) {
@@ -1081,7 +1113,7 @@ public class OwnNoteEditor implements Initializable {
         final String groupName = curGroup.getGroupName();
         // no delete for "All" and "Not Grouped"
         if (!groupName.equals(GroupData.ALL_GROUPS) && !groupName.equals(GroupData.NOT_GROUPED)) {
-            result = myFileManager.deleteGroup(groupName);
+            result = OwnNoteFileManager.getInstance().deleteGroup(groupName);
             initGroupNames();
 
             if (!result) {
@@ -1096,7 +1128,7 @@ public class OwnNoteEditor implements Initializable {
     private void initGroupNames() {
         realGroupNames.clear();
 
-        final ObservableList<GroupData> groupsList = myFileManager.getGroupsList();
+        final ObservableList<GroupData> groupsList = OwnNoteFileManager.getInstance().getGroupsList();
         for (GroupData group: groupsList) {
             final String groupName = group.getGroupName();
             if (!groupName.equals(GroupData.NOT_GROUPED) && !groupName.equals(GroupData.ALL_GROUPS)) {
@@ -1106,7 +1138,7 @@ public class OwnNoteEditor implements Initializable {
     }
 
     public Boolean deleteNoteWrapper(final NoteData curNote) {
-        Boolean result = myFileManager.deleteNote(curNote.getGroupName(), curNote.getNoteName());
+        Boolean result = OwnNoteFileManager.getInstance().deleteNote(curNote.getGroupName(), curNote.getNoteName());
 
         if (!result) {
             // error message - something went wrong
@@ -1117,7 +1149,7 @@ public class OwnNoteEditor implements Initializable {
     }
 
     public boolean createNoteWrapper(final String newGroupName, final String newNoteName) {
-        Boolean result = myFileManager.createNewNote(newGroupName, newNoteName);
+        Boolean result = OwnNoteFileManager.getInstance().createNewNote(newGroupName, newNoteName);
 
         if (!result) {
             // error message - most likely note in "Not grouped" with same name already exists
@@ -1128,7 +1160,7 @@ public class OwnNoteEditor implements Initializable {
     }
 
     public boolean renameNoteWrapper(final NoteData curNote, final String newValue) {
-        Boolean result = myFileManager.renameNote(curNote.getGroupName(), curNote.getNoteName(), newValue);
+        Boolean result = OwnNoteFileManager.getInstance().renameNote(curNote.getGroupName(), curNote.getNoteName(), newValue);
         
         if (!result) {
             // error message - most likely note with same name already exists
@@ -1143,7 +1175,7 @@ public class OwnNoteEditor implements Initializable {
 
     @SuppressWarnings("unchecked")
     public boolean moveNoteWrapper(final NoteData curNote, final String newValue) {
-        Boolean result = myFileManager.moveNote(curNote.getGroupName(), curNote.getNoteName(), newValue);
+        Boolean result = OwnNoteFileManager.getInstance().moveNote(curNote.getGroupName(), curNote.getNoteName(), newValue);
         
         if (!result) {
             // error message - most likely note with same name already exists
@@ -1157,7 +1189,7 @@ public class OwnNoteEditor implements Initializable {
     }
 
     public boolean saveNoteWrapper(String newGroupName, String newNoteName, String noteText) {
-        Boolean result = myFileManager.saveNote(newGroupName, newNoteName, noteEditor.getNoteText());
+        Boolean result = OwnNoteFileManager.getInstance().saveNote(newGroupName, newNoteName, noteEditor.getNoteText());
                 
         if (result) {
             if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
@@ -1229,7 +1261,7 @@ public class OwnNoteEditor implements Initializable {
         do {
             result = OwnNoteEditor.NEWNOTENAME + " " + newCount;
             newCount++;
-        } while(myFileManager.noteExists(groupName, result));
+        } while(OwnNoteFileManager.getInstance().noteExists(groupName, result));
         
         return result;
     }
@@ -1250,7 +1282,7 @@ public class OwnNoteEditor implements Initializable {
                     // delete & modify is only relevant if we're editing this note...
                     if (noteEditor.getUserData() != null) {
                         final NoteData curNote = noteEditor.getUserData();
-                        final String curName = myFileManager.buildNoteName(curNote.getGroupName(), curNote.getNoteName());
+                        final String curName = OwnNoteFileManager.getInstance().buildNoteName(curNote.getGroupName(), curNote.getNoteName());
 
                         if (curName.equals(filePath.getFileName().toString())) {
                             String alertTitle;
@@ -1299,7 +1331,7 @@ public class OwnNoteEditor implements Initializable {
                                     if (StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                                         // re-load into edit for StandardWatchEventKinds.ENTRY_MODIFY
                                         final NoteData loadNote = noteEditor.getUserData();
-                                        noteEditor.setNoteText(myFileManager.readNote(loadNote));
+                                        noteEditor.setNoteText(OwnNoteFileManager.getInstance().readNote(loadNote));
                                     }
                                 }
                             }
@@ -1345,7 +1377,7 @@ public class OwnNoteEditor implements Initializable {
     // TF, 20160703: to support coloring of notes table view for individual notes
     // TF, 20170528: determine color from groupname for new colors
     public String getNewGroupColor(String groupName) {
-        final FilteredList<GroupData> filteredGroups = myFileManager.getGroupsList().filtered((GroupData group) -> {
+        final FilteredList<GroupData> filteredGroups = OwnNoteFileManager.getInstance().getGroupsList().filtered((GroupData group) -> {
             // Compare group name to filter text.
             return group.getGroupName().equals(groupName); 
         });
@@ -1353,7 +1385,7 @@ public class OwnNoteEditor implements Initializable {
         String groupColor = "darkgrey";
         if (!filteredGroups.isEmpty()) {
             final GroupData group = (GroupData) filteredGroups.get(0);
-            final int groupIndex = myFileManager.getGroupsList().indexOf(group);
+            final int groupIndex = OwnNoteFileManager.getInstance().getGroupsList().indexOf(group);
             
             // TF, 20170122: "All" & "Not grouped" have their own colors ("darkgrey", "lightgrey"), rest uses list of colors
             switch (groupIndex) {
@@ -1401,6 +1433,6 @@ public class OwnNoteEditor implements Initializable {
     }
     
     public List<NoteData> getNotesWithText(final String searchText) {
-        return myFileManager.getNotesWithText(searchText);
+        return OwnNoteFileManager.getInstance().getNotesWithText(searchText);
     }
 }

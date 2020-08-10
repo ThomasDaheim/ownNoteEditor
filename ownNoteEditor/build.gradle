@@ -44,8 +44,18 @@ apply plugin: 'com.google.osdetector'
 
 ext.platform = osdetector.os == 'osx' ? 'mac' : osdetector.os == 'windows' ? 'win' : osdetector.os
 
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
 // In this section you declare where to find the dependencies of your project
 repositories {
+    mavenLocal() {
+        // breaking change in gradle 6.*: doesn't find jar files automatically when no pom.xml is present...
+        // https://discuss.gradle.org/t/how-to-fetch-maven-artifact-without-pom-file-in-gradle-6-0/33836
+        metadataSources {
+            mavenPom()
+            artifact()
+        }
+    }
     // Use 'jcenter' for resolving your dependencies.
     // You can declare any Maven/Ivy/file repository here.
     jcenter()
@@ -72,6 +82,9 @@ dependencies {
     compile "org.openjfx:javafx-web:$javafx_version:$platform"
     compile "org.openjfx:javafx-media:$javafx_version:$platform"
     
+    // TFE, 20200809: use our own helper library
+    compile 'tf.JavaHelper:JavaHelper:1.7'
+
     compile 'org.slf4j:slf4j-api:1.7.12'
     compile 'commons-cli:commons-cli:1.4'
     compile 'commons-io:commons-io:2.6'
@@ -85,7 +98,7 @@ dependencies {
 
     testCompile "org.testfx:testfx-junit:4.0.+"
     testCompile "org.testfx:testfx-core:4.0.+"
-    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.5.1'
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.6.2'
 }
 
 

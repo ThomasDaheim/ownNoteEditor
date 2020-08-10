@@ -71,7 +71,7 @@ import javafx.stage.Window;
 import netscape.javascript.JSObject;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.text.StringEscapeUtils;
-import tf.ownnote.ui.general.KeyCodesHelper;
+import tf.helper.javafx.UsefulKeyCodes;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
@@ -82,9 +82,9 @@ public class OwnNoteHTMLEditor {
     // TFE, 20200504: support more than one language here
     private static final String CONTEXT_MENU = ".context-menu";
     private static final List<String> RELOAD_PAGE = List.of("Reload page", "Seite neu laden");
-    private static final List<String> OPEN_FRAME_NEW_WINDOW = List.of("Open Frame in New Window", "Frame in neuem Fenster öffnen");
-    private static final List<String> OPEN_LINK = List.of("Open Link", "Link öffnen");
-    private static final List<String> OPEN_LINK_NEW_WINDOW = List.of("Open Link in New Window", "Link in neuem Fenster öffnen");
+    private static final List<String> OPEN_FRAME_NEW_WINDOW = List.of("Open Frame in New Window", "Frame in neuem Fenster \\u00d6ffnen");
+    private static final List<String> OPEN_LINK = List.of("Open Link", "Link \\u00d6ffnen");
+    private static final List<String> OPEN_LINK_NEW_WINDOW = List.of("Open Link in New Window", "Link in neuem Fenster \\u00d6ffnen");
     private static final List<List<String>> REMOVE_MENUES =  List.of(RELOAD_PAGE, OPEN_FRAME_NEW_WINDOW, OPEN_LINK, OPEN_LINK_NEW_WINDOW);
     private static final List<String> COPY_SELECTION = List.of("Copy", "Kopieren");
     private static final List<String> COPY_TEXT_SELECTION = List.of("Copy Text", "Kopieren als Text");
@@ -178,7 +178,8 @@ public class OwnNoteHTMLEditor {
      * @param engine the webEngine for which debugging is to be enabled.
      */
     private static void enableFirebug(final WebEngine engine) {
-        wrapExecuteScript(engine, "if (!document.getElementById('FirebugLite')){E = document['createElement' + 'NS'] && document.documentElement.namespaceURI;E = E ? document['createElement' + 'NS'](E, 'script') : document['createElement']('script');E['setAttribute']('id', 'FirebugLite');E['setAttribute']('src', 'https://getfirebug.com/' + 'firebug-lite.js' + '#startOpened');E['setAttribute']('FirebugLite', '4');(document['getElementsByTagName']('head')[0] || document['getElementsByTagName']('body')[0]).appendChild(E);E = new Image;E['setAttribute']('src', 'https://getfirebug.com/' + '#startOpened');}"); 
+        // TFE, 20200722: getfirebug.com not active anymore...
+//        wrapExecuteScript(engine, "if (!document.getElementById('FirebugLite')){E = document['createElement' + 'NS'] && document.documentElement.namespaceURI;E = E ? document['createElement' + 'NS'](E, 'script') : document['createElement']('script');E['setAttribute']('id', 'FirebugLite');E['setAttribute']('src', 'https://getfirebug.com/' + 'firebug-lite.js' + '#startOpened');E['setAttribute']('FirebugLite', '4');(document['getElementsByTagName']('head')[0] || document['getElementsByTagName']('body')[0]).appendChild(E);E = new Image;E['setAttribute']('src', 'https://getfirebug.com/' + '#startOpened');}"); 
     }
     
     /**
@@ -243,17 +244,24 @@ public class OwnNoteHTMLEditor {
                     myWebView.addEventHandler(KeyEvent.KEY_PRESSED, new EventHandler<KeyEvent>() {
                         @Override
                         public void handle(KeyEvent event) {
-                            if (KeyCodesHelper.KeyCodes.CNTRL_C.match(event)) {
-                                copyToClipboard(true);
+                            if (UsefulKeyCodes.CNTRL_C.match(event)) {
+                                copyToClipboard(true, true);
                             }
-                            if (KeyCodesHelper.KeyCodes.CNTRL_S.match(event)) {
+                            if (UsefulKeyCodes.SHIFT_DEL.match(event)) {
+                                copyToClipboard(false, true);
+//                                wrapExecuteScript(myWebEngine, "tinymce.activeEditor.execCommand(\"Cut\");");
+                            }
+                            if (UsefulKeyCodes.CNTRL_X.match(event)) {
+                                copyToClipboard(true, true);
+                            }
+                            if (UsefulKeyCodes.CNTRL_S.match(event)) {
                                 saveNote();
                             }
                         }
                     });
 
                     // add debugger to webviewer
-                    //enableFirebug(myWebEngine);
+                    enableFirebug(myWebEngine);
                 }
             }
         });
@@ -471,7 +479,7 @@ public class OwnNoteHTMLEditor {
                                 // TFE, 20181209: need to monitor "Copy" in order to add copied text to the OS clipboard as well
                                 if (COPY_SELECTION.contains(item.getItem().getText())) {
                                     item.getItem().setOnAction((t) -> {
-                                        copyToClipboard(true);
+                                        copyToClipboard(true, true);
                                     });
                                     
                                     copyIndex = index;
@@ -483,7 +491,7 @@ public class OwnNoteHTMLEditor {
                                 // TFE, 20191211: add option to copy plain text as well
                                 final MenuItem copyPlain = new MenuItem(COPY_TEXT_SELECTION.get(language));
                                 copyPlain.setOnAction((ActionEvent event) -> {
-                                    copyToClipboard(false);
+                                    copyToClipboard(true, false);
                                 });
 
                                 // add new item:
@@ -500,7 +508,7 @@ public class OwnNoteHTMLEditor {
                             });
                             // not working... BUT still here to show short cut :-) 
                             // work is done in myWebView.addEventHandler(KeyEvent.KEY_PRESSED...
-                            saveMenu.setAccelerator(KeyCodesHelper.KeyCodes.CNTRL_S.getKeyCode());
+                            saveMenu.setAccelerator(UsefulKeyCodes.CNTRL_S.getKeyCodeCombination());
                             
                             // add new item:
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(saveMenu));
@@ -528,26 +536,35 @@ public class OwnNoteHTMLEditor {
         
         return result;
     }
-    private void copyToClipboard(final boolean copyFullHTML) {
-        Platform.runLater(() -> {
-            Object dummy = wrapExecuteScript(myWebEngine, "saveGetSelection();");
-            
-            assert (dummy instanceof String);
-            String selection = (String) dummy;
-            
-            if (!copyFullHTML) {
-                // TFE, 20191211: remove html tags BUT convert </p> to </p> + line break
-                selection = selection.replaceAll("\\</p\\>", "</p>" + System.lineSeparator());
-                selection = selection.replaceAll("\\<.*?\\>", "");
-                // convert all &uml; back to &
-                selection = StringEscapeUtils.unescapeHtml4(selection);
-            }
-            
-            final ClipboardContent clipboardContent = new ClipboardContent();
-            clipboardContent.putString(selection);
-            clipboardContent.putHtml(selection);
-            myClipboardFx.setContent(clipboardContent);
-        });
+    private void copyToClipboard(final boolean runLater, final boolean copyFullHTML) {
+        // tricky... in some cases we want to let tinymce do its work before in others we don't
+        if (runLater) {
+            Platform.runLater(() -> {
+                doCopyToClipboard(copyFullHTML);
+            });
+        } else {
+            doCopyToClipboard(copyFullHTML);
+        }
+    }
+    
+    private void doCopyToClipboard(final boolean copyFullHTML) {
+        Object dummy = wrapExecuteScript(myWebEngine, "saveGetSelection();");
+
+        assert (dummy instanceof String);
+        String selection = (String) dummy;
+
+        if (!copyFullHTML) {
+            // TFE, 20191211: remove html tags BUT convert </p> to </p> + line break
+            selection = selection.replaceAll("\\</p\\>", "</p>" + System.lineSeparator());
+            selection = selection.replaceAll("\\<.*?\\>", "");
+            // convert all &uml; back to &
+            selection = StringEscapeUtils.unescapeHtml4(selection);
+        }
+
+        final ClipboardContent clipboardContent = new ClipboardContent();
+        clipboardContent.putString(selection);
+        clipboardContent.putHtml(selection);
+        myClipboardFx.setContent(clipboardContent);
     }
     
     //

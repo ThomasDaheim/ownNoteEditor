@@ -92,7 +92,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         stage.requestFocus();
     }
 
-    private final Testdata myTestdata = new Testdata();
+    private final TestNodeData myTestdata = new TestNodeData();
   
     private String currentPath;
     private Path testpath;
