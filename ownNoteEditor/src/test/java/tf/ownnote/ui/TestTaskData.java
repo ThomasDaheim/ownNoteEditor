@@ -13,7 +13,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import tf.ownnote.ui.helper.NoteData;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
-import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.tasks.TaskData;
 
 /**
@@ -26,6 +25,7 @@ public class TestTaskData {
 
     @Before
     public void setUp() {
+        OwnNoteFileManager.getInstance().setCallback(null);
         OwnNoteFileManager.getInstance().initOwnNotePath("src/test/resources/");
     }
     
@@ -64,7 +64,7 @@ public class TestTaskData {
         final NoteData noteData = OwnNoteFileManager.getInstance().getNoteData("Test", "TestTasks");
         
         TaskData taskData = new TaskData(noteData, 63);
-        Assert.assertFalse(taskData.isCompleted());
+        Assert.assertFalse(taskData.isCompleted().getValue());
         Assert.assertEquals(" tell me, what to do!", taskData.getDescription());
     }
     
@@ -73,7 +73,7 @@ public class TestTaskData {
         final NoteData noteData = OwnNoteFileManager.getInstance().getNoteData("Test", "TestTasks");
         
         TaskData taskData = new TaskData(noteData, 368);
-        Assert.assertTrue(taskData.isCompleted());
+        Assert.assertTrue(taskData.isCompleted().getValue());
         // feel free to figure out how ? is handled correctly in all this string business
         Assert.assertTrue(taskData.getDescription().startsWith(" of course with something special: "));
     }

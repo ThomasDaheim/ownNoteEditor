@@ -28,6 +28,7 @@ package tf.ownnote.ui.helper;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.DirectoryIteratorException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -61,7 +62,7 @@ public class OwnNoteFileManager {
     private OwnNoteEditor myEditor;
     
     // monitor for changes using java Watcher service
-    private OwnNoteDirectoryMonitor myDirMonitor;
+    private final OwnNoteDirectoryMonitor myDirMonitor = new OwnNoteDirectoryMonitor();
 
     public static final String deleteString = "";
     
@@ -74,7 +75,6 @@ public class OwnNoteFileManager {
         super();
 
         myEditor = null;
-        myDirMonitor = new OwnNoteDirectoryMonitor(null);
     }
 
     public static OwnNoteFileManager getInstance() {
@@ -83,8 +83,18 @@ public class OwnNoteFileManager {
 
     public void setCallback(final OwnNoteEditor editor) {
         myEditor = editor;
+        
+        myDirMonitor.subscribe(editor);
+    }
 
-        myDirMonitor = new OwnNoteDirectoryMonitor(myEditor);
+    // convinience to forward to OwnNoteDirectoryMonitor
+    public void subscribe(final IFileChangeSubscriber subscriber) {
+        myDirMonitor.subscribe(subscriber);
+    }
+    
+    // convinience to forward to OwnNoteDirectoryMonitor
+    public void unsubscribe(final IFileChangeSubscriber subscriber) {
+        myDirMonitor.unsubscribe(subscriber);
     }
     
     // forward to monitor to shut down things

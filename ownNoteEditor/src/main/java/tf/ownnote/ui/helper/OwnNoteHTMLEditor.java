@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -117,6 +118,9 @@ public class OwnNoteHTMLEditor {
     private JavascriptLogger javascriptLogger;
     private EditorCallback editorCallback;
     
+    // linked list to maintain order of callbacks
+    private List<IFileContentChangeSubscriber> changeSubscribers = new LinkedList<>();
+    
     // TFE, 20181002: enums to support drag & drop
     // what do we need to do with a file that is dropped on us?
     private static enum FileCopyMode {
@@ -173,6 +177,23 @@ public class OwnNoteHTMLEditor {
             initWebView();
         });  
     }
+    
+    public void subscribe(final IFileContentChangeSubscriber subscriber) {
+        if (subscriber == null) {
+            return;
+        }
+
+        changeSubscribers.add(subscriber);
+    }
+    
+    public void unsubscribe(final IFileContentChangeSubscriber subscriber) {
+        if (subscriber == null) {
+            return;
+        }
+        
+        changeSubscribers.remove(subscriber);
+    }
+    
     /**
      * Enables Firebug Lite for debugging a webEngine.
      * @param engine the webEngine for which debugging is to be enabled.

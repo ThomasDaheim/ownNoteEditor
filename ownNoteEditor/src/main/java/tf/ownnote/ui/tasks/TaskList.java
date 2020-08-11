@@ -5,7 +5,9 @@
  */
 package tf.ownnote.ui.tasks;
 
-import org.controlsfx.control.CheckListView;
+import javafx.scene.control.ListView;
+import javafx.scene.control.cell.CheckBoxListCell;
+import javafx.util.StringConverter;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
@@ -16,7 +18,7 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  * @author thomas
  */
 public class TaskList {
-    private CheckListView<TaskData> myTaskList = null;
+    private ListView<TaskData> myTaskList = null;
     
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor = null;
@@ -25,7 +27,7 @@ public class TaskList {
         super();
     }
             
-    public TaskList(final CheckListView<TaskData> taskListFXML, final OwnNoteEditor editor) {
+    public TaskList(final ListView<TaskData> taskListFXML, final OwnNoteEditor editor) {
         myTaskList = taskListFXML;
         myEditor = editor;
         
@@ -33,7 +35,27 @@ public class TaskList {
     }
     
     private void initTaskList() {
+        // TODO: switch to treeview with tasks per file
+        // https://github.com/james-d/heterogeneous-tree-example
         
+        final StringConverter<TaskData> converter = new StringConverter<TaskData>() {
+            @Override
+            public String toString(TaskData task) {
+                return task.getDescription();
+            }
+
+            // not actually used by CheckBoxListCell
+            @Override
+            public TaskData fromString(String string) {
+                return null;
+            }
+        };
+        
+        myTaskList.setCellFactory(CheckBoxListCell.forListView(TaskData::isCompleted, converter));        
+    }
+    
+    public void populateTaskList() {
+        myTaskList.getItems().setAll(TaskManager.getInstance().getTaskList());
     }
     
     public void setTaskFilterMode(final boolean isSelected) {

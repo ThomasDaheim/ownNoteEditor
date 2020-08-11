@@ -59,6 +59,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
@@ -85,10 +86,10 @@ import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
-import org.controlsfx.control.CheckListView;
 import tf.helper.javafx.AboutMenu;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.GroupData;
+import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IGroupListContainer;
 import tf.ownnote.ui.helper.NoteData;
 import tf.ownnote.ui.helper.OwnNoteEditorParameters;
@@ -101,12 +102,13 @@ import tf.ownnote.ui.helper.OwnNoteTableView;
 import tf.ownnote.ui.helper.TableSortHelper;
 import tf.ownnote.ui.tasks.TaskData;
 import tf.ownnote.ui.tasks.TaskList;
+import tf.ownnote.ui.tasks.TaskManager;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class OwnNoteEditor implements Initializable {
+public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 
     private final List<String> filesInProgress = new LinkedList<>();
 
@@ -233,14 +235,13 @@ public class OwnNoteEditor implements Initializable {
     @FXML
     private Label taskFilterMode;
     @FXML
-    private CheckListView<TaskData> taskListFXML;
+    private ListView<TaskData> taskListFXML;
     private TaskList taskList = null;
 
     final CheckBox noteFilterCheck = new CheckBox();
     final CheckBox taskFilterCheck = new CheckBox();
 
     public OwnNoteEditor() {
-        OwnNoteFileManager.getInstance().setCallback(this);
     }
 
     @Override
@@ -789,6 +790,8 @@ public class OwnNoteEditor implements Initializable {
         
         // TFE, 20200810: adding third gridpane column for task handling
         taskList = new TaskList(taskListFXML, this);
+        taskListFXML.prefWidthProperty().bind(taskPaneFXML.widthProperty());
+        taskListFXML.prefHeightProperty().bind(taskPaneFXML.heightProperty());
         
         taskFilterCheck.getStyleClass().add("noteFilterCheck");
         taskFilterCheck.selectedProperty().addListener((o) -> {
@@ -797,6 +800,10 @@ public class OwnNoteEditor implements Initializable {
         taskFilterCheck.setSelected(false);
         taskFilterMode.setGraphic(taskFilterCheck);
         taskFilterMode.setContentDisplay(ContentDisplay.RIGHT);
+
+        // all setup, lets spread the news
+        OwnNoteFileManager.getInstance().setCallback(this);
+        TaskManager.getInstance().setCallback(this);
     }
     
     private void initMenus() {
@@ -858,6 +865,7 @@ public class OwnNoteEditor implements Initializable {
 
         // scan directory
         OwnNoteFileManager.getInstance().initOwnNotePath(ownCloudPath.textProperty().getValue());
+        taskList.populateTaskList();
         
         // add new table entries & disable & enable accordingly
         notesList = OwnNoteFileManager.getInstance().getNotesList();
@@ -1075,6 +1083,10 @@ public class OwnNoteEditor implements Initializable {
         groupNameBox.getItems().add(GroupData.NEW_GROUP);
         groupNameBox.getItems().addAll(realGroupNames);
     }
+    
+    public OwnNoteHTMLEditor getNoteEditor() {
+        return noteEditor;
+    }
 
     public boolean createGroupWrapper(final String newGroupName) {
         Boolean result = OwnNoteFileManager.getInstance().createNewGroup(newGroupName);
@@ -1267,6 +1279,7 @@ public class OwnNoteEditor implements Initializable {
     }
 
     @SuppressWarnings("unchecked")
+    @Override
     public void processFileChange(final WatchEvent.Kind<?> eventKind, final Path filePath) {
         // System.out.printf("Time %s: Gotcha!\n", getCurrentTimeStamp());
         

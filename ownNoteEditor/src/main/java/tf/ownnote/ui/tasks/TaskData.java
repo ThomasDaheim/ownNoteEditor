@@ -5,6 +5,8 @@
  */
 package tf.ownnote.ui.tasks;
 
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import org.apache.commons.text.StringEscapeUtils;
 import tf.ownnote.ui.helper.NoteData;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
@@ -18,7 +20,7 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  * @author thomas
  */
 public class TaskData {
-    private boolean isCompleted;
+    private BooleanProperty isCompleted = new SimpleBooleanProperty();
     private String myDescription;
     private int myTextPos;
     
@@ -53,17 +55,19 @@ public class TaskData {
         
         // easy part: completed = checked
         if (noteText.startsWith(OwnNoteEditor.CHECKED_BOXES)) {
-            isCompleted = true;
+            isCompleted.setValue(Boolean.TRUE);
             noteText = noteText.substring(OwnNoteEditor.CHECKED_BOXES.length());
         } else {
-            isCompleted = false;
+            isCompleted.setValue(Boolean.FALSE);
             noteText = noteText.substring(OwnNoteEditor.UNCHECKED_BOXES.length());
         }
         
         // now find text til next end of line - but please without any html tags
-        // we might artifically need to insert a newline char...
-        noteText = noteText.replaceFirst("\\</p\\>", "</p>" + System.lineSeparator());
-        final int newlinePos = noteText.indexOf(System.lineSeparator());
+        // tricky without end - text from readAllBytes can contain anything...
+        int newlinePos = noteText.indexOf(System.lineSeparator());
+        if (newlinePos == -1) {
+            newlinePos = noteText.indexOf("\n");
+        }
         if (newlinePos > -1) {
             noteText = noteText.substring(0, newlinePos);
         }
@@ -74,11 +78,20 @@ public class TaskData {
         myDescription = StringEscapeUtils.unescapeHtml4(noteText);
     }
     
-    public boolean isCompleted() {
+    public BooleanProperty isCompleted() {
         return isCompleted;
     }
     
     public String getDescription() {
         return myDescription;
+    }
+    
+    public NoteData getNoteData() {
+        return myNote;
+    }
+    
+    @Override
+    public String toString() {
+        return getDescription();
     }
 }
