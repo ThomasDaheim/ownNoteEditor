@@ -170,6 +170,18 @@ public class OwnNoteTableView implements IGroupListContainer {
         selectRow(rownum);
         myTableView.getFocusModel().focus(rownum);
     }
+    
+    public void selectGroupForNote(final NoteData noteData) {
+        assert (TableType.groupsTable.equals(myTableType));
+
+        myTableView.getSelectionModel().select(OwnNoteFileManager.getInstance().getGroupData(noteData));
+    }
+    
+    public void selectNote(final NoteData noteData) {
+        assert (TableType.notesTable.equals(myTableType));
+
+        myTableView.getSelectionModel().select(noteData);
+    }
 
     @SuppressWarnings("unchecked")
     private void initTableView() {
@@ -333,7 +345,7 @@ public class OwnNoteTableView implements IGroupListContainer {
 
                         myEditor.setGroupNameFilter(groupName);
                     }
-                });        
+                });
             }
         }
     }

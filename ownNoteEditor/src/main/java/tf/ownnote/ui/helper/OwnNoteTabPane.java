@@ -269,6 +269,23 @@ public class OwnNoteTabPane implements IGroupListContainer {
         }
     }
     
+    public void selectGroupForNote(final NoteData noteData) {
+        // find tab that has group as userdata
+        final GroupData groupData = OwnNoteFileManager.getInstance().getGroupData(noteData);
+        
+        Tab groupTab = null;
+        for (Tab tab : myTabPane.getTabs()) {
+            if (groupData.equals(tab.getUserData())) {
+                groupTab = tab;
+                break;
+            }
+        }
+        
+        if (groupTab != null) {
+            myTabPane.getSelectionModel().select(groupTab);
+        }
+    }
+    
     @Override
     public GroupData getCurrentGroup() {
         return ((GroupData) myTabPane.getSelectionModel().getSelectedItem().getUserData());

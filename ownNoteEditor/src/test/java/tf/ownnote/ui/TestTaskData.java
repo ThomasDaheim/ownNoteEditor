@@ -64,7 +64,7 @@ public class TestTaskData {
         final NoteData noteData = OwnNoteFileManager.getInstance().getNoteData("Test", "TestTasks");
         
         TaskData taskData = new TaskData(noteData, 63);
-        Assert.assertFalse(taskData.isCompleted().getValue());
+        Assert.assertFalse(taskData.isCompleted());
         Assert.assertEquals(" tell me, what to do!", taskData.getDescription());
     }
     
@@ -73,7 +73,7 @@ public class TestTaskData {
         final NoteData noteData = OwnNoteFileManager.getInstance().getNoteData("Test", "TestTasks");
         
         TaskData taskData = new TaskData(noteData, 368);
-        Assert.assertTrue(taskData.isCompleted().getValue());
+        Assert.assertTrue(taskData.isCompleted());
         // feel free to figure out how ? is handled correctly in all this string business
         Assert.assertTrue(taskData.getDescription().startsWith(" of course with something special: "));
     }

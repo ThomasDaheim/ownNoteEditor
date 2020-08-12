@@ -5,6 +5,10 @@
  */
 package tf.ownnote.ui.tasks;
 
+import javafx.beans.Observable;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.scene.control.ListView;
 import javafx.scene.control.cell.CheckBoxListCell;
 import javafx.util.StringConverter;
@@ -19,6 +23,10 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  */
 public class TaskList {
     private ListView<TaskData> myTaskList = null;
+    
+    private FilteredList<TaskData> filteredData = null;
+    // should only open tasks be shown?
+    private boolean myTaskFilterMode = true;
     
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor = null;
@@ -51,14 +59,46 @@ public class TaskList {
             }
         };
         
-        myTaskList.setCellFactory(CheckBoxListCell.forListView(TaskData::isCompleted, converter));        
+        myTaskList.setCellFactory(CheckBoxListCell.forListView(TaskData::isCompletedProperty, converter));    
+        
+        myTaskList.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            if (newSelection != null && !newSelection.equals(oldSelection)) {
+                // select group and note
+                myEditor.selectNoteAndPosition(newSelection.getNoteData(), newSelection.getTextPos());
+            }
+        });       
     }
     
     public void populateTaskList() {
-        myTaskList.getItems().setAll(TaskManager.getInstance().getTaskList());
+        // be able to react to changes of isCompleted in tasks
+        // https://stackoverflow.com/a/30915760
+        final ObservableList<TaskData> items = FXCollections.observableArrayList(item -> new Observable[] {item.isCompletedProperty()});
+        items.addAll(TaskManager.getInstance().getTaskList());
+        
+        // 1. Wrap the ObservableList in a FilteredList (initially display all data).
+        filteredData = new FilteredList<>(items);
+        setFilterPredicate();
+        
+        myTaskList.setItems(null);
+        myTaskList.layout();
+        myTaskList.setItems(filteredData);
+    }
+    
+    private void setFilterPredicate() {
+        filteredData.setPredicate((t) -> {
+            if (myTaskFilterMode) {
+                return !t.isCompleted();
+            } else {
+                return true;
+            }
+        });
     }
     
     public void setTaskFilterMode(final boolean isSelected) {
-        // filter the list accordingly
+        // if item is selected on UI we want to show all tasks
+        myTaskFilterMode = !isSelected;
+        
+        // trigger refresh of filtered list - is there any better way???
+        setFilterPredicate();
     }
 }

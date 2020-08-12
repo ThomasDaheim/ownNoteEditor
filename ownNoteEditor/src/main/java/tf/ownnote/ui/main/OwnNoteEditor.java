@@ -961,6 +961,20 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         
         return result;
     }
+    
+    public void selectNoteAndPosition(final NoteData noteData, final int textPos) {
+        // need to distinguish between views to select group
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
+            groupsTable.selectGroupForNote(noteData);
+        } else {
+            groupsPane.selectGroupForNote(noteData);
+        }
+        
+        // and now select the note - leads to callback to editNote to fill the htmleditor
+        notesTable.selectNote(noteData);
+        
+        noteEditor.setTextCursor(textPos);
+    }
 
     private void hideAndDisableAllCreateControls() {
         // show new button

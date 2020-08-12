@@ -211,6 +211,26 @@ public class OwnNoteFileManager {
         
         return result;
     }
+    
+    public GroupData getGroupData(final String groupName) {
+        if (groupName == null) {
+            return null;
+        }
+        
+        GroupData result = null;
+
+        for (Map.Entry<String, GroupData> group : groupsList.entrySet()) {
+            if (group.getKey().equals(groupName)) {
+                result = group.getValue();
+            }
+        }
+        
+        return result;
+    }
+    
+    public GroupData getGroupData(final NoteData noteData) {
+        return getGroupData(noteData.getGroupName());
+    }
 
     public boolean deleteNote(String groupName, String noteName) {
         assert groupName != null;

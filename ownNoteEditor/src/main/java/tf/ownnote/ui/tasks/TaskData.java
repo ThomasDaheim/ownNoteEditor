@@ -78,8 +78,12 @@ public class TaskData {
         myDescription = StringEscapeUtils.unescapeHtml4(noteText);
     }
     
-    public BooleanProperty isCompleted() {
+    public BooleanProperty isCompletedProperty() {
         return isCompleted;
+    }
+    
+    public boolean isCompleted() {
+        return isCompleted.getValue();
     }
     
     public String getDescription() {
@@ -88,6 +92,10 @@ public class TaskData {
     
     public NoteData getNoteData() {
         return myNote;
+    }
+    
+    public int getTextPos() {
+        return myTextPos;
     }
     
     @Override

@@ -656,6 +656,11 @@ public class OwnNoteHTMLEditor {
         
         return result;
     }
+    
+    public void setTextCursor(final int textPos) {
+        // TODO call tinymce to set the cursor
+        // maybe with https://www.tiny.cloud/docs-4x/api/tinymce.dom/tinymce.dom.selection/#setcursorlocation
+    }
 
     public String getNoteText() {
         editorText = readNoteText();
