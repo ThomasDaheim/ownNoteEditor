@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import org.apache.commons.text.StringEscapeUtils;
+import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
 import tf.ownnote.ui.helper.NoteData;
@@ -33,6 +35,8 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     private OwnNoteEditor myEditor;
     
     private ObservableList<TaskData> taskList = null;
+    
+    private boolean inFileChange = false;
     
     private TaskManager() {
         super();
@@ -99,15 +103,63 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
 
     @Override
     public void processFileChange(WatchEvent.Kind<?> eventKind, Path filePath) {
+        inFileChange = true;
         // TODO: fill with life and react to the various possibilites of changes:
         // 1) file with tasks deleted -> remove tasks from own list
         // 2) file changed -> rescan for tasks and update own list
         // 3) new file -> scan for tasks and update own list (similar to #2)
+        inFileChange = false;
     }
 
     @Override
-    public void processFileContentChange(NoteData note, String newContent) {
-        // TODO: fill with life and react to the various possibilites of changes:
-        // 1) file changed -> rescan for tasks and update own list - same task as for 2) of processFileChange, only no need to reload note content
+    public void processFileContentChange(final FileContentChangeType changeType, final NoteData note, final String oldContent, final String newContent) {
+        inFileChange = true;
+        // FFFFUUUUCCCCKKKK innerHTML sends back <input type="checkbox" checked="checked"> instead of correct <input type="checkbox" checked="checked" />
+        String oldDescription = null;
+        if (oldContent.startsWith(OwnNoteEditor.WRONG_UNCHECKED_BOXES)) {
+            oldDescription = StringEscapeUtils.unescapeHtml4(oldContent.substring(OwnNoteEditor.WRONG_UNCHECKED_BOXES.length()));
+        } else if (oldContent.startsWith(OwnNoteEditor.WRONG_CHECKED_BOXES)) {
+            oldDescription = StringEscapeUtils.unescapeHtml4(oldContent.substring(OwnNoteEditor.WRONG_CHECKED_BOXES.length()));
+        }
+        if (oldDescription == null) {
+            System.out.println("Something went wrong with task completion change!" + note + ", " + oldContent + ", " + newContent);
+            return;
+        }
+        Boolean newCompleted = null;
+        if (newContent.startsWith(OwnNoteEditor.WRONG_UNCHECKED_BOXES)) {
+            newCompleted = false;
+        } else if (newContent.startsWith(OwnNoteEditor.WRONG_CHECKED_BOXES)) {
+            newCompleted = true;
+        }
+        if (newCompleted == null) {
+            System.out.println("Something went wrong with task completion change!" + note + ", " + oldContent + ", " + newContent);
+            return;
+        }
+        
+        TaskData changedTask = null;
+        for (TaskData task : taskList) {
+            if (task.getNoteData().equals(note) && task.getDescription().equals(oldDescription)) {
+                changedTask = task;
+                break;
+            }
+        }
+        
+        if (changedTask != null) {
+            // checkbox must have changed
+            if (changedTask.isCompleted() && !newCompleted) {
+                changedTask.setCompleted(false);
+            } else if (!changedTask.isCompleted() && newCompleted) {
+                changedTask.setCompleted(true);
+            }
+        }
+        inFileChange = false;
+    }
+    
+    public void processTaskCompletedChanged(final TaskData task) {
+        if (inFileChange) {
+            return;
+        }
+        
+        System.out.println("processTaskCompletedChanged for: " + task);
     }
 }

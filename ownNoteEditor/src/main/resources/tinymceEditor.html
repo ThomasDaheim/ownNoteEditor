@@ -56,6 +56,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             var insertCheckBoxButton;
             var printNoteButton;
             var saveNoteButton;
+            var emptyRegExp = new RegExp('<p>&nbsp;</p>', 'g');
             
             // TFE, 20200711: tinyMCE manages an own clipboard. Once something has been copied in tinyMCE the system clipboard is ignored during paste...
             // https://stackoverrun.com/de/q/9359780#39265109
@@ -132,11 +133,16 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             // support for check boxes and such...
                             // https://stackoverflow.com/a/38653970
                             $(editor.getBody()).on("change", ":checkbox", function(el){
+                                // tell the world this has changed
+                                var innerHTMLBefore = el.target.parentNode.innerHTML;
                                 if(el.target.checked){
                                     $(el.target).attr('checked', 'checked');
                                 }else{
                                     $(el.target).removeAttr('checked');
                                 }
+                                var innerHTMLAfter = el.target.parentNode.innerHTML;
+                                editorCallback.checkBoxChanged(innerHTMLBefore, innerHTMLAfter);
+                                
                             });
                             // Radiobuttons
                             $(editor.getBody()).on("change", "input:radio", function(el){
@@ -317,7 +323,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
                 // <p>&nbsp;</p> => <p></p>
                 //console.log('content: ' + content);
-                content = content.replace(new RegExp('<p>&nbsp;</p>', 'g'), '<p></p>');
+                content = content.replace(emptyRegExp, '<p></p>');
                 //console.log('content: ' + content);
                         
                 //console.log('JavaScript: saveGetContent done.');
@@ -341,11 +347,19 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
                 // <p>&nbsp;</p> => <p></p>
                 //console.log('content: ' + content);
-                content = content.replace(new RegExp('<p>&nbsp;</p>', 'g'), '<p></p>');
+                content = content.replace(emptyRegExp, '<p></p>');
                 //console.log('content: ' + content);
                         
                 //console.log('JavaScript: saveGetSelection done.');
                 return content;
+            }
+            
+            function setCursorLocation(textPos, htmlText) {
+                //console.log('JavaScript: setCursorLocation start. ' + textPos + ', ' + htmlText);
+                //console.log(tinymce.activeEditor.getBody());
+                //console.log(tinymce.activeEditor.getContentAreaContainer());
+
+                //tinymce.activeEditor.selection.setCursorLocation(tinymce.activeEditor.getContentAreaContainer(), textPos);
             }
             
             function resizeEditor(myHeight) {

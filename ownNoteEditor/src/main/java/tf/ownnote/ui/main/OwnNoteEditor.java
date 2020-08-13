@@ -119,6 +119,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     // TFE, 20200712: add search of unchecked boxes
     public final static String UNCHECKED_BOXES = "<input type=\"checkbox\" />";
     public final static String CHECKED_BOXES = "<input type=\"checkbox\" checked=\"checked\" />";
+    public final static String WRONG_UNCHECKED_BOXES = "<input type=\"checkbox\">";
+    public final static String WRONG_CHECKED_BOXES = "<input type=\"checkbox\" checked=\"checked\">";
     public final static String ANY_BOXES = "<input type=\"checkbox\"";
     
     private final static int TEXTFIELDWIDTH = 100;  
@@ -954,7 +956,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         this.handleQuickSave = true;
 
         // 2. show content of file in editor
-        noteEditor.setNoteText(OwnNoteFileManager.getInstance().readNote(curNote));
+        noteEditor.setNoteText(curNote, OwnNoteFileManager.getInstance().readNote(curNote));
         
         // 3. store note reference for saving
         noteEditor.setUserData(curNote);
@@ -962,7 +964,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         return result;
     }
     
-    public void selectNoteAndPosition(final NoteData noteData, final int textPos) {
+    public void selectNoteAndPosition(final NoteData noteData, final int textPos, final String htmlText) {
         // need to distinguish between views to select group
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             groupsTable.selectGroupForNote(noteData);
@@ -973,7 +975,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // and now select the note - leads to callback to editNote to fill the htmleditor
         notesTable.selectNote(noteData);
         
-        noteEditor.setTextCursor(textPos);
+        noteEditor.setTextCursor(textPos, htmlText);
     }
 
     private void hideAndDisableAllCreateControls() {
@@ -1275,7 +1277,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             editNote(new NoteData((Map<String, String>) notesTable.getItems().get(selectIndex)));
         } else {
             noteEditor.setDisable(true);
-            noteEditor.setNoteText("");
+            noteEditor.setNoteText(null, "");
             noteEditor.setUserData(null);
         }
     }
@@ -1358,7 +1360,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                                     if (StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                                         // re-load into edit for StandardWatchEventKinds.ENTRY_MODIFY
                                         final NoteData loadNote = noteEditor.getUserData();
-                                        noteEditor.setNoteText(OwnNoteFileManager.getInstance().readNote(loadNote));
+                                        noteEditor.setNoteText(loadNote, OwnNoteFileManager.getInstance().readNote(loadNote));
                                     }
                                 }
                             }

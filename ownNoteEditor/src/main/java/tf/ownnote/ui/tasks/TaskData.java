@@ -22,6 +22,7 @@ import tf.ownnote.ui.main.OwnNoteEditor;
 public class TaskData {
     private BooleanProperty isCompleted = new SimpleBooleanProperty();
     private String myDescription;
+    private String myHtmlText;
     private int myTextPos;
     
     private NoteData myNote = null;
@@ -53,16 +54,7 @@ public class TaskData {
             throw new IllegalArgumentException("Text not starting with checkbox pattern: " + noteText);
         }
         
-        // easy part: completed = checked
-        if (noteText.startsWith(OwnNoteEditor.CHECKED_BOXES)) {
-            isCompleted.setValue(Boolean.TRUE);
-            noteText = noteText.substring(OwnNoteEditor.CHECKED_BOXES.length());
-        } else {
-            isCompleted.setValue(Boolean.FALSE);
-            noteText = noteText.substring(OwnNoteEditor.UNCHECKED_BOXES.length());
-        }
-        
-        // now find text til next end of line - but please without any html tags
+        // find text til next end of line - but please without any html tags
         // tricky without end - text from readAllBytes can contain anything...
         int newlinePos = noteText.indexOf(System.lineSeparator());
         if (newlinePos == -1) {
@@ -72,10 +64,25 @@ public class TaskData {
             noteText = noteText.substring(0, newlinePos);
         }
         
+        // easy part: completed = checked
+        if (noteText.startsWith(OwnNoteEditor.CHECKED_BOXES)) {
+            isCompleted.setValue(Boolean.TRUE);
+            noteText = noteText.substring(OwnNoteEditor.CHECKED_BOXES.length());
+        } else {
+            isCompleted.setValue(Boolean.FALSE);
+            noteText = noteText.substring(OwnNoteEditor.UNCHECKED_BOXES.length());
+        }
+        
         // TFE, 20191211: remove html tags BUT convert </p> to </p> + line break
         noteText = noteText.replaceAll("\\<.*?\\>", "");
         // convert all &uml; back to &
         myDescription = StringEscapeUtils.unescapeHtml4(noteText);
+        
+        if (isCompleted()) {
+            myHtmlText = OwnNoteEditor.CHECKED_BOXES + myDescription;
+        } else {
+            myHtmlText = OwnNoteEditor.UNCHECKED_BOXES + myDescription;
+        }
     }
     
     public BooleanProperty isCompletedProperty() {
@@ -86,8 +93,16 @@ public class TaskData {
         return isCompleted.getValue();
     }
     
+    public void setCompleted(final boolean complete) {
+        isCompleted.setValue(complete);
+    }
+    
     public String getDescription() {
         return myDescription;
+    }
+    
+    public String getHtmlText() {
+        return myHtmlText;
     }
     
     public NoteData getNoteData() {

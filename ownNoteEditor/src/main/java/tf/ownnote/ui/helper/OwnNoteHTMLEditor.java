@@ -110,7 +110,8 @@ public class OwnNoteHTMLEditor {
     
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor= null;
-            
+    
+    private NoteData editorNote;
     private String editorText = "";
     
     // defy garbage collection of callback functions
@@ -633,7 +634,7 @@ public class OwnNoteHTMLEditor {
         }
     }
         
-    public void setNoteText(final String text) {
+    public void setNoteText(final NoteData note, final String text) {
         Runnable task = () -> {
             //System.out.println("setEditorText " + text);
             setContentDone = false;
@@ -641,6 +642,7 @@ public class OwnNoteHTMLEditor {
         };
         
         startTask(task);
+        editorNote = note;
         editorText = text;
     }
     private String replaceForEditor(final String text) {
@@ -657,9 +659,10 @@ public class OwnNoteHTMLEditor {
         return result;
     }
     
-    public void setTextCursor(final int textPos) {
+    public void setTextCursor(final int textPos, final String htmlText) {
         // TODO call tinymce to set the cursor
         // maybe with https://www.tiny.cloud/docs-4x/api/tinymce.dom/tinymce.dom.selection/#setcursorlocation
+        wrapExecuteScript(myWebEngine, "setCursorLocation(" + textPos + ", '" + htmlText + "');");
     }
 
     public String getNoteText() {
@@ -776,6 +779,13 @@ public class OwnNoteHTMLEditor {
     public BooleanProperty visibleProperty() {
         return myWebView.visibleProperty();
     }
+    
+    private void checkBoxChanged(final String htmlBefore, final String htmlAfter) {
+        // send change note to all subscribes
+        for (IFileContentChangeSubscriber subscriber : changeSubscribers) {
+            subscriber.processFileContentChange(FileContentChangeType.CHECKBOX_CHANGED, editorNote, htmlBefore, htmlAfter);
+        }
+    }
 
     // https://stackoverflow.com/questions/28687640/javafx-8-webengine-how-to-get-console-log-from-javascript-to-system-out-in-ja
     public class JavascriptLogger
@@ -818,6 +828,10 @@ public class OwnNoteHTMLEditor {
         
         public String getClipboardContent() {
             return myself.getClipboardContent();
+        }
+        
+        public void checkBoxChanged(final String htmlBefore, final String htmlAfter) {
+            myself.checkBoxChanged(htmlBefore, htmlAfter);
         }
     }
 }

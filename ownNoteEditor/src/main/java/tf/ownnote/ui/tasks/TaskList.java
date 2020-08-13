@@ -7,6 +7,7 @@ package tf.ownnote.ui.tasks;
 
 import javafx.beans.Observable;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener.Change;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.scene.control.ListView;
@@ -59,12 +60,12 @@ public class TaskList {
             }
         };
         
-        myTaskList.setCellFactory(CheckBoxListCell.forListView(TaskData::isCompletedProperty, converter));    
-        
+        myTaskList.setCellFactory(CheckBoxListCell.forListView(TaskData::isCompletedProperty, converter));
+
         myTaskList.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if (newSelection != null && !newSelection.equals(oldSelection)) {
                 // select group and note
-                myEditor.selectNoteAndPosition(newSelection.getNoteData(), newSelection.getTextPos());
+                myEditor.selectNoteAndPosition(newSelection.getNoteData(), newSelection.getTextPos(), newSelection.getHtmlText());
             }
         });       
     }
@@ -75,13 +76,24 @@ public class TaskList {
         final ObservableList<TaskData> items = FXCollections.observableArrayList(item -> new Observable[] {item.isCompletedProperty()});
         items.addAll(TaskManager.getInstance().getTaskList());
         
-        // 1. Wrap the ObservableList in a FilteredList (initially display all data).
+        // wrap the ObservableList in a FilteredList (initially display all data).
         filteredData = new FilteredList<>(items);
         setFilterPredicate();
         
         myTaskList.setItems(null);
         myTaskList.layout();
         myTaskList.setItems(filteredData);
+        
+        // add listener to items to get notified of any changes to completed property
+        items.addListener((Change<? extends TaskData> c) -> {
+            while (c.next()) {
+                if (c.wasUpdated()) {
+                    for (int i = c.getFrom(); i < c.getTo(); i++) {
+                        TaskManager.getInstance().processTaskCompletedChanged(c.getList().get(i));
+                    }
+                }
+            }
+        });
     }
     
     private void setFilterPredicate() {

@@ -11,5 +11,5 @@ package tf.ownnote.ui.helper;
  * @author thomas
  */
 public interface IFileContentChangeSubscriber {
-    abstract void processFileContentChange(final NoteData note, final String newContent);
+    abstract void processFileContentChange(final FileContentChangeType changeType, final NoteData note, final String oldContent, final String newContent);
 }
