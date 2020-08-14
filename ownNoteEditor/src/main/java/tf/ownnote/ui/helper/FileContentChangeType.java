@@ -10,5 +10,6 @@ package tf.ownnote.ui.helper;
  * @author thomas
  */
 public enum FileContentChangeType {
-    CHECKBOX_CHANGED
+    CHECKBOX_CHANGED,
+    CONTENT_CHANGED
 }

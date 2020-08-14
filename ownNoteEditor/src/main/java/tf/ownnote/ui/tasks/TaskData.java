@@ -20,9 +20,8 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  * @author thomas
  */
 public class TaskData {
-    private BooleanProperty isCompleted = new SimpleBooleanProperty();
+    private final BooleanProperty isCompleted = new SimpleBooleanProperty();
     private String myDescription;
-    private String myHtmlText;
     private int myTextPos;
     
     private NoteData myNote = null;
@@ -30,7 +29,7 @@ public class TaskData {
     private TaskData() {
     }
     
-    public TaskData(final NoteData note, final int textPos) {
+    public TaskData(final NoteData note, final String noteContent, final int textPos) {
         if (note == null) {
             throw new IllegalArgumentException("NoteData is null");
         }
@@ -39,16 +38,16 @@ public class TaskData {
         myTextPos = textPos;
         
         // parse htmlText into completed and find description
-        parseHtmlText(textPos);
+        parseHtmlText(noteContent, textPos);
     }
     
-    private void parseHtmlText(final int textPos) {
+    private void parseHtmlText(final String noteContent, final int textPos) {
         if (textPos < 0) {
             throw new IllegalArgumentException("TextPos can't be smaller than 0: " + textPos);
         }
         
         // we are only interested in text from the starting position til end of line
-        String noteText = OwnNoteFileManager.getInstance().readNote(myNote).substring(myTextPos);
+        String noteText = noteContent.substring(myTextPos);
         
         if (!noteText.startsWith(OwnNoteEditor.ANY_BOXES)) {
             throw new IllegalArgumentException("Text not starting with checkbox pattern: " + noteText);
@@ -77,12 +76,6 @@ public class TaskData {
         noteText = noteText.replaceAll("\\<.*?\\>", "");
         // convert all &uml; back to &
         myDescription = StringEscapeUtils.unescapeHtml4(noteText);
-        
-        if (isCompleted()) {
-            myHtmlText = OwnNoteEditor.CHECKED_BOXES + myDescription;
-        } else {
-            myHtmlText = OwnNoteEditor.UNCHECKED_BOXES + myDescription;
-        }
     }
     
     public BooleanProperty isCompletedProperty() {
@@ -101,8 +94,16 @@ public class TaskData {
         return myDescription;
     }
     
+    public void setDescription(final String desc) {
+        myDescription = desc;
+    }
+    
     public String getHtmlText() {
-        return myHtmlText;
+        if (isCompleted()) {
+            return OwnNoteEditor.CHECKED_BOXES + myDescription;
+        } else {
+            return OwnNoteEditor.UNCHECKED_BOXES + myDescription;
+        }
     }
     
     public NoteData getNoteData() {
@@ -111,6 +112,10 @@ public class TaskData {
     
     public int getTextPos() {
         return myTextPos;
+    }
+    
+    public void setTextPos(final int pos) {
+        myTextPos = pos;
     }
     
     @Override

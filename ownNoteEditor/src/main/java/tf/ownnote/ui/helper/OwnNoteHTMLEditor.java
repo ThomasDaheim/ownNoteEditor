@@ -638,11 +638,15 @@ public class OwnNoteHTMLEditor {
         Runnable task = () -> {
             //System.out.println("setEditorText " + text);
             setContentDone = false;
+            
             wrapExecuteScript(myWebEngine, "saveSetContent('" + replaceForEditor(text) + "');");
         };
         
         startTask(task);
         editorNote = note;
+        if (editorNote != null) {
+            editorNote.setNoteEditorContent(text);
+        }
         editorText = text;
     }
     private String replaceForEditor(final String text) {
@@ -783,7 +787,25 @@ public class OwnNoteHTMLEditor {
     private void checkBoxChanged(final String htmlBefore, final String htmlAfter) {
         // send change note to all subscribes
         for (IFileContentChangeSubscriber subscriber : changeSubscribers) {
-            subscriber.processFileContentChange(FileContentChangeType.CHECKBOX_CHANGED, editorNote, htmlBefore, htmlAfter);
+            if (!subscriber.processFileContentChange(FileContentChangeType.CHECKBOX_CHANGED, editorNote, htmlBefore, htmlAfter)) {
+                break;
+            }
+        }
+    }
+    
+    private void contentChanged(final String newContent) {
+        if (editorNote == null) {
+            return;
+        }
+        
+        final String oldContent = editorNote.getNoteEditorContent();
+        editorNote.setNoteEditorContent(newContent);
+
+        // send change note to all subscribes
+        for (IFileContentChangeSubscriber subscriber : changeSubscribers) {
+            if (!subscriber.processFileContentChange(FileContentChangeType.CONTENT_CHANGED, editorNote, oldContent, newContent)) {
+                break;
+            }
         }
     }
 
@@ -832,6 +854,10 @@ public class OwnNoteHTMLEditor {
         
         public void checkBoxChanged(final String htmlBefore, final String htmlAfter) {
             myself.checkBoxChanged(htmlBefore, htmlAfter);
+        }
+        
+        public void contentChanged(final String newContent) {
+            myself.contentChanged(newContent);
         }
     }
 }

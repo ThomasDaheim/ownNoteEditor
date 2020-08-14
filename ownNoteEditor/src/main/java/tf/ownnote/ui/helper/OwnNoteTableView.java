@@ -129,7 +129,7 @@ public class OwnNoteTableView implements IGroupListContainer {
             listNames.addAll(
                 myTableView.getItems().stream().
                     map(s -> {
-                        return s.get(GroupData.groupsMapKeys[0]);
+                        return ((GroupData) s).getGroupName();
                     }).
                     collect(Collectors.toList()));
         }

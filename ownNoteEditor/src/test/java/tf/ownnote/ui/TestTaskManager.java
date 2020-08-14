@@ -6,10 +6,15 @@
 package tf.ownnote.ui;
 
 import java.util.List;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import org.junit.Assert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.NoteData;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
@@ -25,6 +30,8 @@ public class TestTaskManager {
     public void setUp() {
         OwnNoteFileManager.getInstance().setCallback(null);
         OwnNoteFileManager.getInstance().initOwnNotePath("src/test/resources/");
+        
+        TaskManager.getInstance().resetTaskList();
     }
     
     @After
@@ -36,7 +43,7 @@ public class TestTaskManager {
         final NoteData noteData = OwnNoteFileManager.getInstance().getNoteData("Test", "TestTasks");
         
         final String content = OwnNoteFileManager.getInstance().readNote(noteData);
-        Assert.assertEquals(5, TaskManager.getInstance().findAllOccurences(content, OwnNoteEditor.ANY_BOXES).size());
+        Assert.assertEquals(5, TaskManager.getInstance().tasksFromNote(noteData, content).size());
     }
 
     @Test
@@ -54,5 +61,131 @@ public class TestTaskManager {
         
         Assert.assertEquals(" tell me, what to do!", taskList.get(0).getDescription());
         Assert.assertTrue(taskList.get(2).getDescription().startsWith(" of course with something special: "));
+    }
+    
+    @Test
+    public void testChangeContent1() {
+        final NoteData noteData = OwnNoteFileManager.getInstance().getNoteData("Test", "TestTasks");
+        
+        final String content = OwnNoteFileManager.getInstance().readNote(noteData);
+        final ObservableList<TaskData> taskList = TaskManager.getInstance().getTaskList();
+        Assert.assertEquals(5, taskList.size());
+        
+        BooleanProperty wasUpdated = new SimpleBooleanProperty(Boolean.FALSE);
+        BooleanProperty wasAdded = new SimpleBooleanProperty(Boolean.FALSE);
+        BooleanProperty wasRemoved = new SimpleBooleanProperty(Boolean.FALSE);
+        taskList.addListener((ListChangeListener.Change<? extends TaskData> c) -> {
+            while (c.next()) {
+                if (c.wasAdded()) {
+                    wasAdded.setValue(Boolean.TRUE);
+                }
+                if (c.wasRemoved()) {
+                    wasRemoved.setValue(Boolean.TRUE);
+                }
+                if (c.wasUpdated()) {
+                    wasUpdated.setValue(Boolean.TRUE);
+                }
+            }
+        });
+        
+        // add something in front of content - tasklist shouldn't change
+        String newContent = "TEST" + content;
+        TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, noteData, content, newContent);
+        Assert.assertFalse(wasUpdated.getValue());
+        Assert.assertFalse(wasAdded.getValue());
+        Assert.assertFalse(wasRemoved.getValue());
+        
+        // reset wasXYZ
+        wasAdded.setValue(Boolean.FALSE);
+        wasRemoved.setValue(Boolean.FALSE);
+        wasUpdated.setValue(Boolean.FALSE);
+        
+        // add something to end of content - tasklist shouldn't change
+        newContent = content + "TEST";
+        TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, noteData, content, newContent);
+        Assert.assertFalse(wasUpdated.getValue());
+        Assert.assertFalse(wasAdded.getValue());
+        Assert.assertFalse(wasRemoved.getValue());
+
+        // reset wasXYZ
+        wasAdded.setValue(Boolean.FALSE);
+        wasRemoved.setValue(Boolean.FALSE);
+        wasUpdated.setValue(Boolean.FALSE);
+        
+        // add checkbox in front of content - tasklist should change
+        newContent = OwnNoteEditor.UNCHECKED_BOXES + "TEST" + content;
+        TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, noteData, content, newContent);
+        Assert.assertFalse(wasUpdated.getValue());
+        Assert.assertTrue(wasAdded.getValue());
+        Assert.assertFalse(wasRemoved.getValue());
+
+        // reset wasXYZ
+        wasAdded.setValue(Boolean.FALSE);
+        wasRemoved.setValue(Boolean.FALSE);
+        wasUpdated.setValue(Boolean.FALSE);
+        
+        // remove checkbox - tasklist should change
+        TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, noteData, newContent, content);
+        Assert.assertFalse(wasUpdated.getValue());
+        Assert.assertFalse(wasAdded.getValue());
+        Assert.assertTrue(wasRemoved.getValue());
+
+        // reset wasXYZ
+        wasAdded.setValue(Boolean.FALSE);
+        wasRemoved.setValue(Boolean.FALSE);
+        wasUpdated.setValue(Boolean.FALSE);
+        
+        // add checkbox after content - tasklist should change
+        newContent = content + OwnNoteEditor.UNCHECKED_BOXES + "TEST";
+        TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, noteData, content, newContent);
+        Assert.assertFalse(wasUpdated.getValue());
+        Assert.assertTrue(wasAdded.getValue());
+        Assert.assertFalse(wasRemoved.getValue());
+
+        // reset wasXYZ
+        wasAdded.setValue(Boolean.FALSE);
+        wasRemoved.setValue(Boolean.FALSE);
+        wasUpdated.setValue(Boolean.FALSE);
+        
+        // remove checkbox - tasklist should change
+        TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, noteData, newContent, content);
+        Assert.assertFalse(wasUpdated.getValue());
+        Assert.assertFalse(wasAdded.getValue());
+        Assert.assertTrue(wasRemoved.getValue());
+    }
+    
+    @Test
+    public void testChangeContent2() {
+        final NoteData noteData = OwnNoteFileManager.getInstance().getNoteData("Test", "TestTasks");
+        
+        final String content = OwnNoteFileManager.getInstance().readNote(noteData);
+        final ObservableList<TaskData> taskList = TaskManager.getInstance().getTaskList();
+        Assert.assertEquals(5, taskList.size());
+        
+        // change an existing checkbox to see if updated works
+        final TaskData firstTask = taskList.get(0);
+        final String firstDescription = firstTask.getDescription();
+        int textPos = content.indexOf(firstTask.getDescription());
+        String newContent = content.substring(0, textPos) + " - TEST - " + content.substring(textPos);
+
+        TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, noteData, content, newContent);
+        Assert.assertNotEquals(firstDescription, firstTask.getDescription());
+        Assert.assertEquals(" - TEST - " + firstDescription, firstTask.getDescription());
+        
+        // change back
+        TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, noteData, newContent, content);
+        Assert.assertEquals(firstDescription, firstTask.getDescription());
+        
+        // switch between checked / unchecked
+        Assert.assertFalse(firstTask.isCompleted());
+        textPos = content.indexOf(firstTask.getDescription());
+        newContent = content.substring(0, firstTask.getTextPos()) + OwnNoteEditor.CHECKED_BOXES + content.substring(textPos);
+
+        TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, noteData, content, newContent);
+        Assert.assertTrue(firstTask.isCompleted());
+        
+        // change back
+        TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, noteData, newContent, content);
+        Assert.assertFalse(firstTask.isCompleted());
     }
 }

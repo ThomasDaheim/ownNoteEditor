@@ -325,6 +325,10 @@ public class OwnNoteFileManager {
             result = "";
         }
         
+        
+        // TFE; 20200814: store content in NoteData
+        curNote.setNoteFileContent(result);
+        
         return result;
     }
 
@@ -344,6 +348,8 @@ public class OwnNoteFileManager {
             // // TF, 20170723: update modified date of the file
             final LocalDateTime filetime = LocalDateTime.ofInstant((new Date(savePath.toFile().lastModified())).toInstant(), ZoneId.systemDefault());
             final NoteData dataRow = notesList.get(newFileName);
+            // TFE; 20200814: store content in NoteData
+            dataRow.setNoteFileContent(htmlText);
             dataRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
             notesList.put(newFileName, dataRow);
             

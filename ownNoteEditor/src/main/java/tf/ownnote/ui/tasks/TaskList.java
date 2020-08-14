@@ -64,8 +64,14 @@ public class TaskList {
 
         myTaskList.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if (newSelection != null && !newSelection.equals(oldSelection)) {
-                // select group and note
-                myEditor.selectNoteAndPosition(newSelection.getNoteData(), newSelection.getTextPos(), newSelection.getHtmlText());
+                if (!TaskManager.getInstance().inFileChange()) {
+                    // select group and note
+                    myEditor.selectNoteAndPosition(newSelection.getNoteData(), newSelection.getTextPos(), newSelection.getHtmlText());
+                } else {
+                    // tricky, we have lost the item in the list because the checkbox was clicked...
+                    // we don't want to change the selection to avoid closing of file in tinymce.
+                    myTaskList.getSelectionModel().select(-1);
+                }
             }
         });       
     }

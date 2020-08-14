@@ -38,7 +38,7 @@ public class TestTaskData {
         exceptionRule.expect(IllegalArgumentException.class);
         
         exceptionRule.expectMessage("NoteData is null");
-        new TaskData(null, -1);
+        new TaskData(null, "", -1);
     }
     
     @Test
@@ -47,7 +47,7 @@ public class TestTaskData {
         
         exceptionRule.expectMessage("TextPos can't be smaller than 0:");
         final NoteData noteData = OwnNoteFileManager.getInstance().getNotesList().get(0);
-        new TaskData(noteData, -1);
+        new TaskData(noteData, "", -1);
     }
     
     @Test
@@ -56,14 +56,16 @@ public class TestTaskData {
         
         exceptionRule.expectMessage("Text not starting with checkbox pattern:");
         final NoteData noteData = OwnNoteFileManager.getInstance().getNotesList().get(0);
-        new TaskData(noteData, 0);
+        final String noteContent = OwnNoteFileManager.getInstance().readNote(noteData);
+        new TaskData(noteData, noteContent, 0);
     }
     
     @Test
     public void testTaskDataOpenTask() {
         final NoteData noteData = OwnNoteFileManager.getInstance().getNoteData("Test", "TestTasks");
+        final String noteContent = OwnNoteFileManager.getInstance().readNote(noteData);
         
-        TaskData taskData = new TaskData(noteData, 63);
+        TaskData taskData = new TaskData(noteData, noteContent, 63);
         Assert.assertFalse(taskData.isCompleted());
         Assert.assertEquals(" tell me, what to do!", taskData.getDescription());
     }
@@ -71,8 +73,9 @@ public class TestTaskData {
     @Test
     public void testTaskDataCompletedTask() {
         final NoteData noteData = OwnNoteFileManager.getInstance().getNoteData("Test", "TestTasks");
+        final String noteContent = OwnNoteFileManager.getInstance().readNote(noteData);
         
-        TaskData taskData = new TaskData(noteData, 368);
+        TaskData taskData = new TaskData(noteData, noteContent, 368);
         Assert.assertTrue(taskData.isCompleted());
         // feel free to figure out how ? is handled correctly in all this string business
         Assert.assertTrue(taskData.getDescription().startsWith(" of course with something special: "));

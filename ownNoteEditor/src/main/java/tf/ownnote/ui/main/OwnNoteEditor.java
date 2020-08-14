@@ -956,7 +956,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         this.handleQuickSave = true;
 
         // 2. show content of file in editor
-        noteEditor.setNoteText(curNote, OwnNoteFileManager.getInstance().readNote(curNote));
+        curNote.setNoteFileContent(OwnNoteFileManager.getInstance().readNote(curNote));
+        noteEditor.setNoteText(curNote, curNote.getNoteFileContent());
         
         // 3. store note reference for saving
         noteEditor.setUserData(curNote);
@@ -1296,8 +1297,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void processFileChange(final WatchEvent.Kind<?> eventKind, final Path filePath) {
+    public boolean processFileChange(final WatchEvent.Kind<?> eventKind, final Path filePath) {
         // System.out.printf("Time %s: Gotcha!\n", getCurrentTimeStamp());
+        boolean result = true;
         
         if (!filesInProgress.contains(filePath.getFileName().toString())) {
             final String fileName = filePath.getFileName().toString();
@@ -1360,7 +1362,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                                     if (StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                                         // re-load into edit for StandardWatchEventKinds.ENTRY_MODIFY
                                         final NoteData loadNote = noteEditor.getUserData();
-                                        noteEditor.setNoteText(loadNote, OwnNoteFileManager.getInstance().readNote(loadNote));
+                                        loadNote.setNoteFileContent(OwnNoteFileManager.getInstance().readNote(loadNote));
+                                        noteEditor.setNoteText(loadNote, loadNote.getNoteFileContent());
                                     }
                                 }
                             }
@@ -1386,6 +1389,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                 filesInProgress.remove(fileName);
             });
         }
+        
+        return result;
     }
 
     public String getCurrentTimeStamp() {

@@ -227,7 +227,9 @@ public class OwnNoteDirectoryMonitor {
 
                             // calling all subscribers...
                             for (IFileChangeSubscriber subscriber : changeSubscribers) {
-                                subscriber.processFileChange(eventKind, filePath);
+                                if (!subscriber.processFileChange(eventKind, filePath)) {
+                                    break;
+                                }
                             }
                         }
                         key.reset();

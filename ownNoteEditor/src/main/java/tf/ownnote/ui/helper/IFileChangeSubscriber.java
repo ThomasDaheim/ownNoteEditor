@@ -11,8 +11,10 @@ import java.nio.file.WatchEvent;
 /**
  * Subscriber interface for file changes.
  * 
+ * Option to break propagation chain by returning FALSE.
+ * 
  * @author thomas
  */
 public interface IFileChangeSubscriber {
-    abstract void processFileChange(final WatchEvent.Kind<?> eventKind, final Path filePath);
+    abstract boolean processFileChange(final WatchEvent.Kind<?> eventKind, final Path filePath);
 }

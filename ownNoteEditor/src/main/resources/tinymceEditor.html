@@ -49,7 +49,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         </script>
 
         <link rel="stylesheet" type="text/css" href="editor.css">
-        <script src='./tinymce/jquery-3.3.1.slim.min.js'></script>
+        <script src='./tinymce/jquery-3.5.1.slim.min.js'></script>
         <script src='./tinymce/tinymce.min.js'></script>
         <script>
             var insertImageButton;
@@ -128,6 +128,11 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         editorCallback.saveNote();
                     },
                     setup: function (editor) {
+                        editor.on('Paste Change input Undo Redo', function (ed) {
+                            // this is want needs to be done if you want to track all changes
+                            // https://stackoverflow.com/a/49530340
+                            editorCallback.contentChanged(saveGetContent());
+                        });
                         //http://archive.tinymce.com/wiki.php/api4:class.tinymce.ContentEvent
                         editor.on('init', function (ed) { 
                             // support for check boxes and such...
@@ -141,6 +146,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                     $(el.target).removeAttr('checked');
                                 }
                                 var innerHTMLAfter = el.target.parentNode.innerHTML;
+                                // TODO: split the innerHTML - only the part after the $(el.target) is relevant
+                                // otherwise we can't handle the case of 2 checkboxes in one line
                                 editorCallback.checkBoxChanged(innerHTMLBefore, innerHTMLAfter);
                                 
                             });
@@ -202,9 +209,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             //console.log('Editor was initialized.');
                             editorCallback.initEditorDone();
                         });
-                        editor.on('change', function(ed) {
-                            //console.log('change event');
-                        });                        
                         editor.on('GetContent', function (ed) { 
                             //console.log('GetContent done.');
                         });
@@ -356,10 +360,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             
             function setCursorLocation(textPos, htmlText) {
                 //console.log('JavaScript: setCursorLocation start. ' + textPos + ', ' + htmlText);
-                //console.log(tinymce.activeEditor.getBody());
-                //console.log(tinymce.activeEditor.getContentAreaContainer());
+                //console.log(tinymce.dom.DomQuery(htmlText));
+                //console.log($(":contains('" + htmlText + "')"));
+                //console.log($(":contains('" + htmlText + "')").first());
+                //console.log($(":contains('" + htmlText + "')").first().parent());
+                //console.log($(":contains('" + htmlText + "')").first().parent().focus());
 
-                //tinymce.activeEditor.selection.setCursorLocation(tinymce.activeEditor.getContentAreaContainer(), textPos);
+                //tinymce.activeEditor.selection.setCursorLocation(tinymce.dom.DomQuery(htmlText));
             }
             
             function resizeEditor(myHeight) {

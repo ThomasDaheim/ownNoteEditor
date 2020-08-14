@@ -34,7 +34,17 @@ import java.util.Map;
  */
 public class NoteData extends HashMap<String,String> {
     // to reference the columns for notes table
-    private static final String[] notesMapKeys = { "noteName", "noteModified", "noteDelete", "groupName" };
+    private enum NoteMapKey {
+        noteName,
+        noteModified,
+        noteDelete,
+        groupName,
+        // TFE, 20200814: content as in file
+        // can be used for diff in FileContentChangeType event handling
+        noteFileContent,
+        // TFE, 20200814: content as in editor
+        noteEditorContent;
+    }
 
     public NoteData() {
         super();
@@ -45,7 +55,7 @@ public class NoteData extends HashMap<String,String> {
     }
     
     public static String getNoteDataName(final int i) {
-        return notesMapKeys[i];
+        return NoteMapKey.values()[i].name();
     }
     
     public static NoteData fromString(final String groupString) {
@@ -66,34 +76,50 @@ public class NoteData extends HashMap<String,String> {
     }
     
     public String getNoteName() {
-        return get(notesMapKeys[0]);
+        return get(NoteMapKey.noteName.name());
     }
 
     public void setNoteName(final String noteName) {
-        put(notesMapKeys[0], noteName);
+        put(NoteMapKey.noteName.name(), noteName);
     }
 
     public String getNoteModified() {
-        return get(notesMapKeys[1]);
+        return get(NoteMapKey.noteModified.name());
     }
 
     public void setNoteModified(final String noteModified) {
-        put(notesMapKeys[1], noteModified);
+        put(NoteMapKey.noteModified.name(), noteModified);
     }
 
     public String getNoteDelete() {
-        return get(notesMapKeys[2]);
+        return get(NoteMapKey.noteDelete.name());
     }
 
     public void setNoteDelete(final String noteDelete) {
-        put(notesMapKeys[2], noteDelete);
+        put(NoteMapKey.noteDelete.name(), noteDelete);
     }
 
     public String getGroupName() {
-        return get(notesMapKeys[3]);
+        return get(NoteMapKey.groupName.name());
     }
 
     public void setGroupName(final String groupName) {
-        put(notesMapKeys[3], groupName);
+        put(NoteMapKey.groupName.name(), groupName);
+    }
+
+    public String getNoteFileContent() {
+        return get(NoteMapKey.noteFileContent.name());
+    }
+
+    public void setNoteFileContent(final String content) {
+        put(NoteMapKey.noteFileContent.name(), content);
+    }
+
+    public String getNoteEditorContent() {
+        return get(NoteMapKey.noteEditorContent.name());
+    }
+
+    public void setNoteEditorContent(final String content) {
+        put(NoteMapKey.noteEditorContent.name(), content);
     }
 }

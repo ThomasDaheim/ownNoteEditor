@@ -6,10 +6,12 @@
 package tf.ownnote.ui.helper;
 
 /**
- * Subscriber interface for file changes.
+ * Subscriber interface for editor content changes.
+ * 
+ * Option to break propagation chain by returning FALSE.
  * 
  * @author thomas
  */
 public interface IFileContentChangeSubscriber {
-    abstract void processFileContentChange(final FileContentChangeType changeType, final NoteData note, final String oldContent, final String newContent);
+    abstract boolean processFileContentChange(final FileContentChangeType changeType, final NoteData note, final String oldContent, final String newContent);
 }
