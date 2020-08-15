@@ -7,9 +7,10 @@ package tf.ownnote.ui.tasks;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import org.apache.commons.text.StringEscapeUtils;
 import tf.ownnote.ui.helper.NoteData;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
@@ -21,7 +22,7 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  */
 public class TaskData {
     private final BooleanProperty isCompleted = new SimpleBooleanProperty();
-    private String myDescription;
+    private StringProperty myDescription = new SimpleStringProperty();
     private int myTextPos;
     
     private NoteData myNote = null;
@@ -72,10 +73,15 @@ public class TaskData {
             noteText = noteText.substring(OwnNoteEditor.UNCHECKED_BOXES.length());
         }
         
+        // end of the line is nice - but only if no other checkbox in the line...
+        if (noteText.contains(OwnNoteEditor.ANY_BOXES)) {
+            noteText = noteText.substring(0, noteText.indexOf(OwnNoteEditor.ANY_BOXES));
+        }
+        
         // TFE, 20191211: remove html tags BUT convert </p> to </p> + line break
         noteText = noteText.replaceAll("\\<.*?\\>", "");
         // convert all &uml; back to &
-        myDescription = StringEscapeUtils.unescapeHtml4(noteText);
+        myDescription.setValue(StringEscapeUtils.unescapeHtml4(noteText));
     }
     
     public BooleanProperty isCompletedProperty() {
@@ -90,12 +96,16 @@ public class TaskData {
         isCompleted.setValue(complete);
     }
     
-    public String getDescription() {
+    public StringProperty descriptionProperty() {
         return myDescription;
     }
     
+    public String getDescription() {
+        return myDescription.getValue();
+    }
+    
     public void setDescription(final String desc) {
-        myDescription = desc;
+        myDescription.setValue(desc);
     }
     
     public String getHtmlText() {

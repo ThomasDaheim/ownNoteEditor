@@ -242,6 +242,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 
     final CheckBox noteFilterCheck = new CheckBox();
     final CheckBox taskFilterCheck = new CheckBox();
+    @FXML
+    private RadioMenuItem showTaskList;
+    @FXML
+    private HBox taskFilerBox;
 
     public OwnNoteEditor() {
     }
@@ -350,28 +354,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     @SuppressWarnings("unchecked")
     private void initEditor() {
         // init menu handling
-        // 1. select entry based on value of currentLookAndFeel
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-            classicLookAndFeel.setSelected(true);
-        } else {
-            oneNoteLookAndFeel.setSelected(true);
-        }
-        // 2. add listener to track changes of layout - only after setting it initially
-        classicLookAndFeel.getToggleGroup().selectedToggleProperty().addListener(
-            (ObservableValue<? extends Toggle> arg0, Toggle arg1, Toggle arg2) -> {
-                // when starting up things might not be initialized properly
-                if (arg2 != null) {
-                    assert (arg2 instanceof RadioMenuItem);
-
-                    // store in the preferences
-                    if (((RadioMenuItem) arg2).equals(classicLookAndFeel)) {
-                        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name());
-                    } else {
-                        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.oneNote.name());
-                    }
-                }
-            });
-        
         initMenus();
         
         // init our wrappers to FXML classes...
@@ -771,8 +753,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             if (newValue != null) {
                 // change later to avoid loop calls when resizing scene
                 Platform.runLater(() -> {
-                    // needs to take 3 column into account
-                    dividerPane.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth() / (100d - taskListWidth));
+                    // needs to take 3 column into account - if shown
+                    dividerPane.setDividerPosition(0, 
+                            gridPane.getColumnConstraints().get(0).getPercentWidth() / (100d - gridPane.getColumnConstraints().get(2).getPercentWidth()));
                 });
             }
         });
@@ -782,10 +765,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             if (newValue != null) {
                 // change later to avoid loop calls when resizing scene
                 Platform.runLater(() -> {
-                    // needs to take 3 column into account
-                    final double newPercentage = newValue.doubleValue() * (100d - taskListWidth);
+                    // needs to take 3 column into account - if shown
+                    final double newPercentage = 
+                            newValue.doubleValue() * (100d - gridPane.getColumnConstraints().get(2).getPercentWidth());
                     gridPane.getColumnConstraints().get(0).setPercentWidth(newPercentage);
-                    gridPane.getColumnConstraints().get(1).setPercentWidth((100d - taskListWidth) - newPercentage);
+                    gridPane.getColumnConstraints().get(1).setPercentWidth((100d - gridPane.getColumnConstraints().get(2).getPercentWidth()) - newPercentage);
                 });
             }
         });
@@ -809,6 +793,57 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     }
     
     private void initMenus() {
+        showTaskList.setSelected(true);
+        showTaskList.selectedProperty().addListener((ov, oldValue, newValue) -> {
+            if (newValue != null) {
+                if (newValue) {
+                    // switch on controls
+                    taskFilerBox.setVisible(true);
+                    taskFilerBox.setDisable(false);
+                    taskList.setVisible(true);
+                    taskList.setDisable(false);
+                    
+                    // show third row gridpane
+                    final double secondWidth = gridPane.getColumnConstraints().get(1).getPercentWidth();
+                    gridPane.getColumnConstraints().get(1).setPercentWidth(secondWidth - taskListWidth);
+                    gridPane.getColumnConstraints().get(2).setPercentWidth(taskListWidth);
+                } else {
+                    // switch off controls
+                    taskFilerBox.setVisible(false);
+                    taskFilerBox.setDisable(true);
+                    taskList.setVisible(false);
+                    taskList.setDisable(true);
+                    
+                    // hide third row gridpane
+                    gridPane.getColumnConstraints().get(2).setPercentWidth(0.0);
+                    final double secondWidth = gridPane.getColumnConstraints().get(1).getPercentWidth();
+                    gridPane.getColumnConstraints().get(1).setPercentWidth(secondWidth + taskListWidth);
+                }
+            }
+        });
+        
+        // select entry based on value of currentLookAndFeel
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
+            classicLookAndFeel.setSelected(true);
+        } else {
+            oneNoteLookAndFeel.setSelected(true);
+        }
+        // 2. add listener to track changes of layout - only after setting it initially
+        classicLookAndFeel.getToggleGroup().selectedToggleProperty().addListener(
+            (ObservableValue<? extends Toggle> arg0, Toggle arg1, Toggle arg2) -> {
+                // when starting up things might not be initialized properly
+                if (arg2 != null) {
+                    assert (arg2 instanceof RadioMenuItem);
+
+                    // store in the preferences
+                    if (((RadioMenuItem) arg2).equals(classicLookAndFeel)) {
+                        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name());
+                    } else {
+                        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.oneNote.name());
+                    }
+                }
+            });
+        
         // add changelistener to pathlabel - not that you should actually change its value during runtime...
         ownCloudPath.textProperty().addListener(
             (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {

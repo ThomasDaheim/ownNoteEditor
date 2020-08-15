@@ -129,7 +129,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
 
     @Override
     public boolean processFileContentChange(final FileContentChangeType changeType, final NoteData note, final String oldContent, final String newContent) {
-//        System.out.println("processFileContentChange: " + changeType + ", " + note + ", " + oldContent + ", " + newContent.substring(0, 20));
+//        System.out.println("processFileContentChange: " + changeType + ", " + note.getNoteName() + ", " + oldContent + ", " + newContent + ".");
 
         inFileChange = true;
         if (FileContentChangeType.CONTENT_CHANGED.equals(changeType)) {
@@ -178,49 +178,50 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             taskList.removeAll(oldTasks);
             taskList.addAll(newTasks);
         } else {
-            // nothing to do - FileContentChangeType.CONTENT_CHANGED covers all
-//            // checkbox might not be start of innerHtml, whereas TaskData description is only the part after checkbox...
-//            // FFFFUUUUCCCCKKKK innerHtml sends back <input type="checkbox" checked="checked"> instead of correct <input type="checkbox" checked="checked" />
-//            String oldDescription = null;
-//            int checkIndex = oldContent.indexOf(OwnNoteEditor.WRONG_UNCHECKED_BOXES);
-//            if (checkIndex > -1) {
-//                oldDescription = StringEscapeUtils.unescapeHtml4(oldContent.substring(checkIndex + OwnNoteEditor.WRONG_UNCHECKED_BOXES.length()));
-//            }
-//            checkIndex = oldContent.indexOf(OwnNoteEditor.WRONG_CHECKED_BOXES);
-//            if (checkIndex > -1) {
-//                oldDescription = StringEscapeUtils.unescapeHtml4(oldContent.substring(checkIndex + OwnNoteEditor.WRONG_CHECKED_BOXES.length()));
-//            }
-//            if (oldDescription == null) {
-//                System.out.println("Something went wrong with task completion change!" + note + ", " + oldContent + ", " + newContent);
-//                return;
-//            }
-//            Boolean newCompleted = null;
-//            if (newContent.contains(OwnNoteEditor.WRONG_UNCHECKED_BOXES)) {
-//                newCompleted = false;
-//            } else if (newContent.contains(OwnNoteEditor.WRONG_CHECKED_BOXES)) {
-//                newCompleted = true;
-//            }
-//            if (newCompleted == null) {
-//                System.out.println("Something went wrong with task completion change!" + note + ", " + oldContent + ", " + newContent);
-//                return;
-//            }
-//
-//            TaskData changedTask = null;
-//            for (TaskData task : taskList) {
-//                if (task.getNoteData().equals(note) && task.getDescription().equals(oldDescription)) {
-//                    changedTask = task;
-//                    break;
-//                }
-//            }
-//
-//            if (changedTask != null) {
-//                // checkbox must have changed
-//                if (changedTask.isCompleted() && !newCompleted) {
-//                    changedTask.setCompleted(false);
-//                } else if (!changedTask.isCompleted() && newCompleted) {
-//                    changedTask.setCompleted(true);
-//                }
-//            }
+            // TRICKY - FileContentChangeType.CONTENT_CHANGED runs before the $(editor.getBody()).on("change", ":checkbox", function(el) is called,
+            // so we still have the old content in a click on checkbox event
+            // checkbox might not be start of innerHtml, whereas TaskData description is only the part after checkbox...
+            // FFFFUUUUCCCCKKKK innerHtml sends back <input type="checkbox" checked="checked"> instead of correct <input type="checkbox" checked="checked" />
+            String oldDescription = null;
+            int checkIndex = oldContent.indexOf(OwnNoteEditor.WRONG_UNCHECKED_BOXES);
+            if (checkIndex > -1) {
+                oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.WRONG_UNCHECKED_BOXES.length());
+            }
+            checkIndex = oldContent.indexOf(OwnNoteEditor.WRONG_CHECKED_BOXES);
+            if (checkIndex > -1) {
+                oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.WRONG_CHECKED_BOXES.length());
+            }
+            if (oldDescription == null) {
+                System.out.println("Something went wrong with task completion change!" + note + ", " + oldContent + ", " + newContent);
+                return true;
+            }
+            Boolean newCompleted = null;
+            if (newContent.contains(OwnNoteEditor.WRONG_UNCHECKED_BOXES)) {
+                newCompleted = false;
+            } else if (newContent.contains(OwnNoteEditor.WRONG_CHECKED_BOXES)) {
+                newCompleted = true;
+            }
+            if (newCompleted == null) {
+                System.out.println("Something went wrong with task completion change!" + note + ", " + oldContent + ", " + newContent);
+                return true;
+            }
+
+            TaskData changedTask = null;
+            for (TaskData task : taskList) {
+                if (task.getNoteData().equals(note) && task.getDescription().equals(oldDescription)) {
+                    changedTask = task;
+                    break;
+                }
+            }
+
+            if (changedTask != null) {
+                // checkbox must have changed
+                if (changedTask.isCompleted() && !newCompleted) {
+                    changedTask.setCompleted(false);
+                } else if (!changedTask.isCompleted() && newCompleted) {
+                    changedTask.setCompleted(true);
+                }
+            }
         }
             
         inFileChange = false;

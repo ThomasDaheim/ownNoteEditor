@@ -112,7 +112,6 @@ public class OwnNoteHTMLEditor {
     private OwnNoteEditor myEditor= null;
     
     private NoteData editorNote;
-    private String editorText = "";
     
     // defy garbage collection of callback functions
     // https://stackoverflow.com/a/41908133
@@ -647,7 +646,6 @@ public class OwnNoteHTMLEditor {
         if (editorNote != null) {
             editorNote.setNoteEditorContent(text);
         }
-        editorText = text;
     }
     private String replaceForEditor(final String text) {
         String result = text;
@@ -670,8 +668,7 @@ public class OwnNoteHTMLEditor {
     }
 
     public String getNoteText() {
-        editorText = readNoteText();
-        return editorText;
+        return readNoteText();
     }
 
     private String readNoteText() {
@@ -684,6 +681,10 @@ public class OwnNoteHTMLEditor {
             newEditorText = (String) dummy;
 
             //System.out.println("readEditorText " + newEditorText);
+            
+            if (editorNote != null) {
+                editorNote.setNoteEditorContent(newEditorText);
+            }
         }
 
         return newEditorText;
@@ -696,23 +697,10 @@ public class OwnNoteHTMLEditor {
         if (setContentDone) {
             final String newEditorText = readNoteText();
 
-            if (editorText == null) {
+            if (editorNote == null || editorNote.getNoteFileContent() == null) {
                 result = (newEditorText != null);
             } else {
-                result = !editorText.equals(newEditorText);
-                // System.out.println("================");
-                // System.out.println(editorText);
-                // System.out.println("================");
-                // System.out.println(newEditorText);
-                // System.out.println("================");
-                // System.out.println(result);
-                // System.out.println("================");
-                // System.out.println("");
-                
-                //if (result) {
-                //    System.out.println("editorText: " + editorText);
-                //    System.out.println("newEditorText: " + newEditorText);
-                //}
+                result = !editorNote.getNoteFileContent().equals(newEditorText);
             }
         }
         
@@ -853,7 +841,7 @@ public class OwnNoteHTMLEditor {
         }
         
         public void checkBoxChanged(final String htmlBefore, final String htmlAfter) {
-            myself.checkBoxChanged(htmlBefore, htmlAfter);
+            myself.checkBoxChanged(StringEscapeUtils.unescapeHtml4(htmlBefore), StringEscapeUtils.unescapeHtml4(htmlAfter));
         }
         
         public void contentChanged(final String newContent) {

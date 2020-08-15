@@ -119,7 +119,7 @@
                   <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                </padding>
             </HBox>
-            <HBox prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="2">
+            <HBox fx:id="taskFilerBox" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="2">
                <children>
                   <Label fx:id="taskFilterMode" minWidth="65.0" prefHeight="17.0" prefWidth="160.0" styleClass="noteFilterMode" text="Show completed tasks">
                      <HBox.margin>
@@ -144,6 +144,7 @@
          <menus>
             <Menu mnemonicParsing="false" text="Preferences">
               <items>
+                  <RadioMenuItem fx:id="showTaskList" mnemonicParsing="false" text="Show Taskllist" />
                   <CustomMenuItem mnemonicParsing="false" text="Notes Path">
                      <content>
                         <HBox alignment="CENTER_LEFT" prefWidth="400.0" spacing="10.0" styleClass="pathBox">

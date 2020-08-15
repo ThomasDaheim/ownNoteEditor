@@ -79,7 +79,8 @@ public class TaskList {
     public void populateTaskList() {
         // be able to react to changes of isCompleted in tasks
         // https://stackoverflow.com/a/30915760
-        final ObservableList<TaskData> items = FXCollections.observableArrayList(item -> new Observable[] {item.isCompletedProperty()});
+        final ObservableList<TaskData> items = 
+                FXCollections.observableArrayList(item -> new Observable[] {item.isCompletedProperty(), item.descriptionProperty()});
         items.addAll(TaskManager.getInstance().getTaskList());
         
         // wrap the ObservableList in a FilteredList (initially display all data).
@@ -118,5 +119,13 @@ public class TaskList {
         
         // trigger refresh of filtered list - is there any better way???
         setFilterPredicate();
+    }
+    
+    public void setDisable(final boolean value) {
+        myTaskList.setDisable(value);
+    }
+    
+    public void setVisible(final boolean value) {
+        myTaskList.setVisible(value);
     }
 }

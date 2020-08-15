@@ -57,6 +57,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             var printNoteButton;
             var saveNoteButton;
             var emptyRegExp = new RegExp('<p>&nbsp;</p>', 'g');
+            var anyBoxes = '<input type=\"checkbox\"';
             
             // TFE, 20200711: tinyMCE manages an own clipboard. Once something has been copied in tinyMCE the system clipboard is ignored during paste...
             // https://stackoverrun.com/de/q/9359780#39265109
@@ -128,11 +129,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         editorCallback.saveNote();
                     },
                     setup: function (editor) {
-                        editor.on('Paste Change input Undo Redo', function (ed) {
-                            // this is want needs to be done if you want to track all changes
-                            // https://stackoverflow.com/a/49530340
-                            editorCallback.contentChanged(saveGetContent());
-                        });
                         //http://archive.tinymce.com/wiki.php/api4:class.tinymce.ContentEvent
                         editor.on('init', function (ed) { 
                             // support for check boxes and such...
@@ -146,9 +142,15 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                     $(el.target).removeAttr('checked');
                                 }
                                 var innerHTMLAfter = el.target.parentNode.innerHTML;
-                                // TODO: split the innerHTML - only the part after the $(el.target) is relevant
-                                // otherwise we can't handle the case of 2 checkboxes in one line
-                                editorCallback.checkBoxChanged(innerHTMLBefore, innerHTMLAfter);
+                                
+                                // reduce html text to changed checkbox + text
+                                var innerBoxesBefore = innerHTMLBefore.split(anyBoxes);
+                                var innerBoxesAfter = innerHTMLAfter.split(anyBoxes);
+                                var boxBefore = anyBoxes + $(innerBoxesBefore).not(innerBoxesAfter).get();
+                                var boxAfter = anyBoxes + $(innerBoxesAfter).not(innerBoxesBefore).get();
+                                
+                                //console.log('editorCallback.checkBoxChanged coming up: ' + boxBefore + ", " + boxAfter + ".");
+                                editorCallback.checkBoxChanged(boxBefore, boxAfter);
                                 
                             });
                             // Radiobuttons
@@ -209,9 +211,17 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             //console.log('Editor was initialized.');
                             editorCallback.initEditorDone();
                         });
+
+                        editor.on('Paste Change input Undo Redo', function (ed) {
+                            // this is want needs to be done if you want to track all changes
+                            // https://stackoverflow.com/a/49530340
+                            editorCallback.contentChanged(saveGetContent());
+                        });
+                        
                         editor.on('GetContent', function (ed) { 
                             //console.log('GetContent done.');
                         });
+                        
                         editor.on('SetContent', function (ed) { 
                             // console.log('SetContent done.');
                             // try {
@@ -227,6 +237,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             editorCallback.setContentDone(); 
                             //console.log('JavaScript: SetContent done.');
                         });
+                        
                         editor.addButton('insertImage', {
                             image: "insertimage.png",
                             tooltip: "Upload image",
@@ -237,6 +248,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                 //console.log('JavaScript: insertImage done.');
                             }
                         });
+                        
                         editor.addButton('insertCheckBox', {
                             image: "insertcheckbox.png",
                             tooltip: "Insert CheckBox",
@@ -247,6 +259,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                 //console.log('JavaScript: insertCheckBox done.');
                             }
                         });
+                        
                         editor.addButton('printNote', {
                             icon: 'print',
                             tooltip: "Print note",
@@ -257,6 +270,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                 //console.log('JavaScript: printNote done.');
                             }
                         });
+                        
                         editor.addButton('saveNote', {
                             icon: 'save',
                             tooltip: "Save note",
