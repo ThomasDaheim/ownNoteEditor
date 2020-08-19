@@ -57,7 +57,11 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             var printNoteButton;
             var saveNoteButton;
             var emptyRegExp = new RegExp('<p>&nbsp;</p>', 'g');
-            var anyBoxes = '<input type=\"checkbox\"';
+            var ANY_BOXES = '<input type=\"checkbox\"';
+            var UNCHECKED_BOXES = '<input type=\"checkbox\" />';
+            var CHECKED_BOXES = '<input type=\"checkbox\" checked=\"checked\" />';
+            var WRONG_UNCHECKED_BOXES = '<input type=\"checkbox\">';
+            var WRONG_CHECKED_BOXES = '<input type=\"checkbox\" checked=\"checked\">';
             
             // TFE, 20200711: tinyMCE manages an own clipboard. Once something has been copied in tinyMCE the system clipboard is ignored during paste...
             // https://stackoverrun.com/de/q/9359780#39265109
@@ -144,10 +148,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                 var innerHTMLAfter = el.target.parentNode.innerHTML;
                                 
                                 // reduce html text to changed checkbox + text
-                                var innerBoxesBefore = innerHTMLBefore.split(anyBoxes);
-                                var innerBoxesAfter = innerHTMLAfter.split(anyBoxes);
-                                var boxBefore = anyBoxes + $(innerBoxesBefore).not(innerBoxesAfter).get();
-                                var boxAfter = anyBoxes + $(innerBoxesAfter).not(innerBoxesBefore).get();
+                                var innerBoxesBefore = innerHTMLBefore.split(ANY_BOXES);
+                                var innerBoxesAfter = innerHTMLAfter.split(ANY_BOXES);
+                                var boxBefore = ANY_BOXES + $(innerBoxesBefore).not(innerBoxesAfter).get();
+                                var boxAfter = ANY_BOXES + $(innerBoxesAfter).not(innerBoxesBefore).get();
                                 
                                 //console.log('editorCallback.checkBoxChanged coming up: ' + boxBefore + ", " + boxAfter + ".");
                                 editorCallback.checkBoxChanged(boxBefore, boxAfter);
@@ -256,6 +260,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             onclick: function () {
                                 //console.log('JavaScript: insertCheckBox was clicked.');
                                 tinymce.activeEditor.execCommand("mceInsertContent", false, "<input type='checkbox'>");
+                                // go, tell it to the mountains... above doesn't trigger change, ...
+                                editorCallback.contentChanged(saveGetContent());
                                 //console.log('JavaScript: insertCheckBox done.');
                             }
                         });
@@ -372,15 +378,58 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 return content;
             }
             
-            function setCursorLocation(textPos, htmlText) {
-                //console.log('JavaScript: setCursorLocation start. ' + textPos + ', ' + htmlText);
-                //console.log(tinymce.dom.DomQuery(htmlText));
-                //console.log($(":contains('" + htmlText + "')"));
-                //console.log($(":contains('" + htmlText + "')").first());
-                //console.log($(":contains('" + htmlText + "')").first().parent());
-                //console.log($(":contains('" + htmlText + "')").first().parent().focus());
+            function scrollToCheckBox(textPos, htmlText) {
+                console.log('JavaScript: scrollToCheckBox start. ' + textPos + ', ' + htmlText);
+                var checkbox = findCheckBox(textPos, htmlText);
+                
+                if (checkbox) {
+                    console.log('checkbox found');
+                    tinymce.activeEditor.selection.setCursorLocation(checkbox);
+                }
 
-                //tinymce.activeEditor.selection.setCursorLocation(tinymce.dom.DomQuery(htmlText));
+            }
+            
+            function toggleCheckBox(textPos, htmlText, newStatus) {
+                console.log('JavaScript: toggleCheckBox start. ' + textPos + ', ' + htmlText + ', ' + newStatus);
+                
+                var checkbox = findCheckBox(textPos, htmlText);
+                
+                if (checkbox) {
+                    console.log('checkbox found');
+                    checkbox.checked = newStatus;
+                }
+            }
+            
+            function findCheckBox(textPos, htmlText) {
+                var checkbox;
+                
+                // iterate over checkboxes to find the one with text following
+                // needs to be done the other way around! find text node with content and change previous content result
+                $(tinymce.activeEditor.getBody()).find(':checkbox').each(function() {
+                    var checkboxFound = false;
+                    $(this).parent().contents().each(function() {
+                        // check text nodes only
+                        if (this.nodeType === 3) {
+                            //console.log('  CONTENTS.text: ' + this.nodeValue);
+                            if (this.nodeValue == htmlText) {
+                                checkboxFound = true;
+                                
+                                // done, end loop prematurely
+                                return false;
+                            }
+                        }
+                        checkbox = this;
+                    });
+                    
+                    if (checkboxFound && checkbox) {
+                        checkbox.checked = newStatus;
+
+                        // done, end loop prematurely
+                        return false;
+                    }
+                });
+                
+                return checkbox;
             }
             
             function resizeEditor(myHeight) {

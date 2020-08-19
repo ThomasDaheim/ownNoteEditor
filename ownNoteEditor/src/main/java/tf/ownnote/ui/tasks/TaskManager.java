@@ -108,7 +108,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         }
         
         // you can use but not change
-        return FXCollections.unmodifiableObservableList(taskList);
+        return taskList;
     }
     
     public void resetTaskList() {
@@ -117,6 +117,10 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
 
     @Override
     public boolean processFileChange(WatchEvent.Kind<?> eventKind, Path filePath) {
+        if (inFileChange) {
+            return true;
+        }
+
         inFileChange = true;
         // TODO: fill with life and react to the various possibilites of changes:
         // 1) file with tasks deleted -> remove tasks from own list
@@ -130,6 +134,9 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     @Override
     public boolean processFileContentChange(final FileContentChangeType changeType, final NoteData note, final String oldContent, final String newContent) {
 //        System.out.println("processFileContentChange: " + changeType + ", " + note.getNoteName() + ", " + oldContent + ", " + newContent + ".");
+        if (inFileChange) {
+            return true;
+        }
 
         inFileChange = true;
         if (FileContentChangeType.CONTENT_CHANGED.equals(changeType)) {
@@ -166,7 +173,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 
                 if (oldnew.isPresent()) {
                     oldnew.get().setCompleted(newTask.isCompleted());
-                    oldnew.get().setDescription(newTask.getDescription());
+                    oldnew.get().setHtmlText(newTask.getHtmlText());
                     
                     // nothing more to be done here
                     newTasks.remove(newTask);
@@ -234,7 +241,12 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             return;
         }
         
-        System.out.println("processTaskCompletedChanged for: " + task);
+        inFileChange = true;
+
+//        System.out.println("processTaskCompletedChanged for: " + task);
+        myEditor.selectNoteAndToggleCheckBox(task.getNoteData(), task.getTextPos(), task.getHtmlText(), task.isCompleted());
+
+        inFileChange = false;
     }
     
     public boolean inFileChange() {

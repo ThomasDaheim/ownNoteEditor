@@ -81,7 +81,6 @@ public class OwnNoteTabPane implements IGroupListContainer {
         initTabPane();
     }
 
-    @SuppressWarnings("unchecked")
     private void initTabPane() {
         // drop down menu doesn't update when renaming tabs - would need to implement own TabPaneSkin :-(
         // https://stackoverflow.com/questions/31734292/show-some-tabs-ahead-from-selected-tab-in-a-javafx-8-tabpane-header
@@ -314,7 +313,6 @@ public class OwnNoteTabPane implements IGroupListContainer {
         return groupColor;
     }
     
-    @SuppressWarnings("unchecked")
     private void initNameField() {
         // TFE, 20191208: check for valid file names!
         FormatHelper.getInstance().initNameTextField(nameField);
@@ -375,7 +373,6 @@ public class OwnNoteTabPane implements IGroupListContainer {
         
     }
 
-    @SuppressWarnings("unchecked")
     private void initContextMenu() {
         newGroup1.setOnAction((ActionEvent event) -> {
             OwnNoteTab addedTab = addNewTab();

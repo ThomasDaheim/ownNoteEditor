@@ -43,6 +43,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.util.StringConverter;
+import tf.helper.general.ObjectsHelper;
 
 /**
  * Copy of CellUtils from openjdk/jfx to make access public...
@@ -91,18 +92,16 @@ public class CellUtils {
      * Simple method to provide a StringConverter implementation in various cell
      * implementations.
      */
-    @SuppressWarnings("unchecked")
     public static <T> StringConverter<T> defaultStringConverter() {
-        return (StringConverter<T>) defaultStringConverter;
+        return ObjectsHelper.uncheckedCast(defaultStringConverter);
     }
 
     /*
      * Simple method to provide a TreeItem-specific StringConverter
      * implementation in various cell implementations.
      */
-    @SuppressWarnings("unchecked")
     public static <T> StringConverter<TreeItem<T>> defaultTreeItemStringConverter() {
-        return (StringConverter<TreeItem<T>>) defaultTreeItemStringConverter;
+        return ObjectsHelper.uncheckedCast(defaultTreeItemStringConverter);
     }
 
     private static <T> String getItemText(Cell<T> cell, StringConverter<T> converter) {

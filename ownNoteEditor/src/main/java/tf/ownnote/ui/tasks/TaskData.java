@@ -23,6 +23,7 @@ import tf.ownnote.ui.main.OwnNoteEditor;
 public class TaskData {
     private final BooleanProperty isCompleted = new SimpleBooleanProperty();
     private StringProperty myDescription = new SimpleStringProperty();
+    private String myHtmlText;
     private int myTextPos;
     
     private NoteData myNote = null;
@@ -80,8 +81,11 @@ public class TaskData {
         
         // TFE, 20191211: remove html tags BUT convert </p> to </p> + line break
         noteText = noteText.replaceAll("\\<.*?\\>", "");
+
+        // html text is the "raw" thing
+        myHtmlText = noteText;
         // convert all &uml; back to &
-        myDescription.setValue(StringEscapeUtils.unescapeHtml4(noteText));
+        myDescription.setValue(StringEscapeUtils.unescapeHtml4(myHtmlText));
     }
     
     public BooleanProperty isCompletedProperty() {
@@ -104,15 +108,21 @@ public class TaskData {
         return myDescription.getValue();
     }
     
-    public void setDescription(final String desc) {
-        myDescription.setValue(desc);
+    public String getHtmlText() {
+        return myHtmlText;
     }
     
-    public String getHtmlText() {
+    public void setHtmlText(final String desc) {
+        myHtmlText = desc;
+        
+        myDescription.setValue(StringEscapeUtils.unescapeHtml4(myHtmlText));
+    }
+    
+    public String getFullTaskText() {
         if (isCompleted()) {
-            return OwnNoteEditor.CHECKED_BOXES + myDescription;
+            return OwnNoteEditor.CHECKED_BOXES + myHtmlText;
         } else {
-            return OwnNoteEditor.UNCHECKED_BOXES + myDescription;
+            return OwnNoteEditor.UNCHECKED_BOXES + myHtmlText;
         }
     }
     

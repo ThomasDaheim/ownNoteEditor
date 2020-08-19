@@ -152,7 +152,6 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     }
 
     @Before
-    @SuppressWarnings("unchecked")
     public void getNodes() {
         System.out.println("running getNodes()");
 
@@ -191,7 +190,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         release(new MouseButton[] {});
 
         // delete temp directory + files
-        FileUtils.deleteDirectory(testpath.toFile());
+        //FileUtils.deleteDirectory(testpath.toFile());
         
         // set look & feel to old value
         if (currentLookAndFeel != null) {
@@ -287,7 +286,6 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         assertNotNull(noteFilterCheck);
     }
     
-    @SuppressWarnings("unchecked")
     private void testInitialSetup() {
         System.out.println("running testInitialSetup()");
 
@@ -313,7 +311,6 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     }
 
     
-    @SuppressWarnings("unchecked")
     private void testAddDeleteNote() {
         System.out.println("running testAddDeleteNote()");
 
@@ -347,7 +344,6 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         assertTrue("Check new notes count", (notesTableFXML.getItems().size() == myTestdata.getNotesList().size()));
     }
     
-    @SuppressWarnings("unchecked")
     private void testRenameNote() {
         System.out.println("running testRenameNote()");
 
@@ -415,7 +411,6 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         assertTrue("Check renamed note label", renamedNote.getNoteName().startsWith("test1"));
     }
     
-    @SuppressWarnings("unchecked")
     private void testDragNote() {
         System.out.println("running testDragNote()");
 
@@ -493,7 +488,6 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         testTab(4, "Test3", myTestdata.getNotesCountForGroup("Test3"));
    }
     
-    @SuppressWarnings("unchecked")
     private void testGroups() {
         System.out.println("running testGroups()");
 
@@ -533,7 +527,6 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     }
 
     
-    @SuppressWarnings("unchecked")
     private void testNotesFilter() {
         System.out.println("running testNotesFilter()");
 
@@ -586,7 +579,6 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         testTab(0, GroupData.ALL_GROUPS, 1);
     }
     
-    @SuppressWarnings("unchecked")
     private void testFileSystemChange() {
         System.out.println("running testFileSystemChange()");
 

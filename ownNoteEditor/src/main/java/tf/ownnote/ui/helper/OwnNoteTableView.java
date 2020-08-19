@@ -183,7 +183,6 @@ public class OwnNoteTableView implements IGroupListContainer {
         myTableView.getSelectionModel().select(noteData);
     }
 
-    @SuppressWarnings("unchecked")
     private void initTableView() {
         myTableView.setPlaceholder(new Text(""));
         myTableView.getSelectionModel().setCellSelectionEnabled(false);
@@ -350,7 +349,6 @@ public class OwnNoteTableView implements IGroupListContainer {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private void createNoteWrapper(final String newGroupName, final String newNoteName) {
         assert (TableType.notesTable.equals(myTableType));
         

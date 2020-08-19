@@ -37,6 +37,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import tf.helper.general.ObjectsHelper;
 
 /**
  *
@@ -189,7 +190,6 @@ public class OwnNoteDirectoryMonitor {
          * watchers queue.
          */
         @Override
-        @SuppressWarnings("unchecked")
         public void run() {
             WatchKey key = null;
             while(running) {
@@ -215,7 +215,7 @@ public class OwnNoteDirectoryMonitor {
                     if (key != null) {
                         // we have a polled event, now we traverse it and
                         // receive all the states from it
-                        for (WatchEvent event : key.pollEvents()) {
+                        for (WatchEvent<?> event : key.pollEvents()) {
                             // System.out.printf("Time %s: Received %s event for file: %s\n",
                             //          myEditor.getCurrentTimeStamp(), event.kind(), event.context() );
 
@@ -223,7 +223,7 @@ public class OwnNoteDirectoryMonitor {
                             if (eventKind == StandardWatchEventKinds.OVERFLOW) {
                                 continue;
                             }
-                            final Path filePath = ((WatchEvent<Path>) event).context();
+                            final Path filePath = ObjectsHelper.uncheckedCast(event.context());
 
                             // calling all subscribers...
                             for (IFileChangeSubscriber subscriber : changeSubscribers) {

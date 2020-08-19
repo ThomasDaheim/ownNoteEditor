@@ -10,6 +10,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener.Change;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.scene.control.ListView;
 import javafx.scene.control.cell.CheckBoxListCell;
 import javafx.util.StringConverter;
@@ -66,7 +67,7 @@ public class TaskList {
             if (newSelection != null && !newSelection.equals(oldSelection)) {
                 if (!TaskManager.getInstance().inFileChange()) {
                     // select group and note
-                    myEditor.selectNoteAndPosition(newSelection.getNoteData(), newSelection.getTextPos(), newSelection.getHtmlText());
+                    myEditor.selectNoteAndCheckBox(newSelection.getNoteData(), newSelection.getTextPos(), newSelection.getHtmlText());
                 } else {
                     // tricky, we have lost the item in the list because the checkbox was clicked...
                     // we don't want to change the selection to avoid closing of file in tinymce.
@@ -81,15 +82,7 @@ public class TaskList {
         // https://stackoverflow.com/a/30915760
         final ObservableList<TaskData> items = 
                 FXCollections.observableArrayList(item -> new Observable[] {item.isCompletedProperty(), item.descriptionProperty()});
-        items.addAll(TaskManager.getInstance().getTaskList());
-        
-        // wrap the ObservableList in a FilteredList (initially display all data).
-        filteredData = new FilteredList<>(items);
-        setFilterPredicate();
-        
-        myTaskList.setItems(null);
-        myTaskList.layout();
-        myTaskList.setItems(filteredData);
+        items.setAll(TaskManager.getInstance().getTaskList());
         
         // add listener to items to get notified of any changes to completed property
         items.addListener((Change<? extends TaskData> c) -> {
@@ -101,6 +94,47 @@ public class TaskList {
                 }
             }
         });
+
+        // items list doesn't receive change events for add & remove - need to attach separate listener to root list
+        TaskManager.getInstance().getTaskList().addListener((Change<? extends TaskData> c) -> {
+            while (c.next()) {
+                if (c.wasAdded()) {
+                    items.setAll(TaskManager.getInstance().getTaskList());
+                }
+                if (c.wasRemoved()) {
+                    items.setAll(TaskManager.getInstance().getTaskList());
+                }
+            }
+        });
+
+        // wrap the ObservableList in a FilteredList (initially display all data).
+        filteredData = new FilteredList<>(items);
+        setFilterPredicate();
+        
+        // add sorting by notename & textpos to have tasks grouped together
+        SortedList<TaskData> sortedData = new SortedList<>(filteredData);
+        sortedData.setComparator((o1, o2) -> {
+            if (o1 == o2) {
+                return 0;
+            }
+            if (o1 == null) {
+                return -1;
+            }
+            if (o2 == null) {
+                return 1;
+            }
+            // compare note names
+            int result = o1.getNoteData().getNoteName().compareTo(o2.getNoteData().getNoteName());
+            if (result == 0) {
+                // sort by textpos for same note
+                result = o1.getTextPos() - o2.getTextPos();
+            }
+            return result;
+        });
+        
+        myTaskList.setItems(null);
+        myTaskList.layout();
+        myTaskList.setItems(sortedData);
     }
     
     private void setFilterPredicate() {

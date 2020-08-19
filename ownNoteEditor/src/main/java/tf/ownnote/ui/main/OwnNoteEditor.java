@@ -86,6 +86,7 @@ import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
+import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AboutMenu;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.GroupData;
@@ -351,7 +352,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     // are added to the fxml into the gridpane - code below does the re-arrangement based on 
     // value of currentLookAndFeel
     //
-    @SuppressWarnings("unchecked")
     private void initEditor() {
         // init menu handling
         initMenus();
@@ -455,7 +455,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             // in case the group name changes notes neeed to be renamed
             groupNameCol.setOnEditCommit((CellEditEvent<Map, String> t) -> {
                 final GroupData curEntry =
-                        new GroupData((Map<String, String>) t.getTableView().getItems().get(t.getTablePosition().getRow()));
+                        new GroupData(ObjectsHelper.uncheckedCast(t.getTableView().getItems().get(t.getTablePosition().getRow())));
 
                 if (!t.getNewValue().equals(t.getOldValue())) {
                     // rename all notes of the group
@@ -696,7 +696,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             // renaming note
             noteNameCol.setOnEditCommit((CellEditEvent<Map, String> t) -> {
                 final NoteData curNote =
-                        new NoteData((Map<String, String>) t.getTableView().getItems().get(t.getTablePosition().getRow()));
+                        new NoteData(ObjectsHelper.uncheckedCast(t.getTableView().getItems().get(t.getTablePosition().getRow())));
 
                 if (!t.getNewValue().equals(t.getOldValue())) {
                     if (!renameNoteWrapper(curNote, t.getNewValue())) {
@@ -896,7 +896,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v4.6", "https://github.com/ThomasDaheim/ownNoteEditor");
     }
 
-    @SuppressWarnings("unchecked")
     public void initFromDirectory(final boolean updateOnly) {
         checkChangedNote();
 
@@ -941,7 +940,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         initGroupNames();
     }
     
-    @SuppressWarnings("unchecked")
     public boolean checkChangedNote() {
         Boolean result = true;
         
@@ -1000,7 +998,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         return result;
     }
     
-    public void selectNoteAndPosition(final NoteData noteData, final int textPos, final String htmlText) {
+    public void selectNoteAndCheckBox(final NoteData noteData, final int textPos, final String htmlText) {
         // need to distinguish between views to select group
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             groupsTable.selectGroupForNote(noteData);
@@ -1011,7 +1009,15 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // and now select the note - leads to callback to editNote to fill the htmleditor
         notesTable.selectNote(noteData);
         
-        noteEditor.setTextCursor(textPos, htmlText);
+        noteEditor.scrollToCheckBox(textPos, htmlText);
+    }
+    
+    public void selectNoteAndToggleCheckBox(final NoteData noteData, final int textPos, final String htmlText, final boolean newStatus) {
+        // make sure the note is shown and the cursor is in place
+        selectNoteAndCheckBox(noteData, textPos, htmlText);
+        
+        // now change the status
+        noteEditor.toggleCheckBox(textPos, htmlText, newStatus);
     }
 
     private void hideAndDisableAllCreateControls() {
@@ -1237,7 +1243,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         return result;
     }
 
-    @SuppressWarnings("unchecked")
     public boolean moveNoteWrapper(final NoteData curNote, final String newValue) {
         Boolean result = OwnNoteFileManager.getInstance().moveNote(curNote.getGroupName(), curNote.getNoteName(), newValue);
         
@@ -1297,7 +1302,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         selectFirstOrCurrentNote();
     }
     
-    @SuppressWarnings("unchecked")
     private void selectFirstOrCurrentNote() {
         // select first or current note - if any
         if (!notesTable.getItems().isEmpty()) {
@@ -1330,7 +1334,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         return result;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public boolean processFileChange(final WatchEvent.Kind<?> eventKind, final Path filePath) {
         // System.out.printf("Time %s: Gotcha!\n", getCurrentTimeStamp());

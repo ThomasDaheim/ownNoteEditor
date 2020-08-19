@@ -661,10 +661,15 @@ public class OwnNoteHTMLEditor {
         return result;
     }
     
-    public void setTextCursor(final int textPos, final String htmlText) {
+    public void scrollToCheckBox(final int textPos, final String htmlText) {
+        // maybe with https://www.tiny.cloud/docs-4x/api/tinymce.dom/tinymce.dom.selection/#setcursorlocation
+        wrapExecuteScript(myWebEngine, "scrollToCheckBox(" + textPos + ", '" + htmlText + "');");
+    }
+    
+    public void toggleCheckBox(final int textPos, final String htmlText, final boolean newStatus) {
         // TODO call tinymce to set the cursor
         // maybe with https://www.tiny.cloud/docs-4x/api/tinymce.dom/tinymce.dom.selection/#setcursorlocation
-        wrapExecuteScript(myWebEngine, "setCursorLocation(" + textPos + ", '" + htmlText + "');");
+        wrapExecuteScript(myWebEngine, "toggleCheckBox(" + textPos + ", '" + htmlText + "', " + newStatus + ");");
     }
 
     public String getNoteText() {
@@ -718,7 +723,6 @@ public class OwnNoteHTMLEditor {
         checkForNameChange(oldGroupName, newGroupName, "", "");
     }
 
-    @SuppressWarnings("unchecked")
     public void checkForNameChange(final String oldGroupName, final String newGroupName, final String oldNoteName, final String newNoteName) {
         assert (oldGroupName != null);
         assert (newGroupName != null);
