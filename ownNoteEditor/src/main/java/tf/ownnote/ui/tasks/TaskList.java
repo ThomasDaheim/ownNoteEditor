@@ -67,7 +67,7 @@ public class TaskList {
             if (newSelection != null && !newSelection.equals(oldSelection)) {
                 if (!TaskManager.getInstance().inFileChange()) {
                     // select group and note
-                    myEditor.selectNoteAndCheckBox(newSelection.getNoteData(), newSelection.getTextPos(), newSelection.getHtmlText());
+                    myEditor.selectNoteAndCheckBox(newSelection.getNoteData(), newSelection.getTextPos(), newSelection.getDescription());
                 } else {
                     // tricky, we have lost the item in the list because the checkbox was clicked...
                     // we don't want to change the selection to avoid closing of file in tinymce.

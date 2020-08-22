@@ -379,39 +379,40 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             }
             
             function scrollToCheckBox(textPos, htmlText) {
-                console.log('JavaScript: scrollToCheckBox start. ' + textPos + ', ' + htmlText);
+                //console.log('JavaScript: scrollToCheckBox start. ' + textPos + ', ' + htmlText);
                 var checkbox = findCheckBox(textPos, htmlText);
                 
                 if (checkbox) {
-                    console.log('checkbox found');
-                    tinymce.activeEditor.selection.setCursorLocation(checkbox);
+                    //console.log('checkbox found');
+                    checkbox.scrollIntoView({block: "center", inline: "nearest"});
                 }
-
             }
             
             function toggleCheckBox(textPos, htmlText, newStatus) {
-                console.log('JavaScript: toggleCheckBox start. ' + textPos + ', ' + htmlText + ', ' + newStatus);
-                
+                //console.log('JavaScript: toggleCheckBox start. ' + textPos + ', ' + htmlText + ', ' + newStatus);
                 var checkbox = findCheckBox(textPos, htmlText);
                 
                 if (checkbox) {
-                    console.log('checkbox found');
+                    //console.log('checkbox found');
                     checkbox.checked = newStatus;
                 }
             }
             
             function findCheckBox(textPos, htmlText) {
+                //console.log('findCheckBox start: ' + textPos + ', ' + htmlText);
                 var checkbox;
+                var checkboxFound = false;
                 
                 // iterate over checkboxes to find the one with text following
                 // needs to be done the other way around! find text node with content and change previous content result
                 $(tinymce.activeEditor.getBody()).find(':checkbox').each(function() {
-                    var checkboxFound = false;
                     $(this).parent().contents().each(function() {
+                        //console.log('findCheckBox, checking: ' + this.innerHTML + ', ' + this.nodeValue);
                         // check text nodes only
                         if (this.nodeType === 3) {
                             //console.log('  CONTENTS.text: ' + this.nodeValue);
                             if (this.nodeValue == htmlText) {
+                                //console.log('findCheckBox, foundit!');
                                 checkboxFound = true;
                                 
                                 // done, end loop prematurely
@@ -421,15 +422,17 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         checkbox = this;
                     });
                     
-                    if (checkboxFound && checkbox) {
-                        checkbox.checked = newStatus;
-
+                    if (checkboxFound) {
                         // done, end loop prematurely
                         return false;
                     }
                 });
                 
-                return checkbox;
+                if (checkboxFound) {
+                    return checkbox;
+                } else {
+                    return;
+                }
             }
             
             function resizeEditor(myHeight) {
