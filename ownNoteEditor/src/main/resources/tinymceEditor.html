@@ -380,27 +380,30 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             
             function scrollToCheckBox(textPos, htmlText) {
                 //console.log('JavaScript: scrollToCheckBox start. ' + textPos + ', ' + htmlText);
-                var checkbox = findCheckBox(textPos, htmlText);
+                var element = findCheckBox(textPos, htmlText);
                 
-                if (checkbox) {
+                if (element && element.checkbox) {
                     //console.log('checkbox found');
-                    checkbox.scrollIntoView({block: "center", inline: "nearest"});
+                    element.checkbox.scrollIntoView({block: "center", inline: "nearest"});
+                    
+                    tinymce.activeEditor.selection.select(element.content);
                 }
             }
             
             function toggleCheckBox(textPos, htmlText, newStatus) {
                 //console.log('JavaScript: toggleCheckBox start. ' + textPos + ', ' + htmlText + ', ' + newStatus);
-                var checkbox = findCheckBox(textPos, htmlText);
+                var element = findCheckBox(textPos, htmlText);
                 
-                if (checkbox) {
+                if (element && element.checkbox) {
                     //console.log('checkbox found');
-                    checkbox.checked = newStatus;
+                    element.checkbox.checked = newStatus;
                 }
             }
             
             function findCheckBox(textPos, htmlText) {
                 //console.log('findCheckBox start: ' + textPos + ', ' + htmlText);
                 var checkbox;
+                var content;
                 var checkboxFound = false;
                 
                 // iterate over checkboxes to find the one with text following
@@ -414,6 +417,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             if (this.nodeValue == htmlText) {
                                 //console.log('findCheckBox, foundit!');
                                 checkboxFound = true;
+                                
+                                content = this;
                                 
                                 // done, end loop prematurely
                                 return false;
@@ -429,9 +434,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 });
                 
                 if (checkboxFound) {
-                    return checkbox;
+                    return { checkbox: checkbox, content: content };
                 } else {
-                    return;
+                    return { checkbox: null, content: null };
                 }
             }
             
