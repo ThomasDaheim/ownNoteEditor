@@ -16,6 +16,7 @@ public class OwnNoteEditorPreferences {
     // issue #30 store percentage for group column width
     public final static String RECENTCLASSICGROUPWIDTH = "recentClassicGroupWidth";
     public final static String RECENTONENOTEGROUPWIDTH = "recentOneNoteGroupWidth";
+    public final static String RECENTTASKLISTWIDTH = "recentTaskListWidth";
     public final static String RECENTWINDOWWIDTH = "recentWindowWidth";
     public final static String RECENTWINDOWHEIGTH = "recentWindowHeigth";
     // issue #45 store sort order for tables

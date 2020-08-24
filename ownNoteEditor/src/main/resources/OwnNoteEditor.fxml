@@ -10,6 +10,7 @@
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.RadioMenuItem?>
+<?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
@@ -37,15 +38,44 @@
           <RowConstraints maxHeight="535.0" minHeight="10.0" prefHeight="535.0" vgrow="SOMETIMES" />
         </rowConstraints>
          <children>
+            <SplitPane fx:id="splitPaneXML" dividerPositions="0.3, 0.6" prefHeight="200.0" prefWidth="200.0" GridPane.columnSpan="3" GridPane.rowIndex="1">
+               <items>
+                  <StackPane fx:id="leftPaneXML" prefHeight="150.0" prefWidth="200.0">
+                     <children>
+                        <TableView fx:id="groupsTableFXML" prefHeight="200.0" prefWidth="200.0" styleClass="groupsTable">
+                          <columns>
+                            <TableColumn fx:id="groupNameColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="groupNameCol" text="Name" />
+                              <TableColumn fx:id="groupDeleteColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="false" styleClass="groupDeleteCol" />
+                              <TableColumn fx:id="groupCountColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="true" styleClass="groupCountCol" text="Count" />
+                          </columns>
+                        </TableView>
+                     </children>
+                  </StackPane>
+                  <StackPane fx:id="middlePaneXML" prefHeight="150.0" prefWidth="200.0">
+                     <children>
+                        <TableView fx:id="notesTableFXML" prefHeight="200.0" prefWidth="200.0" styleClass="notesTable">
+                          <columns>
+                            <TableColumn fx:id="noteNameColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteNameCol" text="Name" />
+                            <TableColumn fx:id="noteModifiedColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteModifiedCol" text="Modified" />
+                              <TableColumn fx:id="noteDeleteColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="false" styleClass="noteDeleteCol" />
+                              <TableColumn fx:id="noteGroupColFXML" editable="false" maxWidth="0.0" minWidth="0.0" prefWidth="0.0" resizable="false" sortable="true" styleClass="noteGroupCol" text="Group" visible="false" />
+                          </columns>
+                        </TableView>
+                        <WebView fx:id="noteEditorFXML" disable="true" prefHeight="200.0" prefWidth="506.0">
+                           <StackPane.margin>
+                              <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
+                           </StackPane.margin>
+                        </WebView>
+                     </children>
+                  </StackPane>
+                  <StackPane fx:id="rightPaneXML" prefHeight="150.0" prefWidth="200.0">
+                     <children>
+                        <ListView fx:id="taskListFXML" prefHeight="200.0" prefWidth="200.0" styleClass="taskList" />
+                     </children>
+                  </StackPane>
+               </items>
+            </SplitPane>
             <TabPane fx:id="groupsPaneFXML" disable="true" prefHeight="40.0" prefWidth="496.0" styleClass="groupsPane" tabClosingPolicy="UNAVAILABLE" visible="false" GridPane.columnIndex="1" />
-            <TableView fx:id="notesTableFXML" prefHeight="200.0" prefWidth="200.0" styleClass="notesTable" GridPane.columnIndex="1" GridPane.rowIndex="1">
-              <columns>
-                <TableColumn fx:id="noteNameColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteNameCol" text="Name" />
-                <TableColumn fx:id="noteModifiedColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteModifiedCol" text="Modified" />
-                  <TableColumn fx:id="noteDeleteColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="false" styleClass="noteDeleteCol" />
-                  <TableColumn fx:id="noteGroupColFXML" editable="false" maxWidth="0.0" minWidth="0.0" prefWidth="0.0" resizable="false" sortable="true" styleClass="noteGroupCol" text="Group" visible="false" />
-              </columns>
-            </TableView>
             <HBox fx:id="buttonBox" alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="1">
                <children>
                   <Button fx:id="newButton" mnemonicParsing="false" text="New">
@@ -92,21 +122,6 @@
                <padding>
                   <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                </padding></HBox>
-            <TableView fx:id="groupsTableFXML" prefHeight="200.0" prefWidth="200.0" styleClass="groupsTable" GridPane.columnIndex="0" GridPane.rowIndex="1">
-              <columns>
-                <TableColumn fx:id="groupNameColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="groupNameCol" text="Name" />
-                  <TableColumn fx:id="groupDeleteColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="false" styleClass="groupDeleteCol" />
-                  <TableColumn fx:id="groupCountColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="true" styleClass="groupCountCol" text="Count" />
-              </columns>
-            </TableView>
-            <StackPane fx:id="noteEditorPaneFXML" prefHeight="150.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
-               <children>
-                  <WebView fx:id="noteEditorFXML" disable="true" prefHeight="200.0" prefWidth="506.0">
-                     <StackPane.margin>
-                        <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
-                     </StackPane.margin></WebView>
-               </children>
-            </StackPane>
             <HBox spacing="10.0">
                <children>
                   <TextField fx:id="noteFilterText" prefHeight="25.0" prefWidth="218.0" promptText="Search" styleClass="noteFilterText" />
@@ -131,11 +146,6 @@
                   <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                </padding>
             </HBox>
-            <StackPane fx:id="taskPaneFXML" prefHeight="150.0" prefWidth="200.0" GridPane.columnIndex="2" GridPane.rowIndex="1">
-               <children>
-                  <ListView fx:id="taskListFXML" prefHeight="200.0" prefWidth="200.0" styleClass="taskList" />
-               </children>
-            </StackPane>
          </children>
       </GridPane>
    </center>

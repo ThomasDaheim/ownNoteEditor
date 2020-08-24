@@ -170,7 +170,7 @@ public class OwnNoteHTMLEditor {
         myWebView = webView;
         myWebEngine = myWebView.getEngine();
         
-        myHostServices = (HostServices) myWebView.getScene().getWindow().getProperties().get("hostServices");
+        myHostServices = (HostServices) myEditor.getWindow().getProperties().get("hostServices");
 
         // delay setup of editor - things are not available at startup...
         Platform.runLater(() -> {

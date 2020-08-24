@@ -81,11 +81,11 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.Window;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AboutMenu;
 import tf.ownnote.ui.helper.FormatHelper;
@@ -143,6 +143,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     private String groupsSortOrder;
     private String notesSortOrder;
     
+    // Indicates that the divider is currently dragged by the mouse
+    // see https://stackoverflow.com/a/40707931
+    private boolean mouseDragOnDivider = false;    
+    
     private IGroupListContainer myGroupList = null;
     
     // available colors for tabs to rotate through
@@ -156,7 +160,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     private BorderPane borderPane;
     @FXML
     private GridPane gridPane;
-    private SplitPane dividerPane;
     @FXML
     private TableView<Map<String, String>> notesTableFXML;
     private OwnNoteTableView notesTable = null;
@@ -221,7 +224,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     private ToggleGroup LookAndFeel;
     @FXML
     private Menu menuLookAndFeel;
-    @FXML
     private StackPane noteEditorPaneFXML;
     @FXML
     private Label pathLabel;
@@ -234,8 +236,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     @FXML
     private MenuItem clearSearch;
     @FXML
-    private StackPane taskPaneFXML;
-    @FXML
     private Label taskFilterMode;
     @FXML
     private ListView<TaskData> taskListFXML;
@@ -247,6 +247,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     private RadioMenuItem showTaskList;
     @FXML
     private HBox taskFilerBox;
+    @FXML
+    private SplitPane splitPaneXML;
+    @FXML
+    private StackPane leftPaneXML;
+    @FXML
+    private StackPane middlePaneXML;
+    @FXML
+    private StackPane rightPaneXML;
 
     public OwnNoteEditor() {
     }
@@ -269,6 +277,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         } else {
             OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTONENOTEGROUPWIDTH, percentWidth);
         }
+        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTTASKLISTWIDTH, String.valueOf(gridPane.getColumnConstraints().get(2).getPercentWidth()));
         
         // issue #45 store sort order for tables
         OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTGROUPSTABLESORTORDER, TableSortHelper.toString(groupsTable.getSortOrder()));
@@ -299,8 +308,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                     OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTCLASSICGROUPWIDTH, "18.3333333"));
             oneNoteGroupWidth = Double.valueOf(
                     OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTONENOTEGROUPWIDTH, "33.3333333"));
-            
-            taskListWidth = 15d;
+            taskListWidth = Double.valueOf(
+                    OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTTASKLISTWIDTH, "15.0"));
 
             groupsSortOrder = OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTGROUPSTABLESORTORDER, "");
             notesSortOrder = OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTNOTESTABLESORTORDER, "");
@@ -402,6 +411,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         column3.setHgrow(Priority.ALWAYS);
         gridPane.getColumnConstraints().addAll(column1, column2, column3);
         
+        //Constrain max size of left & right pane:
+        leftPaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.15));
+        leftPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.5));
+        middlePaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.5));
+        middlePaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.85));
+        rightPaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.15));
+        rightPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.5));
+
         // set callback, width, value name, cursor type of columns
         noteNameCol.setTableColumnProperties(0.65, NoteData.getNoteDataName(0), OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel));
         noteModifiedCol.setTableColumnProperties(0.25, NoteData.getNoteDataName(1), false);
@@ -431,10 +448,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         noteFilterMode.setGraphic(noteFilterCheck);
         noteFilterMode.setContentDisplay(ContentDisplay.RIGHT);
 
-        // issue #30: store left and right regions of the second row in the grid - they are needed later on for the divider pane
-        Region leftRegion;
-        Region rightRegion;
-        
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             myGroupList = groupsTable;
             
@@ -645,27 +658,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                     }
                 }
             });
-        
-            // classic look & feel: groups table to the right, notes table or editor to the left
-            leftRegion = groupsTableFXML;
-            final StackPane rightPane = new StackPane();
-            rightPane.getChildren().addAll(notesTableFXML, noteEditorFXML);
-            // issue #40: bind height & width to parent
-            notesTableFXML.prefWidthProperty().bind(rightPane.widthProperty());
-            notesTableFXML.prefHeightProperty().bind(rightPane.heightProperty());
-            noteEditorFXML.prefWidthProperty().bind(rightPane.widthProperty());
-            noteEditorFXML.prefHeightProperty().bind(rightPane.heightProperty());
-            rightRegion = rightPane;
-            
-            // remove things not shown directly in the gridPane
-            // groupsPaneFXML: only in oneNote
-            gridPane.getChildren().remove(groupsPaneFXML);
-            // groupsTableFXML: shown in dividerPane
-            gridPane.getChildren().remove(groupsTableFXML);
-            // notesTableFXML: shown in dividerPane
-            gridPane.getChildren().remove(notesTableFXML);
-            // noteEditorFXML: shown in dividerPane
-            gridPane.getChildren().remove(noteEditorFXML);
 
         } else {
 
@@ -679,6 +671,13 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             buttonBox.setDisable(true);
             buttonBox.setVisible(false);
             
+            groupsPane.setDisable(false);
+            groupsPane.setVisible(true);
+            
+            // 2. note table is shown left
+            middlePaneXML.getChildren().remove(notesTableFXML);
+            leftPaneXML.getChildren().setAll(notesTableFXML);
+            
             // 3. and can't be deleted with trashcan
             noteNameCol.setWidthPercentage(0.74);
             noteNameCol.setStyle("notename-font-weight: normal");
@@ -690,8 +689,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             notesTable.setEditable(true);
             
             // From documentation - The .root style class is applied to the root node of the Scene instance.
-            notesTable.getScene().getRoot().setStyle("note-selected-background-color: white");
-            notesTable.getScene().getRoot().setStyle("note-selected-font-color: black");
+            gridPane.getScene().getRoot().setStyle("note-selected-background-color: white");
+            gridPane.getScene().getRoot().setStyle("note-selected-font-color: black");
             
             // renaming note
             noteNameCol.setOnEditCommit((CellEditEvent<Map, String> t) -> {
@@ -709,76 +708,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                 }
             });
             
-            groupsPane.setDisable(false);
-            groupsPane.setVisible(true);
-            
-            // oneNote look & feel: notes table to the right, editor to the left
-            leftRegion = notesTableFXML;
-            rightRegion = noteEditorPaneFXML;
-            
-            // remove things not shown directly in the gridPane
-            // buttonBox: only in classic
-            gridPane.getChildren().remove(buttonBox);
-            // groupsTableFXML: shown in dividerPane
-            gridPane.getChildren().remove(groupsTableFXML);
-            // notesTableFXML: shown in dividerPane
-            gridPane.getChildren().remove(notesTableFXML);
-            // noteEditorFXML: shown in dividerPane
-            gridPane.getChildren().remove(noteEditorFXML);
         }
-        
-        // issue #30: add transparent split pane on top of the grid pane to have a moveable divider
-        dividerPane = new SplitPane();
-        // add content from second grid row to the split pane
-        dividerPane.getItems().addAll(leftRegion, rightRegion);
-        // issue #40: bind height to parent
-        leftRegion.prefHeightProperty().bind(dividerPane.heightProperty());
-        rightRegion.prefHeightProperty().bind(dividerPane.heightProperty());
-        
-        // needs to take 3 column into account
-        dividerPane.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth() / (100d - taskListWidth));
-        // show split pane as second row
-        gridPane.add(dividerPane, 0, 1);
-        GridPane.setColumnSpan(dividerPane, 2);
-        
-        //Constrain max size of left & right pane:
-        leftRegion.minWidthProperty().bind(dividerPane.widthProperty().multiply(0.15));
-        leftRegion.maxWidthProperty().bind(dividerPane.widthProperty().multiply(0.5));
-        rightRegion.minWidthProperty().bind(dividerPane.widthProperty().multiply(0.5));
-        rightRegion.maxWidthProperty().bind(dividerPane.widthProperty().multiply(0.85));
-
-        // move divider with gridpane on resize
-        // https://stackoverflow.com/questions/15324321/javafx-splitpane-resize-proportions
-        gridPane.widthProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                // change later to avoid loop calls when resizing scene
-                Platform.runLater(() -> {
-                    // needs to take 3 column into account - if shown
-                    dividerPane.setDividerPosition(0, 
-                            gridPane.getColumnConstraints().get(0).getPercentWidth() / (100d - gridPane.getColumnConstraints().get(2).getPercentWidth()));
-                });
-            }
-        });
-        
-        // change width of gridpane when moving divider
-        dividerPane.getDividers().get(0).positionProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                // change later to avoid loop calls when resizing scene
-                Platform.runLater(() -> {
-                    // needs to take 3 column into account - if shown
-                    final double newPercentage = 
-                            newValue.doubleValue() * (100d - gridPane.getColumnConstraints().get(2).getPercentWidth());
-                    gridPane.getColumnConstraints().get(0).setPercentWidth(newPercentage);
-                    gridPane.getColumnConstraints().get(1).setPercentWidth((100d - gridPane.getColumnConstraints().get(2).getPercentWidth()) - newPercentage);
-                });
-            }
-        });
         
         // TFE, 20200810: adding third gridpane column for task handling
         taskList = new TaskList(taskListFXML, this);
-        taskListFXML.prefWidthProperty().bind(taskPaneFXML.widthProperty());
-        taskListFXML.prefHeightProperty().bind(taskPaneFXML.heightProperty());
-        
+
         taskFilterCheck.getStyleClass().add("noteFilterCheck");
         taskFilterCheck.selectedProperty().addListener((o) -> {
             taskList.setTaskFilterMode(taskFilterCheck.isSelected());
@@ -790,6 +724,42 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // all setup, lets spread the news
         OwnNoteFileManager.getInstance().setCallback(this);
         TaskManager.getInstance().setCallback(this);
+        
+        // run layout to have everything set up
+        splitPaneXML.applyCss();
+        splitPaneXML.requestLayout();
+        
+        // For each divider register a mouse pressed and a released listener
+        for (Node node: splitPaneXML.lookupAll(".split-pane-divider")) {
+            node.setOnMousePressed(evMousePressed -> mouseDragOnDivider = true);
+            node.setOnMouseReleased(evMouseReleased -> mouseDragOnDivider = false );
+        }
+        
+        // now sync splitpane dividers with grid column width
+        splitPaneXML.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth());
+        splitPaneXML.setDividerPosition(1, 100d - gridPane.getColumnConstraints().get(2).getPercentWidth());
+
+        // change width of gridpane when moving divider - but only after initial values have been set
+        splitPaneXML.getDividers().get(0).positionProperty().addListener((observable, oldValue, newValue) -> {
+            // only do magic once the window is showing to avoid initial layout pass
+            if (newValue != null) {
+                if (mouseDragOnDivider) {
+                    // change later to avoid loop calls when resizing scene
+                    Platform.runLater(() -> {
+                        // needs to take 3 column into account - if shown
+                        final double newPercentage = 
+                                newValue.doubleValue() * (100d - gridPane.getColumnConstraints().get(2).getPercentWidth());
+                        gridPane.getColumnConstraints().get(0).setPercentWidth(newPercentage);
+                        gridPane.getColumnConstraints().get(1).setPercentWidth((100d - gridPane.getColumnConstraints().get(2).getPercentWidth()) - newPercentage);
+                    });
+                } else {
+                    // no, you don't change my value!
+                    Platform.runLater(() -> {
+                        splitPaneXML.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth());
+                    });
+                }
+            }
+        });
     }
     
     private void initMenus() {
@@ -1506,5 +1476,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     
     public List<NoteData> getNotesWithText(final String searchText) {
         return OwnNoteFileManager.getInstance().getNotesWithText(searchText);
+    }
+    
+    public Window getWindow() {
+        return borderPane.getScene().getWindow();
     }
 }
