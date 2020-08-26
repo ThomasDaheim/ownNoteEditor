@@ -244,8 +244,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     final CheckBox noteFilterCheck = new CheckBox();
     final CheckBox taskFilterCheck = new CheckBox();
     @FXML
-    private RadioMenuItem showTaskList;
-    @FXML
     private HBox taskFilerBox;
     @FXML
     private SplitPane splitPaneXML;
@@ -416,7 +414,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         leftPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.5));
         middlePaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.5));
         middlePaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.85));
-        rightPaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.15));
+        rightPaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.1));
         rightPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.5));
 
         // set callback, width, value name, cursor type of columns
@@ -736,62 +734,38 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         }
         
         // now sync splitpane dividers with grid column width
-        splitPaneXML.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth());
-        splitPaneXML.setDividerPosition(1, 100d - gridPane.getColumnConstraints().get(2).getPercentWidth());
+        splitPaneXML.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth()/100d);
+        splitPaneXML.setDividerPosition(1, (100d - gridPane.getColumnConstraints().get(2).getPercentWidth())/100d);
 
         // change width of gridpane when moving divider - but only after initial values have been set
         splitPaneXML.getDividers().get(0).positionProperty().addListener((observable, oldValue, newValue) -> {
             // only do magic once the window is showing to avoid initial layout pass
-            if (newValue != null) {
-                if (mouseDragOnDivider) {
-                    // change later to avoid loop calls when resizing scene
-                    Platform.runLater(() -> {
-                        // needs to take 3 column into account - if shown
-                        final double newPercentage = 
-                                newValue.doubleValue() * (100d - gridPane.getColumnConstraints().get(2).getPercentWidth());
-                        gridPane.getColumnConstraints().get(0).setPercentWidth(newPercentage);
-                        gridPane.getColumnConstraints().get(1).setPercentWidth((100d - gridPane.getColumnConstraints().get(2).getPercentWidth()) - newPercentage);
-                    });
-                } else {
-                    // no, you don't change my value!
-                    Platform.runLater(() -> {
-                        splitPaneXML.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth());
-                    });
-                }
+            if (newValue != null && !newValue.equals(oldValue)) {
+                // change later to avoid loop calls when resizing scene
+                Platform.runLater(() -> {
+                    // needs to take 3 column into account - if shown
+                    final double newPercentage = newValue.doubleValue() * 100d;
+                    gridPane.getColumnConstraints().get(0).setPercentWidth(newPercentage);
+                    gridPane.getColumnConstraints().get(1).setPercentWidth((100d - gridPane.getColumnConstraints().get(2).getPercentWidth()) - newPercentage);
+                });
+            }
+        });
+
+        splitPaneXML.getDividers().get(1).positionProperty().addListener((observable, oldValue, newValue) -> {
+            // only do magic once the window is showing to avoid initial layout pass
+            if (newValue != null && !newValue.equals(oldValue)) {
+                // change later to avoid loop calls when resizing scene
+                Platform.runLater(() -> {
+                    // needs to take 3 column into account - if shown
+                    final double newPercentage = newValue.doubleValue() * 100d;
+                    gridPane.getColumnConstraints().get(1).setPercentWidth(newPercentage - gridPane.getColumnConstraints().get(0).getPercentWidth());
+                    gridPane.getColumnConstraints().get(2).setPercentWidth(100d - newPercentage);
+                });
             }
         });
     }
     
     private void initMenus() {
-        showTaskList.setSelected(true);
-        showTaskList.selectedProperty().addListener((ov, oldValue, newValue) -> {
-            if (newValue != null) {
-                if (newValue) {
-                    // switch on controls
-                    taskFilerBox.setVisible(true);
-                    taskFilerBox.setDisable(false);
-                    taskList.setVisible(true);
-                    taskList.setDisable(false);
-                    
-                    // show third row gridpane
-                    final double secondWidth = gridPane.getColumnConstraints().get(1).getPercentWidth();
-                    gridPane.getColumnConstraints().get(1).setPercentWidth(secondWidth - taskListWidth);
-                    gridPane.getColumnConstraints().get(2).setPercentWidth(taskListWidth);
-                } else {
-                    // switch off controls
-                    taskFilerBox.setVisible(false);
-                    taskFilerBox.setDisable(true);
-                    taskList.setVisible(false);
-                    taskList.setDisable(true);
-                    
-                    // hide third row gridpane
-                    gridPane.getColumnConstraints().get(2).setPercentWidth(0.0);
-                    final double secondWidth = gridPane.getColumnConstraints().get(1).getPercentWidth();
-                    gridPane.getColumnConstraints().get(1).setPercentWidth(secondWidth + taskListWidth);
-                }
-            }
-        });
-        
         // select entry based on value of currentLookAndFeel
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             classicLookAndFeel.setSelected(true);

@@ -154,7 +154,6 @@
          <menus>
             <Menu mnemonicParsing="false" text="Preferences">
               <items>
-                  <RadioMenuItem fx:id="showTaskList" mnemonicParsing="false" text="Show Taskllist" />
                   <CustomMenuItem mnemonicParsing="false" text="Notes Path">
                      <content>
                         <HBox alignment="CENTER_LEFT" prefWidth="400.0" spacing="10.0" styleClass="pathBox">
