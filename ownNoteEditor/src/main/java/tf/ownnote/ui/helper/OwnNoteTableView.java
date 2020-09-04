@@ -56,13 +56,15 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Text;
+import tf.helper.general.IPreferencesHolder;
+import tf.helper.general.IPreferencesStore;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class OwnNoteTableView implements IGroupListContainer {
+public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder {
     
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor= null;
@@ -110,6 +112,24 @@ public class OwnNoteTableView implements IGroupListContainer {
         assert (myTableType != null);
         
         initTableView();
+    }
+
+    @Override
+    public void loadPreferences(final IPreferencesStore store) {
+        if (TableType.notesTable.equals(myTableType)) {
+            setSortOrder(TableSortHelper.fromString(store.get(OwnNoteEditorPreferences.RECENTNOTESTABLESORTORDER, "")));
+        } else {
+            setSortOrder(TableSortHelper.fromString(store.get(OwnNoteEditorPreferences.RECENTGROUPSTABLESORTORDER, "")));
+        }
+    }
+    
+    @Override
+    public void savePreferences(final IPreferencesStore store) {
+        if (TableType.notesTable.equals(myTableType)) {
+            store.put(OwnNoteEditorPreferences.RECENTNOTESTABLESORTORDER, TableSortHelper.toString(getSortOrder()));
+        } else {
+            store.put(OwnNoteEditorPreferences.RECENTGROUPSTABLESORTORDER, TableSortHelper.toString(getSortOrder()));
+        }
     }
 
     @Override

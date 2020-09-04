@@ -107,9 +107,9 @@ public class OwnNoteEditorManager extends Application {
         try {
             // issue #30: store width and height of window as well - but here so that the scene can be created accordingly
             Double recentWindowWidth = Double.valueOf(
-                    OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, "1200"));
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, "1200"));
             Double recentWindowHeigth = Double.valueOf(
-                    OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, "600"));
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, "600"));
             
             fxmlLoader = new FXMLLoader(OwnNoteEditorManager.class.getResource("/OwnNoteEditor.fxml"));
             myRoot = (BorderPane) fxmlLoader.load();
@@ -276,8 +276,8 @@ public class OwnNoteEditorManager extends Application {
 
         // TF, 20170904: maximized gives wrong values for width & height - surely same with minimized...
         if (!myStage.isMaximized() && !myStage.isIconified()) {
-            OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, String.valueOf(myStage.getScene().getWidth()));
-            OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, String.valueOf(myStage.getScene().getHeight()));
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, String.valueOf(myStage.getScene().getWidth()));
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, String.valueOf(myStage.getScene().getHeight()));
         }
         
         if (controller != null) {

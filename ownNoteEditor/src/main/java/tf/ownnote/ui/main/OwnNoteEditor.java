@@ -62,7 +62,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
-import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TabPane;
@@ -100,7 +99,6 @@ import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
 import tf.ownnote.ui.helper.OwnNoteTabPane;
 import tf.ownnote.ui.helper.OwnNoteTableColumn;
 import tf.ownnote.ui.helper.OwnNoteTableView;
-import tf.ownnote.ui.helper.TableSortHelper;
 import tf.ownnote.ui.tasks.TaskData;
 import tf.ownnote.ui.tasks.TaskList;
 import tf.ownnote.ui.tasks.TaskManager;
@@ -140,8 +138,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     private Double classicGroupWidth;
     private Double oneNoteGroupWidth;
     private Double taskListWidth;
-    private String groupsSortOrder;
-    private String notesSortOrder;
     
     // Indicates that the divider is currently dragged by the mouse
     // see https://stackoverflow.com/a/40707931
@@ -232,10 +228,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     @FXML
     private Label noteFilterMode;
     @FXML
-    private MenuItem searchUnchecked;
-    @FXML
-    private MenuItem clearSearch;
-    @FXML
     private Label taskFilterMode;
     @FXML
     private ListView<TaskData> taskListFXML;
@@ -271,15 +263,19 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         final String percentWidth = String.valueOf(gridPane.getColumnConstraints().get(0).getPercentWidth());
         // store in the preferences
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-            OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTCLASSICGROUPWIDTH, percentWidth);
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTCLASSICGROUPWIDTH, percentWidth);
         } else {
-            OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTONENOTEGROUPWIDTH, percentWidth);
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTONENOTEGROUPWIDTH, percentWidth);
         }
-        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTTASKLISTWIDTH, String.valueOf(gridPane.getColumnConstraints().get(2).getPercentWidth()));
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTTASKLISTWIDTH, String.valueOf(gridPane.getColumnConstraints().get(2).getPercentWidth()));
         
         // issue #45 store sort order for tables
-        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTGROUPSTABLESORTORDER, TableSortHelper.toString(groupsTable.getSortOrder()));
-        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTNOTESTABLESORTORDER, TableSortHelper.toString(notesTable.getSortOrder()));
+        groupsTable.savePreferences(OwnNoteEditorPreferences.getInstance());
+        notesTable.savePreferences(OwnNoteEditorPreferences.getInstance());
+        
+        // TFE; 20200903: store groups tabs order as well
+        groupsPane.savePreferences(OwnNoteEditorPreferences.getInstance());
+
     }
     
     public void setParameters() {
@@ -292,7 +288,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             // 2. try the preference settings - what was used last time?
             try {
                 currentLookAndFeel = OwnNoteEditorParameters.LookAndFeel.valueOf(
-                        OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
+                        OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
                 // System.out.println("Using preference for currentLookAndFeel: " + currentLookAndFeel);
             } catch (SecurityException ex) {
                 Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
@@ -303,14 +299,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // issue #45 store sort order for tables
         try {
             classicGroupWidth = Double.valueOf(
-                    OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTCLASSICGROUPWIDTH, "18.3333333"));
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTCLASSICGROUPWIDTH, "18.3333333"));
             oneNoteGroupWidth = Double.valueOf(
-                    OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTONENOTEGROUPWIDTH, "33.3333333"));
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTONENOTEGROUPWIDTH, "33.3333333"));
             taskListWidth = Double.valueOf(
-                    OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTTASKLISTWIDTH, "15.0"));
-
-            groupsSortOrder = OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTGROUPSTABLESORTORDER, "");
-            notesSortOrder = OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTNOTESTABLESORTORDER, "");
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTTASKLISTWIDTH, "15.0"));
         } catch (SecurityException ex) {
             Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -326,7 +319,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         } else {
             // 2. try the preferences setting - most recent file that was opened
             try {
-                pathname = OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, "");
+                pathname = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, "");
                 // System.out.println("Using preference for ownCloudDir: " + pathname);
             } catch (SecurityException ex) {
                 Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
@@ -369,15 +362,16 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         noteDeleteCol = new OwnNoteTableColumn(noteDeleteColFXML, this);
         noteGroupCol = new OwnNoteTableColumn(noteGroupColFXML, this);
         notesTable = new OwnNoteTableView(notesTableFXML, this);
-        notesTable.setSortOrder(TableSortHelper.fromString(notesSortOrder));
+        notesTable.loadPreferences(OwnNoteEditorPreferences.getInstance());
 
         groupNameCol = new OwnNoteTableColumn(groupNameColFXML, this);
         groupDeleteCol = new OwnNoteTableColumn(groupDeleteColFXML, this);
         groupCountCol = new OwnNoteTableColumn(groupCountColFXML, this);
         groupsTable = new OwnNoteTableView(groupsTableFXML, this);
-        groupsTable.setSortOrder(TableSortHelper.fromString(groupsSortOrder));
+        groupsTable.loadPreferences(OwnNoteEditorPreferences.getInstance());
         
         groupsPane = new OwnNoteTabPane(groupsPaneFXML, this);
+        groupsPane.loadPreferences(OwnNoteEditorPreferences.getInstance());
         
         noteEditor = new OwnNoteHTMLEditor(noteEditorFXML, this);
         
@@ -781,9 +775,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 
                     // store in the preferences
                     if (((RadioMenuItem) arg2).equals(classicLookAndFeel)) {
-                        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name());
+                        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name());
                     } else {
-                        OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.oneNote.name());
+                        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.oneNote.name());
                     }
                 }
             });
@@ -792,7 +786,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         ownCloudPath.textProperty().addListener(
             (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
                 // store in the preferences
-                OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, newValue);
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, newValue);
 
                 // scan files in new directory
                 initFromDirectory(false);
@@ -824,17 +818,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             } else {
                 ownCloudPath.setText(selectedDirectory.getAbsolutePath());
             }
-        });
-       
-        // TFE, 20200712: find unchecked boxes via menu
-        searchUnchecked.setOnAction((ActionEvent event) -> {
-            noteFilterText.setText(UNCHECKED_BOXES);
-            noteFilterCheck.setSelected(true);
-        });
-        
-        clearSearch.setOnAction((ActionEvent event) -> {
-            noteFilterText.setText("");
-            noteFilterCheck.setSelected(false);
         });
 
         AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v4.6", "https://github.com/ThomasDaheim/ownNoteEditor");

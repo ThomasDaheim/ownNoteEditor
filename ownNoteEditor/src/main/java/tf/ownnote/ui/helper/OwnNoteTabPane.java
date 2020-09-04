@@ -39,13 +39,15 @@ import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
+import tf.helper.general.IPreferencesHolder;
+import tf.helper.general.IPreferencesStore;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class OwnNoteTabPane implements IGroupListContainer {
+public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  {
     private final String PLUS_TAB = "+";
     
     private TabPane myTabPane = null;
@@ -181,6 +183,14 @@ public class OwnNoteTabPane implements IGroupListContainer {
         //System.out.println("addOwnNoteTab - groupName, groupColor: " + newTab.getTabName() + ", " + groupColor);
         
         myTabPane.getTabs().add(myTabPane.getTabs().size() - 1, newTab);
+    }
+
+    @Override
+    public void loadPreferences(final IPreferencesStore store) {
+    }
+    
+    @Override
+    public void savePreferences(final IPreferencesStore store) {
     }
 
     @Override

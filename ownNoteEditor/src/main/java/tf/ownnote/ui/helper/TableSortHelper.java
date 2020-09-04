@@ -73,7 +73,7 @@ public class TableSortHelper extends HashMap<String,String> {
     }
     
     public final List<TableColumn<Map<String, String>,?>> toTableColumnList(final List<TableColumn<Map<String, String>,?>> columns) {
-        final List<TableColumn<Map<String, String>,?>> tableColumnList = new ArrayList<TableColumn<Map<String, String>,?>>();
+        final List<TableColumn<Map<String, String>,?>> tableColumnList = new ArrayList<>();
         
         // loop through myself and extract "text" & "sorttype"
         // find column with name and set sort type & add to observable list
@@ -144,7 +144,7 @@ public class TableSortHelper extends HashMap<String,String> {
 
     /** Read the object from Base64 string. */
     public static TableSortHelper fromString( final String input ) {
-        Map<String, String> map = new HashMap<String, String>();
+        Map<String, String> map = new HashMap<>();
 
         // keep things readable... don't try to serialize the map
         if (input.length() > 0) {
