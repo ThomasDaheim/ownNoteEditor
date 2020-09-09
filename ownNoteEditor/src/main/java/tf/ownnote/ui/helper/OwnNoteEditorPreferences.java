@@ -29,6 +29,12 @@ public class OwnNoteEditorPreferences implements IPreferencesStore {
     public final static String RECENTGROUPSTABLESORTORDER = "recentGroupsTableSortOrder";
     public final static String RECENTNOTESTABLESORTORDER = "recentNotesTableSortOrder";
     
+    // TFE, 20200907: store tab order
+    public static final String PREF_STRING_PREFIX = "[ ";
+    public static final String PREF_STRING_SUFFIX = " ]";
+    public static final String PREF_STRING_SEP = " ::: ";
+    public static final String RECENTTABORDER = "recentTabOrder";
+
     private OwnNoteEditorPreferences() {
         // Exists only to defeat instantiation.
     }
