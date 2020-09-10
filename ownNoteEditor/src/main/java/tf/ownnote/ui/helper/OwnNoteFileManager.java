@@ -200,9 +200,16 @@ public class OwnNoteFileManager {
             return null;
         }
         
+        return getNoteData(buildNoteName(groupName, noteName));
+    }
+    
+    public NoteData getNoteData(final String noteFileName) {
+        if (noteFileName == null || noteFileName.isEmpty()) {
+            return null;
+        }
+        
         NoteData result = null;
         
-        final String noteFileName = buildNoteName(groupName, noteName);
         for (Map.Entry<String, NoteData> note : notesList.entrySet()) {
             if (note.getKey().equals(noteFileName)) {
                 result = note.getValue();
@@ -256,11 +263,17 @@ public class OwnNoteFileManager {
         return result;
     }
 
-    public String buildNoteName(String groupName, String noteName) {
+    public String buildNoteName(final String groupName, final String noteName) {
         assert groupName != null;
         assert noteName != null;
         
         return buildGroupName(groupName) + noteName + ".htm";
+    }
+    
+    public String buildNoteName(final NoteData note) {
+        assert note != null;
+        
+        return buildNoteName(note.getGroupName(), note.getNoteName());
     }
 
     private String buildGroupName(String groupName) {
@@ -314,9 +327,18 @@ public class OwnNoteFileManager {
     public String readNote(final NoteData curNote) {
         assert curNote != null;
         
-        String result = "";
+        final String result = readNote(buildNoteName(curNote.getGroupName(), curNote.getNoteName()));
         
-        final String noteFileName = buildNoteName(curNote.getGroupName(), curNote.getNoteName());
+        // TFE; 20200814: store content in NoteData
+        curNote.setNoteFileContent(result);
+        
+        return result;
+    }
+    
+    public String readNote(final String noteFileName) {
+        assert noteFileName != null;
+        
+        String result = "";
         
         try {
             result = new String(Files.readAllBytes(Paths.get(ownNotePath, noteFileName)));
@@ -324,10 +346,6 @@ public class OwnNoteFileManager {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = "";
         }
-        
-        
-        // TFE; 20200814: store content in NoteData
-        curNote.setNoteFileContent(result);
         
         return result;
     }

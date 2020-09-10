@@ -6,11 +6,13 @@
 package tf.ownnote.ui.tasks;
 
 import java.nio.file.Path;
+import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import tf.ownnote.ui.helper.FileContentChangeType;
@@ -121,12 +123,30 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             return true;
         }
 
-        inFileChange = true;
-        // TODO: fill with life and react to the various possibilites of changes:
-        // 1) file with tasks deleted -> remove tasks from own list
-        // 2) new file -> scan for tasks and update own list (similar to #2)
-        // 3) file was changed on disk -> rescan and compare
-        inFileChange = false;
+        final NoteData curNote = myEditor.getEditedNote();
+        if (curNote != null && OwnNoteFileManager.getInstance().buildNoteName(curNote).equals(filePath.getFileName().toString())) {
+            return true;
+        }
+        
+        Platform.runLater(() -> {
+            inFileChange = true;
+            // only act for files not currently shown - that will come via FileContentChange...
+            if (StandardWatchEventKinds.ENTRY_DELETE.equals(eventKind) || StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
+                // file with tasks deleted -> remove tasks from own list
+                taskList.removeIf((t) -> {
+                    return OwnNoteFileManager.getInstance().buildNoteName(t.getNoteData()).equals(filePath.getFileName().toString());
+                });
+            }
+            if (StandardWatchEventKinds.ENTRY_CREATE.equals(eventKind) || StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
+                // new file -> scan for tasks and update own list (similar to #2)
+                final NoteData note = OwnNoteFileManager.getInstance().getNoteData(filePath.getFileName().toString());
+                final String noteContent = OwnNoteFileManager.getInstance().readNote(note);
+                taskList.addAll(tasksFromNote(note, noteContent));
+            }
+            // modify is delete + add :-)
+
+            inFileChange = false;
+        });
         
         return true;
     }

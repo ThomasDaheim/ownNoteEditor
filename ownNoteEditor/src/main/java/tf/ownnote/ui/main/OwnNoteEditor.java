@@ -925,6 +925,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         return result;
     }
     
+    public NoteData getEditedNote() {
+        return ObjectsHelper.uncheckedCast(noteEditor.getUserData());
+    }
+    
     public void selectNoteAndCheckBox(final NoteData noteData, final int textPos, final String htmlText) {
         // need to distinguish between views to select group
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {

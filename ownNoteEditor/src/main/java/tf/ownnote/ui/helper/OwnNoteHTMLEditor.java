@@ -662,13 +662,12 @@ public class OwnNoteHTMLEditor {
     }
     
     public void scrollToCheckBox(final int textPos, final String htmlText) {
-        // maybe with https://www.tiny.cloud/docs-4x/api/tinymce.dom/tinymce.dom.selection/#setcursorlocation
+        // call tinymce to set the cursor
         wrapExecuteScript(myWebEngine, "scrollToCheckBox(" + textPos + ", '" + htmlText + "');");
     }
     
     public void toggleCheckBox(final int textPos, final String htmlText, final boolean newStatus) {
-        // TODO call tinymce to set the cursor
-        // maybe with https://www.tiny.cloud/docs-4x/api/tinymce.dom/tinymce.dom.selection/#setcursorlocation
+        // call tinymce to change the checkbox
         wrapExecuteScript(myWebEngine, "toggleCheckBox(" + textPos + ", '" + htmlText + "', " + newStatus + ");");
     }
 
