@@ -1247,6 +1247,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             notesTable.selectAndFocusRow(selectIndex);
             editNote(new NoteData((Map<String, String>) notesTable.getItems().get(selectIndex)));
         } else {
+            // TFE, 20201012: check for changes also when no new note (e.g. selecting an empty group...
+            if (!checkChangedNote()) {
+                return;
+            }
+
             noteEditor.setDisable(true);
             noteEditor.setNoteText(null, "");
             noteEditor.setUserData(null);

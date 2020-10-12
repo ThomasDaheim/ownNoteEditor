@@ -29,6 +29,8 @@ import com.sun.javafx.scene.control.ContextMenuContent;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -47,6 +49,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Worker;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.print.PrinterJob;
@@ -54,6 +57,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.image.Image;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.ContextMenuEvent;
@@ -69,6 +73,7 @@ import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
 import javafx.stage.PopupWindow;
 import javafx.stage.Window;
+import javax.imageio.ImageIO;
 import netscape.javascript.JSObject;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.text.StringEscapeUtils;
@@ -399,7 +404,8 @@ public class OwnNoteHTMLEditor {
     private void importMediaFile(File file) {
         try {
             //check if file is too big
-            if (file.length() > 1024 * 1024) {
+            // TFE, 20201012: things can be a bit bigger nowadays :-)
+            if (file.length() > 10 * 1024 * 1024) {
                 throw new VerifyError("File is too big.");
             }
             //get mime type of the file
@@ -600,11 +606,25 @@ public class OwnNoteHTMLEditor {
         try {
             if (myClipboardFx.hasHtml()) {
                 result = myClipboardFx.getHtml();
-            } else {
+            } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
                 // We use the AWT clipboard if we want to retreive text because the FX implementation delivers funky characters
                 // when pasting from e.g. Command Prompt
                 result = (String) myClipboardAwt.getData(DataFlavor.stringFlavor);
                 result = result.replaceAll("(\n|\r|\n\r|\r\n)", "<br />");
+            // TFE, 20201012: allow pasting of images
+            } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.imageFlavor)) {
+                // issues with images from javafx clipboard?
+                // https://bugs.openjdk.java.net/browse/JDK-8223425
+                final BufferedImage img = (BufferedImage) myClipboardAwt.getData(DataFlavor.imageFlavor); 
+                final String base64String;
+                try (ByteArrayOutputStream baos = new ByteArrayOutputStream(1000)) {
+                    ImageIO.write(img, "png", baos);
+                    baos.flush();
+                    base64String = java.util.Base64.getEncoder().encodeToString(baos.toByteArray());
+                }  
+            
+                // duplication of code with javascript method insertMedia - but we can live with that
+                result = "<img src='data:" + "image/png" + ";base64," + base64String + "' >";
             }
         } catch (UnsupportedFlavorException | IOException ex) {
             Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
@@ -702,7 +722,7 @@ public class OwnNoteHTMLEditor {
             final String newEditorText = readNoteText();
 
             if (editorNote == null || editorNote.getNoteFileContent() == null) {
-                result = (newEditorText != null);
+                result = !newEditorText.isEmpty();
             } else {
                 result = !editorNote.getNoteFileContent().equals(newEditorText);
             }
