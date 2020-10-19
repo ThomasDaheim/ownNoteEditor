@@ -46,11 +46,11 @@ import tf.ownnote.ui.helper.OwnNoteFileManager;
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class Testdata {
+public class TestNodeData {
     private final Map<String, GroupData> groupsList = new LinkedHashMap<>();
     private final Map<String, NoteData> notesList = new LinkedHashMap<>();
 
-    public Testdata() {
+    public TestNodeData() {
         // init groupsList for know groups - ALL & NOT_GROUPED
         GroupData groupRow = new GroupData();
         groupRow.setGroupName(GroupData.ALL_GROUPS);

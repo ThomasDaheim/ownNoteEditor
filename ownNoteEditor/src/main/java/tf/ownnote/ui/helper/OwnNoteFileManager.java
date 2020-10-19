@@ -28,6 +28,7 @@ package tf.ownnote.ui.helper;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.DirectoryIteratorException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -55,11 +56,13 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public class OwnNoteFileManager {
+    private final static OwnNoteFileManager INSTANCE = new OwnNoteFileManager();
+
     // callback to OwnNoteEditor required for e.g. delete & rename
-    private final OwnNoteEditor myEditor;
+    private OwnNoteEditor myEditor;
     
     // monitor for changes using java Watcher service
-    private final OwnNoteDirectoryMonitor myDirMonitor;
+    private final OwnNoteDirectoryMonitor myDirMonitor = new OwnNoteDirectoryMonitor();
 
     public static final String deleteString = "";
     
@@ -72,14 +75,26 @@ public class OwnNoteFileManager {
         super();
 
         myEditor = null;
-        myDirMonitor = null;
     }
 
-    public OwnNoteFileManager(final OwnNoteEditor editor) {
-        super();
-        
+    public static OwnNoteFileManager getInstance() {
+        return INSTANCE;
+    }
+
+    public void setCallback(final OwnNoteEditor editor) {
         myEditor = editor;
-        myDirMonitor = new OwnNoteDirectoryMonitor(myEditor);
+        
+        myDirMonitor.subscribe(editor);
+    }
+
+    // convinience to forward to OwnNoteDirectoryMonitor
+    public void subscribe(final IFileChangeSubscriber subscriber) {
+        myDirMonitor.subscribe(subscriber);
+    }
+    
+    // convinience to forward to OwnNoteDirectoryMonitor
+    public void unsubscribe(final IFileChangeSubscriber subscriber) {
+        myDirMonitor.unsubscribe(subscriber);
     }
     
     // forward to monitor to shut down things
@@ -179,6 +194,50 @@ public class OwnNoteFileManager {
     public ObservableList<NoteData> getNotesList() {
         return FXCollections.observableArrayList(notesList.values());
     }
+    
+    public NoteData getNoteData(String groupName, String noteName) {
+        if (groupName == null || noteName == null) {
+            return null;
+        }
+        
+        return getNoteData(buildNoteName(groupName, noteName));
+    }
+    
+    public NoteData getNoteData(final String noteFileName) {
+        if (noteFileName == null || noteFileName.isEmpty()) {
+            return null;
+        }
+        
+        NoteData result = null;
+        
+        for (Map.Entry<String, NoteData> note : notesList.entrySet()) {
+            if (note.getKey().equals(noteFileName)) {
+                result = note.getValue();
+            }
+        }
+        
+        return result;
+    }
+    
+    public GroupData getGroupData(final String groupName) {
+        if (groupName == null) {
+            return null;
+        }
+        
+        GroupData result = null;
+
+        for (Map.Entry<String, GroupData> group : groupsList.entrySet()) {
+            if (group.getKey().equals(groupName)) {
+                result = group.getValue();
+            }
+        }
+        
+        return result;
+    }
+    
+    public GroupData getGroupData(final NoteData noteData) {
+        return getGroupData(noteData.getGroupName());
+    }
 
     public boolean deleteNote(String groupName, String noteName) {
         assert groupName != null;
@@ -204,11 +263,17 @@ public class OwnNoteFileManager {
         return result;
     }
 
-    public String buildNoteName(String groupName, String noteName) {
+    public String buildNoteName(final String groupName, final String noteName) {
         assert groupName != null;
         assert noteName != null;
         
         return buildGroupName(groupName) + noteName + ".htm";
+    }
+    
+    public String buildNoteName(final NoteData note) {
+        assert note != null;
+        
+        return buildNoteName(note.getGroupName(), note.getNoteName());
     }
 
     private String buildGroupName(String groupName) {
@@ -262,9 +327,18 @@ public class OwnNoteFileManager {
     public String readNote(final NoteData curNote) {
         assert curNote != null;
         
-        String result = "";
+        final String result = readNote(buildNoteName(curNote.getGroupName(), curNote.getNoteName()));
         
-        final String noteFileName = buildNoteName(curNote.getGroupName(), curNote.getNoteName());
+        // TFE; 20200814: store content in NoteData
+        curNote.setNoteFileContent(result);
+        
+        return result;
+    }
+    
+    public String readNote(final String noteFileName) {
+        assert noteFileName != null;
+        
+        String result = "";
         
         try {
             result = new String(Files.readAllBytes(Paths.get(ownNotePath, noteFileName)));
@@ -292,6 +366,8 @@ public class OwnNoteFileManager {
             // // TF, 20170723: update modified date of the file
             final LocalDateTime filetime = LocalDateTime.ofInstant((new Date(savePath.toFile().lastModified())).toInstant(), ZoneId.systemDefault());
             final NoteData dataRow = notesList.get(newFileName);
+            // TFE; 20200814: store content in NoteData
+            dataRow.setNoteFileContent(htmlText);
             dataRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
             notesList.put(newFileName, dataRow);
             

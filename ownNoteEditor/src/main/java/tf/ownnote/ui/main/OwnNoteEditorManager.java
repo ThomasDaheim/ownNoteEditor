@@ -107,9 +107,13 @@ public class OwnNoteEditorManager extends Application {
         try {
             // issue #30: store width and height of window as well - but here so that the scene can be created accordingly
             Double recentWindowWidth = Double.valueOf(
-                    OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, "1200"));
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, "1200"));
             Double recentWindowHeigth = Double.valueOf(
-                    OwnNoteEditorPreferences.get(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, "600"));
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, "600"));
+            // TFE, 20201011: check that not larger than current screen - might happen with multiple monitors
+            final Rectangle2D screenRect = Screen.getPrimary().getVisualBounds();
+            recentWindowWidth = Math.min(recentWindowWidth, screenRect.getWidth());
+            recentWindowHeigth = Math.min(recentWindowHeigth, screenRect.getHeight());
             
             fxmlLoader = new FXMLLoader(OwnNoteEditorManager.class.getResource("/OwnNoteEditor.fxml"));
             myRoot = (BorderPane) fxmlLoader.load();
@@ -126,7 +130,7 @@ public class OwnNoteEditorManager extends Application {
             // TFE, 20200508: should work now... - needs investigation
 //            new JMetro(Style.LIGHT).setScene(myStage.getScene());
             
-            // TF, 20160620: suppress warnings from css parsing for "-fx-font-weight" - not correctly implemented in the css parrser for javafx 8...
+            // TF, 20160620: suppress warnings from css parsing for "-fx-font-weight" - not correctly implemented in the css parser for javafx 8...
             // TFE, 20181209: times and meethods change :-)
             Logging.getCSSLogger().disableLogging();
             
@@ -276,8 +280,8 @@ public class OwnNoteEditorManager extends Application {
 
         // TF, 20170904: maximized gives wrong values for width & height - surely same with minimized...
         if (!myStage.isMaximized() && !myStage.isIconified()) {
-            OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, String.valueOf(myStage.getScene().getWidth()));
-            OwnNoteEditorPreferences.put(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, String.valueOf(myStage.getScene().getHeight()));
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, String.valueOf(myStage.getScene().getWidth()));
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, String.valueOf(myStage.getScene().getHeight()));
         }
         
         if (controller != null) {

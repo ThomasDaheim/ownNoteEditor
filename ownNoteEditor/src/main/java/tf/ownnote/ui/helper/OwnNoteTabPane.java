@@ -25,7 +25,10 @@
  */
 package tf.ownnote.ui.helper;
 
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
@@ -39,13 +42,15 @@ import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
+import tf.helper.general.IPreferencesHolder;
+import tf.helper.general.IPreferencesStore;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class OwnNoteTabPane implements IGroupListContainer {
+public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  {
     private final String PLUS_TAB = "+";
     
     private TabPane myTabPane = null;
@@ -68,6 +73,9 @@ public class OwnNoteTabPane implements IGroupListContainer {
             
     // store selected group before changing the group lists for later re-select
     private String selectedGroupName = GroupData.ALL_GROUPS;
+    
+    // TFE, 20200907: keep track of group order
+    private final List<String> tabOrder = new LinkedList<>();
 
     private OwnNoteTabPane() {
         super();
@@ -76,12 +84,12 @@ public class OwnNoteTabPane implements IGroupListContainer {
     public OwnNoteTabPane(final TabPane tabPane, final OwnNoteEditor editor) {
         super();
         myTabPane = tabPane;
+        myTabPane.setUserData(this);
         myEditor = editor;
         
         initTabPane();
     }
 
-    @SuppressWarnings("unchecked")
     private void initTabPane() {
         // drop down menu doesn't update when renaming tabs - would need to implement own TabPaneSkin :-(
         // https://stackoverflow.com/questions/31734292/show-some-tabs-ahead-from-selected-tab-in-a-javafx-8-tabpane-header
@@ -157,6 +165,9 @@ public class OwnNoteTabPane implements IGroupListContainer {
             newTab.setUserData(dataRow);
 
             addOwnNoteTab(newTab);
+            
+            // update internal bookkeeping
+            updateTabOrder();
         }
 
         return newTab;
@@ -182,6 +193,88 @@ public class OwnNoteTabPane implements IGroupListContainer {
         //System.out.println("addOwnNoteTab - groupName, groupColor: " + newTab.getTabName() + ", " + groupColor);
         
         myTabPane.getTabs().add(myTabPane.getTabs().size() - 1, newTab);
+    }
+    
+    public void sortTabs() {
+        final List<Tab> tabs = new LinkedList<>(myTabPane.getTabs());
+        
+        // now sort tabs accordingly
+        int startIndex = 2;
+        for (String tabLabel : tabOrder) {
+            // find tab in list of tabs
+            Optional<Tab> tab = tabs.stream().filter((t) -> {
+                assert (t instanceof OwnNoteTab);
+                
+                return tabLabel.equals(((OwnNoteTab) t).getTabName());
+            }).findFirst();
+            
+            // move if found and different position
+            if (tab.isPresent()) {
+                if (tabs.indexOf(tab.get()) != startIndex) {
+//                    System.out.println("Moving tab '" + tabLabel + "' from position " + tabs.indexOf(tab.get()) + " to position " + startIndex);
+                    myTabPane.getTabs().remove(tab.get());
+                    myTabPane.getTabs().add(startIndex, tab.get());
+                } else {
+//                    System.out.println("Nothing to do for tab '" + tabLabel + "'");
+                }
+                
+                startIndex++;
+            } else {
+//                System.out.println("Tab '" + tabLabel + "' not found!");
+            }
+        }
+    }
+    
+    public void updateTabOrder() {
+        tabOrder.clear();
+        for (Tab tab: myTabPane.getTabs()) {
+            assert (tab instanceof OwnNoteTab);
+
+            final String tabLabel = ((OwnNoteTab) tab).getTabName();
+            if (!tabLabel.equals(GroupData.NOT_GROUPED) && !tabLabel.equals(GroupData.ALL_GROUPS) && !tabLabel.equals(PLUS_TAB)) {
+                // add group name
+                tabOrder.add(tabLabel);
+            }
+        }
+        
+//        System.out.println("tab order updated: " + tabOrder.stream().collect(Collectors.joining(OwnNoteEditorPreferences.PREF_STRING_SEP)));
+    }
+
+    @Override
+    public void loadPreferences(final IPreferencesStore store) {
+        final String prefString = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTTABORDER, "");
+
+        if (prefString.isEmpty()) {
+            return;
+        }
+        if (!prefString.startsWith(OwnNoteEditorPreferences.PREF_STRING_PREFIX)) {
+            return;
+        }
+        if (!prefString.endsWith(OwnNoteEditorPreferences.PREF_STRING_SUFFIX)) {
+            return;
+        }
+        
+        tabOrder.clear();
+        tabOrder.addAll(new LinkedList<>(Arrays.asList(
+                        prefString.substring(OwnNoteEditorPreferences.PREF_STRING_PREFIX.length(), prefString.length()-OwnNoteEditorPreferences.PREF_STRING_SUFFIX.length()).
+                        strip().split(OwnNoteEditorPreferences.PREF_STRING_SEP))));
+        
+        sortTabs();
+    }
+    
+    @Override
+    public void savePreferences(final IPreferencesStore store) {
+        // save group names in current order of tabs on pane - ignoring All, Not Grouped, +
+        final StringBuilder prefString = new StringBuilder();
+        
+        prefString.append(OwnNoteEditorPreferences.PREF_STRING_PREFIX);
+        
+        updateTabOrder();
+        prefString.append(tabOrder.stream().collect(Collectors.joining(OwnNoteEditorPreferences.PREF_STRING_SEP)));
+        
+        prefString.append(OwnNoteEditorPreferences.PREF_STRING_SUFFIX);
+        
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTTABORDER, prefString.toString());
     }
 
     @Override
@@ -267,6 +360,28 @@ public class OwnNoteTabPane implements IGroupListContainer {
             // select the previous tab
             restoreSelectedGroup();
         }
+        
+        // sort with old names
+        sortTabs();
+        // update internal bookkeeping
+        updateTabOrder();
+    }
+    
+    public void selectGroupForNote(final NoteData noteData) {
+        // find tab that has group as userdata
+        final GroupData groupData = OwnNoteFileManager.getInstance().getGroupData(noteData);
+        
+        Tab groupTab = null;
+        for (Tab tab : myTabPane.getTabs()) {
+            if (groupData.equals(tab.getUserData())) {
+                groupTab = tab;
+                break;
+            }
+        }
+        
+        if (groupTab != null) {
+            myTabPane.getSelectionModel().select(groupTab);
+        }
     }
     
     @Override
@@ -297,7 +412,6 @@ public class OwnNoteTabPane implements IGroupListContainer {
         return groupColor;
     }
     
-    @SuppressWarnings("unchecked")
     private void initNameField() {
         // TFE, 20191208: check for valid file names!
         FormatHelper.getInstance().initNameTextField(nameField);
@@ -336,6 +450,9 @@ public class OwnNoteTabPane implements IGroupListContainer {
                 
                 // update notes list
                 myEditor.setGroupNameFilter(newGroupName);
+                
+                // TFE, 20200907: update internal bookkeeping
+                updateTabOrder();
             }
         });
 
@@ -358,7 +475,6 @@ public class OwnNoteTabPane implements IGroupListContainer {
         
     }
 
-    @SuppressWarnings("unchecked")
     private void initContextMenu() {
         newGroup1.setOnAction((ActionEvent event) -> {
             OwnNoteTab addedTab = addNewTab();

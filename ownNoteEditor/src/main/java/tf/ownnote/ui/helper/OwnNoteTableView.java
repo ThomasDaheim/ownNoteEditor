@@ -56,13 +56,15 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Text;
+import tf.helper.general.IPreferencesHolder;
+import tf.helper.general.IPreferencesStore;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class OwnNoteTableView implements IGroupListContainer {
+public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder {
     
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor= null;
@@ -113,6 +115,24 @@ public class OwnNoteTableView implements IGroupListContainer {
     }
 
     @Override
+    public void loadPreferences(final IPreferencesStore store) {
+        if (TableType.notesTable.equals(myTableType)) {
+            setSortOrder(TableSortHelper.fromString(store.get(OwnNoteEditorPreferences.RECENTNOTESTABLESORTORDER, "")));
+        } else {
+            setSortOrder(TableSortHelper.fromString(store.get(OwnNoteEditorPreferences.RECENTGROUPSTABLESORTORDER, "")));
+        }
+    }
+    
+    @Override
+    public void savePreferences(final IPreferencesStore store) {
+        if (TableType.notesTable.equals(myTableType)) {
+            store.put(OwnNoteEditorPreferences.RECENTNOTESTABLESORTORDER, TableSortHelper.toString(getSortOrder()));
+        } else {
+            store.put(OwnNoteEditorPreferences.RECENTGROUPSTABLESORTORDER, TableSortHelper.toString(getSortOrder()));
+        }
+    }
+
+    @Override
     public void setGroups(final ObservableList<GroupData> groupsList, final boolean updateOnly) {
         assert (TableType.groupsTable.equals(myTableType));
         
@@ -129,7 +149,7 @@ public class OwnNoteTableView implements IGroupListContainer {
             listNames.addAll(
                 myTableView.getItems().stream().
                     map(s -> {
-                        return s.get(GroupData.groupsMapKeys[0]);
+                        return ((GroupData) s).getGroupName();
                     }).
                     collect(Collectors.toList()));
         }
@@ -170,8 +190,19 @@ public class OwnNoteTableView implements IGroupListContainer {
         selectRow(rownum);
         myTableView.getFocusModel().focus(rownum);
     }
+    
+    public void selectGroupForNote(final NoteData noteData) {
+        assert (TableType.groupsTable.equals(myTableType));
 
-    @SuppressWarnings("unchecked")
+        myTableView.getSelectionModel().select(OwnNoteFileManager.getInstance().getGroupData(noteData));
+    }
+    
+    public void selectNote(final NoteData noteData) {
+        assert (TableType.notesTable.equals(myTableType));
+
+        myTableView.getSelectionModel().select(noteData);
+    }
+
     private void initTableView() {
         myTableView.setPlaceholder(new Text(""));
         myTableView.getSelectionModel().setCellSelectionEnabled(false);
@@ -333,12 +364,11 @@ public class OwnNoteTableView implements IGroupListContainer {
 
                         myEditor.setGroupNameFilter(groupName);
                     }
-                });        
+                });
             }
         }
     }
 
-    @SuppressWarnings("unchecked")
     private void createNoteWrapper(final String newGroupName, final String newNoteName) {
         assert (TableType.notesTable.equals(myTableType));
         

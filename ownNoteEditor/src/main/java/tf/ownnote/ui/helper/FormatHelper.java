@@ -31,7 +31,7 @@ import java.util.Comparator;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.control.Tooltip;
-import tf.ownnote.ui.general.TooltipHelper;
+import tf.helper.javafx.TooltipHelper;
 
 /**
  * Helper for formating and sorting special values in OwnNoteTableColumn

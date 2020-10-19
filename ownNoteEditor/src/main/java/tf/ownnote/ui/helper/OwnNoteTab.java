@@ -138,14 +138,18 @@ public class OwnNoteTab extends Tab {
                             return;
                         }
                         oldTabPane.getTabs().remove(OwnNoteTab.this);
+                        callbackOwnNoteTabPane(oldTabPane);
                         if(oldIndex < addIndex && oldTabPane == insertData.getInsertPane()) {
                             addIndex--;
                         }
                         if(addIndex > insertData.getInsertPane().getTabs().size()) {
                             addIndex = insertData.getInsertPane().getTabs().size();
                         }
-                        insertData.getInsertPane().getTabs().add(addIndex, OwnNoteTab.this);
-                        insertData.getInsertPane().selectionModelProperty().get().select(addIndex);
+                        
+                        final TabPane newPane = insertData.getInsertPane();
+                        newPane.getTabs().add(addIndex, OwnNoteTab.this);
+                        newPane.selectionModelProperty().get().select(addIndex);
+                        callbackOwnNoteTabPane(newPane);
                         return;
                     }
                     if(!detachable) {
@@ -229,6 +233,14 @@ public class OwnNoteTab extends Tab {
             event.consume();
         });
     }
+    
+    private void callbackOwnNoteTabPane(final TabPane tabPane) {
+        // TFE, 20200907: warning, ugly hack coming up...
+        if ((tabPane.getUserData() != null) && (tabPane.getUserData() instanceof OwnNoteTabPane)) {
+            ((OwnNoteTabPane) tabPane.getUserData()).updateTabOrder();
+        }
+    }
+            
 
     /**
      * Set whether it's possible to detach the tab from its pane and move it to

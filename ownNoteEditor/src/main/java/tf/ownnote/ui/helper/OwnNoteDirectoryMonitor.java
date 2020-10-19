@@ -33,32 +33,43 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.helper.general.ObjectsHelper;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public class OwnNoteDirectoryMonitor {
-
-    // callback to OwnNoteEditor required for e.g. delete & rename
-    private OwnNoteEditor myEditor= null;
-            
     private ThreadWatcher fileWatcher = null;
     private Thread watchThread = null;
+    
+    // linked list to maintain order of callbacks
+    private List<IFileChangeSubscriber> changeSubscribers = new LinkedList<>();
 
-    private OwnNoteDirectoryMonitor() {
+    public OwnNoteDirectoryMonitor() {
         super();
     }
 
-    public OwnNoteDirectoryMonitor(final OwnNoteEditor editor) {
-        super();
-        
-        myEditor = editor;
+    public void subscribe(final IFileChangeSubscriber subscriber) {
+        if (subscriber == null) {
+            return;
+        }
+
+        changeSubscribers.add(subscriber);
     }
     
+    public void unsubscribe(final IFileChangeSubscriber subscriber) {
+        if (subscriber == null) {
+            return;
+        }
+        
+        changeSubscribers.remove(subscriber);
+    }
+
     /**
      * Use to end watcher thread
      * If not, it will keep on running until forcefully terminated
@@ -71,11 +82,11 @@ public class OwnNoteDirectoryMonitor {
                 fileWatcher.disable();
                 fileWatcher.terminate();
                 watchThread.join();
-            } catch (InterruptedException ex) {
-                Logger.getLogger(OwnNoteDirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (ClosedWatchServiceException ex) {
+            } catch (InterruptedException | ClosedWatchServiceException ex) {
                 Logger.getLogger(OwnNoteDirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
             }
+            // System.out.printf("Time %s: Done stopping\n", myEditor.getCurrentTimeStamp());
+            
             // System.out.printf("Time %s: Done stopping\n", myEditor.getCurrentTimeStamp());
         }
     }
@@ -91,7 +102,7 @@ public class OwnNoteDirectoryMonitor {
     public void setDirectoryToMonitor(final String directory) {
         stop();
         
-        fileWatcher = new ThreadWatcher(directory, myEditor);
+        fileWatcher = new ThreadWatcher(directory, changeSubscribers);
         fileWatcher.enable();
         watchThread = new Thread(fileWatcher, "FileWatcher");
         watchThread.start();
@@ -107,18 +118,18 @@ public class OwnNoteDirectoryMonitor {
     private static class ThreadWatcher implements Runnable {
  
         // callback to OwnNoteEditor required for e.g. delete & rename
-        private OwnNoteEditor myEditor= null;
+        private final List<IFileChangeSubscriber> changeSubscribers;
 
         /** the watchService that is passed in from above */
         private WatchService watcher = null;
         private Path watchPath = null; 
-        private String watchDir = null;
+        private final String watchDir;
         private volatile boolean running = true;
         private volatile boolean enabled = true;
 
-        public ThreadWatcher(final String directory, final OwnNoteEditor editor) {
+        public ThreadWatcher(final String directory, final List<IFileChangeSubscriber> subscribers) {
             watchDir = directory;
-            myEditor = editor;
+            changeSubscribers = subscribers;
         }
         public void terminate() {
             running = false;
@@ -179,7 +190,6 @@ public class OwnNoteDirectoryMonitor {
          * watchers queue.
          */
         @Override
-        @SuppressWarnings("unchecked")
         public void run() {
             WatchKey key = null;
             while(running) {
@@ -205,18 +215,22 @@ public class OwnNoteDirectoryMonitor {
                     if (key != null) {
                         // we have a polled event, now we traverse it and
                         // receive all the states from it
-                        for (WatchEvent event : key.pollEvents()) {
+                        for (WatchEvent<?> event : key.pollEvents()) {
                             // System.out.printf("Time %s: Received %s event for file: %s\n",
                             //          myEditor.getCurrentTimeStamp(), event.kind(), event.context() );
 
                             final WatchEvent.Kind<?> eventKind = event.kind();
                             if (eventKind == StandardWatchEventKinds.OVERFLOW) {
-                                    continue;
+                                continue;
                             }
-                            final Path filePath = ((WatchEvent<Path>) event).context();
+                            final Path filePath = ObjectsHelper.uncheckedCast(event.context());
 
-                            // let my editor handle this...
-                            myEditor.processFileChange(eventKind, filePath);
+                            // calling all subscribers...
+                            for (IFileChangeSubscriber subscriber : changeSubscribers) {
+                                if (!subscriber.processFileChange(eventKind, filePath)) {
+                                    break;
+                                }
+                            }
                         }
                         key.reset();
                     }

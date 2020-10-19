@@ -35,7 +35,11 @@ import java.util.Map;
 public class GroupData extends HashMap<String,String> {
 
     // to reference the columns for groups table
-    public static final String[] groupsMapKeys = { "groupName", "groupDelete", "groupCount" };
+    private enum GroupMapKey {
+        groupName,
+        groupDelete,
+        groupCount;
+    }
         
     public static final String ALL_GROUPS = "All";
     public static final String NOT_GROUPED = "Not grouped";
@@ -50,30 +54,30 @@ public class GroupData extends HashMap<String,String> {
     }
     
     public static String getGroupDataName(final int i) {
-        return groupsMapKeys[i];
+        return GroupMapKey.values()[i].name();
     }
     
     public String getGroupName() {
-        return get(groupsMapKeys[0]);
+        return get(GroupMapKey.groupName.name());
     }
 
     public void setGroupName(final String groupName) {
-        put(groupsMapKeys[0], groupName);
+        put(GroupMapKey.groupName.name(), groupName);
     }
 
     public String getGroupDelete() {
-        return get(groupsMapKeys[1]);
+        return get(GroupMapKey.groupDelete.name());
     }
 
     public void setGroupDelete(final String groupDelete) {
-        put(groupsMapKeys[1], groupDelete);
+        put(GroupMapKey.groupDelete.name(), groupDelete);
     }
 
     public String getGroupCount() {
-        return get(groupsMapKeys[2]);
+        return get(GroupMapKey.groupCount.name());
     }
 
     public void setGroupCount(final String groupCount) {
-        put(groupsMapKeys[2], groupCount);
+        put(GroupMapKey.groupCount.name(), groupCount);
     }
 }

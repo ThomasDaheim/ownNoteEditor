@@ -37,6 +37,7 @@ import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.input.MouseEvent;
 import javafx.util.Callback;
 import javafx.util.converter.DefaultStringConverter;
+import tf.helper.general.ObjectsHelper;
 import tf.ownnote.ui.general.CellUtils;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
@@ -151,7 +152,6 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
         }
     }
     
-    @SuppressWarnings("unchecked")
     private void handleTableClick(final TableCell clickedCell) {
         assert (this.myEditor != null);
         
@@ -168,19 +168,19 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
             case "noteNameColFXML":
                 //System.out.println("Clicked in noteNameCol");
                 curNoteData =
-                    new NoteData((Map<String, String>) clickedCell.getTableView().getItems().get(clickedCell.getIndex()));
+                    new NoteData(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
                 //reInit = this.myEditor.editNote(curNoteData);
                 break;
             case "noteDeleteColFXML":
                 //System.out.println("Clicked in noteDeleteCol");
                 curNoteData =
-                    new NoteData((Map<String, String>) clickedCell.getTableView().getItems().get(clickedCell.getIndex()));
+                    new NoteData(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
                 reInit = this.myEditor.deleteNoteWrapper(curNoteData);
                 break;
             case "groupDeleteColFXML":
                 //System.out.println("Clicked in groupDeleteCol");
                 curGroupData =
-                    new GroupData((Map<String, String>) clickedCell.getTableView().getItems().get(clickedCell.getIndex()));
+                    new GroupData(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
                 reInit = this.myEditor.deleteGroupWrapper(curGroupData);
                 break;
             default:
