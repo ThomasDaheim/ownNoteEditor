@@ -26,7 +26,6 @@
 package tf.ownnote.ui.helper;
 
 import java.util.HashMap;
-import java.util.Map;
 
 /**
  *
@@ -45,13 +44,18 @@ public class NoteData extends HashMap<String,String> {
         // TFE, 20200814: content as in editor
         noteEditorContent;
     }
+    
+    // TFE, 20201022: store additional metadata, e.g. tags, author, ...
+    private NoteMetaData myMetaData;
 
     public NoteData() {
         super();
     }
     
-    public NoteData(final Map<String,String> noteData) {
+    public NoteData(NoteData noteData) {
         super(noteData);
+        
+        myMetaData = noteData.myMetaData;
     }
     
     public static String getNoteDataName(final int i) {
@@ -73,6 +77,10 @@ public class NoteData extends HashMap<String,String> {
             }
         }
         return data;
+    }
+    
+    public NoteMetaData getMetaData() {
+        return myMetaData;
     }
     
     public String getNoteName() {

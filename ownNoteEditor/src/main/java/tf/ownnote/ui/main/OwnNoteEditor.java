@@ -820,7 +820,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             }
         });
 
-        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v4.6", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v4.7", "https://github.com/ThomasDaheim/ownNoteEditor");
     }
 
     public void initFromDirectory(final boolean updateOnly) {
@@ -1245,7 +1245,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             }
            
             notesTable.selectAndFocusRow(selectIndex);
-            editNote(new NoteData((Map<String, String>) notesTable.getItems().get(selectIndex)));
+            editNote(new NoteData(ObjectsHelper.uncheckedCast(notesTable.getItems().get(selectIndex))));
         } else {
             // TFE, 20201012: check for changes also when no new note (e.g. selecting an empty group...
             if (!checkChangedNote()) {

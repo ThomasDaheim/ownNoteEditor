@@ -25,6 +25,8 @@ public class OwnNoteEditorPreferences implements IPreferencesStore {
     public final static String RECENTTASKLISTWIDTH = "recentTaskListWidth";
     public final static String RECENTWINDOWWIDTH = "recentWindowWidth";
     public final static String RECENTWINDOWHEIGTH = "recentWindowHeigth";
+    public final static String RECENTWINDOWLEFT = "recentWindowLeft";
+    public final static String RECENTWINDOWTOP = "recentWindowTop";
     // issue #45 store sort order for tables
     public final static String RECENTGROUPSTABLESORTORDER = "recentGroupsTableSortOrder";
     public final static String RECENTNOTESTABLESORTORDER = "recentNotesTableSortOrder";

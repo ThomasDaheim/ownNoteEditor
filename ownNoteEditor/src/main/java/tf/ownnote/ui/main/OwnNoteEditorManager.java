@@ -110,15 +110,28 @@ public class OwnNoteEditorManager extends Application {
                     OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, "1200"));
             Double recentWindowHeigth = Double.valueOf(
                     OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, "600"));
+            // TFE, 20201020: store left & top as well
+            final Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
+            Double recentWindowLeft = Double.valueOf(
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWLEFT, String.valueOf((primScreenBounds.getWidth() - recentWindowWidth) / 2.0)));
+            Double recentWindowTop = Double.valueOf(
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWTOP, String.valueOf((primScreenBounds.getHeight() - recentWindowHeigth) / 2.0)));
             // TFE, 20201011: check that not larger than current screen - might happen with multiple monitors
-            final Rectangle2D screenRect = Screen.getPrimary().getVisualBounds();
-            recentWindowWidth = Math.min(recentWindowWidth, screenRect.getWidth());
-            recentWindowHeigth = Math.min(recentWindowHeigth, screenRect.getHeight());
+            if (recentWindowLeft + recentWindowWidth > primScreenBounds.getWidth()) {
+                recentWindowLeft = 0.0;
+            }
+            recentWindowWidth = Math.min(recentWindowWidth, primScreenBounds.getWidth());
+            if (recentWindowTop + recentWindowHeigth > primScreenBounds.getHeight()) {
+                recentWindowTop = 0.0;
+            }
+            recentWindowHeigth = Math.min(recentWindowHeigth, primScreenBounds.getHeight());
             
             fxmlLoader = new FXMLLoader(OwnNoteEditorManager.class.getResource("/OwnNoteEditor.fxml"));
             myRoot = (BorderPane) fxmlLoader.load();
             
             myStage.setScene(new Scene(myRoot, recentWindowWidth, recentWindowHeigth));
+            myStage.setX(recentWindowLeft);
+            myStage.setY(recentWindowTop);
 
             myStage.setTitle("OwnNote Editor"); 
             myStage.getIcons().clear();
@@ -180,11 +193,6 @@ public class OwnNoteEditorManager extends Application {
                 myStageY = newValue.doubleValue();
             }
         }); 
-
-        // center on screen
-        Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
-        myStage.setX((primScreenBounds.getWidth() - myStage.getWidth()) / 2); 
-        myStage.setY((primScreenBounds.getHeight() - myStage.getHeight()) / 2);
     }
 
     public OwnNoteEditor getController() {
@@ -282,6 +290,8 @@ public class OwnNoteEditorManager extends Application {
         if (!myStage.isMaximized() && !myStage.isIconified()) {
             OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, String.valueOf(myStage.getScene().getWidth()));
             OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, String.valueOf(myStage.getScene().getHeight()));
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTWINDOWLEFT, String.valueOf(myStage.getX()));
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTWINDOWTOP, String.valueOf(myStage.getY()));
         }
         
         if (controller != null) {

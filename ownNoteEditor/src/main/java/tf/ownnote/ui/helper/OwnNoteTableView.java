@@ -58,6 +58,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.text.Text;
 import tf.helper.general.IPreferencesHolder;
 import tf.helper.general.IPreferencesStore;
+import tf.helper.general.ObjectsHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
@@ -263,7 +264,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                     }
                     newNote1.setOnAction((ActionEvent event) -> {
                         if (myTableView.getSelectionModel().getSelectedItem() != null) {
-                            final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
+                            final NoteData curNote = new NoteData(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
                             final String newNoteName = myEditor.uniqueNewNoteNameForGroup(curNote.getGroupName());
                     
                             createNoteWrapper(curNote.getGroupName(), newNoteName);
@@ -276,7 +277,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                     }
                     renameNote.setOnAction((ActionEvent event) -> {
                         if (myTableView.getSelectionModel().getSelectedItem() != null) {
-                            final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
+                            final NoteData curNote = new NoteData(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
                             
                             startEditingName(myTableView.getSelectionModel().getSelectedIndex());
                         }
@@ -285,7 +286,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                     // issue #41 - no accelarator for delete...
                     deleteNote.setOnAction((ActionEvent event) -> {
                         if (myTableView.getSelectionModel().getSelectedItem() != null) {
-                            final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
+                            final NoteData curNote = new NoteData(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
 
                             if(myEditor.deleteNoteWrapper(curNote)) {
                                 myEditor.initFromDirectory(false);
@@ -303,7 +304,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                     
                     // support for dragging
                     row.setOnDragDetected((MouseEvent event) -> {
-                        final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
+                        final NoteData curNote = new NoteData(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
                         
                         /* allow any transfer mode */
                         Dragboard db = row.startDragAndDrop(TransferMode.MOVE);
@@ -383,7 +384,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
             int i = 0;
             NoteData noteData;
             for (Map<String, String> note : getItems()) {
-                noteData = new NoteData(note);
+                noteData = new NoteData(ObjectsHelper.uncheckedCast(note));
                 
                 if (newNoteName.equals(noteData.getNoteName()) && newGroupName.equals(noteData.getGroupName())) {
                     selectIndex = i;
