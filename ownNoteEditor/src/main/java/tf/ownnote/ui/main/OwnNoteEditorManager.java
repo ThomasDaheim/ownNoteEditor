@@ -116,15 +116,14 @@ public class OwnNoteEditorManager extends Application {
                     OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWLEFT, String.valueOf((primScreenBounds.getWidth() - recentWindowWidth) / 2.0)));
             Double recentWindowTop = Double.valueOf(
                     OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWTOP, String.valueOf((primScreenBounds.getHeight() - recentWindowHeigth) / 2.0)));
-            // TFE, 20201011: check that not larger than current screen - might happen with multiple monitors
-            if (recentWindowLeft + recentWindowWidth > primScreenBounds.getWidth()) {
-                recentWindowLeft = 0.0;
+            // TFE, 20201011: check that not larger than current screens - might happen with multiple monitors
+            if (Screen.getScreensForRectangle(recentWindowLeft, recentWindowTop, recentWindowWidth, recentWindowHeigth).isEmpty()) {
+                recentWindowWidth = 1200.0;
+                recentWindowHeigth = 600.0;
+                recentWindowLeft = (primScreenBounds.getWidth() - recentWindowWidth) / 2.0;
+                recentWindowTop = (primScreenBounds.getHeight() - recentWindowHeigth) / 2.0;
+                
             }
-            recentWindowWidth = Math.min(recentWindowWidth, primScreenBounds.getWidth());
-            if (recentWindowTop + recentWindowHeigth > primScreenBounds.getHeight()) {
-                recentWindowTop = 0.0;
-            }
-            recentWindowHeigth = Math.min(recentWindowHeigth, primScreenBounds.getHeight());
             
             fxmlLoader = new FXMLLoader(OwnNoteEditorManager.class.getResource("/OwnNoteEditor.fxml"));
             myRoot = (BorderPane) fxmlLoader.load();
