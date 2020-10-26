@@ -61,11 +61,7 @@
                               <TableColumn fx:id="noteGroupColFXML" editable="false" maxWidth="0.0" minWidth="0.0" prefWidth="0.0" resizable="false" sortable="true" styleClass="noteGroupCol" text="Group" visible="false" />
                           </columns>
                         </TableView>
-                        <WebView fx:id="noteEditorFXML" disable="true" prefHeight="200.0" prefWidth="506.0">
-                           <StackPane.margin>
-                              <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
-                           </StackPane.margin>
-                        </WebView>
+                        <WebView fx:id="noteEditorFXML" disable="true" prefHeight="501.0" prefWidth="354.0" />
                      </children>
                   </StackPane>
                   <StackPane fx:id="rightPaneXML" prefHeight="150.0" prefWidth="200.0">
@@ -189,6 +185,10 @@
                   </Menu>
               </items>
             </Menu>
+            <Menu fx:id="menuTags" mnemonicParsing="false" text="Tags">
+               <items>
+                  <MenuItem fx:id="menuTagsDummy" mnemonicParsing="false" text="DUMMY" />
+               </items></Menu>
          </menus>
       </MenuBar>
    </top>

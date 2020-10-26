@@ -25,6 +25,8 @@
  */
 package tf.ownnote.ui.helper;
 
+import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.GroupData;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;

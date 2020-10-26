@@ -83,7 +83,7 @@ dependencies {
     compile "org.openjfx:javafx-media:$javafx_version:$platform"
     
     // TFE, 20200809: use our own helper library
-    compile 'tf.JavaHelper:JavaHelper:1.7'
+    compile 'tf.JavaHelper:JavaHelper:1.8'
 
     compile 'org.slf4j:slf4j-api:1.7.12'
     compile 'commons-cli:commons-cli:1.4'

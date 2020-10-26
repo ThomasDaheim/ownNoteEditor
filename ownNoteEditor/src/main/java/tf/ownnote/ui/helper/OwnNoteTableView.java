@@ -25,6 +25,8 @@
  */
 package tf.ownnote.ui.helper;
 
+import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.GroupData;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -176,7 +178,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     
     @Override
     public GroupData getCurrentGroup() {
-        return new GroupData(myTableView.getSelectionModel().getSelectedItem());
+        return new GroupData(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
     }
     
     public TableView<Map<String, String>> getTableView() {
@@ -361,7 +363,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                 myTableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
                     if (newSelection != null && !newSelection.equals(oldSelection)) {
                         // select matching notes for group
-                        final String groupName = new GroupData(myTableView.getSelectionModel().getSelectedItem()).getGroupName();
+                        final String groupName = new GroupData(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem())).getGroupName();
 
                         myEditor.setGroupNameFilter(groupName);
                     }
@@ -426,7 +428,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         int i = 0;
         GroupData groupData;
         for (Map<String, String> note : getItems()) {
-            groupData = new GroupData(note);
+            groupData = new GroupData(ObjectsHelper.uncheckedCast(note));
 
             if (selectedGroupName.equals(groupData.getGroupName())) {
                 selectIndex = i;

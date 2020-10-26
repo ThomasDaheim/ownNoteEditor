@@ -18,7 +18,7 @@ import javafx.collections.ObservableList;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
-import tf.ownnote.ui.helper.NoteData;
+import tf.ownnote.ui.notes.NoteData;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 

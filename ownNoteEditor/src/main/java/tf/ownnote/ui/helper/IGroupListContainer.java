@@ -25,6 +25,7 @@
  */
 package tf.ownnote.ui.helper;
 
+import tf.ownnote.ui.notes.GroupData;
 import javafx.collections.ObservableList;
 
 /**

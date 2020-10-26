@@ -122,7 +122,6 @@ public class OwnNoteEditorManager extends Application {
                 recentWindowHeigth = 600.0;
                 recentWindowLeft = (primScreenBounds.getWidth() - recentWindowWidth) / 2.0;
                 recentWindowTop = (primScreenBounds.getHeight() - recentWindowHeigth) / 2.0;
-                
             }
             
             fxmlLoader = new FXMLLoader(OwnNoteEditorManager.class.getResource("/OwnNoteEditor.fxml"));

@@ -25,6 +25,7 @@
  */
 package tf.ownnote.ui.helper;
 
+import tf.ownnote.ui.notes.NoteData;
 import com.sun.javafx.scene.control.ContextMenuContent;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
@@ -467,7 +468,8 @@ public class OwnNoteHTMLEditor {
         final NoteData curNote = (NoteData) getUserData();
         // we might not have selected a note yet... accelerator always works :-(
         if (curNote != null) {
-            if (myEditor.saveNoteWrapper(curNote.getGroupName(), curNote.getNoteName(), getNoteText())) {
+            curNote.setNoteEditorContent(getNoteText());
+            if (myEditor.saveNoteWrapper(curNote)) {
                 hasBeenSaved();
             }
         }

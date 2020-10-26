@@ -1,5 +1,6 @@
 package tf.ownnote.ui.helper;
 
+import tf.ownnote.ui.notes.NoteData;
 import java.util.HashSet;
 import java.util.Set;
 import javafx.collections.ListChangeListener;

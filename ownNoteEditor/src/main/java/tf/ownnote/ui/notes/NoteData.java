@@ -23,7 +23,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package tf.ownnote.ui.helper;
+package tf.ownnote.ui.notes;
 
 import java.util.HashMap;
 
@@ -52,7 +52,14 @@ public class NoteData extends HashMap<String,String> {
         super();
     }
     
-    public NoteData(NoteData noteData) {
+    public NoteData(final String groupName, final String noteName) {
+        super();
+        
+        setGroupName(groupName);
+        setNoteName(noteName);
+    }
+    
+    public NoteData(final NoteData noteData) {
         super(noteData);
         
         myMetaData = noteData.myMetaData;
@@ -77,10 +84,6 @@ public class NoteData extends HashMap<String,String> {
             }
         }
         return data;
-    }
-    
-    public NoteMetaData getMetaData() {
-        return myMetaData;
     }
     
     public String getNoteName() {
@@ -120,7 +123,17 @@ public class NoteData extends HashMap<String,String> {
     }
 
     public void setNoteFileContent(final String content) {
-        put(NoteMapKey.noteFileContent.name(), content);
+        // TFE, 20201024: extract line with metadata - if any
+        if (content != null && myMetaData != null && !myMetaData.isEmpty()) {
+            final int endPos = content.indexOf("\n");
+            if (endPos < content.length()) {
+                put(NoteMapKey.noteFileContent.name(), content.substring(endPos+1));
+            } else {
+                put(NoteMapKey.noteFileContent.name(), "");
+            }
+        } else {
+            put(NoteMapKey.noteFileContent.name(), content);
+        }
     }
 
     public String getNoteEditorContent() {
@@ -129,5 +142,13 @@ public class NoteData extends HashMap<String,String> {
 
     public void setNoteEditorContent(final String content) {
         put(NoteMapKey.noteEditorContent.name(), content);
+    }
+
+    public NoteMetaData getMetaData() {
+        return myMetaData;
+    }
+
+    public void setMetaData(final NoteMetaData metaData) {
+        myMetaData = metaData;
     }
 }
