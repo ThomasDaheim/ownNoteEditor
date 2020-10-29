@@ -23,24 +23,16 @@
  *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  *  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package tf.ownnote.ui.helper;
+package tf.ownnote.ui.tags;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.cell.CheckBoxTableCell;
-import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -51,6 +43,7 @@ import static tf.helper.javafx.AbstractStage.INSET_SMALL;
 import static tf.helper.javafx.AbstractStage.INSET_TOP;
 import static tf.helper.javafx.AbstractStage.INSET_TOP_BOTTOM;
 import tf.helper.javafx.EnumHelper;
+import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.NoteData;
 
@@ -69,36 +62,9 @@ public class TagManager extends AbstractStage {
         Delete;
     }
     
-    // interal helper class to store tag info and to fill tableview
-    private class TagInfo {
-        private boolean selected;
-        private String name;
-        
-        public TagInfo(final boolean sel, final String na) {
-            selected = sel;
-            name = na;
-        }
-
-        public boolean isSelected() {
-            return selected;
-        }
-
-        public void setSelected(final boolean sel) {
-            selected = sel;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(final String na) {
-            name = na;
-        }
-    }
-    
     private final ChoiceBox<BulkAction> bulkActionChoiceBox = 
             EnumHelper.getInstance().createChoiceBox(BulkAction.class, BulkAction.BulkAction);
-    private TableView<TagInfo> tagsTable = new TableView<>();
+    private final TagsTable tagsTable = new TagsTable();
 
     private TagManager() {
         super();
@@ -145,48 +111,7 @@ public class TagManager extends AbstractStage {
         
         rowNum++;
         // table to hold tags
-        // columns: action checkbox, tagname (editable), icon (combobox of symbols), notes count
-        // https://github.com/SaiPradeepDandem/javafx-demos/blob/master/src/main/java/com/ezest/javafx/demogallery/tableviews/TableViewCheckBoxColumnDemo.java
-        tagsTable.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
-        tagsTable.setEditable(true);
-
-        // selected: boolean
-        final TableColumn<TagInfo, Boolean> selectedCol = new TableColumn<>();
-        selectedCol.setText("");
-        selectedCol.setCellValueFactory((TableColumn.CellDataFeatures<TagInfo, Boolean> p) -> {
-            final SimpleBooleanProperty booleanProp = new SimpleBooleanProperty(p.getValue().isSelected());
-            booleanProp.addListener((ObservableValue<? extends Boolean> ov, Boolean oldValue, Boolean newValue) -> {
-                p.getValue().setSelected(newValue);
-            });
-            return booleanProp;
-        });
-        selectedCol.setCellFactory((TableColumn<TagInfo, Boolean> p) -> {
-            CheckBoxTableCell<TagInfo, Boolean> cell = new CheckBoxTableCell<>();
-            cell.setAlignment(Pos.CENTER);
-            return cell;
-        });
-        selectedCol.setEditable(true);
-
-        // name: string
-        final TableColumn<TagInfo, String> nameCol = new TableColumn<>();
-        nameCol.setText("Tag");
-        nameCol.setCellValueFactory(
-                (TableColumn.CellDataFeatures<TagInfo, String> p) -> new SimpleStringProperty(p.getValue().getName()));
-        nameCol.setCellFactory(TextFieldTableCell.forTableColumn());
-        nameCol.setOnEditCommit((TableColumn.CellEditEvent<TagInfo, String> t) -> {
-            if (!t.getNewValue().equals(t.getOldValue())) {
-                doRenameTag(t.getOldValue(), t.getNewValue());
-
-                t.getRowValue().setName(t.getNewValue());
-            }
-        });
-        // we can even change the name - since we use a key for the preference store
-        nameCol.setEditable(true);
-        
-        // addAll() leads to unchecked cast - and we don't want that
-        tagsTable.getColumns().add(selectedCol);
-        tagsTable.getColumns().add(nameCol);
-        
+        tagsTable.setRenameFunction(this::doRenameTag);
         getGridPane().add(tagsTable, 0, rowNum, 2, 1);
         GridPane.setMargin(tagsTable, INSET_TOP);
         GridPane.setVgrow(tagsTable, Priority.ALWAYS);
@@ -264,7 +189,7 @@ public class TagManager extends AbstractStage {
         initTags();
     }
     
-    private void doRenameTag(final String oldName, final String newName) {
+    protected void doRenameTag(final String oldName, final String newName) {
         final List<NoteData> notesList = OwnNoteFileManager.getInstance().getNotesList();
         for (NoteData note : notesList) {
             if (note.getMetaData().getTags().contains(oldName)) {

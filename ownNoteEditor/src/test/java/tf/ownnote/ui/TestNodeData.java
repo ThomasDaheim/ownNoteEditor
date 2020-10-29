@@ -38,9 +38,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.io.FilenameUtils;
 import tf.ownnote.ui.helper.FormatHelper;
+import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.notes.GroupData;
 import tf.ownnote.ui.notes.NoteData;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
 
 /**
  *

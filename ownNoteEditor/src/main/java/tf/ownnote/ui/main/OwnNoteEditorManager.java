@@ -134,12 +134,13 @@ public class OwnNoteEditorManager extends Application {
             myStage.setTitle("OwnNote Editor"); 
             myStage.getIcons().clear();
             myStage.getIcons().add(new Image(OwnNoteEditorManager.class.getResourceAsStream("/OwnNoteEditorManager.png")));
-            myStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/css/ownnote.css").toExternalForm());
-            
+
             // new look & feel for old code :-)
             // TFE, 20181209: not working with Java9+
             // TFE, 20200508: should work now... - needs investigation
-//            new JMetro(Style.LIGHT).setScene(myStage.getScene());
+//            myStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/css/metro-base.min.css").toExternalForm());
+//            myStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/css/metro-light_theme.min.css").toExternalForm());
+            myStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/css/ownnote.min.css").toExternalForm());
             
             // TF, 20160620: suppress warnings from css parsing for "-fx-font-weight" - not correctly implemented in the css parser for javafx 8...
             // TFE, 20181209: times and meethods change :-)

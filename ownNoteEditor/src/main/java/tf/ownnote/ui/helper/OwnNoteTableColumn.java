@@ -25,8 +25,6 @@
  */
 package tf.ownnote.ui.helper;
 
-import tf.ownnote.ui.notes.NoteData;
-import tf.ownnote.ui.notes.GroupData;
 import java.util.Comparator;
 import java.util.Map;
 import javafx.event.EventHandler;
@@ -42,6 +40,8 @@ import javafx.util.converter.DefaultStringConverter;
 import tf.helper.general.ObjectsHelper;
 import tf.ownnote.ui.general.CellUtils;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.GroupData;
+import tf.ownnote.ui.notes.NoteData;
 
 /**
  *

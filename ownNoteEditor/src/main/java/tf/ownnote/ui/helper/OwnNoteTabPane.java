@@ -25,8 +25,6 @@
  */
 package tf.ownnote.ui.helper;
 
-import tf.ownnote.ui.notes.NoteData;
-import tf.ownnote.ui.notes.GroupData;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -47,6 +45,8 @@ import javafx.scene.input.MouseEvent;
 import tf.helper.general.IPreferencesHolder;
 import tf.helper.general.IPreferencesStore;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.GroupData;
+import tf.ownnote.ui.notes.NoteData;
 
 /**
  *

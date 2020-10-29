@@ -1,6 +1,5 @@
 package tf.ownnote.ui.helper;
 
-import tf.ownnote.ui.notes.NoteData;
 import java.util.HashSet;
 import java.util.Set;
 import javafx.collections.ListChangeListener;
@@ -25,6 +24,7 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.WindowEvent;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.NoteData;
 
 /**
  * A draggable tab that can optionally be detached from its tab pane and shown

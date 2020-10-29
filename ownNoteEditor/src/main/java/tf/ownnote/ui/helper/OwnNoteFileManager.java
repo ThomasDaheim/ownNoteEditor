@@ -25,9 +25,6 @@
  */
 package tf.ownnote.ui.helper;
 
-import tf.ownnote.ui.notes.NoteMetaData;
-import tf.ownnote.ui.notes.NoteData;
-import tf.ownnote.ui.notes.GroupData;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -56,6 +53,9 @@ import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.GroupData;
+import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.NoteMetaData;
 
 /**
  *
@@ -381,11 +381,13 @@ public class OwnNoteFileManager {
         
         String content = "";
         try {
+            // TODO: set author
             content = noteData.getNoteEditorContent();
             if (content == null) {
                 content = noteData.getNoteFileContent();
             }
             // TFE, 20201024: store note metadata
+            noteData.getMetaData().addAuthor(System.getProperty("user.name"));
             final String fullContent = NoteMetaData.toHtmlString(noteData.getMetaData()) + content;
             
             final Path savePath = Files.write(Paths.get(this.ownNotePath, newFileName), fullContent.getBytes());

@@ -186,3 +186,15 @@
 .noteNameFilter {
     -fx-focus-color: darkgray;
 }
+
+/* styling for note metdata hbox */
+.noteEditor, .noteMetaEditor {
+    -fx-padding: 0;
+    -fx-margin: 0;
+}
+
+.tagsBox {
+    -fx-border-radius: 4;
+    -fx-border-style: solid;
+    -fx-border-color: darkgray;
+}

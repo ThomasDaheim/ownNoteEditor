@@ -23,6 +23,7 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
 <?import javafx.scene.web.WebView?>
 
 <BorderPane fx:id="borderPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="400.0" minWidth="600.0" prefHeight="600.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tf.ownnote.ui.main.OwnNoteEditor">
@@ -53,6 +54,12 @@
                   </StackPane>
                   <StackPane fx:id="middlePaneXML" prefHeight="150.0" prefWidth="200.0">
                      <children>
+                        <VBox fx:id="noteEditorFXML" prefHeight="200.0" prefWidth="100.0" styleClass="noteEditor">
+                           <children>
+                              <WebView fx:id="noteHTMLEditorFXML" disable="true" prefHeight="501.0" prefWidth="354.0" />
+                              <HBox fx:id="noteMetaEditorFXML" maxHeight="30.0" minHeight="30.0" prefHeight="30.0" prefWidth="354.0" styleClass="noteMetaEditor" />
+                           </children>
+                        </VBox>
                         <TableView fx:id="notesTableFXML" prefHeight="200.0" prefWidth="200.0" styleClass="notesTable">
                           <columns>
                             <TableColumn fx:id="noteNameColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteNameCol" text="Name" />
@@ -61,7 +68,6 @@
                               <TableColumn fx:id="noteGroupColFXML" editable="false" maxWidth="0.0" minWidth="0.0" prefWidth="0.0" resizable="false" sortable="true" styleClass="noteGroupCol" text="Group" visible="false" />
                           </columns>
                         </TableView>
-                        <WebView fx:id="noteEditorFXML" disable="true" prefHeight="501.0" prefWidth="354.0" />
                      </children>
                   </StackPane>
                   <StackPane fx:id="rightPaneXML" prefHeight="150.0" prefWidth="200.0">

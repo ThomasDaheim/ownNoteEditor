@@ -26,7 +26,6 @@
 package tf.ownnote.ui.notes;
 
 import java.util.HashMap;
-import java.util.Map;
 
 /**
  *

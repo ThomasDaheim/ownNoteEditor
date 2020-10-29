@@ -25,7 +25,6 @@
  */
 package tf.ownnote.ui.helper;
 
-import tf.ownnote.ui.notes.NoteData;
 import com.sun.javafx.scene.control.ContextMenuContent;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
@@ -50,7 +49,6 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Worker;
-import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.print.PrinterJob;
@@ -58,7 +56,6 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
-import javafx.scene.image.Image;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.ContextMenuEvent;
@@ -80,6 +77,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import tf.helper.javafx.UsefulKeyCodes;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.NoteData;
 
 /**
  *
@@ -655,7 +653,7 @@ public class OwnNoteHTMLEditor {
         }
     }
         
-    public void setNoteText(final NoteData note, final String text) {
+    public void editNote(final NoteData note, final String text) {
         Runnable task = () -> {
             //System.out.println("setEditorText " + text);
             setContentDone = false;
@@ -665,6 +663,7 @@ public class OwnNoteHTMLEditor {
         
         startTask(task);
         editorNote = note;
+        setUserData(editorNote);
         if (editorNote != null) {
             editorNote.setNoteEditorContent(text);
         }

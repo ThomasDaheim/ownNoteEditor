@@ -18,9 +18,9 @@ import javafx.collections.ObservableList;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
-import tf.ownnote.ui.notes.NoteData;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.NoteData;
 
 /**
  * Handler for creation, search, update, sync of tasks with their notes.
@@ -140,8 +140,11 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             if (StandardWatchEventKinds.ENTRY_CREATE.equals(eventKind) || StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                 // new file -> scan for tasks and update own list (similar to #2)
                 final NoteData note = OwnNoteFileManager.getInstance().getNoteData(filePath.getFileName().toString());
-                final String noteContent = OwnNoteFileManager.getInstance().readNote(note);
-                taskList.addAll(tasksFromNote(note, noteContent));
+                // TFE, 20201027: make sure we don't try to work on temp files which have been deleted in the meantime...
+                if (note != null) {
+                    final String noteContent = OwnNoteFileManager.getInstance().readNote(note);
+                    taskList.addAll(tasksFromNote(note, noteContent));
+                }
             }
             // modify is delete + add :-)
 
@@ -271,5 +274,18 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     
     public boolean inFileChange() {
         return inFileChange;
+    }
+    
+    public TaskCount getTaskCount(final NoteData note) {
+        // first all tasks for this note
+        final List<TaskData> noteTasks = taskList.stream().filter((t) -> {
+            return t.getNoteData().equals(note);
+        }).collect(Collectors.toList());
+        
+        final long closedTasks = noteTasks.stream().filter((t) -> {
+            return t.isCompleted();
+        }).count();
+        
+        return new TaskCount(noteTasks.size() - closedTasks, closedTasks);
     }
 }

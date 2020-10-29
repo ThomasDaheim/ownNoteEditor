@@ -12,10 +12,10 @@
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission.
  * 
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHORS ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY DIRECT, INDIRECT,
  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
  * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
  * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
@@ -50,7 +50,7 @@ public class NoteMetaData {
     // info per available metadata - name & multiplicity
     // TODO: add values here as well
     private static enum MetaDataInfo {
-        AUTHOR("author", Multiplicity.SINGLE),
+        AUTHORS("authors", Multiplicity.MULTIPLE),
         TAGS("tags", Multiplicity.MULTIPLE);
         
         private final String dataName;
@@ -70,30 +70,44 @@ public class NoteMetaData {
         }
     }
 
-    private String myAuthor;
-    private ObservableList<String> myTags = FXCollections.observableArrayList();
+    private final ObservableList<String> myAuthors = FXCollections.observableArrayList();
+    private final ObservableList<String> myTags = FXCollections.observableArrayList();
     
     public NoteMetaData() {
         super();
     }
     
     public boolean isEmpty() {
-        return ((myAuthor == null) && myTags.isEmpty());
+        return (myAuthors.isEmpty() && myTags.isEmpty());
+    }
+
+    public ObservableList<String> getAuthors() {
+        return myAuthors;
+    }
+
+    public void setAuthors(final List<String> authors) {
+        myAuthors.clear();
+        myAuthors.addAll(authors);
     }
 
     public String getAuthor() {
-        return myAuthor;
+        if (!myAuthors.isEmpty()) {
+            return myAuthors.get(myAuthors.size()-1);
+        } else {
+            return null;
+        }
     }
 
-    public void setAuthor(String author) {
-        myAuthor = author;
+    public void addAuthor(final String author) {
+        // add author to history chain if its different from last one
+        myAuthors.add(author);
     }
 
     public ObservableList<String> getTags() {
         return myTags;
     }
 
-    public void setTags(List<String> tags) {
+    public void setTags(final List<String> tags) {
         myTags.clear();
         myTags.addAll(tags);
     }
@@ -121,8 +135,8 @@ public class NoteMetaData {
                             strip().split(META_VALUES_SEP);
                         
                         switch (info) {
-                            case AUTHOR:
-                                result.setAuthor(values[0]);
+                            case AUTHORS:
+                                result.setAuthors(Arrays.asList(values));
                                 infoFound = true;
                                 break;
                             case TAGS:
@@ -148,7 +162,7 @@ public class NoteMetaData {
         boolean hasData = false;
         
         if (data.getAuthor() != null) {
-            result += MetaDataInfo.AUTHOR.getDataName() + "=\"" + data.getAuthor() + "\"";
+            result += MetaDataInfo.AUTHORS.getDataName() + "=\"" + data.getAuthors().stream().collect(Collectors.joining(META_VALUES_SEP)) + "\"";
             hasData = true;
         }
         if (!data.getTags().isEmpty()) {
