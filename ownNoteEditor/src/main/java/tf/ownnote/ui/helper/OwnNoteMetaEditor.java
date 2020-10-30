@@ -25,10 +25,15 @@
  */
 package tf.ownnote.ui.helper;
 
+import java.util.List;
+import java.util.stream.Collectors;
+import javafx.collections.ListChangeListener;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.Tooltip;
@@ -36,6 +41,7 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.text.TextAlignment;
 import tf.helper.javafx.AbstractStage;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.NoteData;
@@ -57,9 +63,9 @@ public class OwnNoteMetaEditor {
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor= null;
     
-    private ComboBox<String> authors = new ComboBox<>();
+    private final ComboBox<String> authors = new ComboBox<>();
     private Label taskstxt;
-    private FlowPane tagsBox;
+    private final FlowPane tagsBox = new FlowPane();
     
     private NoteData editorNote;
     private boolean hasChanged = false;
@@ -106,11 +112,15 @@ public class OwnNoteMetaEditor {
         final Label tagsLbl = new Label("Tags:");
         HBox.setMargin(tagsLbl, AbstractStage.INSET_SMALL);
         
-        tagsBox = new FlowPane();
         tagsBox.getStyleClass().add("tagsBox");
         tagsBox.setMinWidth(100.0);
+        tagsBox.setAlignment(Pos.CENTER_LEFT);
+        tagsBox.setPadding(new Insets(0, 2, 0, 2));
         
         final Button tagsButton = new Button("+");
+        tagsButton.setOnAction((t) -> {
+            System.out.println("need to add a tag here... - maybe controlsfx PopOver?");
+        });
 
         final Label tasksLbl = new Label("Tasks:");
         HBox.setMargin(tasksLbl, AbstractStage.INSET_SMALL);
@@ -137,14 +147,81 @@ public class OwnNoteMetaEditor {
             authors.getSelectionModel().selectLast();
         }
         
+        tagsBox.getChildren().clear();
+        if (editorNote != null) {
+            for (String tag : editorNote.getMetaData().getTags()) {
+                addTagLabel(tag);
+            }
+
+            // change listener as well
+            editorNote.getMetaData().getTags().addListener((ListChangeListener.Change<? extends String> c) -> {
+                hasChanged = true;
+                
+                while (c.next()) {
+                    if (c.wasRemoved()) {
+                        for (String tag : c.getRemoved()) {
+                            removeTagLabel(tag);
+                        }
+                    }
+                    if (c.wasAdded()) {
+                        for (String tag : c.getAddedSubList()) {
+                            addTagLabel(tag);
+                        }
+                    }
+                }
+            });
+        }
+        
         final TaskCount taskCount = TaskManager.getInstance().getTaskCount(note);
         taskstxt.setText(taskCount.getCount(TaskCount.TaskType.OPEN) + " / " + taskCount.getCount(TaskCount.TaskType.CLOSED) + " / " + taskCount.getCount(TaskCount.TaskType.TOTAL));
     }
+    
+    private void addTagLabel(final String tag) {
+        final Node tagLabel = getTagLabel(tag);
+        FlowPane.setMargin(tagLabel, new Insets(0, 0, 0, 4));
+        tagsBox.getChildren().add(tagLabel);
+    }
+    
+    private void removeTagLabel(final String tag) {
+        final List<Node> tagsList = tagsBox.getChildren().stream().filter((t) -> {
+            return ((String) t.getUserData()).equals(tag);
+        }).collect(Collectors.toList());
+        
+        tagsBox.getChildren().removeAll(tagsList);
+    }
+    
     public boolean hasChanged() {
         return hasChanged;
     }
     
     public void hasBeenSaved() {
         hasChanged = false;
+    }
+    
+    private Node getTagLabel(final String tag) {
+        final HBox result = new HBox();
+        result.getStyleClass().add("tagLabel");
+        result.setAlignment(Pos.CENTER_LEFT);
+        result.setPadding(new Insets(0, 2, 0, 2));
+        result.setUserData(tag);
+
+        final Label tagLabel = new Label(tag);
+        
+        // add "remove" "button"
+        final Label removeTag = new Label("X");
+        removeTag.getStyleClass().add("removeTag");
+        removeTag.setAlignment(Pos.CENTER);
+        removeTag.setTextAlignment(TextAlignment.CENTER);
+        removeTag.setContentDisplay(ContentDisplay.CENTER);
+        HBox.setMargin(removeTag, new Insets(0, 0, 0, 4));
+        
+        removeTag.setOnMouseClicked((t) -> {
+            // get rid of this tag in the note and of the node in the pane...
+            editorNote.getMetaData().getTags().remove(tag);
+        });
+        
+        result.getChildren().addAll(tagLabel, removeTag);
+
+        return result;
     }
 }

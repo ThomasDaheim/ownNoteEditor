@@ -100,7 +100,9 @@ public class NoteMetaData {
 
     public void addAuthor(final String author) {
         // add author to history chain if its different from last one
-        myAuthors.add(author);
+        if (author != null && !author.equals(getAuthor())) {
+            myAuthors.add(author);
+        }
     }
 
     public ObservableList<String> getTags() {
