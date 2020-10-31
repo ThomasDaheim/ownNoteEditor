@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javafx.event.ActionEvent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
@@ -57,14 +58,24 @@ public class TagManager extends AbstractStage {
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
     
+    private WorkMode myWorkMode;
+    private NoteData myWorkNote;
+    
     public enum BulkAction {
         BulkAction,
         Delete;
     }
     
+    public enum WorkMode {
+        FULL_EDIT,
+        ONLY_SELECT;
+    }
+    
     private final ChoiceBox<BulkAction> bulkActionChoiceBox = 
             EnumHelper.getInstance().createChoiceBox(BulkAction.class, BulkAction.BulkAction);
+    private final Button applyBulkActionBtn = new Button("Apply");
     private final TagsTable tagsTable = new TagsTable();
+    private final Button saveBtn = new Button("Save");
 
     private TagManager() {
         super();
@@ -85,29 +96,25 @@ public class TagManager extends AbstractStage {
         setTitle("Tags");
         initModality(Modality.APPLICATION_MODAL); 
         getGridPane().getChildren().clear();
-        setHeight(600.0);
-        setWidth(800.0);
-        getGridPane().setPrefWidth(800);
 
         int rowNum = 0;
         // selection for mass action (delete), "Apply" button
         getGridPane().add(bulkActionChoiceBox, 0, rowNum, 1, 1);
         GridPane.setMargin(bulkActionChoiceBox, INSET_TOP);
 
-        final Button applyBtn = new Button("Apply");
-        applyBtn.setOnAction((ActionEvent arg0) -> {
+        applyBulkActionBtn.setOnAction((ActionEvent arg0) -> {
             doBulkAction(bulkActionChoiceBox.getSelectionModel().getSelectedItem());
         });
         bulkActionChoiceBox.getSelectionModel().selectedItemProperty().addListener((ov, oldValue, newValue) -> {
             if (newValue != null) {
-                applyBtn.setDisable(BulkAction.BulkAction.equals(newValue));
+                applyBulkActionBtn.setDisable(BulkAction.BulkAction.equals(newValue));
             } else {
-                applyBtn.setDisable(true);
+                applyBulkActionBtn.setDisable(true);
             }
         });
-        applyBtn.setDisable(true);
-        getGridPane().add(applyBtn, 1, rowNum, 1, 1);
-        GridPane.setMargin(applyBtn, INSET_TOP);
+        applyBulkActionBtn.setDisable(true);
+        getGridPane().add(applyBulkActionBtn, 1, rowNum, 1, 1);
+        GridPane.setMargin(applyBulkActionBtn, INSET_TOP);
         
         rowNum++;
         // table to hold tags
@@ -119,7 +126,6 @@ public class TagManager extends AbstractStage {
         // buttons OK, Cancel
         final HBox buttonBox = new HBox();
         
-        final Button saveBtn = new Button("Save");
         saveBtn.setOnAction((ActionEvent arg0) -> {
             saveTags();
 
@@ -143,31 +149,58 @@ public class TagManager extends AbstractStage {
         VBox.setMargin(buttonBox, INSET_TOP_BOTTOM);
     }
     
-    public boolean editTags() {
-        initTags();
-
-        showAndWait();
+    public boolean editTags(final WorkMode workMode, final NoteData workNote) {
+        assert workMode != null;
+        if (WorkMode.ONLY_SELECT.equals(workMode)) {
+            assert workNote != null;
+        }
         
+        myWorkMode = workMode;
+        myWorkNote = workNote;
+        
+        initTags();
+        
+        showAndWait();
+
         return ButtonPressed.ACTION_BUTTON.equals(getButtonPressed());
+    }
+    
+    public List<String> getSelectedTags() {
+        if (ButtonPressed.ACTION_BUTTON.equals(getButtonPressed())) {
+            return tagsTable.getItems().stream().filter((t) -> {
+                return t.isSelected();
+            }).map((t) -> {
+                return t.getName();
+            }).collect(Collectors.toList());
+        } else {
+            return new ArrayList<>();
+        }
     }
     
     private void initTags() {
         bulkActionChoiceBox.getSelectionModel().select(BulkAction.BulkAction);
+        applyBulkActionBtn.setDisable(true);
 
-        // fill table with existing tags
-        final List<NoteData> notesList = OwnNoteFileManager.getInstance().getNotesList();
-        final Set<String> tagsList = new HashSet<>();
-        for (NoteData note : notesList) {
-            tagsList.addAll(note.getMetaData().getTags());
+        switch (myWorkMode) {
+            case FULL_EDIT:
+                bulkActionChoiceBox.setManaged(true);
+                bulkActionChoiceBox.setDisable(false);
+                applyBulkActionBtn.setManaged(true);
+                saveBtn.setText("Save");
+
+                // fill table with existing tags
+                tagsTable.fillTableView(new ArrayList<>());
+                break;
+            case ONLY_SELECT:
+                bulkActionChoiceBox.setManaged(false);
+                bulkActionChoiceBox.setDisable(true);
+                applyBulkActionBtn.setManaged(false);
+                saveBtn.setText("Add");
+
+                // fill table with unset tags only
+                tagsTable.fillTableView(myWorkNote.getMetaData().getTags());
+                break;
         }
-        
-        final List<TagInfo> itemList = new ArrayList<>();
-        for (String tag : tagsList) {
-            itemList.add(new TagInfo(false, tag));
-        }
-        
-        tagsTable.getItems().clear();
-        tagsTable.getItems().addAll(itemList);
     }
     
     private void saveTags() {
@@ -189,7 +222,9 @@ public class TagManager extends AbstractStage {
         initTags();
     }
     
-    protected void doRenameTag(final String oldName, final String newName) {
+    public void doRenameTag(final String oldName, final String newName) {
+        assert oldName != null;
+        
         final List<NoteData> notesList = OwnNoteFileManager.getInstance().getNotesList();
         for (NoteData note : notesList) {
             if (note.getMetaData().getTags().contains(oldName)) {

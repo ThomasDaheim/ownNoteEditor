@@ -845,11 +845,13 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         });
         
         // TFE, 20201025: and now we have tag management as well :-)
-        menuTags.setOnShowing((t) -> {
+        menuTagsDummy.setText("");
+        menuTags.setOnShown((t) -> {
             // trick to have menu act as menu item
             // https://stackoverflow.com/a/38525867
             menuTagsDummy.fire();
-            TagManager.getInstance().editTags();
+            menuTags.hide();
+            TagManager.getInstance().editTags(TagManager.WorkMode.FULL_EDIT, null);
         });
 
         AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v4.7", "https://github.com/ThomasDaheim/ownNoteEditor");

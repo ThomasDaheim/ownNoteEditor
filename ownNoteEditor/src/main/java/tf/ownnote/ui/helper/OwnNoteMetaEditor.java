@@ -25,6 +25,7 @@
  */
 package tf.ownnote.ui.helper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import javafx.collections.ListChangeListener;
@@ -42,9 +43,12 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.text.TextAlignment;
+import org.controlsfx.control.PopOver;
 import tf.helper.javafx.AbstractStage;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.tags.TagManager;
+import tf.ownnote.ui.tags.TagsTable;
 import tf.ownnote.ui.tasks.TaskCount;
 import tf.ownnote.ui.tasks.TaskManager;
 
@@ -119,7 +123,9 @@ public class OwnNoteMetaEditor {
         
         final Button tagsButton = new Button("+");
         tagsButton.setOnAction((t) -> {
-            System.out.println("need to add a tag here... - maybe controlsfx PopOver?");
+            if (TagManager.getInstance().editTags(TagManager.WorkMode.ONLY_SELECT, editorNote)) {
+                editorNote.getMetaData().getTags().addAll(TagManager.getInstance().getSelectedTags());
+            }
         });
 
         final Label tasksLbl = new Label("Tasks:");
@@ -134,43 +140,42 @@ public class OwnNoteMetaEditor {
     }
     
     public void editNote(final NoteData note) {
+        if (note == null) {
+            return;
+        }
         editorNote = note;
         hasChanged = false;
         
         authors.getItems().clear();
         // set labels & fields with note data
-        if (editorNote != null) {
-            if (editorNote.getMetaData().getAuthors().isEmpty()) {
-                editorNote.getMetaData().addAuthor(System.getProperty("user.name"));
-            }
-            authors.getItems().addAll(editorNote.getMetaData().getAuthors());
-            authors.getSelectionModel().selectLast();
+        if (editorNote.getMetaData().getAuthors().isEmpty()) {
+            editorNote.getMetaData().addAuthor(System.getProperty("user.name"));
         }
+        authors.getItems().addAll(editorNote.getMetaData().getAuthors());
+        authors.getSelectionModel().selectLast();
         
         tagsBox.getChildren().clear();
-        if (editorNote != null) {
-            for (String tag : editorNote.getMetaData().getTags()) {
-                addTagLabel(tag);
-            }
+        for (String tag : editorNote.getMetaData().getTags()) {
+            addTagLabel(tag);
+        }
 
-            // change listener as well
-            editorNote.getMetaData().getTags().addListener((ListChangeListener.Change<? extends String> c) -> {
-                hasChanged = true;
-                
-                while (c.next()) {
-                    if (c.wasRemoved()) {
-                        for (String tag : c.getRemoved()) {
-                            removeTagLabel(tag);
-                        }
-                    }
-                    if (c.wasAdded()) {
-                        for (String tag : c.getAddedSubList()) {
-                            addTagLabel(tag);
-                        }
+        // change listener as well
+        editorNote.getMetaData().getTags().addListener((ListChangeListener.Change<? extends String> c) -> {
+            hasChanged = true;
+
+            while (c.next()) {
+                if (c.wasRemoved()) {
+                    for (String tag : c.getRemoved()) {
+                        removeTagLabel(tag);
                     }
                 }
-            });
-        }
+                if (c.wasAdded()) {
+                    for (String tag : c.getAddedSubList()) {
+                        addTagLabel(tag);
+                    }
+                }
+            }
+        });
         
         final TaskCount taskCount = TaskManager.getInstance().getTaskCount(note);
         taskstxt.setText(taskCount.getCount(TaskCount.TaskType.OPEN) + " / " + taskCount.getCount(TaskCount.TaskType.CLOSED) + " / " + taskCount.getCount(TaskCount.TaskType.TOTAL));

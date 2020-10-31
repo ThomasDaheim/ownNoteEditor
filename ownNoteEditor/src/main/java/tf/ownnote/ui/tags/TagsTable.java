@@ -25,14 +25,25 @@
  */
 package tf.ownnote.ui.tags;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.function.BiConsumer;
+import javafx.event.ActionEvent;
 import javafx.geometry.Pos;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
+import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.notes.NoteData;
 
 /**
  * Table for editing tags - similar to e.g. bulk edit table in wordpress.
@@ -62,7 +73,12 @@ public class TagsTable extends TableView<TagInfo>  {
     private void initTableView() {
         setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         setEditable(true);
-//        itemsProperty().bind(getListBinding());
+        setPlaceholder(new Label(""));
+
+        final double tableHeight = 300.0;
+        setPrefHeight(tableHeight);
+        setMinHeight(tableHeight);
+        setMaxHeight(tableHeight);
         
         // columns: action checkbox, tagname (editable), icon (combobox of symbols), notes count
         // https://github.com/SaiPradeepDandem/javafx-demos/blob/master/src/main/java/com/ezest/javafx/demogallery/tableviews/TableViewCheckBoxColumnDemo.java
@@ -124,6 +140,51 @@ public class TagsTable extends TableView<TagInfo>  {
         // addAll() leads to unchecked cast - and we don't want that
         getColumns().add(selectedCol);
         getColumns().add(nameCol);
+
+        
+        // add, remove via context menu
+        setRowFactory((TableView<TagInfo> tableView) -> {
+            final TableRow<TagInfo> row = new TableRow<>(){
+                @Override
+                protected void updateItem(TagInfo item, boolean empty){
+                    super.updateItem(item, empty);
+                    
+                    setContextMenu(newContextMenu(this));
+                }
+            };
+
+            return row ;  
+        });  
+        
+        setContextMenu(newContextMenu(null));
+    }
+    
+    private ContextMenu newContextMenu(final TableRow<TagInfo> row) {
+        final ContextMenu contextMenu = new ContextMenu();
+
+        // new: creates of same type & inserts
+        final MenuItem newMenuItem = new MenuItem("New");
+        newMenuItem.setOnAction((ActionEvent event) -> {
+            final TagInfo tagInfo = new TagInfo(false, "New Tag");
+            getItems().add(tagInfo);
+        });
+
+        if (row != null && !row.isEmpty()) {
+            // delete: only if on a row that is not empty
+            final MenuItem deleteMenuItem = new MenuItem("Delete");
+            deleteMenuItem.setOnAction((ActionEvent event) -> {
+                assert renameFunction != null;
+                renameFunction.accept(row.getItem().getName(), null);
+                
+                getItems().remove(row.getItem());
+            });
+
+            contextMenu.getItems().addAll(newMenuItem, deleteMenuItem);
+        } else {
+            contextMenu.getItems().addAll(newMenuItem);
+        }
+
+        return contextMenu;
     }
     
     private CheckBox getBulkCheck() {
@@ -152,5 +213,23 @@ public class TagsTable extends TableView<TagInfo>  {
     // is the bulk checkbox selected?
     public boolean isBulkChecked() {
         return bulkCheck.isSelected();
+    }
+    
+    public void fillTableView(final List<String> excludeTags) {
+        final List<NoteData> notesList = OwnNoteFileManager.getInstance().getNotesList();
+        final Set<String> tagsList = new HashSet<>();
+        for (NoteData note : notesList) {
+            tagsList.addAll(note.getMetaData().getTags());
+        }
+        
+        final List<TagInfo> itemList = new ArrayList<>();
+        for (String tag : tagsList) {
+            if (!excludeTags.contains(tag)) {
+                itemList.add(new TagInfo(false, tag));
+            }
+        }
+        
+        getItems().clear();
+        getItems().addAll(itemList);
     }
 }
