@@ -44,6 +44,8 @@ import javafx.scene.layout.Pane;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import jfxtras.styles.jmetro.JMetro;
+import jfxtras.styles.jmetro.Style;
 import tf.ownnote.ui.helper.OwnNoteEditorParameters;
 import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 
@@ -138,8 +140,7 @@ public class OwnNoteEditorManager extends Application {
             // new look & feel for old code :-)
             // TFE, 20181209: not working with Java9+
             // TFE, 20200508: should work now... - needs investigation
-//            myStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/css/metro-base.min.css").toExternalForm());
-//            myStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/css/metro-light_theme.min.css").toExternalForm());
+            (new JMetro(Style.LIGHT)).setScene(myStage.getScene());
             myStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/css/ownnote.min.css").toExternalForm());
             
             // TF, 20160620: suppress warnings from css parsing for "-fx-font-weight" - not correctly implemented in the css parser for javafx 8...

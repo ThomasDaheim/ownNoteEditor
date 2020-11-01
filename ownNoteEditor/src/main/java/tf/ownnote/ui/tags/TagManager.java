@@ -39,6 +39,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
+import javafx.stage.StageStyle;
+import jfxtras.styles.jmetro.JMetro;
+import jfxtras.styles.jmetro.Style;
 import tf.helper.javafx.AbstractStage;
 import static tf.helper.javafx.AbstractStage.INSET_SMALL;
 import static tf.helper.javafx.AbstractStage.INSET_TOP;
@@ -46,6 +49,7 @@ import static tf.helper.javafx.AbstractStage.INSET_TOP_BOTTOM;
 import tf.helper.javafx.EnumHelper;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.main.OwnNoteEditorManager;
 import tf.ownnote.ui.notes.NoteData;
 
 /**
@@ -96,6 +100,9 @@ public class TagManager extends AbstractStage {
         setTitle("Tags");
         initModality(Modality.APPLICATION_MODAL); 
         getGridPane().getChildren().clear();
+
+        (new JMetro(Style.LIGHT)).setScene(getScene());
+        getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/css/ownnote.min.css").toExternalForm());
 
         int rowNum = 0;
         // selection for mass action (delete), "Apply" button
