@@ -39,8 +39,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -56,6 +58,7 @@ import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.GroupData;
 import tf.ownnote.ui.notes.NoteData;
 import tf.ownnote.ui.notes.NoteMetaData;
+import tf.ownnote.ui.notes.NoteVersion;
 
 /**
  *
@@ -63,7 +66,7 @@ import tf.ownnote.ui.notes.NoteMetaData;
  */
 public class OwnNoteFileManager {
     private final static OwnNoteFileManager INSTANCE = new OwnNoteFileManager();
-
+    
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor;
     
@@ -387,7 +390,7 @@ public class OwnNoteFileManager {
                 content = noteData.getNoteFileContent();
             }
             // TFE, 20201024: store note metadata
-            noteData.getMetaData().addAuthor(System.getProperty("user.name"));
+            noteData.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), OwnNoteEditor.DATE_TIME_FORMATTER.format(Instant.now())));
             final String fullContent = NoteMetaData.toHtmlString(noteData.getMetaData()) + content;
             
             final Path savePath = Files.write(Paths.get(this.ownNotePath, newFileName), fullContent.getBytes());

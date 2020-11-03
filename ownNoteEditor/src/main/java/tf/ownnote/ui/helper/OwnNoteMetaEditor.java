@@ -25,8 +25,9 @@
  */
 package tf.ownnote.ui.helper;
 
-import java.util.ArrayList;
+import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Insets;
@@ -43,12 +44,11 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.text.TextAlignment;
-import org.controlsfx.control.PopOver;
 import tf.helper.javafx.AbstractStage;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.NoteVersion;
 import tf.ownnote.ui.tags.TagManager;
-import tf.ownnote.ui.tags.TagsTable;
 import tf.ownnote.ui.tasks.TaskCount;
 import tf.ownnote.ui.tasks.TaskManager;
 
@@ -67,7 +67,7 @@ public class OwnNoteMetaEditor {
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor= null;
     
-    private final ComboBox<String> authors = new ComboBox<>();
+    private final ComboBox<String> versions = new ComboBox<>();
     private Label taskstxt;
     private final FlowPane tagsBox = new FlowPane();
     
@@ -97,7 +97,7 @@ public class OwnNoteMetaEditor {
         HBox.setMargin(authorsLbl, AbstractStage.INSET_SMALL);
         
         // https://stackoverflow.com/a/32373721
-        authors.setCellFactory(lv -> new ListCell<>() {
+        versions.setCellFactory(lv -> new ListCell<>() {
             @Override
             public void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
@@ -109,6 +109,7 @@ public class OwnNoteMetaEditor {
                 }
             }
         });
+        versions.setVisibleRowCount(4);
 
         final Region region1 = new Region();
         HBox.setHgrow(region1, Priority.ALWAYS);
@@ -136,7 +137,7 @@ public class OwnNoteMetaEditor {
         taskstxt.setTooltip(t);
         HBox.setMargin(taskstxt, new Insets(0, 8, 0, 0));
         
-        myHBox.getChildren().addAll(authorsLbl, authors, tagsLbl, tagsBox, tagsButton, region1, tasksLbl, taskstxt);
+        myHBox.getChildren().addAll(authorsLbl, versions, tagsLbl, tagsBox, tagsButton, region1, tasksLbl, taskstxt);
     }
     
     public void editNote(final NoteData note) {
@@ -146,13 +147,17 @@ public class OwnNoteMetaEditor {
         editorNote = note;
         hasChanged = false;
         
-        authors.getItems().clear();
+        versions.getItems().clear();
         // set labels & fields with note data
-        if (editorNote.getMetaData().getAuthors().isEmpty()) {
-            editorNote.getMetaData().addAuthor(System.getProperty("user.name"));
+        if (editorNote.getMetaData().getVersions().isEmpty()) {
+            editorNote.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), OwnNoteEditor.DATE_TIME_FORMATTER.format(Instant.now())));
         }
-        authors.getItems().addAll(editorNote.getMetaData().getAuthors());
-        authors.getSelectionModel().selectLast();
+        versions.getItems().addAll(
+                editorNote.getMetaData().getVersions().stream().map((t) -> {
+                    return NoteVersion.toHtmlString(t);
+                }).collect(Collectors.toList())
+        );
+        versions.getSelectionModel().selectLast();
         
         tagsBox.getChildren().clear();
         for (String tag : editorNote.getMetaData().getTags()) {
@@ -201,6 +206,9 @@ public class OwnNoteMetaEditor {
     
     public void hasBeenSaved() {
         hasChanged = false;
+        
+        // re-init since new version...
+        editNote(editorNote);
     }
     
     private Node getTagLabel(final String tag) {

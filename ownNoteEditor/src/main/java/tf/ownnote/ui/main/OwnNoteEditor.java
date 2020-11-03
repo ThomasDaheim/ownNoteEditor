@@ -31,7 +31,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -118,13 +119,17 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 
     private final static OwnNoteEditorParameters parameters = OwnNoteEditorParameters.getInstance();
     
+    public final static DateTimeFormatter DATE_TIME_FORMATTER = 
+            DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss").withZone(ZoneId.systemDefault());
+
     private final static String NEWNOTENAME = "New Note";
     
     // TFE, 20200712: add search of unchecked boxes
-    public final static String UNCHECKED_BOXES = "<input type=\"checkbox\" />";
-    public final static String CHECKED_BOXES = "<input type=\"checkbox\" checked=\"checked\" />";
-    public final static String WRONG_UNCHECKED_BOXES = "<input type=\"checkbox\">";
-    public final static String WRONG_CHECKED_BOXES = "<input type=\"checkbox\" checked=\"checked\">";
+    // TFE, 20201103: actual both variants of html are valid and need to be supported equally
+    public final static String UNCHECKED_BOXES_1 = "<input type=\"checkbox\" />";
+    public final static String CHECKED_BOXES_1 = "<input type=\"checkbox\" checked=\"checked\" />";
+    public final static String UNCHECKED_BOXES_2 = "<input type=\"checkbox\">";
+    public final static String CHECKED_BOXES_2 = "<input type=\"checkbox\" checked=\"checked\">";
     public final static String ANY_BOXES = "<input type=\"checkbox\"";
     
     private final static int TEXTFIELDWIDTH = 100;  
@@ -1136,7 +1141,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                 showAlert(AlertType.ERROR, "Error Dialog", "An error occured while renaming the group.", "A file in the new group has the same name as a file in the old.");
             } else {
                 //check if we just moved the current note in the editor...
-                noteHTMLEditor.doNameChange(oldValue, newValue);
+                noteHTMLEditor.doNameChange(oldValue, newValue, noteHTMLEditor.getEditedNote().getNoteName(), noteHTMLEditor.getEditedNote().getNoteName());
             }
         }
         

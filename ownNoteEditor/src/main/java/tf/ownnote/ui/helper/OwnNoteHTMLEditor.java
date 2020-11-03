@@ -722,7 +722,8 @@ public class OwnNoteHTMLEditor {
             if (editedNote == null || editedNote.getNoteFileContent() == null) {
                 result = !newEditorText.isEmpty();
             } else {
-                result = !editedNote.getNoteFileContent().equals(newEditorText);
+                // TFE, 20201103: unwrapping checkboxes in js can lead to unescaping of text...
+                result = !StringEscapeUtils.unescapeHtml4(editedNote.getNoteFileContent()).equals(StringEscapeUtils.unescapeHtml4(newEditorText));
             }
         }
         
@@ -734,10 +735,6 @@ public class OwnNoteHTMLEditor {
         // TFE, 20180924: avoid multiple reads in save process
         //editorText = getEditorText();
         wrapExecuteScript(myWebEngine, "tinymce.activeEditor.setDirty(false);");
-    }
-
-    public void doNameChange(final String oldGroupName, final String newGroupName) {
-        doNameChange(oldGroupName, newGroupName, "", "");
     }
 
     public void doNameChange(final String oldGroupName, final String newGroupName, final String oldNoteName, final String newNoteName) {

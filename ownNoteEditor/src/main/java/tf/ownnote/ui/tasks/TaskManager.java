@@ -211,24 +211,35 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             // TRICKY - FileContentChangeType.CONTENT_CHANGED runs before the $(editor.getBody()).on("change", ":checkbox", function(el) is called,
             // so we still have the old content in a click on checkbox event
             // checkbox might not be start of innerHtml, whereas TaskData description is only the part after checkbox...
-            // FFFFUUUUCCCCKKKK innerHtml sends back <input type="checkbox" checked="checked"> instead of correct <input type="checkbox" checked="checked" />
+            // FFFFUUUUCCCCKKKK innerHtml sends back <input type="checkbox" checked="checked"> instead of <input type="checkbox" checked="checked" />
+            // TFE, 20201103: better safe than sorry and check for both variants of valid html
             String oldDescription = null;
-            int checkIndex = oldContent.indexOf(OwnNoteEditor.WRONG_UNCHECKED_BOXES);
+            int checkIndex = oldContent.indexOf(OwnNoteEditor.UNCHECKED_BOXES_1);
             if (checkIndex > -1) {
-                oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.WRONG_UNCHECKED_BOXES.length());
+                oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.UNCHECKED_BOXES_1.length());
+            } else {
+                checkIndex = oldContent.indexOf(OwnNoteEditor.UNCHECKED_BOXES_2);
+                if (checkIndex > -1) {
+                    oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.UNCHECKED_BOXES_2.length());
+                }
             }
-            checkIndex = oldContent.indexOf(OwnNoteEditor.WRONG_CHECKED_BOXES);
+            checkIndex = oldContent.indexOf(OwnNoteEditor.CHECKED_BOXES_1);
             if (checkIndex > -1) {
-                oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.WRONG_CHECKED_BOXES.length());
+                oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.CHECKED_BOXES_1.length());
+            } else {
+                checkIndex = oldContent.indexOf(OwnNoteEditor.CHECKED_BOXES_2);
+                if (checkIndex > -1) {
+                    oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.CHECKED_BOXES_2.length());
+                }
             }
             if (oldDescription == null) {
-                System.out.println("Something went wrong with task completion change!" + note + ", " + oldContent + ", " + newContent);
+                System.err.println("Something went wrong with task completion change!" + note + ", " + oldContent + ", " + newContent);
                 return true;
             }
             Boolean newCompleted = null;
-            if (newContent.contains(OwnNoteEditor.WRONG_UNCHECKED_BOXES)) {
+            if (newContent.contains(OwnNoteEditor.UNCHECKED_BOXES_2)) {
                 newCompleted = false;
-            } else if (newContent.contains(OwnNoteEditor.WRONG_CHECKED_BOXES)) {
+            } else if (newContent.contains(OwnNoteEditor.CHECKED_BOXES_2)) {
                 newCompleted = true;
             }
             if (newCompleted == null) {

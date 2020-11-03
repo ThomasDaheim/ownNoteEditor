@@ -12,10 +12,10 @@
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission.
  * 
- * THIS SOFTWARE IS PROVIDED BY THE AUTHORS ``AS IS'' AND ANY EXPRESS OR
+ * THIS SOFTWARE IS PROVIDED BY THE VERSIONS ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * IN NO EVENT SHALL THE VERSIONS BE LIABLE FOR ANY DIRECT, INDIRECT,
  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
  * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
  * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
@@ -26,6 +26,7 @@
 package tf.ownnote.ui.notes;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
@@ -50,7 +51,7 @@ public class NoteMetaData {
     // info per available metadata - name & multiplicity
     // TODO: add values here as well
     private static enum MetaDataInfo {
-        AUTHORS("authors", Multiplicity.MULTIPLE),
+        VERSIONS("versions", Multiplicity.MULTIPLE),
         TAGS("tags", Multiplicity.MULTIPLE);
         
         private final String dataName;
@@ -70,7 +71,7 @@ public class NoteMetaData {
         }
     }
 
-    private final ObservableList<String> myAuthors = FXCollections.observableArrayList();
+    private final ObservableList<NoteVersion> myVersions = FXCollections.observableArrayList();
     private final ObservableList<String> myTags = FXCollections.observableArrayList();
     
     public NoteMetaData() {
@@ -78,31 +79,28 @@ public class NoteMetaData {
     }
     
     public boolean isEmpty() {
-        return (myAuthors.isEmpty() && myTags.isEmpty());
+        return (myVersions.isEmpty() && myTags.isEmpty());
     }
 
-    public ObservableList<String> getAuthors() {
-        return myAuthors;
+    public ObservableList<NoteVersion> getVersions() {
+        return myVersions;
     }
 
-    public void setAuthors(final List<String> authors) {
-        myAuthors.clear();
-        myAuthors.addAll(authors);
+    public void setVersions(final List<NoteVersion> versions) {
+        myVersions.clear();
+        myVersions.addAll(versions);
     }
 
-    public String getAuthor() {
-        if (!myAuthors.isEmpty()) {
-            return myAuthors.get(myAuthors.size()-1);
+    public NoteVersion getVersion() {
+        if (!myVersions.isEmpty()) {
+            return myVersions.get(myVersions.size()-1);
         } else {
             return null;
         }
     }
 
-    public void addAuthor(final String author) {
-        // add author to history chain if its different from last one
-        if (author != null && !author.equals(getAuthor())) {
-            myAuthors.add(author);
-        }
+    public void addVersion(final NoteVersion version) {
+        myVersions.add(version);
     }
 
     public ObservableList<String> getTags() {
@@ -165,8 +163,12 @@ public class NoteMetaData {
                             strip().split(META_VALUES_SEP);
                         
                         switch (info) {
-                            case AUTHORS:
-                                result.setAuthors(Arrays.asList(values));
+                            case VERSIONS:
+                                final List<NoteVersion> versions = new LinkedList<>();
+                                for (String value : values) {
+                                    versions.add(NoteVersion.fromHtmlString(value));
+                                }
+                                result.setVersions(versions);
                                 infoFound = true;
                                 break;
                             case TAGS:
@@ -188,11 +190,17 @@ public class NoteMetaData {
     }
     
     public static String toHtmlString(final NoteMetaData data) {
+        if (data == null) {
+            return "";
+        }
+
         String result = "";
         boolean hasData = false;
         
-        if (data.getAuthor() != null) {
-            result += MetaDataInfo.AUTHORS.getDataName() + "=\"" + data.getAuthors().stream().collect(Collectors.joining(META_VALUES_SEP)) + "\"";
+        if (data.getVersion() != null) {
+            result += MetaDataInfo.VERSIONS.getDataName() + "=\"" + data.getVersions().stream().map((t) -> {
+                return NoteVersion.toHtmlString(t);
+            }).collect(Collectors.joining(META_VALUES_SEP)) + "\"";
             hasData = true;
         }
         if (!data.getTags().isEmpty()) {
