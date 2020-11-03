@@ -27,9 +27,7 @@ package tf.ownnote.ui.tags;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 import javafx.event.ActionEvent;
 import javafx.scene.control.Button;
@@ -39,7 +37,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
-import javafx.stage.StageStyle;
 import jfxtras.styles.jmetro.JMetro;
 import jfxtras.styles.jmetro.Style;
 import tf.helper.javafx.AbstractStage;
@@ -73,6 +70,11 @@ public class TagManager extends AbstractStage {
     public enum WorkMode {
         FULL_EDIT,
         ONLY_SELECT;
+    }
+    
+    public enum SelectedMode {
+        CHECK_ACTION,
+        IGNORE_ACTION;
     }
     
     private final ChoiceBox<BulkAction> bulkActionChoiceBox = 
@@ -172,8 +174,8 @@ public class TagManager extends AbstractStage {
         return ButtonPressed.ACTION_BUTTON.equals(getButtonPressed());
     }
     
-    public List<String> getSelectedTags() {
-        if (ButtonPressed.ACTION_BUTTON.equals(getButtonPressed())) {
+    public List<String> getSelectedTags(final SelectedMode checkAction) {
+        if (ButtonPressed.ACTION_BUTTON.equals(getButtonPressed()) || SelectedMode.IGNORE_ACTION.equals(checkAction)) {
             return tagsTable.getItems().stream().filter((t) -> {
                 return t.isSelected();
             }).map((t) -> {

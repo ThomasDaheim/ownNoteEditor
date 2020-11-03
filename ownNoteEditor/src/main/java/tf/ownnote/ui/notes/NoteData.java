@@ -124,15 +124,11 @@ public class NoteData extends HashMap<String,String> {
 
     public void setNoteFileContent(final String content) {
         // TFE, 20201024: extract line with metadata - if any
-        if (content != null && myMetaData != null && !myMetaData.isEmpty()) {
-            final int endPos = content.indexOf("\n");
-            if (endPos < content.length()) {
-                put(NoteMapKey.noteFileContent.name(), content.substring(endPos+1));
-            } else {
-                put(NoteMapKey.noteFileContent.name(), "");
-            }
-        } else {
-            put(NoteMapKey.noteFileContent.name(), content);
+        put(NoteMapKey.noteFileContent.name(), NoteMetaData.removeMetaDataContent(content));
+        
+        // set meta data - was done intially but might now have changed during editing
+        if (NoteMetaData.hasMetaDataContent(content)) {
+            setMetaData(NoteMetaData.fromHtmlString(content));
         }
     }
 

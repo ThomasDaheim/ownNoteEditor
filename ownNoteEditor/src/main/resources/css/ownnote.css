@@ -43,16 +43,14 @@
     -fx-background-color: tab-color;
     -fx-table-cell-border-color: transparent;
 }
-.table-view.notesTable .table-row-cell:hover:filled {
-    -fx-background-color: -fx-base;
-}
-.table-view.notesTable .table-row-cell:selected {
-    -fx-background-color: white;
-}
-.table-view.notesTable .table-row-cell:selected .text {
-    -fx-fill: note-selected-font-color;
+.table-view.notesTable:row-selection .table-row-cell:selected .text {
     -fx-font-weight: bold;
 }
+.table-view > .virtual-flow > .clipped-container > .sheet > .table-row-cell .table-cell:hover:filled,
+.table-view > .virtual-flow > .clipped-container > .sheet > .table-row-cell:hover:filled .table-cell{
+    -fx-background-color: cell_hover_color;
+}
+
 /* note name in bold */
 .noteNameCol {
     -fx-font-weight: notename-font-weight;
@@ -122,12 +120,6 @@
 .groupCountCol {
     -fx-alignment: CENTER_RIGHT;
 }
-
-/* rounded corners on tabs */
-.tab-header-area .tab {
-    -fx-padding: 5 10 5 10;
-    -fx-background-radius: 10 10 0 0;
-}
 .tab:selected .tab-label {
     -fx-font-weight: bold;
 }
@@ -135,9 +127,6 @@
 {
     -fx-tab-min-width: 60px;
     -fx-border-style: none;
-}
-.tab-pane *.tab-header-background {
-    -fx-background-color: white;
 }
 .tab-content-area 
 {
@@ -155,7 +144,7 @@
 }
 
 /* "+" tab is special */
-.tab-header-area .plusTab {
+/*.tab-header-area .plusTab {
     -fx-background-color: white;
     -fx-padding: 4 10 4 10;
     -fx-border-radius: 10 10 0 0;
@@ -163,7 +152,7 @@
     -fx-border-color: darkgray darkgray white darkgray;
     -fx-font-size: 1.2em;
     -fx-font-color: darkgray;
-}
+}*/
 
 /* style the invisible splitpane */
 .split-pane {  

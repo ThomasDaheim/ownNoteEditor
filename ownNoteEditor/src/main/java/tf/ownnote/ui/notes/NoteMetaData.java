@@ -114,15 +114,43 @@ public class NoteMetaData {
         myTags.addAll(tags);
     }
     
+    public static boolean hasMetaDataContent(final String htmlString) {
+        if (htmlString == null) {
+            return false;
+        }
+        
+        final String contentString = htmlString.split("\n")[0];
+        return (contentString.startsWith(META_STRING_PREFIX) && contentString.endsWith(META_STRING_SUFFIX));
+    }
+    
+    public static String removeMetaDataContent(final String htmlString) {
+        if (htmlString == null) {
+            return "";
+        }
+        
+        String result = htmlString;
+        if (hasMetaDataContent(htmlString)) {
+            final int endPos = htmlString.indexOf("\n");
+            if (endPos < htmlString.length()) {
+                result = htmlString.substring(endPos+1);
+            } else {
+                result = "";
+            }
+        }
+        
+        return result;
+    }
+    
     public static NoteMetaData fromHtmlString(final String htmlString) {
         final NoteMetaData result = new NoteMetaData();
 
-        // TODO: parse html string
+        // parse html string
         // everything inside a <!-- --> could be metadata in the form 
-        // author="xyz" tags="a:::b:::c"
+        // authors="xyz" tags="a:::b:::c"
         
-        if (htmlString != null && htmlString.startsWith(META_STRING_PREFIX) && htmlString.endsWith(META_STRING_SUFFIX)) {
-            String [] data = htmlString.substring(META_STRING_PREFIX.length(), htmlString.length()-META_STRING_SUFFIX.length()).
+        if (htmlString != null && hasMetaDataContent(htmlString)) {
+            final String contentString = htmlString.split("\n")[0];
+            String [] data = contentString.substring(META_STRING_PREFIX.length(), contentString.length()-META_STRING_SUFFIX.length()).
                     strip().split(META_DATA_SEP);
 
             // now we have the name - value pairs
