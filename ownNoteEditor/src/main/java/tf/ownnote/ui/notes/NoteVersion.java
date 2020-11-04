@@ -25,6 +25,12 @@
  */
 package tf.ownnote.ui.notes;
 
+import java.time.DateTimeException;
+import java.time.LocalDateTime;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import tf.ownnote.ui.main.OwnNoteEditor;
+
 /**
  *
  * @author thomas
@@ -33,12 +39,12 @@ public class NoteVersion {
     private static final String DATA_SEP = "@";
 
     private String versionAuthor;
-    private String versionDate;
+    private LocalDateTime versionDate;
     
     private NoteVersion() {
     }
     
-    public NoteVersion(final String author, final String date) {
+    public NoteVersion(final String author, final LocalDateTime date) {
         versionAuthor = author;
         versionDate = date;
     }
@@ -51,21 +57,26 @@ public class NoteVersion {
         versionAuthor = author;
     }
 
-    public String getDate() {
+    public LocalDateTime getDate() {
         return versionDate;
     }
 
-    public void setDate(final String date) {
+    public void setDate(final LocalDateTime date) {
        versionDate = date;
     }
     
     public static NoteVersion fromHtmlString(final String htmlString) {
-        final NoteVersion result = new NoteVersion("", "");
+        final NoteVersion result = new NoteVersion("", LocalDateTime.now());
         
         String [] data = htmlString.split(DATA_SEP);
         if (data.length == 2) {
             result.setAuthor(data[0]);
-            result.setDate(data[1]);
+            
+            try {
+                result.setDate(LocalDateTime.parse(data[1], OwnNoteEditor.DATE_TIME_FORMATTER));
+            } catch (DateTimeException ex) {
+                Logger.getLogger(NoteVersion.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
         
         return result;
@@ -76,6 +87,6 @@ public class NoteVersion {
             return "";
         }
 
-        return data.getAuthor() + DATA_SEP + data.getDate();
+        return data.getAuthor() + DATA_SEP + OwnNoteEditor.DATE_TIME_FORMATTER.format(data.getDate());
     }
 }

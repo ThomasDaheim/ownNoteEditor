@@ -25,9 +25,8 @@
  */
 package tf.ownnote.ui.helper;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Insets;
@@ -150,7 +149,7 @@ public class OwnNoteMetaEditor {
         versions.getItems().clear();
         // set labels & fields with note data
         if (editorNote.getMetaData().getVersions().isEmpty()) {
-            editorNote.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), OwnNoteEditor.DATE_TIME_FORMATTER.format(Instant.now())));
+            editorNote.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), LocalDateTime.now()));
         }
         versions.getItems().addAll(
                 editorNote.getMetaData().getVersions().stream().map((t) -> {

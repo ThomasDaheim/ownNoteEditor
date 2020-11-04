@@ -100,7 +100,15 @@ public class NoteMetaData {
     }
 
     public void addVersion(final NoteVersion version) {
-        myVersions.add(version);
+        if (myVersions.isEmpty()) {
+            myVersions.add(version);
+        } else {
+            // keep only one entry per date - otherwise its going to explode
+            if (myVersions.get(myVersions.size() - 1).getDate().toLocalDate().equals(version.getDate().toLocalDate())) {
+                myVersions.remove(myVersions.size() - 1);
+            }
+            myVersions.add(version);
+        }
     }
 
     public ObservableList<String> getTags() {

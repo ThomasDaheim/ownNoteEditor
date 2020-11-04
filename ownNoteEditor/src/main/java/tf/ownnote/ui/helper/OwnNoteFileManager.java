@@ -39,10 +39,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -390,7 +388,7 @@ public class OwnNoteFileManager {
                 content = noteData.getNoteFileContent();
             }
             // TFE, 20201024: store note metadata
-            noteData.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), OwnNoteEditor.DATE_TIME_FORMATTER.format(Instant.now())));
+            noteData.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), LocalDateTime.now()));
             final String fullContent = NoteMetaData.toHtmlString(noteData.getMetaData()) + content;
             
             final Path savePath = Files.write(Paths.get(this.ownNotePath, newFileName), fullContent.getBytes());

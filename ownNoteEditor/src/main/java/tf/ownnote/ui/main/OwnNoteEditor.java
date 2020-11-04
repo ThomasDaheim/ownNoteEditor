@@ -119,8 +119,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 
     private final static OwnNoteEditorParameters parameters = OwnNoteEditorParameters.getInstance();
     
-    public final static DateTimeFormatter DATE_TIME_FORMATTER = 
-            DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss").withZone(ZoneId.systemDefault());
+    public final static DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.uuuu HH:mm:ss");
 
     private final static String NEWNOTENAME = "New Note";
     
