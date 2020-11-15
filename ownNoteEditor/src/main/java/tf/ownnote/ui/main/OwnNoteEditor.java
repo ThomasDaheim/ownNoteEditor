@@ -31,7 +31,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.text.SimpleDateFormat;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.LinkedList;
@@ -83,6 +82,7 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -104,6 +104,7 @@ import tf.ownnote.ui.helper.OwnNoteTableColumn;
 import tf.ownnote.ui.helper.OwnNoteTableView;
 import tf.ownnote.ui.notes.GroupData;
 import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.NoteMetaData;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tasks.TaskData;
 import tf.ownnote.ui.tasks.TaskList;
@@ -148,6 +149,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     private Double classicGroupWidth;
     private Double oneNoteGroupWidth;
     private Double taskListWidth;
+    
+    private NoteData curNote;
     
     // Indicates that the divider is currently dragged by the mouse
     // see https://stackoverflow.com/a/40707931
@@ -246,7 +249,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     final CheckBox noteFilterCheck = new CheckBox();
     final CheckBox taskFilterCheck = new CheckBox();
     @FXML
-    private HBox taskFilerBox;
+    private HBox taskFilterBox;
     @FXML
     private SplitPane splitPaneXML;
     @FXML
@@ -333,7 +336,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // paint the look
         initEditor();
 
-        // init pathlabel to parameter or nothing
+        // init ownCloudPath to parameter or nothing
+        pathLabel.setMinWidth(Region.USE_PREF_SIZE);
         String pathname = "";
         // 1. use any passed parameters
         if (OwnNoteEditor.parameters.getOwnCloudDir().isPresent()) {
@@ -866,6 +870,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 
         // scan directory
         OwnNoteFileManager.getInstance().initOwnNotePath(ownCloudPath.textProperty().getValue());
+        
+        // TFE, 20201115: throw away any current tasklist - we might have changed the path!
+        TaskManager.getInstance().resetTaskList();
         taskList.populateTaskList();
         
         // add new table entries & disable & enable accordingly
@@ -1140,7 +1147,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                 showAlert(AlertType.ERROR, "Error Dialog", "An error occured while renaming the group.", "A file in the new group has the same name as a file in the old.");
             } else {
                 //check if we just moved the current note in the editor...
-                noteHTMLEditor.doNameChange(oldValue, newValue, noteHTMLEditor.getEditedNote().getNoteName(), noteHTMLEditor.getEditedNote().getNoteName());
+                if (noteHTMLEditor.getEditedNote() != null) {
+                    noteHTMLEditor.doNameChange(oldValue, newValue, noteHTMLEditor.getEditedNote().getNoteName(), noteHTMLEditor.getEditedNote().getNoteName());
+                }
             }
         }
         
@@ -1278,7 +1287,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // select first or current note - if any
         if (!notesTable.getItems().isEmpty()) {
             // check if current edit is ongoing AND note in the select tab (can happen with drag & drop!)
-            NoteData curNote = noteHTMLEditor.getEditedNote();
+            curNote = noteHTMLEditor.getEditedNote();
 
             // TFE, 20201030: support re-load of last edited note
             if (curNote == null) {
@@ -1290,7 +1299,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                     if (firstNoteAccess) {
                         // done, selectGroupForNote calls selectFirstOrCurrentNote() internally - BUT NO LOOPS PLEASE
                         firstNoteAccess = false;
-                        groupsPane.selectGroupForNote(curNote);
+                        Platform.runLater(() -> {
+                            groupsPane.selectGroupForNote(curNote);
+                        });
                         return;
                     }
                 }

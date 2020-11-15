@@ -54,9 +54,9 @@ public class TestTaskData {
     public void testTaskData_Exceptions3() {
         exceptionRule.expect(IllegalArgumentException.class);
         
-        exceptionRule.expectMessage("Text not starting with checkbox pattern:");
         final NoteData noteData = OwnNoteFileManager.getInstance().getNotesList().get(0);
         final String noteContent = OwnNoteFileManager.getInstance().readNote(noteData);
+        exceptionRule.expectMessage("Text not starting with checkbox pattern: " + noteContent);
         new TaskData(noteData, noteContent, 0);
     }
     
@@ -65,7 +65,7 @@ public class TestTaskData {
         final NoteData noteData = OwnNoteFileManager.getInstance().getNoteData("Test", "TestTasks");
         final String noteContent = OwnNoteFileManager.getInstance().readNote(noteData);
         
-        TaskData taskData = new TaskData(noteData, noteContent, 63);
+        TaskData taskData = new TaskData(noteData, noteContent, 64);
         Assert.assertFalse(taskData.isCompleted());
         Assert.assertEquals(" tell me, what to do!", taskData.getDescription());
     }
@@ -75,7 +75,7 @@ public class TestTaskData {
         final NoteData noteData = OwnNoteFileManager.getInstance().getNoteData("Test", "TestTasks");
         final String noteContent = OwnNoteFileManager.getInstance().readNote(noteData);
         
-        TaskData taskData = new TaskData(noteData, noteContent, 368);
+        TaskData taskData = new TaskData(noteData, noteContent, 371);
         Assert.assertTrue(taskData.isCompleted());
         // feel free to figure out how ? is handled correctly in all this string business
         Assert.assertTrue(taskData.getDescription().startsWith(" of course with something special: "));

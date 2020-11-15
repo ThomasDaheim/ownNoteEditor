@@ -258,9 +258,14 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         testRenameNote();
         resetForNextTest();
 
-//        testDragNote();
-//        resetForNextTest();
+        // TFE; 20201115: dragging with testfx doesn't work anymore for some time now :-(
+        // and the fix is: https://github.com/TestFX/TestFX/issues/639#issuecomment-448609608
+        testDragNote();
+        resetForNextTest();
 
+        // TFE; 20201115: "java.lang.NullPointerException: om.sun.javafx.scene.control.behavior.TableViewBehaviorBase.activate(TableViewBehaviorBase.java:898)"
+        // after trying to rename the new group - doesn't occur in "real live"
+        // and the fix is: https://stackoverflow.com/a/27396322
         testGroups();
         resetForNextTest();
         
@@ -268,7 +273,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         resetForNextTest();
         
         // TFE, 20180930: must be last test and no resetForNextTest() afterwards - to avoid "File has changed" dialogue
-//        testFileSystemChange();
+        testFileSystemChange();
     }
     
     private void testNodes() {
@@ -333,7 +338,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // delete note with right click + menu item
         clickOn(notesTableFXML);
         // TODO: get better coordinates to move to
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.9);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
         rightClickOn();
         push(KeyCode.DOWN);
         push(KeyCode.DOWN);
@@ -349,7 +354,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // #1 ------------------------------------------------------------------
         // rename note via right click + menu item
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.9);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
         rightClickOn();
         push(KeyCode.DOWN);
         push(KeyCode.DOWN);
@@ -365,7 +370,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // #2 ------------------------------------------------------------------
         // rename note via right click + CTRL+R
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.9);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
         rightClickOn();
         push(KeyCode.CONTROL, KeyCode.R);
         write("rename2");
@@ -393,15 +398,11 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // #4 ------------------------------------------------------------------
         // Alert when renaming to existing name
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.9);
-        rightClickOn();
-        push(KeyCode.CONTROL, KeyCode.R);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
+        doubleClickOn();
         write("test2");
         push(KeyCode.ENTER);
         push(KeyCode.ENTER);
-        
-        // dialog "Note with same name exists"
-        testAlert("An error occured while renaming the note.", ButtonBar.ButtonData.OK_DONE);
         
         // note should still have old name
         assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof NoteData));
@@ -422,13 +423,12 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         double centerY = testBounds.getMinY() + (testBounds.getMaxY() - testBounds.getMinY())/2.0;
         
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.9);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
         Point p = MouseInfo.getPointerInfo().getLocation();
         Point2D p2d = new Point2D(p.getX(), p.getY());
 
         FxRobot dragNote = drag(p2d, MouseButton.PRIMARY);
-        dragNote.drag(centerX, centerY);
-        dragNote.drop();
+        dragNote.dropTo(centerX, centerY);
         
         // check "Test 1" tab, that should have 1 less entries
         testTab(2, "Test1", myTestdata.getNotesCountForGroup("Test1") - 1);
@@ -444,13 +444,12 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         centerY = testBounds.getMinY() + (testBounds.getMaxY() - testBounds.getMinY())/2.0;
         
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.9);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
         p = MouseInfo.getPointerInfo().getLocation();
         p2d = new Point2D(p.getX(), p.getY());
 
         dragNote = drag(p2d, MouseButton.PRIMARY);
-        dragNote.drag(centerX, centerY);
-        dragNote.drop();
+        dragNote.dropTo(centerX, centerY);
         
         // check "Test 1" tab, that should have 2 entries
         testTab(2, "Test1", myTestdata.getNotesCountForGroup("Test1"));
@@ -469,13 +468,12 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         selectTab(0);
 
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.9);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
         p = MouseInfo.getPointerInfo().getLocation();
         p2d = new Point2D(p.getX(), p.getY());
 
         dragNote = drag(p2d, MouseButton.PRIMARY);
-        dragNote.drag(centerX, centerY);
-        dragNote.drop();
+        dragNote.dropTo(centerX, centerY);
  
         // dialog "Note with same name exists"
         testAlert("An error occured while moving the note.", ButtonBar.ButtonData.OK_DONE);
@@ -511,7 +509,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         push(KeyCode.ENTER);
         push(KeyCode.ENTER);
         
-        assertTrue("Check Test3 tab", ((Label) groupsPaneFXML.getSelectionModel().getSelectedItem().getGraphic()).getText().startsWith("Test4"));
+        assertTrue("Check Test4 tab", ((Label) groupsPaneFXML.getSelectionModel().getSelectedItem().getGraphic()).getText().startsWith("Test4"));
         
         // #3 ------------------------------------------------------------------
         // delete group
@@ -576,6 +574,11 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         clickOn(noteFilterText);
         write("SUCH");
         testTab(0, GroupData.ALL_GROUPS, 1);
+        
+        // reset everything, PLEASE
+        clickOn(noteFilterCheck);
+        clickOn(noteFilterText);
+        push(KeyCode.ESCAPE);
     }
     
     private void testFileSystemChange() {
@@ -651,19 +654,9 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         final NoteData newNote = (NoteData) notesTableFXML.getSelectionModel().getSelectedItem();
         assertTrue("Check new note label", newName.equals(newNote.getNoteName()));
         
-        // rename back again
-        clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.9);
-        rightClickOn();
-        push(KeyCode.DOWN);
-        push(KeyCode.ENTER);
-        write("test1");
-        push(KeyCode.ENTER);
-        push(KeyCode.ENTER);
-
         // #6 ------------------------------------------------------------------
         // delete file in editor AND "Discard own"
-        assertTrue(myTestdata.deleteTestFile(testpath, "[Test1] test1.htm"));
+        assertTrue(myTestdata.deleteTestFile(testpath, "[Test1] " + newName + ".htm"));
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 //        System.out.println("after sleep for: delete file in editor AND \"Discard own\"");
         
@@ -674,7 +667,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS) - 1);
         
         // create back again
-        assertTrue(myTestdata.createTestFile(testpath, "[Test1] test1.htm"));
+        assertTrue(myTestdata.createTestFile(testpath, "[Test1] " + newName + ".htm"));
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 //        System.out.println("after sleep for: create back again");
 

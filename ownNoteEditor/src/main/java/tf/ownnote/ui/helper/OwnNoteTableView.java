@@ -210,6 +210,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         myTableView.setPlaceholder(new Text(""));
         myTableView.getSelectionModel().setCellSelectionEnabled(false);
         myTableView.setDisable(false);
+        myTableView.setFocusTraversable(false);
         
         if (myTableType != null) {
             if (TableType.notesTable.equals(myTableType)) {

@@ -5,6 +5,16 @@ Aim was to mimic the behaviour of the ownNote web client using JavaFX and workin
 
 Note on Java 11: After various tweaks to build.gradle this now also runs under Java 11. See e.g. https://github.com/kelemen/netbeans-gradle-project/issues/403 an some of the discussion that where required to get there... Unfortunately, there is one isseu with the TestFX framework when trying to drag & drop notes. Since I wasn't able to fix this I had to disable the "testDragNote()" test step.
 
+Note on v5.0: A lot has happened since the initial version of the editor. ownNotes / nextNotes project for NextCloud seems to have died and there is no need anymore to try to mimic their behaviour and notes / groups handling. Therefore, its time for some re-design :-) E.g. support for the "classic" look & feel will be dropped along with other things I might come up with...
+
+V 4.8: Tags!
+
+* Rudimentary tags support: tags can be added to notes and are stored as html-comments in the note; initial support to add & maintain tags; per day on author & timestamp is remembered
+* Switch to JMetro theme
+* Remember last edited not and load on start
+* Improve opening in previous position on multi-monitors
+* Various bugfixes incl. for test classes
+
 V 4.7: Tasks!
 
 * Task support: checkboxes = tasks, are listed in separat view to the right, can be checked / unchecked / selected from there
@@ -139,11 +149,12 @@ Of course, such a project depends on the results of many others! I've tried to a
 
 Explicit dependencies:
 
-* tf.JavaHelper:JavaHelper:1.7 (see my other repros)
+* tf.JavaHelper:JavaHelper:1.78 (see my other repros)
 * 'org.slf4j:slf4j-api:1.7.12'
 * 'commons-cli:commons-cli:1.4'
 * 'commons-io:commons-io:2.6'
 * 'org.apache.commons:commons-lang3:3.9'
+* 'org.jfxtras:jmetro:11.6.12'
 * 'org.testfx:testfx-junit:4.0.+'
 * 'org.testfx:testfx-core:4.0.+'
 * 'org.junit.jupiter:junit-jupiter-api:5.6.2'

@@ -66,7 +66,7 @@ public class TestNodeData {
     }
     
     public void copyTestFiles(final Path testpath) throws Throwable {
-        final File notespath = new File("src/test/resources");
+        final File notespath = new File("src/test/resources/LookAndFeel");
 
         final File [] files = notespath.listFiles();
         for (File htmlfile : files) {

@@ -46,7 +46,7 @@ public class NoteData extends HashMap<String,String> {
     }
     
     // TFE, 20201022: store additional metadata, e.g. tags, author, ...
-    private NoteMetaData myMetaData;
+    private NoteMetaData myMetaData = new NoteMetaData();
 
     public NoteData() {
         super();
