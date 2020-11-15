@@ -1,0 +1,1 @@
+Use exiftool instead of read_exif_data.
