@@ -45,6 +45,8 @@ import javafx.scene.input.MouseEvent;
 import tf.helper.general.IPreferencesHolder;
 import tf.helper.general.IPreferencesStore;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.GroupData;
+import tf.ownnote.ui.notes.NoteData;
 
 /**
  *
@@ -76,6 +78,8 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
     
     // TFE, 20200907: keep track of group order
     private final List<String> tabOrder = new LinkedList<>();
+    
+    private boolean inSortTabs = false;
 
     private OwnNoteTabPane() {
         super();
@@ -104,30 +108,47 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         
         myTabPane.getSelectionModel().selectedItemProperty().addListener((ObservableValue<? extends Tab> ov, Tab oldTab, Tab newTab) -> {
             assert (myEditor != null);
+            
+            // TFE, 20201030: sorting of tabs can lead to temporary selection change :-(
+            if (inSortTabs) {
+                return;
+            }
         
-            if (newTab != null && !newTab.equals(oldTab)) {
-                assert (newTab instanceof OwnNoteTab);
-                if (((OwnNoteTab) newTab).getTabName().equals("+")) {
-                    // you have clicked on the "+" tab
-                    if (myTabPane.getTabs().size() > 1) {
-                        // and we have more tabs shown - so its not the intial adding of tabs...
-                        OwnNoteTab addedTab = addNewTab();
-                        if (addedTab != null) {
-                           myTabPane.getSelectionModel().select(addedTab);
+            if (newTab != null) {
+                boolean doSelectNote = true;
+                
+                if (!newTab.equals(oldTab)) {
+                    assert (newTab instanceof OwnNoteTab);
+                    if (((OwnNoteTab) newTab).getTabName().equals("+")) {
+                        // you have clicked on the "+" tab
+                        if (myTabPane.getTabs().size() > 1) {
+                            // and we have more tabs shown - so its not the intial adding of tabs...
+                            OwnNoteTab addedTab = addNewTab();
+                            if (addedTab != null) {
+                               myTabPane.getSelectionModel().select(addedTab);
+                            }
+                        } else {
+                            doSelectNote = false;
                         }
+                    } else {
+                        // select matching notes for group
+                        assert (newTab.getUserData() instanceof GroupData);
+                        final String groupName = ((GroupData) newTab.getUserData()).getGroupName();
+
+                        myEditor.setGroupNameFilter(groupName);
+                        // set color of notes table to tab color
+                        myEditor.setNotesTableForNewTab(newTab.getStyle());
+
+                        myTabPane.setStyle(newTab.getStyle());
                     }
-                } else {
-                    // select matching notes for group
-                    assert (newTab.getUserData() instanceof GroupData);
-                    final String groupName = ((GroupData) newTab.getUserData()).getGroupName();
-
-                    myEditor.setGroupNameFilter(groupName);
-                    // set color of notes table to tab color
-                    myEditor.setNotesTableForNewTab(newTab.getStyle());
-
-                    myTabPane.setStyle(newTab.getStyle());
+                }
+                
+                if (doSelectNote) {
+                    // TFE, 20201030: select edited note
+                    myEditor.selectFirstOrCurrentNote();
                 }
             } 
+            
         });            
     }
 
@@ -197,6 +218,8 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
     
     public void sortTabs() {
         final List<Tab> tabs = new LinkedList<>(myTabPane.getTabs());
+
+        inSortTabs = true;
         
         // now sort tabs accordingly
         int startIndex = 2;
@@ -212,8 +235,16 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
             if (tab.isPresent()) {
                 if (tabs.indexOf(tab.get()) != startIndex) {
 //                    System.out.println("Moving tab '" + tabLabel + "' from position " + tabs.indexOf(tab.get()) + " to position " + startIndex);
+                    final Tab moveTab = tab.get();
+                    // restore selection if required
+                    final boolean isSelected = tab.equals(myTabPane.getSelectionModel().getSelectedItem());
+                    
                     myTabPane.getTabs().remove(tab.get());
                     myTabPane.getTabs().add(startIndex, tab.get());
+                    
+                    if (isSelected) {
+                        myTabPane.getSelectionModel().select(moveTab);
+                    }
                 } else {
 //                    System.out.println("Nothing to do for tab '" + tabLabel + "'");
                 }
@@ -223,6 +254,8 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
 //                System.out.println("Tab '" + tabLabel + "' not found!");
             }
         }
+
+        inSortTabs = false;
     }
     
     public void updateTabOrder() {

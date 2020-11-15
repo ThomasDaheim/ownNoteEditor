@@ -18,9 +18,9 @@ import javafx.collections.ObservableList;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
-import tf.ownnote.ui.helper.NoteData;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.NoteData;
 
 /**
  * Handler for creation, search, update, sync of tasks with their notes.
@@ -140,8 +140,11 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             if (StandardWatchEventKinds.ENTRY_CREATE.equals(eventKind) || StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                 // new file -> scan for tasks and update own list (similar to #2)
                 final NoteData note = OwnNoteFileManager.getInstance().getNoteData(filePath.getFileName().toString());
-                final String noteContent = OwnNoteFileManager.getInstance().readNote(note);
-                taskList.addAll(tasksFromNote(note, noteContent));
+                // TFE, 20201027: make sure we don't try to work on temp files which have been deleted in the meantime...
+                if (note != null) {
+                    final String noteContent = OwnNoteFileManager.getInstance().readNote(note);
+                    taskList.addAll(tasksFromNote(note, noteContent));
+                }
             }
             // modify is delete + add :-)
 
@@ -208,24 +211,35 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             // TRICKY - FileContentChangeType.CONTENT_CHANGED runs before the $(editor.getBody()).on("change", ":checkbox", function(el) is called,
             // so we still have the old content in a click on checkbox event
             // checkbox might not be start of innerHtml, whereas TaskData description is only the part after checkbox...
-            // FFFFUUUUCCCCKKKK innerHtml sends back <input type="checkbox" checked="checked"> instead of correct <input type="checkbox" checked="checked" />
+            // FFFFUUUUCCCCKKKK innerHtml sends back <input type="checkbox" checked="checked"> instead of <input type="checkbox" checked="checked" />
+            // TFE, 20201103: better safe than sorry and check for both variants of valid html
             String oldDescription = null;
-            int checkIndex = oldContent.indexOf(OwnNoteEditor.WRONG_UNCHECKED_BOXES);
+            int checkIndex = oldContent.indexOf(OwnNoteEditor.UNCHECKED_BOXES_1);
             if (checkIndex > -1) {
-                oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.WRONG_UNCHECKED_BOXES.length());
+                oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.UNCHECKED_BOXES_1.length());
+            } else {
+                checkIndex = oldContent.indexOf(OwnNoteEditor.UNCHECKED_BOXES_2);
+                if (checkIndex > -1) {
+                    oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.UNCHECKED_BOXES_2.length());
+                }
             }
-            checkIndex = oldContent.indexOf(OwnNoteEditor.WRONG_CHECKED_BOXES);
+            checkIndex = oldContent.indexOf(OwnNoteEditor.CHECKED_BOXES_1);
             if (checkIndex > -1) {
-                oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.WRONG_CHECKED_BOXES.length());
+                oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.CHECKED_BOXES_1.length());
+            } else {
+                checkIndex = oldContent.indexOf(OwnNoteEditor.CHECKED_BOXES_2);
+                if (checkIndex > -1) {
+                    oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.CHECKED_BOXES_2.length());
+                }
             }
             if (oldDescription == null) {
-                System.out.println("Something went wrong with task completion change!" + note + ", " + oldContent + ", " + newContent);
+                System.err.println("Something went wrong with task completion change!" + note + ", " + oldContent + ", " + newContent);
                 return true;
             }
             Boolean newCompleted = null;
-            if (newContent.contains(OwnNoteEditor.WRONG_UNCHECKED_BOXES)) {
+            if (newContent.contains(OwnNoteEditor.UNCHECKED_BOXES_2)) {
                 newCompleted = false;
-            } else if (newContent.contains(OwnNoteEditor.WRONG_CHECKED_BOXES)) {
+            } else if (newContent.contains(OwnNoteEditor.CHECKED_BOXES_2)) {
                 newCompleted = true;
             }
             if (newCompleted == null) {
@@ -271,5 +285,18 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     
     public boolean inFileChange() {
         return inFileChange;
+    }
+    
+    public TaskCount getTaskCount(final NoteData note) {
+        // first all tasks for this note
+        final List<TaskData> noteTasks = taskList.stream().filter((t) -> {
+            return t.getNoteData().equals(note);
+        }).collect(Collectors.toList());
+        
+        final long closedTasks = noteTasks.stream().filter((t) -> {
+            return t.isCompleted();
+        }).count();
+        
+        return new TaskCount(noteTasks.size() - closedTasks, closedTasks);
     }
 }

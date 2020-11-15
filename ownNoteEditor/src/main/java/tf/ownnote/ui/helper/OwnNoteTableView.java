@@ -58,7 +58,10 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.text.Text;
 import tf.helper.general.IPreferencesHolder;
 import tf.helper.general.IPreferencesStore;
+import tf.helper.general.ObjectsHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.GroupData;
+import tf.ownnote.ui.notes.NoteData;
 
 /**
  *
@@ -175,7 +178,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     
     @Override
     public GroupData getCurrentGroup() {
-        return new GroupData(myTableView.getSelectionModel().getSelectedItem());
+        return new GroupData(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
     }
     
     public TableView<Map<String, String>> getTableView() {
@@ -207,6 +210,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         myTableView.setPlaceholder(new Text(""));
         myTableView.getSelectionModel().setCellSelectionEnabled(false);
         myTableView.setDisable(false);
+        myTableView.setFocusTraversable(false);
         
         if (myTableType != null) {
             if (TableType.notesTable.equals(myTableType)) {
@@ -263,7 +267,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                     }
                     newNote1.setOnAction((ActionEvent event) -> {
                         if (myTableView.getSelectionModel().getSelectedItem() != null) {
-                            final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
+                            final NoteData curNote = new NoteData(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
                             final String newNoteName = myEditor.uniqueNewNoteNameForGroup(curNote.getGroupName());
                     
                             createNoteWrapper(curNote.getGroupName(), newNoteName);
@@ -276,7 +280,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                     }
                     renameNote.setOnAction((ActionEvent event) -> {
                         if (myTableView.getSelectionModel().getSelectedItem() != null) {
-                            final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
+                            final NoteData curNote = new NoteData(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
                             
                             startEditingName(myTableView.getSelectionModel().getSelectedIndex());
                         }
@@ -285,7 +289,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                     // issue #41 - no accelarator for delete...
                     deleteNote.setOnAction((ActionEvent event) -> {
                         if (myTableView.getSelectionModel().getSelectedItem() != null) {
-                            final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
+                            final NoteData curNote = new NoteData(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
 
                             if(myEditor.deleteNoteWrapper(curNote)) {
                                 myEditor.initFromDirectory(false);
@@ -303,7 +307,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                     
                     // support for dragging
                     row.setOnDragDetected((MouseEvent event) -> {
-                        final NoteData curNote = new NoteData(myTableView.getSelectionModel().getSelectedItem());
+                        final NoteData curNote = new NoteData(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
                         
                         /* allow any transfer mode */
                         Dragboard db = row.startDragAndDrop(TransferMode.MOVE);
@@ -360,7 +364,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                 myTableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
                     if (newSelection != null && !newSelection.equals(oldSelection)) {
                         // select matching notes for group
-                        final String groupName = new GroupData(myTableView.getSelectionModel().getSelectedItem()).getGroupName();
+                        final String groupName = new GroupData(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem())).getGroupName();
 
                         myEditor.setGroupNameFilter(groupName);
                     }
@@ -383,7 +387,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
             int i = 0;
             NoteData noteData;
             for (Map<String, String> note : getItems()) {
-                noteData = new NoteData(note);
+                noteData = new NoteData(ObjectsHelper.uncheckedCast(note));
                 
                 if (newNoteName.equals(noteData.getNoteName()) && newGroupName.equals(noteData.getGroupName())) {
                     selectIndex = i;
@@ -425,7 +429,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         int i = 0;
         GroupData groupData;
         for (Map<String, String> note : getItems()) {
-            groupData = new GroupData(note);
+            groupData = new GroupData(ObjectsHelper.uncheckedCast(note));
 
             if (selectedGroupName.equals(groupData.getGroupName())) {
                 selectIndex = i;

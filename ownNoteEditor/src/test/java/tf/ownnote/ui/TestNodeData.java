@@ -38,9 +38,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.io.FilenameUtils;
 import tf.ownnote.ui.helper.FormatHelper;
-import tf.ownnote.ui.helper.GroupData;
-import tf.ownnote.ui.helper.NoteData;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.notes.GroupData;
+import tf.ownnote.ui.notes.NoteData;
 
 /**
  *
@@ -66,7 +66,7 @@ public class TestNodeData {
     }
     
     public void copyTestFiles(final Path testpath) throws Throwable {
-        final File notespath = new File("src/test/resources");
+        final File notespath = new File("src/test/resources/LookAndFeel");
 
         final File [] files = notespath.listFiles();
         for (File htmlfile : files) {

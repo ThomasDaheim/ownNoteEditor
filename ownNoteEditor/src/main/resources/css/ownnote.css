@@ -1,3 +1,5 @@
+@import 'customize-metro.css';
+
 /* https://stackoverflow.com/questions/12746459/how-to-change-the-colors-of-the-tableviews-rows */
 /* https://stackoverflow.com/questions/21707178/javafx-how-to-set-selected-row-text-color-in-not-focused-tableview */
 
@@ -35,21 +37,20 @@
 /* No background color in table header, please */
 .table-view.notesTable,
 .table-view.notesTable .column-header,
+.table-view.notesTable .column-header .label,
 .table-view.notesTable .column-header-background,
 .table-view.notesTable .table-row-cell {
     -fx-background-color: tab-color;
     -fx-table-cell-border-color: transparent;
 }
-.table-view.notesTable .table-row-cell:hover:filled {
-    -fx-background-color: -fx-base;
-}
-.table-view.notesTable .table-row-cell:selected {
-    -fx-background-color: white;
-}
-.table-view.notesTable .table-row-cell:selected .text {
-    -fx-fill: note-selected-font-color;
+.table-view.notesTable:row-selection .table-row-cell:selected .text {
     -fx-font-weight: bold;
 }
+.table-view > .virtual-flow > .clipped-container > .sheet > .table-row-cell .table-cell:hover:filled,
+.table-view > .virtual-flow > .clipped-container > .sheet > .table-row-cell:hover:filled .table-cell{
+    -fx-background-color: cell_hover_color;
+}
+
 /* note name in bold */
 .noteNameCol {
     -fx-font-weight: notename-font-weight;
@@ -59,9 +60,9 @@
 .noteModifiedCol {
     -fx-alignment: CENTER;
 }
-.table-view.notesTable .table-row-cell .noteModifiedCol {
+/*.table-view.notesTable .table-row-cell .noteModifiedCol {
     -fx-opacity: 0.75;
-}
+}*/
 /* delete icon only when selected, red on hover */
 .noteDeleteCol:filled {
     -fx-background-image: url("delete.png");
@@ -79,6 +80,7 @@
 /* No background color in table header, please */
 .table-view.groupsTable,
 .table-view.groupsTable .column-header,
+.table-view.groupsTable .column-header .label,
 .table-view.groupsTable .column-header-background,
 .table-view.groupsTable .table-row-cell {
     -fx-background-color: -fx-base;
@@ -118,12 +120,6 @@
 .groupCountCol {
     -fx-alignment: CENTER_RIGHT;
 }
-
-/* rounded corners on tabs */
-.tab-header-area .tab {
-    -fx-padding: 5 10 5 10;
-    -fx-background-radius: 10 10 0 0;
-}
 .tab:selected .tab-label {
     -fx-font-weight: bold;
 }
@@ -132,16 +128,15 @@
     -fx-tab-min-width: 60px;
     -fx-border-style: none;
 }
-.tab-pane *.tab-header-background {
-    -fx-background-color: white;
-}
 .tab-content-area 
 {
     -fx-padding: 0;
 }
 
 /* colors on tabs during run time */
-.tab-header-area .tab {
+.tab-header-area .tab,
+.tab-pane > .tab-header-area > .headers-region > .tab,
+.tab-pane > .tab-header-area > .headers-region > .tab:selected {
     -fx-background-color: tab-color;
 }
 .tab-pane .tab-content-area {
@@ -149,7 +144,7 @@
 }
 
 /* "+" tab is special */
-.tab-header-area .plusTab {
+/*.tab-header-area .plusTab {
     -fx-background-color: white;
     -fx-padding: 4 10 4 10;
     -fx-border-radius: 10 10 0 0;
@@ -157,7 +152,7 @@
     -fx-border-color: darkgray darkgray white darkgray;
     -fx-font-size: 1.2em;
     -fx-font-color: darkgray;
-}
+}*/
 
 /* style the invisible splitpane */
 .split-pane {  
@@ -185,4 +180,28 @@
 /* style filter textfield */
 .noteNameFilter {
     -fx-focus-color: darkgray;
+}
+
+/* styling for note metdata hbox */
+.noteEditor, .noteMetaEditor {
+    -fx-padding: 0;
+    -fx-margin: 0;
+}
+
+.tagsBox {
+    -fx-border-radius: 4;
+    -fx-border-style: solid;
+    -fx-border-color: darkgray;
+}
+
+.tagLabel {
+    -fx-border-radius: 2;
+    -fx-border-style: solid;
+    -fx-border-color: darkgray;
+    -fx-border-width: 1; 
+}
+
+.removeTag {
+    -fx-font-weight: bold;
+    -fx-font-size: 0.8em;
 }

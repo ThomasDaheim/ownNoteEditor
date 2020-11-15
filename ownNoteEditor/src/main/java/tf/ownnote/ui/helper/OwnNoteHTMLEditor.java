@@ -49,7 +49,6 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Worker;
-import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.print.PrinterJob;
@@ -57,7 +56,6 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
-import javafx.scene.image.Image;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.ContextMenuEvent;
@@ -79,6 +77,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import tf.helper.javafx.UsefulKeyCodes;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.NoteData;
 
 /**
  *
@@ -116,7 +115,7 @@ public class OwnNoteHTMLEditor {
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor= null;
     
-    private NoteData editorNote;
+    private NoteData editedNote;
     
     // defy garbage collection of callback functions
     // https://stackoverflow.com/a/41908133
@@ -464,11 +463,10 @@ public class OwnNoteHTMLEditor {
     private void saveNote() {
         assert (myEditor != null);
 
-        final NoteData curNote = (NoteData) getUserData();
         // we might not have selected a note yet... accelerator always works :-(
-        if (curNote != null) {
-            if (myEditor.saveNoteWrapper(curNote.getGroupName(), curNote.getNoteName(), getNoteText())) {
-                hasBeenSaved();
+        if (editedNote != null) {
+            editedNote.setNoteEditorContent(getNoteText());
+            if (myEditor.saveNoteWrapper(editedNote)) {
             }
         }
     }
@@ -653,7 +651,7 @@ public class OwnNoteHTMLEditor {
         }
     }
         
-    public void setNoteText(final NoteData note, final String text) {
+    public void editNote(final NoteData note, final String text) {
         Runnable task = () -> {
             //System.out.println("setEditorText " + text);
             setContentDone = false;
@@ -662,9 +660,9 @@ public class OwnNoteHTMLEditor {
         };
         
         startTask(task);
-        editorNote = note;
-        if (editorNote != null) {
-            editorNote.setNoteEditorContent(text);
+        editedNote = note;
+        if (editedNote != null) {
+            editedNote.setNoteEditorContent(text);
         }
     }
     private String replaceForEditor(final String text) {
@@ -706,8 +704,8 @@ public class OwnNoteHTMLEditor {
 
             //System.out.println("readEditorText " + newEditorText);
             
-            if (editorNote != null) {
-                editorNote.setNoteEditorContent(newEditorText);
+            if (editedNote != null) {
+                editedNote.setNoteEditorContent(newEditorText);
             }
         }
 
@@ -721,10 +719,11 @@ public class OwnNoteHTMLEditor {
         if (setContentDone) {
             final String newEditorText = readNoteText();
 
-            if (editorNote == null || editorNote.getNoteFileContent() == null) {
+            if (editedNote == null || editedNote.getNoteFileContent() == null) {
                 result = !newEditorText.isEmpty();
             } else {
-                result = !editorNote.getNoteFileContent().equals(newEditorText);
+                // TFE, 20201103: unwrapping checkboxes in js can lead to unescaping of text...
+                result = !StringEscapeUtils.unescapeHtml4(editedNote.getNoteFileContent()).equals(StringEscapeUtils.unescapeHtml4(newEditorText));
             }
         }
         
@@ -738,38 +737,15 @@ public class OwnNoteHTMLEditor {
         wrapExecuteScript(myWebEngine, "tinymce.activeEditor.setDirty(false);");
     }
 
-    public void checkForNameChange(final String oldGroupName, final String newGroupName) {
-        checkForNameChange(oldGroupName, newGroupName, "", "");
-    }
-
-    public void checkForNameChange(final String oldGroupName, final String newGroupName, final String oldNoteName, final String newNoteName) {
+    public void doNameChange(final String oldGroupName, final String newGroupName, final String oldNoteName, final String newNoteName) {
         assert (oldGroupName != null);
         assert (newGroupName != null);
         assert (oldNoteName != null);
         assert (newNoteName != null);
         
-        if (getUserData() != null) {
-            final NoteData editNote = (NoteData) getUserData();
-            
-            boolean changed = false;
-
-            // check for group name change
-            if (!oldGroupName.equals(newGroupName)) {
-                editNote.setGroupName(newGroupName);
-                changed = true;
-            }
-            
-            // check for note name change
-            if (!oldNoteName.equals(newNoteName)) {
-                editNote.setNoteName(newNoteName);
-                changed = true;
-            }
-            
-            if (changed) {
-                // we did it! now do the house keeping...
-                setUserData(editNote);
-                // System.out.printf("User data updated\n");
-            }
+        if (getEditedNote() != null) {
+            editedNote.setGroupName(newGroupName);
+            editedNote.setNoteName(newNoteName);
         }
     }
 
@@ -783,12 +759,8 @@ public class OwnNoteHTMLEditor {
         myWebView.setVisible(b);
     }
     
-    public NoteData getUserData() {
-        return (NoteData) myWebView.getUserData();
-    }
-
-    public void setUserData(final NoteData data) {
-        myWebView.setUserData(data);
+    public NoteData getEditedNote() {
+        return editedNote;
     }
     
     public BooleanProperty visibleProperty() {
@@ -798,23 +770,23 @@ public class OwnNoteHTMLEditor {
     private void checkBoxChanged(final String htmlBefore, final String htmlAfter) {
         // send change note to all subscribes
         for (IFileContentChangeSubscriber subscriber : changeSubscribers) {
-            if (!subscriber.processFileContentChange(FileContentChangeType.CHECKBOX_CHANGED, editorNote, htmlBefore, htmlAfter)) {
+            if (!subscriber.processFileContentChange(FileContentChangeType.CHECKBOX_CHANGED, editedNote, htmlBefore, htmlAfter)) {
                 break;
             }
         }
     }
     
     private void contentChanged(final String newContent) {
-        if (editorNote == null) {
+        if (editedNote == null) {
             return;
         }
         
-        final String oldContent = editorNote.getNoteEditorContent();
-        editorNote.setNoteEditorContent(newContent);
+        final String oldContent = editedNote.getNoteEditorContent();
+        editedNote.setNoteEditorContent(newContent);
 
         // send change note to all subscribes
         for (IFileContentChangeSubscriber subscriber : changeSubscribers) {
-            if (!subscriber.processFileContentChange(FileContentChangeType.CONTENT_CHANGED, editorNote, oldContent, newContent)) {
+            if (!subscriber.processFileContentChange(FileContentChangeType.CONTENT_CHANGED, editedNote, oldContent, newContent)) {
                 break;
             }
         }

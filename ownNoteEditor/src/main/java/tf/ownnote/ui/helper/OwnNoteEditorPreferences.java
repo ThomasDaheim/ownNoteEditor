@@ -25,6 +25,8 @@ public class OwnNoteEditorPreferences implements IPreferencesStore {
     public final static String RECENTTASKLISTWIDTH = "recentTaskListWidth";
     public final static String RECENTWINDOWWIDTH = "recentWindowWidth";
     public final static String RECENTWINDOWHEIGTH = "recentWindowHeigth";
+    public final static String RECENTWINDOWLEFT = "recentWindowLeft";
+    public final static String RECENTWINDOWTOP = "recentWindowTop";
     // issue #45 store sort order for tables
     public final static String RECENTGROUPSTABLESORTORDER = "recentGroupsTableSortOrder";
     public final static String RECENTNOTESTABLESORTORDER = "recentNotesTableSortOrder";
@@ -34,6 +36,10 @@ public class OwnNoteEditorPreferences implements IPreferencesStore {
     public static final String PREF_STRING_SUFFIX = " ]";
     public static final String PREF_STRING_SEP = " ::: ";
     public static final String RECENTTABORDER = "recentTabOrder";
+    
+    // TFE, 20201030: store last edited file
+    public static final String LAST_EDITED_NOTE = "lastEditedNote";
+    public static final String LAST_EDITED_GROUP = "lastEditedGroup";
 
     private OwnNoteEditorPreferences() {
         // Exists only to defeat instantiation.

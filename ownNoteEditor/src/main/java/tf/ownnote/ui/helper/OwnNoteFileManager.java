@@ -25,10 +25,13 @@
  */
 package tf.ownnote.ui.helper;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryIteratorException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -50,6 +53,10 @@ import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.GroupData;
+import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.NoteMetaData;
+import tf.ownnote.ui.notes.NoteVersion;
 
 /**
  *
@@ -57,7 +64,7 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  */
 public class OwnNoteFileManager {
     private final static OwnNoteFileManager INSTANCE = new OwnNoteFileManager();
-
+    
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor;
     
@@ -170,8 +177,10 @@ public class OwnNoteFileManager {
                 noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
                 noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
                 noteRow.setGroupName(groupName);
-                // use filename and not notename since duplicate note names can exist in diffeent groups
-                notesList.put(filename, new NoteData(noteRow));
+                // TFE; 20201023: set note metadata from file content
+                noteRow.setMetaData(NoteMetaData.fromHtmlString(getFirstLine(file)));
+                // use filename and not notename since duplicate note names can exist in different groups
+                notesList.put(filename, noteRow);
                 //System.out.println("Added note " + noteName + " for group " + groupName + " from filename " + filename);
             }
         } catch (IOException | DirectoryIteratorException ex) {
@@ -181,6 +190,21 @@ public class OwnNoteFileManager {
         // fix #14
         // monitor directory for changes
         myDirMonitor.setDirectoryToMonitor(ownNotePath);   
+    }
+    
+    private String getFirstLine(final File file) {
+        String result = "";
+        
+        try {
+            // use https://stackoverflow.com/a/19486413 to quickly read first line from file
+            final BufferedReader in = 
+                    new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8));
+            result = in.readLine();
+        } catch (IOException ex) {
+            Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        return result;
     }
 
     public String getOwnNotePath() {
@@ -239,7 +263,13 @@ public class OwnNoteFileManager {
         return getGroupData(noteData.getGroupName());
     }
 
-    public boolean deleteNote(String groupName, String noteName) {
+    public boolean deleteNote(final NoteData noteData) {
+        assert noteData != null;
+        
+        return deleteNote(noteData.getGroupName(), noteData.getNoteName());
+    }
+    
+    public boolean deleteNote(final String groupName, final String noteName) {
         assert groupName != null;
         assert noteName != null;
         
@@ -327,56 +357,60 @@ public class OwnNoteFileManager {
     public String readNote(final NoteData curNote) {
         assert curNote != null;
         
-        final String result = readNote(buildNoteName(curNote.getGroupName(), curNote.getNoteName()));
+        String result = "";
+        
+        try {
+            result = new String(Files.readAllBytes(Paths.get(ownNotePath, buildNoteName(curNote.getGroupName(), curNote.getNoteName()))));
+        } catch (IOException ex) {
+            Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+            result = "";
+        }
         
         // TFE; 20200814: store content in NoteData
         curNote.setNoteFileContent(result);
         
         return result;
     }
-    
-    public String readNote(final String noteFileName) {
-        assert noteFileName != null;
-        
-        String result = "";
-        
-        try {
-            result = new String(Files.readAllBytes(Paths.get(ownNotePath, noteFileName)));
-        } catch (IOException ex) {
-            Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
-            result = "";
-        }
-        
-        return result;
-    }
 
-    public boolean saveNote(final String groupName, final String noteName, final String htmlText) {
-        assert groupName != null;
-        assert noteName != null;
-        assert htmlText != null;
+    public boolean saveNote(final NoteData noteData) {
+        assert noteData != null;
         
         boolean result = true;
         initFilesInProgress();
 
-        final String newFileName = buildNoteName(groupName, noteName);
+        final String newFileName = buildNoteName(noteData);
         
+        String content = "";
         try {
-            final Path savePath = Files.write(Paths.get(this.ownNotePath, newFileName), htmlText.getBytes());
+            // TODO: set author
+            content = noteData.getNoteEditorContent();
+            if (content == null) {
+                content = noteData.getNoteFileContent();
+            }
+            // TFE, 20201024: store note metadata
+            noteData.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), LocalDateTime.now()));
+            final String fullContent = NoteMetaData.toHtmlString(noteData.getMetaData()) + content;
+            
+            final Path savePath = Files.write(Paths.get(this.ownNotePath, newFileName), fullContent.getBytes());
             
             // // TF, 20170723: update modified date of the file
             final LocalDateTime filetime = LocalDateTime.ofInstant((new Date(savePath.toFile().lastModified())).toInstant(), ZoneId.systemDefault());
             final NoteData dataRow = notesList.get(newFileName);
             // TFE; 20200814: store content in NoteData
-            dataRow.setNoteFileContent(htmlText);
+            dataRow.setNoteFileContent(content);
             dataRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
             notesList.put(newFileName, dataRow);
-            
         } catch (IOException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = false;
         }
 
         resetFilesInProgress();
+
+        if (result) {
+            noteData.setNoteFileContent(content);
+        }
+
         return result;
     }
     
@@ -630,17 +664,28 @@ public class OwnNoteFileManager {
         
         // iterate over all file and check context for searchText
         for (Map.Entry<String, NoteData> note : notesList.entrySet()) {
-            // see https://stackoverflow.com/questions/4886154/whats-the-fastest-way-to-scan-a-very-large-file-in-java/4886765#4886765 for fast algo
-            final File noteFile = new File(this.ownNotePath, buildNoteName(note.getValue().getGroupName(), note.getValue().getNoteName()));
-            
-            try (final Scanner scanner = new Scanner(noteFile)) {
-                if (scanner.findWithinHorizon(searchText, 0) != null) {
+            // TFE, 20201024: if we already have the note text we don't need the scanner
+            if (note.getValue().getNoteFileContent() != null || note.getValue().getNoteEditorContent() != null) {
+                String content = note.getValue().getNoteEditorContent();
+                if (content == null) {
+                    content = note.getValue().getNoteFileContent();
+                }
+                
+                if (content.contains(searchText)) {
                     result.add(note.getValue());
                 }
-            } catch (FileNotFoundException ex) {
-                Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+            } else {
+                // see https://stackoverflow.com/questions/4886154/whats-the-fastest-way-to-scan-a-very-large-file-in-java/4886765#4886765 for fast algo
+                final File noteFile = new File(this.ownNotePath, buildNoteName(note.getValue().getGroupName(), note.getValue().getNoteName()));
+
+                try (final Scanner scanner = new Scanner(noteFile)) {
+                    if (scanner.findWithinHorizon(searchText, 0) != null) {
+                        result.add(note.getValue());
+                    }
+                } catch (FileNotFoundException ex) {
+                    Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
-            
         }
         
         return result;

@@ -67,13 +67,14 @@ if (!hasProperty('mainClass')) {
 mainClassName = 'tf.ownnote.ui.main.OwnNoteEditorManager'
 def appName='OwnNoteEditor'
 group='tf.OwnNoteEditor'
-version='4.6'
+version='4.8'
 
 // In this section you declare the dependencies for your production and test code
 dependencies {
     // JavaFX11 explicit dependencies
 //    def javafx_version='11.0.2'
-    def javafx_version='14'
+//    def javafx_version='14'
+    def javafx_version='15.0.1'
     compile "org.openjfx:javafx-base:$javafx_version:$platform"
     compile "org.openjfx:javafx-graphics:$javafx_version:$platform"
     compile "org.openjfx:javafx-controls:$javafx_version:$platform"
@@ -83,7 +84,7 @@ dependencies {
     compile "org.openjfx:javafx-media:$javafx_version:$platform"
     
     // TFE, 20200809: use our own helper library
-    compile 'tf.JavaHelper:JavaHelper:1.7'
+    compile 'tf.JavaHelper:JavaHelper:1.8'
 
     compile 'org.slf4j:slf4j-api:1.7.12'
     compile 'commons-cli:commons-cli:1.4'
@@ -94,10 +95,11 @@ dependencies {
     // new look & feel for old code :-)
     // TFE, 20181209: not working with Java9+
     // TFE, 20200508: should work now... - needs investigation
-//    compile group: 'org.jfxtras', name: 'jmetro', version: '11.6.9'
+    // TFE, 20201028: trying to only include JMetro css files for better fine tuning
+    compile group: 'org.jfxtras', name: 'jmetro', version: '11.6.12'
 
-    testCompile "org.testfx:testfx-junit:4.0.+"
-    testCompile "org.testfx:testfx-core:4.0.+"
+    testCompile "org.testfx:testfx-junit:4.0.16-alpha"
+    testCompile "org.testfx:testfx-core:4.0.16-alpha"
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.6.2'
 }
 
@@ -113,10 +115,11 @@ task unzip(type: Copy) {
 compileJava {
     doFirst {
         options.compilerArgs = [
-                '--module-path', classpath.asPath,
-                '--add-modules', 'javafx.controls,javafx.graphics,javafx.base,javafx.fxml,javafx.web,javafx.swing,javafx.media',
-                '-Xlint:unchecked',
-                '-Xlint:deprecation',
+            '-g',
+            '--module-path', classpath.asPath,
+            '--add-modules', 'javafx.controls,javafx.graphics,javafx.base,javafx.fxml,javafx.web,javafx.swing,javafx.media',
+            '-Xlint:unchecked',
+            '-Xlint:deprecation',
         ]
     }
 }
@@ -142,6 +145,12 @@ run {
         jvmArgs = jvmArgs.plus(['--module-path', classpath.asPath,])
         jvmArgs = jvmArgs.plus(newArgs)
         enableAssertions = true
+    }
+}
+
+test {
+    doFirst {
+        jvmArgs = jvmArgs.plus(['-Dtestfx.robot=awt'])
     }
 }
 

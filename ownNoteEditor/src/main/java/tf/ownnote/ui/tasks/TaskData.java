@@ -10,8 +10,8 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import org.apache.commons.text.StringEscapeUtils;
-import tf.ownnote.ui.helper.NoteData;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.NoteData;
 
 /**
  * A task in an ownnote.
@@ -66,12 +66,20 @@ public class TaskData {
         }
         
         // easy part: completed = checked
-        if (noteText.startsWith(OwnNoteEditor.CHECKED_BOXES)) {
+        if (noteText.startsWith(OwnNoteEditor.CHECKED_BOXES_1)) {
             isCompleted.setValue(Boolean.TRUE);
-            noteText = noteText.substring(OwnNoteEditor.CHECKED_BOXES.length());
-        } else {
+            noteText = noteText.substring(OwnNoteEditor.CHECKED_BOXES_1.length());
+        } else if (noteText.startsWith(OwnNoteEditor.CHECKED_BOXES_2)) {
+            isCompleted.setValue(Boolean.TRUE);
+            noteText = noteText.substring(OwnNoteEditor.CHECKED_BOXES_2.length());
+        } else if (noteText.startsWith(OwnNoteEditor.UNCHECKED_BOXES_1)) {
             isCompleted.setValue(Boolean.FALSE);
-            noteText = noteText.substring(OwnNoteEditor.UNCHECKED_BOXES.length());
+            noteText = noteText.substring(OwnNoteEditor.UNCHECKED_BOXES_1.length());
+        } else if (noteText.startsWith(OwnNoteEditor.UNCHECKED_BOXES_2)) {
+            isCompleted.setValue(Boolean.FALSE);
+            noteText = noteText.substring(OwnNoteEditor.UNCHECKED_BOXES_2.length());
+        } else {
+            System.err.println("Something is wrong here with text: " + noteText);
         }
         
         // end of the line is nice - but only if no other checkbox in the line...
@@ -120,9 +128,9 @@ public class TaskData {
     
     public String getFullTaskText() {
         if (isCompleted()) {
-            return OwnNoteEditor.CHECKED_BOXES + myHtmlText;
+            return OwnNoteEditor.CHECKED_BOXES_1 + myHtmlText;
         } else {
-            return OwnNoteEditor.UNCHECKED_BOXES + myHtmlText;
+            return OwnNoteEditor.UNCHECKED_BOXES_1 + myHtmlText;
         }
     }
     

@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -62,6 +63,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TabPane;
@@ -80,25 +82,30 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Window;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AboutMenu;
 import tf.ownnote.ui.helper.FormatHelper;
-import tf.ownnote.ui.helper.GroupData;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IGroupListContainer;
-import tf.ownnote.ui.helper.NoteData;
 import tf.ownnote.ui.helper.OwnNoteEditorParameters;
 import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
+import tf.ownnote.ui.helper.OwnNoteMetaEditor;
 import tf.ownnote.ui.helper.OwnNoteTabPane;
 import tf.ownnote.ui.helper.OwnNoteTableColumn;
 import tf.ownnote.ui.helper.OwnNoteTableView;
+import tf.ownnote.ui.notes.GroupData;
+import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.NoteMetaData;
+import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tasks.TaskData;
 import tf.ownnote.ui.tasks.TaskList;
 import tf.ownnote.ui.tasks.TaskManager;
@@ -113,13 +120,16 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 
     private final static OwnNoteEditorParameters parameters = OwnNoteEditorParameters.getInstance();
     
+    public final static DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.uuuu HH:mm:ss");
+
     private final static String NEWNOTENAME = "New Note";
     
     // TFE, 20200712: add search of unchecked boxes
-    public final static String UNCHECKED_BOXES = "<input type=\"checkbox\" />";
-    public final static String CHECKED_BOXES = "<input type=\"checkbox\" checked=\"checked\" />";
-    public final static String WRONG_UNCHECKED_BOXES = "<input type=\"checkbox\">";
-    public final static String WRONG_CHECKED_BOXES = "<input type=\"checkbox\" checked=\"checked\">";
+    // TFE, 20201103: actual both variants of html are valid and need to be supported equally
+    public final static String UNCHECKED_BOXES_1 = "<input type=\"checkbox\" />";
+    public final static String CHECKED_BOXES_1 = "<input type=\"checkbox\" checked=\"checked\" />";
+    public final static String UNCHECKED_BOXES_2 = "<input type=\"checkbox\">";
+    public final static String CHECKED_BOXES_2 = "<input type=\"checkbox\" checked=\"checked\">";
     public final static String ANY_BOXES = "<input type=\"checkbox\"";
     
     private final static int TEXTFIELDWIDTH = 100;  
@@ -129,6 +139,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     private ObservableList<NoteData> notesList = null;
     
     private final BooleanProperty inEditMode = new SimpleBooleanProperty();
+    private boolean firstNoteAccess = true;
     
     private boolean handleQuickSave = false;
     // should we show standard ownNote face or oneNotes?
@@ -138,6 +149,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     private Double classicGroupWidth;
     private Double oneNoteGroupWidth;
     private Double taskListWidth;
+    
+    private NoteData curNote;
     
     // Indicates that the divider is currently dragged by the mouse
     // see https://stackoverflow.com/a/40707931
@@ -200,8 +213,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     @FXML
     private TextField noteNameText;
     @FXML
-    private WebView noteEditorFXML;
-    private OwnNoteHTMLEditor noteEditor = null;
+    private WebView noteHTMLEditorFXML;
+    private OwnNoteHTMLEditor noteHTMLEditor = null;
     @FXML
     private Button quickSaveButton;
     @FXML
@@ -236,7 +249,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     final CheckBox noteFilterCheck = new CheckBox();
     final CheckBox taskFilterCheck = new CheckBox();
     @FXML
-    private HBox taskFilerBox;
+    private HBox taskFilterBox;
     @FXML
     private SplitPane splitPaneXML;
     @FXML
@@ -245,6 +258,15 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     private StackPane middlePaneXML;
     @FXML
     private StackPane rightPaneXML;
+    @FXML
+    private Menu menuTags;
+    @FXML
+    private MenuItem menuTagsDummy;
+    @FXML
+    private VBox noteEditorFXML;
+    @FXML
+    private HBox noteMetaEditorFXML;
+    private OwnNoteMetaEditor noteMetaEditor = null;
 
     public OwnNoteEditor() {
     }
@@ -273,9 +295,12 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         groupsTable.savePreferences(OwnNoteEditorPreferences.getInstance());
         notesTable.savePreferences(OwnNoteEditorPreferences.getInstance());
         
-        // TFE; 20200903: store groups tabs order as well
+        // TFE, 20200903: store groups tabs order as well
         groupsPane.savePreferences(OwnNoteEditorPreferences.getInstance());
-
+        
+        // TFE, 20201030: store name of last edited note
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_NOTE, noteHTMLEditor.getEditedNote().getNoteName());
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_GROUP, noteHTMLEditor.getEditedNote().getGroupName());
     }
     
     public void setParameters() {
@@ -311,7 +336,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // paint the look
         initEditor();
 
-        // init pathlabel to parameter or nothing
+        // init ownCloudPath to parameter or nothing
+        pathLabel.setMinWidth(Region.USE_PREF_SIZE);
         String pathname = "";
         // 1. use any passed parameters
         if (OwnNoteEditor.parameters.getOwnCloudDir().isPresent()) {
@@ -373,7 +399,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         groupsPane = new OwnNoteTabPane(groupsPaneFXML, this);
         groupsPane.loadPreferences(OwnNoteEditorPreferences.getInstance());
         
-        noteEditor = new OwnNoteHTMLEditor(noteEditorFXML, this);
+        VBox.setVgrow(noteHTMLEditorFXML, Priority.ALWAYS);
+        VBox.setVgrow(noteMetaEditorFXML, Priority.NEVER);
+        noteHTMLEditor = new OwnNoteHTMLEditor(noteHTMLEditorFXML, this);
+        noteMetaEditor = new OwnNoteMetaEditor(noteMetaEditorFXML, this);
         
         // hide borders
         borderPane.setBottom(null);
@@ -484,7 +513,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             }
 
             // keep track of the visibility of the editor
-            inEditMode.bind(noteEditor.visibleProperty());
+            inEditMode.bind(noteHTMLEditor.visibleProperty());
 
             // add listener for note name
             noteNameText.textProperty().addListener(
@@ -586,11 +615,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             // quicksave button saves note but stays in editor
             quickSaveButton.setOnAction((ActionEvent event) -> {
                 // quicksave = no changes to note name and group name allowed!
-                final NoteData curNote = noteEditor.getUserData();
-
-                if (OwnNoteFileManager.getInstance().saveNote(curNote.getGroupName(),
-                        curNote.getNoteName(),
-                        noteEditor.getNoteText())) {
+                final NoteData curNote = noteHTMLEditor.getEditedNote();
+                curNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
+                
+                // TODO: set author
+                if (OwnNoteFileManager.getInstance().saveNote(curNote)) {
                 } else {
                     // error message - most likely note in "Not grouped" with same name already exists
                     showAlert(AlertType.ERROR, "Error Dialog", "Note couldn't be saved.", null);
@@ -626,7 +655,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 
                 if (doSave) {
                     // check against previous note and group name - might have changed!
-                    final NoteData curNote = noteEditor.getUserData();
+                    final NoteData curNote = noteHTMLEditor.getEditedNote();
                     final String curNoteName = curNote.getNoteName();
                     final String curGroupName = curNote.getGroupName();
 
@@ -645,8 +674,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                 }
 
                 if (doSave) {
-                    if (saveNoteWrapper(newGroupName, newNoteName, noteEditor.getNoteText())) {
-                        noteEditor.hasBeenSaved();
+                    final NoteData newNote = new NoteData(newGroupName, newNoteName);
+                    newNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
+                    // TODO: set author
+                    if (saveNoteWrapper(newNote)) {
                     }
                 }
             });
@@ -716,6 +747,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // all setup, lets spread the news
         OwnNoteFileManager.getInstance().setCallback(this);
         TaskManager.getInstance().setCallback(this);
+        TagManager.getInstance().setCallback(this);
         
         // run layout to have everything set up
         splitPaneXML.applyCss();
@@ -819,8 +851,18 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                 ownCloudPath.setText(selectedDirectory.getAbsolutePath());
             }
         });
+        
+        // TFE, 20201025: and now we have tag management as well :-)
+        menuTagsDummy.setText("");
+        menuTags.setOnShown((t) -> {
+            // trick to have menu act as menu item
+            // https://stackoverflow.com/a/38525867
+            menuTagsDummy.fire();
+            menuTags.hide();
+            TagManager.getInstance().editTags(TagManager.WorkMode.FULL_EDIT, null);
+        });
 
-        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v4.6", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v4.8", "https://github.com/ThomasDaheim/ownNoteEditor");
     }
 
     public void initFromDirectory(final boolean updateOnly) {
@@ -828,6 +870,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 
         // scan directory
         OwnNoteFileManager.getInstance().initOwnNotePath(ownCloudPath.textProperty().getValue());
+        
+        // TFE, 20201115: throw away any current tasklist - we might have changed the path!
+        TaskManager.getInstance().resetTaskList();
         taskList.populateTaskList();
         
         // add new table entries & disable & enable accordingly
@@ -842,7 +887,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // 1. Wrap the ObservableList in a FilteredList (initially display all data).
         filteredData = new FilteredList<>(notesList, p -> true);
         // re-apply filter predicate when already set
-        final String curGroupName = (String) notesTable.getTableView().getUserData();
+        final String curGroupName = (String) notesTable.getTableView().getEditedNote();
         if (curGroupName != null) {
             setGroupNameFilter(curGroupName);
         }
@@ -871,7 +916,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         Boolean result = true;
         
         // fix for #13: check for unsaved changes
-        if (noteEditor.hasChanged()) {
+        if (noteHTMLEditor.hasChanged() || noteMetaEditor.hasChanged()) {
             final ButtonType buttonSave = new ButtonType("Save", ButtonData.OTHER);
             final ButtonType buttonDiscard = new ButtonType("Discard", ButtonData.OTHER);
 
@@ -885,9 +930,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             if (saveChanges.isPresent()) {
                 if (saveChanges.get().equals(buttonSave)) {
                     // save note
-                    final NoteData prevNote = noteEditor.getUserData();
-                    if (saveNoteWrapper(prevNote.getGroupName(), prevNote.getNoteName(), noteEditor.getNoteText())) {
-                        noteEditor.hasBeenSaved();
+                    final NoteData prevNote = noteHTMLEditor.getEditedNote();
+                    prevNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
+                    // TODO: set author
+                    if (saveNoteWrapper(prevNote)) {
                     }
                 }
                 
@@ -916,17 +962,17 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         this.handleQuickSave = true;
 
         // 2. show content of file in editor
-        curNote.setNoteFileContent(OwnNoteFileManager.getInstance().readNote(curNote));
-        noteEditor.setNoteText(curNote, curNote.getNoteFileContent());
-        
-        // 3. store note reference for saving
-        noteEditor.setUserData(curNote);
+        if (curNote.getNoteFileContent() == null) {
+            curNote.setNoteFileContent(OwnNoteFileManager.getInstance().readNote(curNote));
+        }
+        noteHTMLEditor.editNote(curNote, curNote.getNoteFileContent());
+        noteMetaEditor.editNote(curNote);
         
         return result;
     }
     
     public NoteData getEditedNote() {
-        return ObjectsHelper.uncheckedCast(noteEditor.getUserData());
+        return noteHTMLEditor.getEditedNote();
     }
     
     public void selectNoteAndCheckBox(final NoteData noteData, final int textPos, final String htmlText) {
@@ -940,7 +986,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // and now select the note - leads to callback to editNote to fill the htmleditor
         notesTable.selectNote(noteData);
         
-        noteEditor.scrollToCheckBox(textPos, htmlText);
+        noteHTMLEditor.scrollToCheckBox(textPos, htmlText);
     }
     
     public void selectNoteAndToggleCheckBox(final NoteData noteData, final int textPos, final String htmlText, final boolean newStatus) {
@@ -948,7 +994,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         selectNoteAndCheckBox(noteData, textPos, htmlText);
         
         // now change the status
-        noteEditor.toggleCheckBox(textPos, htmlText, newStatus);
+        noteHTMLEditor.toggleCheckBox(textPos, htmlText, newStatus);
     }
 
     private void hideAndDisableAllCreateControls() {
@@ -988,8 +1034,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     }
 
     private void hideNoteEditor() {
-        noteEditor.setDisable(true);
-        noteEditor.setVisible(false);
+        noteHTMLEditor.setDisable(true);
+        noteHTMLEditor.setVisible(false);
         
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             notesTable.setDisable(false);
@@ -1003,8 +1049,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             notesTable.setVisible(false);
         }
 
-        noteEditor.setDisable(false);
-        noteEditor.setVisible(true);
+        noteHTMLEditor.setDisable(false);
+        noteHTMLEditor.setVisible(true);
 
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             showAndEnableInitialEditControls();
@@ -1074,7 +1120,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     }
     
     public OwnNoteHTMLEditor getNoteEditor() {
-        return noteEditor;
+        return noteHTMLEditor;
     }
 
     public boolean createGroupWrapper(final String newGroupName) {
@@ -1101,7 +1147,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                 showAlert(AlertType.ERROR, "Error Dialog", "An error occured while renaming the group.", "A file in the new group has the same name as a file in the old.");
             } else {
                 //check if we just moved the current note in the editor...
-                noteEditor.checkForNameChange(oldValue, newValue);
+                if (noteHTMLEditor.getEditedNote() != null) {
+                    noteHTMLEditor.doNameChange(oldValue, newValue, noteHTMLEditor.getEditedNote().getNoteName(), noteHTMLEditor.getEditedNote().getNoteName());
+                }
             }
         }
         
@@ -1139,7 +1187,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     }
 
     public Boolean deleteNoteWrapper(final NoteData curNote) {
-        Boolean result = OwnNoteFileManager.getInstance().deleteNote(curNote.getGroupName(), curNote.getNoteName());
+        Boolean result = OwnNoteFileManager.getInstance().deleteNote(curNote);
 
         if (!result) {
             // error message - something went wrong
@@ -1168,7 +1216,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             showAlert(AlertType.ERROR, "Error Dialog", "An error occured while renaming the note.", "A note with the same name already exists.");
         } else {
             //check if we just moved the current note in the editor...
-            noteEditor.checkForNameChange(curNote.getGroupName(), curNote.getGroupName(), curNote.getNoteName(), newValue);
+            noteHTMLEditor.doNameChange(curNote.getGroupName(), curNote.getGroupName(), curNote.getNoteName(), newValue);
         }
         
         return result;
@@ -1182,14 +1230,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             showAlert(AlertType.ERROR, "Error Dialog", "An error occured while moving the note.", "A note with the same name already exists in the new group.");
         } else {
             //check if we just moved the current note in the editor...
-            noteEditor.checkForNameChange(curNote.getGroupName(), newValue, curNote.getNoteName(), curNote.getNoteName());
+            noteHTMLEditor.doNameChange(curNote.getGroupName(), newValue, curNote.getNoteName(), curNote.getNoteName());
         }
         
         return result;
     }
 
-    public boolean saveNoteWrapper(String newGroupName, String newNoteName, String noteText) {
-        Boolean result = OwnNoteFileManager.getInstance().saveNote(newGroupName, newNoteName, noteEditor.getNoteText());
+    public boolean saveNoteWrapper(final NoteData noteData) {
+        Boolean result = OwnNoteFileManager.getInstance().saveNote(noteData);
                 
         if (result) {
             if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
@@ -1200,6 +1248,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                 // TF, 20170723: refresh notes list since modified has changed
                 notesTableFXML.refresh();
             }
+            
+            // update all editors
+            noteHTMLEditor.hasBeenSaved();
+            noteMetaEditor.hasBeenSaved();
         } else {
             // error message - most likely note in "Not grouped" with same name already exists
             showAlert(AlertType.ERROR, "Error Dialog", "Note couldn't be saved.", null);
@@ -1229,32 +1281,48 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 
     public void setNotesTableForNewTab(String style) {
         notesTable.setStyle(style);
-        
-        selectFirstOrCurrentNote();
     }
     
-    private void selectFirstOrCurrentNote() {
+    public void selectFirstOrCurrentNote() {
         // select first or current note - if any
         if (!notesTable.getItems().isEmpty()) {
             // check if current edit is ongoing AND note in the select tab (can happen with drag & drop!)
-            NoteData curNote = noteEditor.getUserData();
+            curNote = noteHTMLEditor.getEditedNote();
+
+            // TFE, 20201030: support re-load of last edited note
+            if (curNote == null) {
+                final String lastGroupName = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.LAST_EDITED_GROUP, "");
+                final String lastNoteName = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.LAST_EDITED_NOTE, "");
+                if (OwnNoteFileManager.getInstance().noteExists(lastGroupName, lastNoteName)) {
+                    curNote = OwnNoteFileManager.getInstance().getNoteData(lastGroupName, lastNoteName);
+                    
+                    if (firstNoteAccess) {
+                        // done, selectGroupForNote calls selectFirstOrCurrentNote() internally - BUT NO LOOPS PLEASE
+                        firstNoteAccess = false;
+                        Platform.runLater(() -> {
+                            groupsPane.selectGroupForNote(curNote);
+                        });
+                        return;
+                    }
+                }
+            }
             
             int selectIndex = 0;
             if (curNote != null && notesTable.getItems().contains(curNote)) {
                 selectIndex = notesTable.getItems().indexOf(curNote);
             }
-           
+
+            // TFE, 20201030: this also starts editing of the note
             notesTable.selectAndFocusRow(selectIndex);
-            editNote(new NoteData((Map<String, String>) notesTable.getItems().get(selectIndex)));
         } else {
             // TFE, 20201012: check for changes also when no new note (e.g. selecting an empty group...
             if (!checkChangedNote()) {
                 return;
             }
 
-            noteEditor.setDisable(true);
-            noteEditor.setNoteText(null, "");
-            noteEditor.setUserData(null);
+            noteHTMLEditor.setDisable(true);
+            noteHTMLEditor.editNote(null, "");
+            noteMetaEditor.editNote(null);
         }
     }
     
@@ -1285,8 +1353,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             Platform.runLater(() -> {
                 if (!StandardWatchEventKinds.ENTRY_CREATE.equals(eventKind)) {
                     // delete & modify is only relevant if we're editing this note...
-                    if (noteEditor.getUserData() != null) {
-                        final NoteData curNote = noteEditor.getUserData();
+                    if (noteHTMLEditor.getEditedNote() != null) {
+                        final NoteData curNote = noteHTMLEditor.getEditedNote();
                         final String curName = OwnNoteFileManager.getInstance().buildNoteName(curNote.getGroupName(), curNote.getNoteName());
 
                         if (curName.equals(filePath.getFileName().toString())) {
@@ -1309,23 +1377,26 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                             if (saveChanges.isPresent()) {
                                 if (saveChanges.get().equals(buttonSave)) {
                                     // save own note independent of file system changes
-                                    final NoteData saveNote = noteEditor.getUserData();
-                                    if (saveNoteWrapper(saveNote.getGroupName(), saveNote.getNoteName(), noteEditor.getNoteText())) {
-                                        noteEditor.hasBeenSaved();
+                                    final NoteData saveNote = noteHTMLEditor.getEditedNote();
+                                    saveNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
+                                    // TODO: set author
+                                    if (saveNoteWrapper(saveNote)) {
                                     }
                                 }
 
                                 if (saveChanges.get().equals(buttonSaveNew)) {
                                     // save own note under new name
-                                    final NoteData saveNote = noteEditor.getUserData();
+                                    final NoteData saveNote = noteHTMLEditor.getEditedNote();
                                     final String newNoteName = uniqueNewNoteNameForGroup(saveNote.getGroupName());
                                     if (createNoteWrapper(saveNote.getGroupName(), newNoteName)) {
-                                        if (saveNoteWrapper(saveNote.getGroupName(), newNoteName, noteEditor.getNoteText())) {
-                                            noteEditor.hasBeenSaved();
-
+                                        final NoteData newNote = new NoteData(saveNote.getGroupName(), newNoteName);
+                                        newNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
+                                        // TODO: set author
+                                        if (saveNoteWrapper(newNote)) {
                                             // we effectively just renamed the note...
+                                            final String oldNoteName = saveNote.getNoteName();
                                             saveNote.setNoteName(newNoteName);
-                                            noteEditor.setUserData(saveNote);
+                                            noteHTMLEditor.doNameChange(saveNote.getGroupName(), saveNote.getGroupName(), oldNoteName, newNoteName);
                                             // System.out.printf("User data updated\n");
                                         }
                                     }
@@ -1335,9 +1406,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                                     // nothing to do for StandardWatchEventKinds.ENTRY_DELETE - initFromDirectory(true) will take care of this
                                     if (StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                                         // re-load into edit for StandardWatchEventKinds.ENTRY_MODIFY
-                                        final NoteData loadNote = noteEditor.getUserData();
+                                        final NoteData loadNote = noteHTMLEditor.getEditedNote();
                                         loadNote.setNoteFileContent(OwnNoteFileManager.getInstance().readNote(loadNote));
-                                        noteEditor.setNoteText(loadNote, loadNote.getNoteFileContent());
+                                        noteHTMLEditor.editNote(loadNote, loadNote.getNoteFileContent());
+                                        noteMetaEditor.editNote(loadNote);
                                     }
                                 }
                             }

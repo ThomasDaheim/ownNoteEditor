@@ -44,6 +44,8 @@ import javafx.scene.layout.Pane;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import jfxtras.styles.jmetro.JMetro;
+import jfxtras.styles.jmetro.Style;
 import tf.ownnote.ui.helper.OwnNoteEditorParameters;
 import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 
@@ -110,25 +112,36 @@ public class OwnNoteEditorManager extends Application {
                     OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, "1200"));
             Double recentWindowHeigth = Double.valueOf(
                     OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, "600"));
-            // TFE, 20201011: check that not larger than current screen - might happen with multiple monitors
-            final Rectangle2D screenRect = Screen.getPrimary().getVisualBounds();
-            recentWindowWidth = Math.min(recentWindowWidth, screenRect.getWidth());
-            recentWindowHeigth = Math.min(recentWindowHeigth, screenRect.getHeight());
+            // TFE, 20201020: store left & top as well
+            final Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
+            Double recentWindowLeft = Double.valueOf(
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWLEFT, String.valueOf((primScreenBounds.getWidth() - recentWindowWidth) / 2.0)));
+            Double recentWindowTop = Double.valueOf(
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWTOP, String.valueOf((primScreenBounds.getHeight() - recentWindowHeigth) / 2.0)));
+            // TFE, 20201011: check that not larger than current screens - might happen with multiple monitors
+            if (Screen.getScreensForRectangle(recentWindowLeft, recentWindowTop, recentWindowWidth, recentWindowHeigth).isEmpty()) {
+                recentWindowWidth = 1200.0;
+                recentWindowHeigth = 600.0;
+                recentWindowLeft = (primScreenBounds.getWidth() - recentWindowWidth) / 2.0;
+                recentWindowTop = (primScreenBounds.getHeight() - recentWindowHeigth) / 2.0;
+            }
             
             fxmlLoader = new FXMLLoader(OwnNoteEditorManager.class.getResource("/OwnNoteEditor.fxml"));
             myRoot = (BorderPane) fxmlLoader.load();
             
             myStage.setScene(new Scene(myRoot, recentWindowWidth, recentWindowHeigth));
+            myStage.setX(recentWindowLeft);
+            myStage.setY(recentWindowTop);
 
             myStage.setTitle("OwnNote Editor"); 
             myStage.getIcons().clear();
             myStage.getIcons().add(new Image(OwnNoteEditorManager.class.getResourceAsStream("/OwnNoteEditorManager.png")));
-            myStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/css/ownnote.css").toExternalForm());
-            
+
             // new look & feel for old code :-)
             // TFE, 20181209: not working with Java9+
             // TFE, 20200508: should work now... - needs investigation
-//            new JMetro(Style.LIGHT).setScene(myStage.getScene());
+            (new JMetro(Style.LIGHT)).setScene(myStage.getScene());
+            myStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/css/ownnote.min.css").toExternalForm());
             
             // TF, 20160620: suppress warnings from css parsing for "-fx-font-weight" - not correctly implemented in the css parser for javafx 8...
             // TFE, 20181209: times and meethods change :-)
@@ -180,11 +193,6 @@ public class OwnNoteEditorManager extends Application {
                 myStageY = newValue.doubleValue();
             }
         }); 
-
-        // center on screen
-        Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
-        myStage.setX((primScreenBounds.getWidth() - myStage.getWidth()) / 2); 
-        myStage.setY((primScreenBounds.getHeight() - myStage.getHeight()) / 2);
     }
 
     public OwnNoteEditor getController() {
@@ -282,6 +290,8 @@ public class OwnNoteEditorManager extends Application {
         if (!myStage.isMaximized() && !myStage.isIconified()) {
             OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, String.valueOf(myStage.getScene().getWidth()));
             OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, String.valueOf(myStage.getScene().getHeight()));
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTWINDOWLEFT, String.valueOf(myStage.getX()));
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTWINDOWTOP, String.valueOf(myStage.getY()));
         }
         
         if (controller != null) {

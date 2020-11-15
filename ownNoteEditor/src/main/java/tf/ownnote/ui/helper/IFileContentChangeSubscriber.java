@@ -5,6 +5,8 @@
  */
 package tf.ownnote.ui.helper;
 
+import tf.ownnote.ui.notes.NoteData;
+
 /**
  * Subscriber interface for editor content changes.
  * 

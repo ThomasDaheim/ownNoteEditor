@@ -58,10 +58,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             var saveNoteButton;
             var emptyRegExp = new RegExp('<p>&nbsp;</p>', 'g');
             var ANY_BOXES = '<input type=\"checkbox\"';
-            var UNCHECKED_BOXES = '<input type=\"checkbox\" />';
-            var CHECKED_BOXES = '<input type=\"checkbox\" checked=\"checked\" />';
-            var WRONG_UNCHECKED_BOXES = '<input type=\"checkbox\">';
-            var WRONG_CHECKED_BOXES = '<input type=\"checkbox\" checked=\"checked\">';
+            var UNCHECKED_BOXES_1 = '<input type=\"checkbox\" />';
+            var CHECKED_BOXES_1 = '<input type=\"checkbox\" checked=\"checked\" />';
+            var UNCHECKED_BOXES_2 = '<input type=\"checkbox\">';
+            var CHECKED_BOXES_2 = '<input type=\"checkbox\" checked=\"checked\">';
             
             // TFE, 20200711: tinyMCE manages an own clipboard. Once something has been copied in tinyMCE the system clipboard is ignored during paste...
             // https://stackoverrun.com/de/q/9359780#39265109
@@ -107,7 +107,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     paste_data_images: true,
                     // TFE, 20181203: we only want to have the content...
                     paste_as_text: true,
-                    content_style: ".mce-content-body {font-size:10pt;}",
+                    content_style: "body {padding: 0px; margin: 0px;} .mce-content-body {font-size: 10pt;}",
                     // https://github.com/angular-ui/ui-tinymce/issues/260
                     save_enablewhendirty: false,
                     media_live_embeds: true,
@@ -137,28 +137,34 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         editor.on('init', function (ed) { 
                             // support for check boxes and such...
                             // https://stackoverflow.com/a/38653970
-                            $(editor.getBody()).on("change", ":checkbox", function(el){
+                            $(editor.getBody()).on("change", "[type=checkbox]", function(el){
                                 // tell the world this has changed
                                 var innerHTMLBefore = el.target.parentNode.innerHTML;
+                                //console.log('innerHTMLBefore: ' + innerHTMLBefore);
+                                //console.log('outerHTMLBefore: ' + el.target.parentNode.outerHTML);
                                 if(el.target.checked){
                                     $(el.target).attr('checked', 'checked');
                                 }else{
                                     $(el.target).removeAttr('checked');
                                 }
                                 var innerHTMLAfter = el.target.parentNode.innerHTML;
+                                //console.log('innerHTMLAfter: ' + innerHTMLAfter);
+                                //console.log('outerHTMLAfter: ' + el.target.parentNode.outerHTML);
                                 
                                 // reduce html text to changed checkbox + text
                                 var innerBoxesBefore = innerHTMLBefore.split(ANY_BOXES);
                                 var innerBoxesAfter = innerHTMLAfter.split(ANY_BOXES);
+                                //console.log('innerBoxesBefore: ' + innerBoxesBefore.toString());
+                                //console.log('innerBoxesAfter: ' + innerBoxesAfter.toString());
                                 var boxBefore = ANY_BOXES + $(innerBoxesBefore).not(innerBoxesAfter).get();
                                 var boxAfter = ANY_BOXES + $(innerBoxesAfter).not(innerBoxesBefore).get();
                                 
-                                //console.log('editorCallback.checkBoxChanged coming up: ' + boxBefore + ", " + boxAfter + ".");
+                                //console.log('editorCallback.checkBoxChanged coming up: ' + boxBefore + " --- " + boxAfter);
                                 editorCallback.checkBoxChanged(boxBefore, boxAfter);
                                 
                             });
                             // Radiobuttons
-                            $(editor.getBody()).on("change", "input:radio", function(el){
+                            $(editor.getBody()).on("change", "[type=radio]", function(el){
                                 var name =  'input:radio[name="'+el.target.name+'"]';
                                 $(editor.getBody()).find(name).removeAttr('checked');
                                 $(el.target).attr('checked', 'checked');
@@ -323,11 +329,26 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 //console.log('insertText ' + content);
                 tinymce.activeEditor.execCommand("mceInsertContent", false, content);
             }
+            
+            function unwrapCheckboxes(content) {
+                // TFE, 20201102: TODO remove all text decorations from checkboxs, otherwise checkChanged won't find any tasks
+                // since decorations can come in any combination, we need to repeat N unwraps N times to make sure to get them all...
+                // https://stackoverflow.com/questions/20132174/reverse-of-jquery-parsehtml
+                return $('<div />').append(
+                        $(content).find("[type=checkbox]")
+                        .unwrap("strong").unwrap("span").unwrap("em").unwrap("sub").unwrap("sup")
+                        .unwrap("strong").unwrap("span").unwrap("em").unwrap("sub").unwrap("sup")
+                        .unwrap("strong").unwrap("span").unwrap("em").unwrap("sub").unwrap("sup")
+                        .unwrap("strong").unwrap("span").unwrap("em").unwrap("sub").unwrap("sup")
+                        .unwrap("strong").unwrap("span").unwrap("em").unwrap("sub").unwrap("sup")
+                        .end()).html();
+            }
 
             function saveSetContent(content) {
                 //console.log('JavaScript: saveSetContent was called.');
-                tinymce.activeEditor.setContent(content);
 
+                tinymce.activeEditor.setContent(unwrapCheckboxes(content));
+                
                 // https://www.tinymce.com/docs/advanced/events/#dirty
                 tinymce.activeEditor.setDirty(false);
                 //console.log('JavaScript: saveSetContent done.');
@@ -351,7 +372,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 //console.log('content: ' + content);
                         
                 //console.log('JavaScript: saveGetContent done.');
-                return content;
+                return unwrapCheckboxes(content);
             }
             
             // similar to saveGetContent() - only for current selection

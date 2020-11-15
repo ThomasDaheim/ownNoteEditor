@@ -23,10 +23,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package tf.ownnote.ui.helper;
+package tf.ownnote.ui.notes;
 
 import java.util.HashMap;
-import java.util.Map;
 
 /**
  *
@@ -45,13 +44,25 @@ public class NoteData extends HashMap<String,String> {
         // TFE, 20200814: content as in editor
         noteEditorContent;
     }
+    
+    // TFE, 20201022: store additional metadata, e.g. tags, author, ...
+    private NoteMetaData myMetaData = new NoteMetaData();
 
     public NoteData() {
         super();
     }
     
-    public NoteData(final Map<String,String> noteData) {
+    public NoteData(final String groupName, final String noteName) {
+        super();
+        
+        setGroupName(groupName);
+        setNoteName(noteName);
+    }
+    
+    public NoteData(final NoteData noteData) {
         super(noteData);
+        
+        myMetaData = noteData.myMetaData;
     }
     
     public static String getNoteDataName(final int i) {
@@ -112,7 +123,13 @@ public class NoteData extends HashMap<String,String> {
     }
 
     public void setNoteFileContent(final String content) {
-        put(NoteMapKey.noteFileContent.name(), content);
+        // TFE, 20201024: extract line with metadata - if any
+        put(NoteMapKey.noteFileContent.name(), NoteMetaData.removeMetaDataContent(content));
+        
+        // set meta data - was done intially but might now have changed during editing
+        if (NoteMetaData.hasMetaDataContent(content)) {
+            setMetaData(NoteMetaData.fromHtmlString(content));
+        }
     }
 
     public String getNoteEditorContent() {
@@ -121,5 +138,13 @@ public class NoteData extends HashMap<String,String> {
 
     public void setNoteEditorContent(final String content) {
         put(NoteMapKey.noteEditorContent.name(), content);
+    }
+
+    public NoteMetaData getMetaData() {
+        return myMetaData;
+    }
+
+    public void setMetaData(final NoteMetaData metaData) {
+        myMetaData = metaData;
     }
 }

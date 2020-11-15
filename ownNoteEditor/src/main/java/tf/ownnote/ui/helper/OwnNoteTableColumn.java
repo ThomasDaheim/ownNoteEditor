@@ -40,6 +40,8 @@ import javafx.util.converter.DefaultStringConverter;
 import tf.helper.general.ObjectsHelper;
 import tf.ownnote.ui.general.CellUtils;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.GroupData;
+import tf.ownnote.ui.notes.NoteData;
 
 /**
  *

@@ -23,10 +23,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package tf.ownnote.ui.helper;
+package tf.ownnote.ui.notes;
 
 import java.util.HashMap;
-import java.util.Map;
 
 /**
  *
@@ -49,7 +48,7 @@ public class GroupData extends HashMap<String,String> {
         super();
     }
     
-    public GroupData(final Map<String,String> dataRow) {
+    public GroupData(final GroupData dataRow) {
         super(dataRow);
     }
     

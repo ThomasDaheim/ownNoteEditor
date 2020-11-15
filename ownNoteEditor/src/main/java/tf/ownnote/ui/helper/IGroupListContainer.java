@@ -26,6 +26,7 @@
 package tf.ownnote.ui.helper;
 
 import javafx.collections.ObservableList;
+import tf.ownnote.ui.notes.GroupData;
 
 /**
  * Things you need to provide in order to act as a container 

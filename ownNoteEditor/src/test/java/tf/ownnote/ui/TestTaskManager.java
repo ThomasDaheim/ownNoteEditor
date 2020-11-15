@@ -10,14 +10,14 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import org.junit.Assert;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import tf.ownnote.ui.helper.FileContentChangeType;
-import tf.ownnote.ui.helper.NoteData;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.NoteData;
 import tf.ownnote.ui.tasks.TaskData;
 import tf.ownnote.ui.tasks.TaskManager;
 
@@ -113,7 +113,7 @@ public class TestTaskManager {
         wasUpdated.setValue(Boolean.FALSE);
         
         // add checkbox in front of content - tasklist should change
-        newContent = OwnNoteEditor.UNCHECKED_BOXES + "TEST" + content;
+        newContent = OwnNoteEditor.UNCHECKED_BOXES_1 + "TEST" + content;
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, noteData, content, newContent);
         Assert.assertFalse(wasUpdated.getValue());
         Assert.assertTrue(wasAdded.getValue());
@@ -136,7 +136,7 @@ public class TestTaskManager {
         wasUpdated.setValue(Boolean.FALSE);
         
         // add checkbox after content - tasklist should change
-        newContent = content + OwnNoteEditor.UNCHECKED_BOXES + "TEST";
+        newContent = content + OwnNoteEditor.UNCHECKED_BOXES_1 + "TEST";
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, noteData, content, newContent);
         Assert.assertFalse(wasUpdated.getValue());
         Assert.assertTrue(wasAdded.getValue());
@@ -179,7 +179,7 @@ public class TestTaskManager {
         // switch between checked / unchecked
         Assert.assertFalse(firstTask.isCompleted());
         textPos = content.indexOf(firstTask.getDescription());
-        newContent = content.substring(0, firstTask.getTextPos()) + OwnNoteEditor.CHECKED_BOXES + content.substring(textPos);
+        newContent = content.substring(0, firstTask.getTextPos()) + OwnNoteEditor.CHECKED_BOXES_1 + content.substring(textPos);
 
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, noteData, content, newContent);
         Assert.assertTrue(firstTask.isCompleted());
