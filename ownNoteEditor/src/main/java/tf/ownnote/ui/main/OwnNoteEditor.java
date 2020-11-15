@@ -862,7 +862,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             TagManager.getInstance().editTags(TagManager.WorkMode.FULL_EDIT, null);
         });
 
-        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v4.8", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v5.0", "https://github.com/ThomasDaheim/ownNoteEditor");
     }
 
     public void initFromDirectory(final boolean updateOnly) {

@@ -67,7 +67,7 @@ if (!hasProperty('mainClass')) {
 mainClassName = 'tf.ownnote.ui.main.OwnNoteEditorManager'
 def appName='OwnNoteEditor'
 group='tf.OwnNoteEditor'
-version='4.8'
+version='5.0'
 
 // In this section you declare the dependencies for your production and test code
 dependencies {
@@ -84,7 +84,7 @@ dependencies {
     compile "org.openjfx:javafx-media:$javafx_version:$platform"
     
     // TFE, 20200809: use our own helper library
-    compile 'tf.JavaHelper:JavaHelper:1.8'
+    compile 'tf.JavaHelper:JavaHelper:1.9'
 
     compile 'org.slf4j:slf4j-api:1.7.12'
     compile 'commons-cli:commons-cli:1.4'
@@ -98,8 +98,8 @@ dependencies {
     // TFE, 20201028: trying to only include JMetro css files for better fine tuning
     compile group: 'org.jfxtras', name: 'jmetro', version: '11.6.12'
 
-    testCompile "org.testfx:testfx-junit:4.0.16-alpha"
-    testCompile "org.testfx:testfx-core:4.0.16-alpha"
+    testCompile "org.testfx:testfx-junit:4.0.+"
+    testCompile "org.testfx:testfx-core:4.0.+"
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.6.2'
 }
 
