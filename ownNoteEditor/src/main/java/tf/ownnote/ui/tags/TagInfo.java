@@ -25,23 +25,42 @@
  */
 package tf.ownnote.ui.tags;
 
+import java.util.ArrayList;
+import java.util.List;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ListProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleListProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.collections.FXCollections;
 
 /**
- * Helper class to fill TabsTable with info & checkbox per Tag.
+ * Helper class to fill TagsTable / TagsTree with info per tag.
  * 
  * @author thomas
  */
 public class TagInfo {
-    private BooleanProperty selectedProperty = new SimpleBooleanProperty(false);
-    private StringProperty name = new SimpleStringProperty();
+    private final BooleanProperty selectedProperty = new SimpleBooleanProperty(false);
+    private final StringProperty name = new SimpleStringProperty();
+    private final ListProperty<TagInfo> childTags = new SimpleListProperty<>();
 
-    public TagInfo(final boolean sel, final String na) {
+    public TagInfo() {
+        this("");
+    }
+
+    public TagInfo(final String na) {
+        this(na, new ArrayList<>());
+    }
+
+    public TagInfo(final String na, final List<TagInfo> childs) {
+        this(false, na, childs);
+    }
+
+    public TagInfo(final boolean sel, final String na, final List<TagInfo> childs) {
         selectedProperty.setValue(sel);
-        name.setValue(na);
+        name.set(na);
+        childTags.set(FXCollections.observableArrayList(childs));
     }
 
     public BooleanProperty selectedProperty() {
@@ -49,11 +68,11 @@ public class TagInfo {
     }
 
     public boolean isSelected() {
-        return selectedProperty.getValue();
+        return selectedProperty.get();
     }
 
     public void setSelected(final boolean sel) {
-        selectedProperty.setValue(sel);
+        selectedProperty.set(sel);
     }
 
     public StringProperty nameProperty() {
@@ -61,10 +80,22 @@ public class TagInfo {
     }
 
     public String getName() {
-        return name.getValue();
+        return name.get();
     }
 
     public void setName(final String na) {
-        name.setValue(na);
+        name.set(na);
+    }
+
+    public ListProperty<TagInfo> childTagsProperty() {
+        return childTags;
+    }
+
+    public List<TagInfo> getChildTags() {
+        return childTags.get();
+    }
+
+    public void setChildTags(final List<TagInfo> childs) {
+        childTags.setAll(FXCollections.observableArrayList(childs));
     }
 }

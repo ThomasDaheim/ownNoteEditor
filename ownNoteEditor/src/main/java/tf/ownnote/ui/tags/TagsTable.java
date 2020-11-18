@@ -165,7 +165,7 @@ public class TagsTable extends TableView<TagInfo>  {
         // new: creates of same type & inserts
         final MenuItem newMenuItem = new MenuItem("New");
         newMenuItem.setOnAction((ActionEvent event) -> {
-            final TagInfo tagInfo = new TagInfo(false, "New Tag");
+            final TagInfo tagInfo = new TagInfo("New Tag");
             getItems().add(tagInfo);
         });
 
@@ -225,7 +225,7 @@ public class TagsTable extends TableView<TagInfo>  {
         final List<TagInfo> itemList = new ArrayList<>();
         for (String tag : tagsList) {
             if (!excludeTags.contains(tag)) {
-                itemList.add(new TagInfo(false, tag));
+                itemList.add(new TagInfo(tag));
             }
         }
         

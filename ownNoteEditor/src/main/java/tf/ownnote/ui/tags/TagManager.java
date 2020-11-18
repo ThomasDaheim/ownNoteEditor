@@ -29,9 +29,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import javafx.collections.ListChangeListener;
+import javafx.collections.SetChangeListener;
 import javafx.event.ActionEvent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.TreeItem;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -63,7 +66,7 @@ public class TagManager extends AbstractStage {
     private NoteData myWorkNote;
     
     public enum BulkAction {
-        BulkAction,
+        None,
         Delete;
     }
     
@@ -78,9 +81,9 @@ public class TagManager extends AbstractStage {
     }
     
     private final ChoiceBox<BulkAction> bulkActionChoiceBox = 
-            EnumHelper.getInstance().createChoiceBox(BulkAction.class, BulkAction.BulkAction);
+            EnumHelper.getInstance().createChoiceBox(BulkAction.class, BulkAction.None);
     private final Button applyBulkActionBtn = new Button("Apply");
-    private final TagsTable tagsTable = new TagsTable();
+    private final TagsTreeView tagsTreeView = new TagsTreeView();
     private final Button saveBtn = new Button("Save");
 
     private TagManager() {
@@ -116,10 +119,15 @@ public class TagManager extends AbstractStage {
         });
         bulkActionChoiceBox.getSelectionModel().selectedItemProperty().addListener((ov, oldValue, newValue) -> {
             if (newValue != null) {
-                applyBulkActionBtn.setDisable(BulkAction.BulkAction.equals(newValue));
+                applyBulkActionBtn.setDisable(BulkAction.None.equals(newValue) || tagsTreeView.getSelectedItems().isEmpty());
             } else {
                 applyBulkActionBtn.setDisable(true);
             }
+        });
+        tagsTreeView.getSelectedItems().addListener((SetChangeListener.Change<? extends TagInfo> c) -> {
+            applyBulkActionBtn.setDisable(
+                    BulkAction.None.equals(bulkActionChoiceBox.getSelectionModel().getSelectedItem()) || 
+                    tagsTreeView.getSelectedItems().isEmpty());
         });
         applyBulkActionBtn.setDisable(true);
         getGridPane().add(applyBulkActionBtn, 1, rowNum, 1, 1);
@@ -127,10 +135,10 @@ public class TagManager extends AbstractStage {
         
         rowNum++;
         // table to hold tags
-        tagsTable.setRenameFunction(this::doRenameTag);
-        getGridPane().add(tagsTable, 0, rowNum, 2, 1);
-        GridPane.setMargin(tagsTable, INSET_TOP);
-        GridPane.setVgrow(tagsTable, Priority.ALWAYS);
+        tagsTreeView.setRenameFunction(this::doRenameTag);
+        getGridPane().add(tagsTreeView, 0, rowNum, 2, 1);
+        GridPane.setMargin(tagsTreeView, INSET_TOP);
+        GridPane.setVgrow(tagsTreeView, Priority.ALWAYS);
         
         // buttons OK, Cancel
         final HBox buttonBox = new HBox();
@@ -176,9 +184,7 @@ public class TagManager extends AbstractStage {
     
     public List<String> getSelectedTags(final SelectedMode checkAction) {
         if (ButtonPressed.ACTION_BUTTON.equals(getButtonPressed()) || SelectedMode.IGNORE_ACTION.equals(checkAction)) {
-            return tagsTable.getItems().stream().filter((t) -> {
-                return t.isSelected();
-            }).map((t) -> {
+            return tagsTreeView.getSelectedItems().stream().map((t) -> {
                 return t.getName();
             }).collect(Collectors.toList());
         } else {
@@ -187,7 +193,7 @@ public class TagManager extends AbstractStage {
     }
     
     private void initTags() {
-        bulkActionChoiceBox.getSelectionModel().select(BulkAction.BulkAction);
+        bulkActionChoiceBox.getSelectionModel().select(BulkAction.None);
         applyBulkActionBtn.setDisable(true);
 
         switch (myWorkMode) {
@@ -198,7 +204,7 @@ public class TagManager extends AbstractStage {
                 saveBtn.setText("Save");
 
                 // fill table with existing tags
-                tagsTable.fillTableView(new ArrayList<>());
+                tagsTreeView.fillTreeView(new ArrayList<>());
                 break;
             case ONLY_SELECT:
                 bulkActionChoiceBox.setManaged(false);
@@ -207,7 +213,7 @@ public class TagManager extends AbstractStage {
                 saveBtn.setText("Add");
 
                 // fill table with unset tags only
-                tagsTable.fillTableView(myWorkNote.getMetaData().getTags());
+                tagsTreeView.fillTreeView(myWorkNote.getMetaData().getTags());
                 break;
         }
     }
@@ -217,15 +223,13 @@ public class TagManager extends AbstractStage {
     }
    
     private void doBulkAction(final BulkAction action) {
-        for (TagInfo tagInfo : tagsTable.getItems()) {
-            if (tagInfo.isSelected()) {
-                switch (action) {
-                    case Delete:
-                        doRenameTag(tagInfo.getName(), null);
-                        break;
-                }
+        tagsTreeView.getSelectedItems().stream().forEach((t) -> {
+            switch (action) {
+                case Delete:
+                    doRenameTag(t.getName(), null);
+                    break;
             }
-        }
+        });
         
         // a lot might have changed - start from scratch
         initTags();

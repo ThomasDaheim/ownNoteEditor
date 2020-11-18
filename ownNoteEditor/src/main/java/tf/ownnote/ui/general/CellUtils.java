@@ -52,7 +52,7 @@ import tf.helper.general.ObjectsHelper;
  */
 public class CellUtils {
 
-    static int TREE_VIEW_HBOX_GRAPHIC_PADDING = 3;
+    public static int TREE_VIEW_HBOX_GRAPHIC_PADDING = 3;
 
     /***************************************************************************
      *                                                                         *
