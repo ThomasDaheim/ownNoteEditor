@@ -31,18 +31,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
-import javafx.scene.Node;
-import javafx.scene.control.TextField;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
-import javafx.scene.control.cell.CheckBoxTreeCell;
-import javafx.scene.layout.HBox;
-import javafx.util.Callback;
-import javafx.util.StringConverter;
-import tf.ownnote.ui.general.CellUtils;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.notes.NoteData;
 
@@ -77,67 +69,8 @@ public class TagsTreeView extends TreeView<TagInfo> {
         setPrefHeight(treeViewHeight);
         setMinHeight(treeViewHeight);
         setMaxHeight(treeViewHeight);
-
-        // see https://stackoverflow.com/a/25444841
-        final Callback<TreeItem<TagInfo>, ObservableValue<Boolean>> getSelectedProperty = ((p) -> { return p.getValue().selectedProperty(); }); 
-        final StringConverter<TreeItem<TagInfo>> treeItemConverter = new StringConverter<TreeItem<TagInfo>>() {
-            @Override
-            public String toString(TreeItem<TagInfo> item) {
-                return item.getValue().getName();
-            }
-
-            @Override
-            public TreeItem<TagInfo> fromString(String string) {
-                throw new UnsupportedOperationException("Not supported yet.");
-            }
-        };
-        final StringConverter<TagInfo> tagInfoConverter = new StringConverter<TagInfo>() {
-            @Override
-            public String toString(TagInfo item) {
-                return item.getName();
-            }
-
-            @Override
-            public TagInfo fromString(String string) {
-                return new TagInfo(string);
-            }
-        };
         
-        // mix CheckBoxTreeCell with TextFieldTreeCell...
-        setCellFactory((tree -> new CheckBoxTreeCell<TagInfo>(getSelectedProperty, treeItemConverter){
-            private TextField textField;
-            private HBox hbox;
-
-            @Override
-            public void startEdit() {
-                if (! isEditable() || ! getTreeView().isEditable()) {
-                    return;
-                }
-                super.startEdit();
-
-                if (isEditing()) {
-                    if (textField == null) {
-                        textField = CellUtils.createTextField(this, tagInfoConverter);
-                    }
-                    if (hbox == null) {
-                        hbox = new HBox(CellUtils.TREE_VIEW_HBOX_GRAPHIC_PADDING);
-                    }
-
-                    CellUtils.startEdit(this, tagInfoConverter, hbox, getTreeItemGraphic(), textField);
-                }
-            }
-
-            @Override
-            public void cancelEdit() {
-                super.cancelEdit();
-                CellUtils.cancelEdit(this, tagInfoConverter, getTreeItemGraphic());
-            }
-
-            private Node getTreeItemGraphic() {
-                TreeItem<TagInfo> treeItem = getTreeItem();
-                return treeItem == null ? null : treeItem.getGraphic();
-            }
-        }));
+        setCellFactory(TagsTreeCellFactory.getInstance());
         
         setOnEditCommit((t) -> {
             if (!t.getNewValue().getName().equals(t.getOldValue().getName())) {
@@ -191,6 +124,7 @@ public class TagsTreeView extends TreeView<TagInfo> {
             // since we don't use a CheckBoxTreeItem we have do handle selection change ourselves
             // https://stackoverflow.com/a/29991507
             final TreeItem<TagInfo> info = new TreeItem<>(t);
+            info.setExpanded(false);
             t.selectedProperty().addListener((obs, oldValue, newValue) -> {
                 changeAction(info, oldValue, newValue);
             });
@@ -204,7 +138,7 @@ public class TagsTreeView extends TreeView<TagInfo> {
                 item.getValue().childTagsProperty().forEach(child -> child.setSelected(newValue));
             }
 
-            if (item.isLeaf()) {
+            if (item.getParent() != null) {
                 // see, if we need to change the parents
                 // recursion is done automatically through this listener
                 propagateUpwards(item, newValue);
