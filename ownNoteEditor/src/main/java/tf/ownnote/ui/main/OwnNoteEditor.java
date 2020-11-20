@@ -105,7 +105,7 @@ import tf.ownnote.ui.helper.OwnNoteTableView;
 import tf.ownnote.ui.notes.GroupData;
 import tf.ownnote.ui.notes.NoteData;
 import tf.ownnote.ui.notes.NoteMetaData;
-import tf.ownnote.ui.tags.TagManager;
+import tf.ownnote.ui.tags.TagEditor;
 import tf.ownnote.ui.tasks.TaskData;
 import tf.ownnote.ui.tasks.TaskList;
 import tf.ownnote.ui.tasks.TaskManager;
@@ -747,7 +747,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // all setup, lets spread the news
         OwnNoteFileManager.getInstance().setCallback(this);
         TaskManager.getInstance().setCallback(this);
-        TagManager.getInstance().setCallback(this);
+        TagEditor.getInstance().setCallback(this);
         
         // run layout to have everything set up
         splitPaneXML.applyCss();
@@ -859,7 +859,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             // https://stackoverflow.com/a/38525867
             menuTagsDummy.fire();
             menuTags.hide();
-            TagManager.getInstance().editTags(TagManager.WorkMode.FULL_EDIT, null);
+            TagEditor.getInstance().editTags(TagEditor.WorkMode.FULL_EDIT, null);
         });
 
         AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v5.0", "https://github.com/ThomasDaheim/ownNoteEditor");

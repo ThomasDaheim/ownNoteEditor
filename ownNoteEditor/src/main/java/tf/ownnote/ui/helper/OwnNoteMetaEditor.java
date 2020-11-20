@@ -47,7 +47,7 @@ import tf.helper.javafx.AbstractStage;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.NoteData;
 import tf.ownnote.ui.notes.NoteVersion;
-import tf.ownnote.ui.tags.TagManager;
+import tf.ownnote.ui.tags.TagEditor;
 import tf.ownnote.ui.tasks.TaskCount;
 import tf.ownnote.ui.tasks.TaskManager;
 
@@ -123,8 +123,8 @@ public class OwnNoteMetaEditor {
         
         final Button tagsButton = new Button("+");
         tagsButton.setOnAction((t) -> {
-            if (TagManager.getInstance().editTags(TagManager.WorkMode.ONLY_SELECT, editorNote)) {
-                editorNote.getMetaData().getTags().addAll(TagManager.getInstance().getSelectedTags(TagManager.SelectedMode.CHECK_ACTION));
+            if (TagEditor.getInstance().editTags(TagEditor.WorkMode.ONLY_SELECT, editorNote)) {
+                editorNote.getMetaData().getTags().addAll(TagEditor.getInstance().getSelectedTags(TagEditor.SelectedMode.CHECK_ACTION));
             }
         });
 

@@ -205,6 +205,7 @@ public class TagsTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell
         cell.setOnDragDone((DragEvent event) -> clearDropLocation());
         
         // TODO: find a way to have mouseDragOver in drag-and-drop
+        // simulate drag myself? https://stackoverflow.com/a/42890764
 //        cell.setOnMouseDragEntered((MouseDragEvent event) -> mouseDragEntered(event, cell, treeView));
 //        cell.setOnMouseDragExited((MouseDragEvent event) -> mouseDragExited(event, cell, treeView));
 //        cell.setOnMouseDragOver((MouseDragEvent event) -> mouseDragOver(event, cell, treeView));
@@ -243,7 +244,8 @@ public class TagsTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell
 
         final Dragboard db = treeCell.startDragAndDrop(TransferMode.MOVE);
         final ClipboardContent content = new ClipboardContent();
-        content.put(DRAG_AND_DROP, "DRAG_AND_DROP");
+        // store key pressed info in dragboard - no key events during drag & drop!
+        content.put(DRAG_AND_DROP, String.valueOf(event.isShiftDown()));
         db.setContent(content);
         db.setDragView(treeCell.snapshot(null, null));
         
@@ -277,15 +279,20 @@ public class TagsTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell
             dropZone = treeCell;
             
             // TFE, 20201119: figure out where on node we are and set style accordingly :-)
-            dropPosition = DropPosition.getPositionForPercentage(event.getY() / dropZone.getHeight());
+            final boolean shiftPressed = Boolean.valueOf(ObjectsHelper.uncheckedCast(event.getDragboard().getContent(DRAG_AND_DROP)));
+            if (!shiftPressed) {
+                dropPosition = DropPosition.getPositionForPercentage(event.getY() / dropZone.getHeight());
+            } else {
+                dropPosition = DropPosition.CENTER;
+            }
+            
             dropZone.setStyle(dropPosition.dropHint);
         }
     }
 
     private void drop(final DragEvent event, final TreeCell<TagInfo> treeCell, final TreeView<TagInfo> treeView) {
-        final Dragboard db = event.getDragboard();
         boolean success = false;
-        if (!db.hasContent(DRAG_AND_DROP)) return;
+        if (!event.getDragboard().hasContent(DRAG_AND_DROP)) return;
 
         final TreeItem<TagInfo> thisItem = treeCell.getTreeItem();
         final TreeCell<TagInfo> dragCell = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(DRAG_AND_DROP));
@@ -299,14 +306,19 @@ public class TagsTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell
         if (Objects.equals(droppedItemParent, thisItem)) {
             thisItem.getChildren().add(0, draggedItem);
             treeView.getSelectionModel().select(draggedItem);
-        }
-        else {
+        } else {
             // add to new location
-            int indexInParent = thisItem.getParent().getChildren().indexOf(thisItem);
-            thisItem.getParent().getChildren().add(indexInParent + 1, draggedItem);
+            final boolean shiftPressed = Boolean.valueOf(ObjectsHelper.uncheckedCast(event.getDragboard().getContent(DRAG_AND_DROP)));
+            if (!shiftPressed) {
+                int indexInParent = thisItem.getParent().getChildren().indexOf(thisItem);
+                thisItem.getParent().getChildren().add(indexInParent + 1, draggedItem);
+            } else {
+                // add as child to target
+                thisItem.getChildren().add(0, draggedItem);
+                treeView.getSelectionModel().select(draggedItem);
+            }
         }
         treeView.getSelectionModel().select(draggedItem);
-        treeView.getFocusModel().focus(0);
 
         AppClipboard.getInstance().clearContent(DRAG_AND_DROP);
         event.setDropCompleted(success);

@@ -29,12 +29,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import javafx.collections.ListChangeListener;
 import javafx.collections.SetChangeListener;
 import javafx.event.ActionEvent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
-import javafx.scene.control.TreeItem;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -56,8 +54,8 @@ import tf.ownnote.ui.notes.NoteData;
  *
  * @author thomas
  */
-public class TagManager extends AbstractStage {
-    private final static TagManager INSTANCE = new TagManager();
+public class TagEditor extends AbstractStage {
+    private final static TagEditor INSTANCE = new TagEditor();
     
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
@@ -86,14 +84,14 @@ public class TagManager extends AbstractStage {
     private final TagsTreeView tagsTreeView = new TagsTreeView();
     private final Button saveBtn = new Button("Save");
 
-    private TagManager() {
+    private TagEditor() {
         super();
         // Exists only to defeat instantiation.
         
         initViewer();
     }
 
-    public static TagManager getInstance() {
+    public static TagEditor getInstance() {
         return INSTANCE;
     }
 
