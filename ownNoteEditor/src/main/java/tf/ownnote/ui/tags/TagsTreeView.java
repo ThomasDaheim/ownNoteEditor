@@ -30,11 +30,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
+import javafx.util.Callback;
+import tf.helper.javafx.RecursiveTreeItem;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.notes.NoteData;
 
@@ -70,7 +73,7 @@ public class TagsTreeView extends TreeView<TagInfo> {
         setMinHeight(treeViewHeight);
         setMaxHeight(treeViewHeight);
         
-        setCellFactory(TagsTreeCellFactory.getInstance());
+        setCellFactory(TagTreeCellFactory.getInstance());
         
         setOnEditCommit((t) -> {
             if (!t.getNewValue().getName().equals(t.getOldValue().getName())) {
@@ -80,14 +83,6 @@ public class TagsTreeView extends TreeView<TagInfo> {
                 t.getOldValue().setName(t.getNewValue().getName());
             }
         });
-
-        final TagInfo rootItem = new TagInfo("Tags");
-        final TreeItem<TagInfo> root = new TreeItem<>(rootItem);
-        rootItem.selectedProperty().addListener((obs, oldValue, newValue) -> {
-            changeAction(root, oldValue, newValue);
-        });
-        root.setExpanded(true);
-        setRoot(root);
     }
     
     public ObservableSet<TagInfo> getSelectedItems() {
@@ -109,33 +104,30 @@ public class TagsTreeView extends TreeView<TagInfo> {
         }
         
         final List<TagInfo> itemList = new ArrayList<>();
-        for (String tag : tagsList) {
-            if (!excludeTags.contains(tag)) {
-                itemList.add(new TagInfo(tag));
+        for (TagInfo tag : TagManager.getInstance().getTagList()) {
+            if (!excludeTags.contains(tag.getName())) {
+                itemList.add(tag);
             }
         }
         
         selectedItems.clear();
 
-        getRoot().getValue().setChildTags(itemList);
-
-        getRoot().getChildren().clear();
-        getRoot().getChildren().addAll(itemList.stream().map((t) -> {
-            // since we don't use a CheckBoxTreeItem we have do handle selection change ourselves
-            // https://stackoverflow.com/a/29991507
-            final TreeItem<TagInfo> info = new TreeItem<>(t);
-            info.setExpanded(false);
-            t.selectedProperty().addListener((obs, oldValue, newValue) -> {
-                changeAction(info, oldValue, newValue);
-            });
-            return info;
-        }).collect(Collectors.toList()));
+        final TagInfo rootItem = new TagInfo("Tags");
+        rootItem.setChildTags(itemList);
+        
+        setRoot(new RecursiveTreeItem<>(rootItem, this::newItemConsumer, (item) -> null, TagInfo::getChildTags, true, (item) -> true));
+    }
+    
+    public void newItemConsumer(final TreeItem<TagInfo> newItem) {
+        newItem.getValue().selectedProperty().addListener((obs, oldValue, newValue) -> {
+            changeAction(newItem, oldValue, newValue);
+        });
     }
     
     private void changeAction(final TreeItem<TagInfo> item, final Boolean oldValue, final Boolean newValue) {
         if (newValue != null && !newValue.equals(oldValue)) {
             if (!inPropgateUpwardsAction) {
-                item.getValue().childTagsProperty().forEach(child -> child.setSelected(newValue));
+                item.getValue().getChildTags().forEach(child -> child.setSelected(newValue));
             }
 
             if (item.getParent() != null) {

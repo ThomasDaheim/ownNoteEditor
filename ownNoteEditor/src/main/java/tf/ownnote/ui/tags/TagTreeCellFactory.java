@@ -48,7 +48,7 @@ import javafx.util.Callback;
 import javafx.util.StringConverter;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AppClipboard;
-import tf.ownnote.ui.general.CellUtils;
+import tf.helper.javafx.CellUtils;
 
 /**
  * Add TextFieldTreeCell functionality to CheckBoxTreeCell
@@ -58,8 +58,8 @@ import tf.ownnote.ui.general.CellUtils;
  * 
  * @author thomas
  */
-public class TagsTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<TagInfo>> {
-    private final static TagsTreeCellFactory INSTANCE = new TagsTreeCellFactory();
+public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<TagInfo>> {
+    private final static TagTreeCellFactory INSTANCE = new TagTreeCellFactory();
 
     public static final DataFormat DRAG_AND_DROP = new DataFormat("application/ownnoteeditor-treetableview-dnd");
     public static final DataFormat COPY_AND_PASTE = new DataFormat("application/ownnoteeditor-treetableview-cnp");
@@ -93,11 +93,11 @@ public class TagsTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell
     private DropPosition dropPosition;
     private TreeCell<TagInfo> dropZone;
 
-    private TagsTreeCellFactory() {
+    private TagTreeCellFactory() {
         super();
     }
 
-    public static TagsTreeCellFactory getInstance() {
+    public static TagTreeCellFactory getInstance() {
         return INSTANCE;
     }
 
@@ -143,20 +143,21 @@ public class TagsTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell
                         
                     final MenuItem newChildItem = new MenuItem("New child");
                     newChildItem.setOnAction((ActionEvent event) -> {
-                        final TreeItem<TagInfo> newFaculty = new TreeItem<>(new TagInfo("New child tag"));
-                        getTreeItem().getChildren().add(newFaculty);
+                        // act on tag lists - RecursiveTreeItem will take care of the rest
+                        getTreeItem().getValue().getChildTags().add(new TagInfo("New child tag"));
                     });
 
                     if (treeItem.getParent() != null) {
                         final MenuItem newSilblingItem = new MenuItem("New sibling");
                         newSilblingItem.setOnAction((ActionEvent event) -> {
-                            final TreeItem<TagInfo> newFaculty = new TreeItem<>(new TagInfo("New sibling tag"));
-                            getTreeItem().getParent().getChildren().add(newFaculty);
+                            // act on tag lists - RecursiveTreeItem will take care of the rest
+                            getTreeItem().getParent().getValue().getChildTags().add(new TagInfo("New sibling tag"));
                         });
 
                         final MenuItem deleteItem = new MenuItem("Delete");
                         deleteItem.setOnAction((ActionEvent event) -> {
-                            getTreeItem().getParent().getChildren().remove(getTreeItem());
+                            // act on tag lists - RecursiveTreeItem will take care of the rest
+                            getTreeItem().getParent().getValue().getChildTags().remove(getTreeItem().getValue());
                         });
 
                         contextMenu.getItems().addAll(newSilblingItem, newChildItem, deleteItem);

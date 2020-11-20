@@ -51,7 +51,8 @@ import tf.ownnote.ui.main.OwnNoteEditorManager;
 import tf.ownnote.ui.notes.NoteData;
 
 /**
- *
+ * Edit tags & tag structure in a treeview.
+ * 
  * @author thomas
  */
 public class TagEditor extends AbstractStage {
@@ -142,7 +143,7 @@ public class TagEditor extends AbstractStage {
         final HBox buttonBox = new HBox();
         
         saveBtn.setOnAction((ActionEvent arg0) -> {
-            saveTags();
+            // save tags to file
 
             close();
         });
@@ -152,6 +153,8 @@ public class TagEditor extends AbstractStage {
         
         final Button cancelBtn = new Button("Cancel");
         cancelBtn.setOnAction((ActionEvent arg0) -> {
+            // reload tags from file
+
             close();
         });
         getGridPane().add(cancelBtn, 1, rowNum, 1, 1);
@@ -216,10 +219,6 @@ public class TagEditor extends AbstractStage {
         }
     }
     
-    private void saveTags() {
-        // save tag icons to preferences
-    }
-   
     private void doBulkAction(final BulkAction action) {
         tagsTreeView.getSelectedItems().stream().forEach((t) -> {
             switch (action) {

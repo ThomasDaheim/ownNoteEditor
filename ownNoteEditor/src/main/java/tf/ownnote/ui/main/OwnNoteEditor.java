@@ -106,6 +106,7 @@ import tf.ownnote.ui.notes.GroupData;
 import tf.ownnote.ui.notes.NoteData;
 import tf.ownnote.ui.notes.NoteMetaData;
 import tf.ownnote.ui.tags.TagEditor;
+import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tasks.TaskData;
 import tf.ownnote.ui.tasks.TaskList;
 import tf.ownnote.ui.tasks.TaskManager;
@@ -748,6 +749,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         OwnNoteFileManager.getInstance().setCallback(this);
         TaskManager.getInstance().setCallback(this);
         TagEditor.getInstance().setCallback(this);
+        TagManager.getInstance().setCallback(this);
         
         // run layout to have everything set up
         splitPaneXML.applyCss();
@@ -874,6 +876,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // TFE, 20201115: throw away any current tasklist - we might have changed the path!
         TaskManager.getInstance().resetTaskList();
         taskList.populateTaskList();
+        TagManager.getInstance().resetTagList();
         
         // add new table entries & disable & enable accordingly
         notesList = OwnNoteFileManager.getInstance().getNotesList();

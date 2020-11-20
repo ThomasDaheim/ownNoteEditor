@@ -27,6 +27,7 @@ package tf.ownnote.ui.tags;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ListProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -34,6 +35,7 @@ import javafx.beans.property.SimpleListProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 /**
  * Helper class to fill TagsTable / TagsTree with info per tag.
@@ -43,7 +45,7 @@ import javafx.collections.FXCollections;
 public class TagInfo {
     private final BooleanProperty selectedProperty = new SimpleBooleanProperty(false);
     private final StringProperty name = new SimpleStringProperty();
-    private final ListProperty<TagInfo> childTags = new SimpleListProperty<>();
+    private final ObservableList<TagInfo> childTags = FXCollections.observableArrayList();
 
     public TagInfo() {
         this("");
@@ -60,7 +62,7 @@ public class TagInfo {
     public TagInfo(final boolean sel, final String na, final List<TagInfo> childs) {
         selectedProperty.setValue(sel);
         name.set(na);
-        childTags.set(FXCollections.observableArrayList(childs));
+        childTags.setAll(FXCollections.observableArrayList(childs));
     }
 
     public BooleanProperty selectedProperty() {
@@ -87,15 +89,19 @@ public class TagInfo {
         name.set(na);
     }
 
-    public ListProperty<TagInfo> childTagsProperty() {
+    public ObservableList<TagInfo> getChildTags() {
         return childTags;
-    }
-
-    public List<TagInfo> getChildTags() {
-        return childTags.get();
     }
 
     public void setChildTags(final List<TagInfo> childs) {
         childTags.setAll(FXCollections.observableArrayList(childs));
+    }
+    
+    // method to get flat stream of taginfo + all its child tags
+    // http://squirrel.pl/blog/2015/03/04/walking-recursive-data-structures-using-java-8-streams/
+    public Stream<TagInfo> flattened() {
+        return Stream.concat(
+                Stream.of(this),
+                childTags.stream().flatMap(TagInfo::flattened));
     }
 }
