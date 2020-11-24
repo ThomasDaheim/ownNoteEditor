@@ -61,17 +61,11 @@ public class TagEditor extends AbstractStage {
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
     
-    private WorkMode myWorkMode;
     private NoteData myWorkNote;
     
     public enum BulkAction {
         None,
         Delete;
-    }
-    
-    public enum WorkMode {
-        FULL_EDIT,
-        ONLY_SELECT;
     }
     
     public enum SelectedMode {
@@ -144,6 +138,12 @@ public class TagEditor extends AbstractStage {
         
         saveBtn.setOnAction((ActionEvent arg0) -> {
             // save tags to file
+            if (myWorkNote == null) {
+                TagManager.getInstance().getTagList().setAll(tagsTreeView.getRoot().getValue().getChildren());
+                TagManager.getInstance().saveTags();
+            } else {
+                // what to do in case of save???
+            }
 
             close();
         });
@@ -167,13 +167,7 @@ public class TagEditor extends AbstractStage {
         VBox.setMargin(buttonBox, INSET_TOP_BOTTOM);
     }
     
-    public boolean editTags(final WorkMode workMode, final NoteData workNote) {
-        assert workMode != null;
-        if (WorkMode.ONLY_SELECT.equals(workMode)) {
-            assert workNote != null;
-        }
-        
-        myWorkMode = workMode;
+    public boolean editTags(final NoteData workNote) {
         myWorkNote = workNote;
         
         initTags();
@@ -197,26 +191,19 @@ public class TagEditor extends AbstractStage {
         bulkActionChoiceBox.getSelectionModel().select(BulkAction.None);
         applyBulkActionBtn.setDisable(true);
 
-        switch (myWorkMode) {
-            case FULL_EDIT:
-                bulkActionChoiceBox.setManaged(true);
-                bulkActionChoiceBox.setDisable(false);
-                applyBulkActionBtn.setManaged(true);
-                saveBtn.setText("Save");
+        if (myWorkNote == null) {
+            bulkActionChoiceBox.setManaged(true);
+            bulkActionChoiceBox.setDisable(false);
+            applyBulkActionBtn.setManaged(true);
+            saveBtn.setText("Save");
+        } else {
 
-                // fill table with existing tags
-                tagsTreeView.fillTreeView(new ArrayList<>());
-                break;
-            case ONLY_SELECT:
-                bulkActionChoiceBox.setManaged(false);
-                bulkActionChoiceBox.setDisable(true);
-                applyBulkActionBtn.setManaged(false);
-                saveBtn.setText("Add");
-
-                // fill table with unset tags only
-                tagsTreeView.fillTreeView(myWorkNote.getMetaData().getTags());
-                break;
+            bulkActionChoiceBox.setManaged(false);
+            bulkActionChoiceBox.setDisable(true);
+            applyBulkActionBtn.setManaged(false);
+            saveBtn.setText("Add");
         }
+        tagsTreeView.fillTreeView();
     }
     
     private void doBulkAction(final BulkAction action) {

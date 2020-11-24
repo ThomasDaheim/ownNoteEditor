@@ -29,7 +29,7 @@ public class TestTaskManager {
     @Before
     public void setUp() {
         OwnNoteFileManager.getInstance().setCallback(null);
-        OwnNoteFileManager.getInstance().initOwnNotePath("src/test/resources/");
+        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/");
         
         TaskManager.getInstance().resetTaskList();
     }

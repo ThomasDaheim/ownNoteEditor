@@ -26,7 +26,7 @@ public class TestTaskData {
     @Before
     public void setUp() {
         OwnNoteFileManager.getInstance().setCallback(null);
-        OwnNoteFileManager.getInstance().initOwnNotePath("src/test/resources/");
+        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/");
     }
     
     @After

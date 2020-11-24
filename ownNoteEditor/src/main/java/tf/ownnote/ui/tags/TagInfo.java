@@ -27,11 +27,10 @@ package tf.ownnote.ui.tags;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.ListProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleListProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
@@ -45,7 +44,8 @@ import javafx.collections.ObservableList;
 public class TagInfo {
     private final BooleanProperty selectedProperty = new SimpleBooleanProperty(false);
     private final StringProperty name = new SimpleStringProperty();
-    private final ObservableList<TagInfo> childTags = FXCollections.observableArrayList();
+    private final ObservableList<TagInfo> children = FXCollections.observableArrayList();
+    private final StringProperty iconName = new SimpleStringProperty();
 
     public TagInfo() {
         this("");
@@ -62,7 +62,25 @@ public class TagInfo {
     public TagInfo(final boolean sel, final String na, final List<TagInfo> childs) {
         selectedProperty.setValue(sel);
         name.set(na);
-        childTags.setAll(FXCollections.observableArrayList(childs));
+        children.setAll(FXCollections.observableArrayList(childs));
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+        if (o == this)
+            return true;
+        if (!(o instanceof TagInfo))
+            return false;
+        TagInfo other = (TagInfo)o;
+        // we can't have two tags with same name...
+        return this.name.get().equals(other.name.get());
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 11 * hash + Objects.hashCode(this.name.get());
+        return hash;
     }
 
     public BooleanProperty selectedProperty() {
@@ -89,19 +107,30 @@ public class TagInfo {
         name.set(na);
     }
 
-    public ObservableList<TagInfo> getChildTags() {
-        return childTags;
+    public StringProperty iconNameProperty() {
+        return iconName;
     }
 
-    public void setChildTags(final List<TagInfo> childs) {
-        childTags.setAll(FXCollections.observableArrayList(childs));
+    public String getIconName() {
+        return iconName.get();
+    }
+
+    public void setIconName(final String na) {
+        iconName.set(na);
+    }
+
+    public ObservableList<TagInfo> getChildren() {
+        return children;
+    }
+
+    public void setChildren(final List<TagInfo> childs) {
+        children.setAll(FXCollections.observableArrayList(childs));
     }
     
     // method to get flat stream of taginfo + all its child tags
     // http://squirrel.pl/blog/2015/03/04/walking-recursive-data-structures-using-java-8-streams/
     public Stream<TagInfo> flattened() {
-        return Stream.concat(
-                Stream.of(this),
-                childTags.stream().flatMap(TagInfo::flattened));
+        return Stream.concat(Stream.of(this),
+                children.stream().flatMap(TagInfo::flattened));
     }
 }

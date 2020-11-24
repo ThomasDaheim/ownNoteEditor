@@ -73,7 +73,7 @@ public class OwnNoteFileManager {
 
     public static final String deleteString = "";
     
-    private String ownNotePath;
+    private String notesPath;
     
     private final Map<String, GroupData> groupsList = new LinkedHashMap<>();
     private final Map<String, NoteData> notesList = new LinkedHashMap<>();
@@ -109,10 +109,10 @@ public class OwnNoteFileManager {
         myDirMonitor.stop();
     }
     
-    public void initOwnNotePath(final String ownNotePath) {
-        assert ownNotePath != null;
+    public void initNotesPath(final String newPath) {
+        assert newPath != null;
         
-        this.ownNotePath = ownNotePath;
+        notesPath = newPath;
         
         // scan directory for files and build groups & notes maps
         groupsList.clear();
@@ -133,7 +133,7 @@ public class OwnNoteFileManager {
         // iterate over all files from directory
         DirectoryStream<Path> stream = null;
         try {
-            stream = Files.newDirectoryStream(Paths.get(this.ownNotePath), "*.htm");
+            stream = Files.newDirectoryStream(Paths.get(this.notesPath), "*.htm");
             
             for (Path path: stream) {
                 final File file = path.toFile();
@@ -189,7 +189,7 @@ public class OwnNoteFileManager {
         
         // fix #14
         // monitor directory for changes
-        myDirMonitor.setDirectoryToMonitor(ownNotePath);   
+        myDirMonitor.setDirectoryToMonitor(notesPath);   
     }
     
     private String getFirstLine(final File file) {
@@ -207,8 +207,8 @@ public class OwnNoteFileManager {
         return result;
     }
 
-    public String getOwnNotePath() {
-        return ownNotePath;
+    public String getNotesPath() {
+        return notesPath;
     }
     
     public ObservableList<GroupData> getGroupsList() {
@@ -279,7 +279,7 @@ public class OwnNoteFileManager {
         final String noteFileName = buildNoteName(groupName, noteName);
         
         try {
-            Files.delete(Paths.get(ownNotePath, noteFileName));
+            Files.delete(Paths.get(notesPath, noteFileName));
             
             final GroupData groupRow = groupsList.get(groupName);
             groupRow.setGroupCount(Integer.toString(Integer.valueOf(groupRow.getGroupCount())-1));
@@ -332,7 +332,7 @@ public class OwnNoteFileManager {
         final String newFileName = buildNoteName(groupName, noteName);
         
         try {
-            Path newPath = Files.createFile(Paths.get(this.ownNotePath, newFileName));
+            Path newPath = Files.createFile(Paths.get(this.notesPath, newFileName));
             
             // TF, 20151129
             // update notesList as well
@@ -360,7 +360,7 @@ public class OwnNoteFileManager {
         String result = "";
         
         try {
-            result = new String(Files.readAllBytes(Paths.get(ownNotePath, buildNoteName(curNote.getGroupName(), curNote.getNoteName()))));
+            result = new String(Files.readAllBytes(Paths.get(notesPath, buildNoteName(curNote.getGroupName(), curNote.getNoteName()))));
         } catch (IOException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = "";
@@ -391,7 +391,7 @@ public class OwnNoteFileManager {
             noteData.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), LocalDateTime.now()));
             final String fullContent = NoteMetaData.toHtmlString(noteData.getMetaData()) + content;
             
-            final Path savePath = Files.write(Paths.get(this.ownNotePath, newFileName), fullContent.getBytes());
+            final Path savePath = Files.write(Paths.get(this.notesPath, newFileName), fullContent.getBytes());
             
             // // TF, 20170723: update modified date of the file
             final LocalDateTime filetime = LocalDateTime.ofInstant((new Date(savePath.toFile().lastModified())).toInstant(), ZoneId.systemDefault());
@@ -423,9 +423,9 @@ public class OwnNoteFileManager {
         initFilesInProgress();
 
         final String oldFileName = buildNoteName(groupName, oldNoteName);
-        final Path oldFile = Paths.get(this.ownNotePath, oldFileName);
+        final Path oldFile = Paths.get(this.notesPath, oldFileName);
         final String newFileName = buildNoteName(groupName, newNoteName);
-        final Path newFile = Paths.get(this.ownNotePath, newFileName);
+        final Path newFile = Paths.get(this.notesPath, newFileName);
         
         // TF, 20160815: check existence of the file - not something that should be done by catching the exception...
         // TFE, 20191211: handle the case of only changing upper/lower chars in the file name...
@@ -459,9 +459,9 @@ public class OwnNoteFileManager {
         initFilesInProgress();
 
         final String oldFileName = buildNoteName(oldGroupName, noteName);
-        final Path oldFile = Paths.get(this.ownNotePath, oldFileName);
+        final Path oldFile = Paths.get(this.notesPath, oldFileName);
         final String newFileName = buildNoteName(newGroupName, noteName);
-        final Path newFile = Paths.get(this.ownNotePath, newFileName);
+        final Path newFile = Paths.get(this.notesPath, newFileName);
         
         // TF, 20160815: check existence of the file - not something that should be done by catching the exception...
         // TFE, 20191211: here we don't want to be as case insensitive as  the OS is
@@ -535,7 +535,7 @@ public class OwnNoteFileManager {
         DirectoryStream<Path> notesForGroup = null;
         try {
             // 1. get all note names for group
-            notesForGroup = Files.newDirectoryStream(Paths.get(this.ownNotePath), escapedNoteNamePrefix + "*.htm");
+            notesForGroup = Files.newDirectoryStream(Paths.get(this.notesPath), escapedNoteNamePrefix + "*.htm");
 
             // TFE, 20191211: here we don't want to be as case insensitive as  the OS is
             // in theory we could have groups that only differ by case: TEST and Test
@@ -549,7 +549,7 @@ public class OwnNoteFileManager {
 
                     final String newFileName = newNoteNamePrefix + filename.substring(oldNoteNamePrefix.length());
 
-                    if (Files.exists(Paths.get(this.ownNotePath, newFileName))) {
+                    if (Files.exists(Paths.get(this.notesPath, newFileName))) {
                         result = false;
                         break;
                     }
@@ -566,7 +566,7 @@ public class OwnNoteFileManager {
             try {
                 // need to re-read since iterator can only be used once - don't ask
                 // https://stackoverflow.com/questions/25089294/java-lang-illegalstateexception-iterator-already-obtained
-                notesForGroup = Files.newDirectoryStream(Paths.get(this.ownNotePath), escapedNoteNamePrefix + "*.htm");
+                notesForGroup = Files.newDirectoryStream(Paths.get(this.notesPath), escapedNoteNamePrefix + "*.htm");
 
                 for (Path path: notesForGroup) {
                     final File file = path.toFile();
@@ -575,7 +575,7 @@ public class OwnNoteFileManager {
                     final String newFileName = newNoteNamePrefix + filename.substring(oldNoteNamePrefix.length());
 
                     try {
-                        Files.move(Paths.get(this.ownNotePath, filename), Paths.get(this.ownNotePath, newFileName), StandardCopyOption.ATOMIC_MOVE);
+                        Files.move(Paths.get(this.notesPath, filename), Paths.get(this.notesPath, newFileName), StandardCopyOption.ATOMIC_MOVE);
                         
                         // TF, 20151129
                         // update notelist as well
@@ -638,7 +638,7 @@ public class OwnNoteFileManager {
     public boolean noteExists(final String groupName, final String noteName) {
         final String fileName = buildNoteName(groupName, noteName);
 
-        return Files.exists(Paths.get(this.ownNotePath, fileName));
+        return Files.exists(Paths.get(this.notesPath, fileName));
     }
 
     private void initFilesInProgress() {
@@ -676,7 +676,7 @@ public class OwnNoteFileManager {
                 }
             } else {
                 // see https://stackoverflow.com/questions/4886154/whats-the-fastest-way-to-scan-a-very-large-file-in-java/4886765#4886765 for fast algo
-                final File noteFile = new File(this.ownNotePath, buildNoteName(note.getValue().getGroupName(), note.getValue().getNoteName()));
+                final File noteFile = new File(this.notesPath, buildNoteName(note.getValue().getGroupName(), note.getValue().getNoteName()));
 
                 try (final Scanner scanner = new Scanner(noteFile)) {
                     if (scanner.findWithinHorizon(searchText, 0) != null) {

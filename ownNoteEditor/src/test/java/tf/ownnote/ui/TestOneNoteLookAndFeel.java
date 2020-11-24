@@ -53,10 +53,10 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
-import org.junit.After;
+import org.junit.AfterClass;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.testfx.api.FxRobot;
 import org.testfx.framework.junit.ApplicationTest;
@@ -150,7 +150,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         return lookup(query).query();
     }
 
-    @Before
+    @BeforeClass
     public void getNodes() {
         System.out.println("running getNodes()");
 
@@ -180,7 +180,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     }
     
     /* IMO, it is quite recommended to clear the ongoing events, in case of. */
-    @After
+    @AfterClass
     public void tearDown() throws TimeoutException, IOException {
         System.out.println("running tearDown()");
 
@@ -200,6 +200,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         if (currentPath != null) {
             OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, currentPath);
         }
+        
+        Files.delete(testpath);
     }
     
     private void testAlert(final String headerText, final ButtonBar.ButtonData buttonToPress) {

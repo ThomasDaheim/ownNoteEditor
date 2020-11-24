@@ -123,7 +123,7 @@ public class OwnNoteMetaEditor {
         
         final Button tagsButton = new Button("+");
         tagsButton.setOnAction((t) -> {
-            if (TagEditor.getInstance().editTags(TagEditor.WorkMode.ONLY_SELECT, editorNote)) {
+            if (TagEditor.getInstance().editTags(editorNote)) {
                 editorNote.getMetaData().getTags().addAll(TagEditor.getInstance().getSelectedTags(TagEditor.SelectedMode.CHECK_ACTION));
             }
         });

@@ -144,20 +144,20 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
                     final MenuItem newChildItem = new MenuItem("New child");
                     newChildItem.setOnAction((ActionEvent event) -> {
                         // act on tag lists - RecursiveTreeItem will take care of the rest
-                        getTreeItem().getValue().getChildTags().add(new TagInfo("New child tag"));
+                        getTreeItem().getValue().getChildren().add(new TagInfo("New child tag"));
                     });
 
                     if (treeItem.getParent() != null) {
                         final MenuItem newSilblingItem = new MenuItem("New sibling");
                         newSilblingItem.setOnAction((ActionEvent event) -> {
                             // act on tag lists - RecursiveTreeItem will take care of the rest
-                            getTreeItem().getParent().getValue().getChildTags().add(new TagInfo("New sibling tag"));
+                            getTreeItem().getParent().getValue().getChildren().add(new TagInfo("New sibling tag"));
                         });
 
                         final MenuItem deleteItem = new MenuItem("Delete");
                         deleteItem.setOnAction((ActionEvent event) -> {
                             // act on tag lists - RecursiveTreeItem will take care of the rest
-                            getTreeItem().getParent().getValue().getChildTags().remove(getTreeItem().getValue());
+                            getTreeItem().getParent().getValue().getChildren().remove(getTreeItem().getValue());
                         });
 
                         contextMenu.getItems().addAll(newSilblingItem, newChildItem, deleteItem);
@@ -298,24 +298,27 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
         final TreeItem<TagInfo> thisItem = treeCell.getTreeItem();
         final TreeCell<TagInfo> dragCell = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(DRAG_AND_DROP));
         final TreeItem<TagInfo> draggedItem = dragCell.getTreeItem();
-        final TreeItem<TagInfo> droppedItemParent = draggedItem.getParent();
+        final TreeItem<TagInfo> draggedItemParent = draggedItem.getParent();
 
         // remove from previous location
-        droppedItemParent.getChildren().remove(draggedItem);
+        // act on tag lists - RecursiveTreeItem will take care of the rest
+        draggedItemParent.getValue().getChildren().remove(draggedItem.getValue());
 
         // dropping on parent node makes it the first child
-        if (Objects.equals(droppedItemParent, thisItem)) {
-            thisItem.getChildren().add(0, draggedItem);
+        if (Objects.equals(draggedItemParent, thisItem)) {
+            thisItem.getValue().getChildren().add(0, draggedItem.getValue());
             treeView.getSelectionModel().select(draggedItem);
         } else {
             // add to new location
             final boolean shiftPressed = Boolean.valueOf(ObjectsHelper.uncheckedCast(event.getDragboard().getContent(DRAG_AND_DROP)));
             if (!shiftPressed) {
                 int indexInParent = thisItem.getParent().getChildren().indexOf(thisItem);
-                thisItem.getParent().getChildren().add(indexInParent + 1, draggedItem);
+                // act on tag lists - RecursiveTreeItem will take care of the rest
+                thisItem.getParent().getValue().getChildren().add(indexInParent + 1, draggedItem.getValue());
             } else {
                 // add as child to target
-                thisItem.getChildren().add(0, draggedItem);
+                // act on tag lists - RecursiveTreeItem will take care of the rest
+                thisItem.getValue().getChildren().add(0, draggedItem.getValue());
                 treeView.getSelectionModel().select(draggedItem);
             }
         }

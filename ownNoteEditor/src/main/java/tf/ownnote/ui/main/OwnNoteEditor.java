@@ -104,7 +104,6 @@ import tf.ownnote.ui.helper.OwnNoteTableColumn;
 import tf.ownnote.ui.helper.OwnNoteTableView;
 import tf.ownnote.ui.notes.GroupData;
 import tf.ownnote.ui.notes.NoteData;
-import tf.ownnote.ui.notes.NoteMetaData;
 import tf.ownnote.ui.tags.TagEditor;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tasks.TaskData;
@@ -302,6 +301,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // TFE, 20201030: store name of last edited note
         OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_NOTE, noteHTMLEditor.getEditedNote().getNoteName());
         OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_GROUP, noteHTMLEditor.getEditedNote().getGroupName());
+        
+        // TFE, 20201121: tag info is now stored in a separate file
+        TagManager.getInstance().saveTags();
     }
     
     public void setParameters() {
@@ -861,17 +863,17 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             // https://stackoverflow.com/a/38525867
             menuTagsDummy.fire();
             menuTags.hide();
-            TagEditor.getInstance().editTags(TagEditor.WorkMode.FULL_EDIT, null);
+            TagEditor.getInstance().editTags(null);
         });
 
         AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v5.0", "https://github.com/ThomasDaheim/ownNoteEditor");
     }
-
+    
     public void initFromDirectory(final boolean updateOnly) {
         checkChangedNote();
 
         // scan directory
-        OwnNoteFileManager.getInstance().initOwnNotePath(ownCloudPath.textProperty().getValue());
+        OwnNoteFileManager.getInstance().initNotesPath(ownCloudPath.textProperty().getValue());
         
         // TFE, 20201115: throw away any current tasklist - we might have changed the path!
         TaskManager.getInstance().resetTaskList();
@@ -1346,8 +1348,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // System.out.printf("Time %s: Gotcha!\n", getCurrentTimeStamp());
         boolean result = true;
         
-        if (!filesInProgress.contains(filePath.getFileName().toString())) {
-            final String fileName = filePath.getFileName().toString();
+        final String fileName = filePath.getFileName().toString();
+        if (!filesInProgress.contains(fileName)) {
         
             // System.out.printf("Time %s: You're new here!\n", getCurrentTimeStamp());
             filesInProgress.add(fileName);

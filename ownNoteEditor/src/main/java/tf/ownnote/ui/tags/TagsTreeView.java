@@ -25,21 +25,13 @@
  */
 package tf.ownnote.ui.tags;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
-import javafx.util.Callback;
 import tf.helper.javafx.RecursiveTreeItem;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
-import tf.ownnote.ui.notes.NoteData;
 
 /**
  * A TreeView for TagInfo.
@@ -94,28 +86,13 @@ public class TagsTreeView extends TreeView<TagInfo> {
         renameFunction = funct;
     }
     
-    public void fillTreeView(final List<String> excludeTags) {
-        // TODO: use with RecursiveTreeItem once tags handling is clever enough
-
-        final List<NoteData> notesList = OwnNoteFileManager.getInstance().getNotesList();
-        final Set<String> tagsList = new HashSet<>();
-        for (NoteData note : notesList) {
-            tagsList.addAll(note.getMetaData().getTags());
-        }
-        
-        final List<TagInfo> itemList = new ArrayList<>();
-        for (TagInfo tag : TagManager.getInstance().getTagList()) {
-            if (!excludeTags.contains(tag.getName())) {
-                itemList.add(tag);
-            }
-        }
-        
+    public void fillTreeView() {
         selectedItems.clear();
 
         final TagInfo rootItem = new TagInfo("Tags");
-        rootItem.setChildTags(itemList);
+        rootItem.setChildren(TagManager.getInstance().getTagList());
         
-        setRoot(new RecursiveTreeItem<>(rootItem, this::newItemConsumer, (item) -> null, TagInfo::getChildTags, true, (item) -> true));
+        setRoot(new RecursiveTreeItem<>(rootItem, this::newItemConsumer, (item) -> null, TagInfo::getChildren, true, (item) -> true));
     }
     
     public void newItemConsumer(final TreeItem<TagInfo> newItem) {
@@ -127,7 +104,7 @@ public class TagsTreeView extends TreeView<TagInfo> {
     private void changeAction(final TreeItem<TagInfo> item, final Boolean oldValue, final Boolean newValue) {
         if (newValue != null && !newValue.equals(oldValue)) {
             if (!inPropgateUpwardsAction) {
-                item.getValue().getChildTags().forEach(child -> child.setSelected(newValue));
+                item.getValue().getChildren().forEach(child -> child.setSelected(newValue));
             }
 
             if (item.getParent() != null) {

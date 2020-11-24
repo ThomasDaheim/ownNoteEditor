@@ -25,15 +25,37 @@
  */
 package tf.ownnote.ui.tags;
 
+import com.sun.javafx.collections.ObservableListWrapper;
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.xml.DomDriver;
+import com.thoughtworks.xstream.io.xml.PrettyPrintWriter;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import tf.helper.general.ObjectsHelper;
+import tf.helper.xstreamfx.FXConverters;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
@@ -49,6 +71,8 @@ import tf.ownnote.ui.notes.NoteData;
  */
 public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubscriber {
     private final static TagManager INSTANCE = new TagManager();
+    
+    private final static String TAG_FILE = File.separator + "tags" + File.separator + "tag_info.xml";
     
     private ObservableList<TagInfo> tagList = null;
     
@@ -88,7 +112,45 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
     
     public void loadTags() {
-        // load from xml AND from current metadata
+        final String fileName = OwnNoteFileManager.getInstance().getNotesPath() + TAG_FILE;
+        final File file = new File(fileName);
+        if (file.exists() && !file.isDirectory() && file.canRead()) {
+            // load from xml AND from current metadata
+            final XStream xstream = new XStream(new DomDriver("ISO-8859-1"));
+            xstream.setMode(XStream.XPATH_RELATIVE_REFERENCES);
+            XStream.setupDefaultSecurity(xstream);
+            final Class<?>[] classes = new Class[] { 
+                TagInfo.class, 
+                ObservableListWrapper.class, 
+                SimpleBooleanProperty.class, 
+                SimpleStringProperty.class };
+            xstream.allowTypes(classes);
+
+            FXConverters.configure(xstream);
+
+            xstream.alias("taginfo", TagInfo.class);
+            xstream.alias("listProperty", ObservableListWrapper.class);
+            xstream.alias("booleanProperty", SimpleBooleanProperty.class);
+            xstream.alias("stringProperty", SimpleStringProperty.class);
+
+            try (
+                BufferedInputStream stdin = new BufferedInputStream(new FileInputStream(fileName));
+                Reader reader = new InputStreamReader(stdin, "ISO-8859-1");
+            ) {
+                tagList = ObjectsHelper.uncheckedCast(xstream.fromXML(reader));
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(TagManager.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (UnsupportedEncodingException ex) {
+                Logger.getLogger(TagManager.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(TagManager.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
+        // xstream.fromXML can return null without an exception...
+        if (tagList == null) {
+            tagList = FXCollections.observableArrayList();
+        }
 
         // current metadata tags
         final List<NoteData> noteList = OwnNoteFileManager.getInstance().getNotesList();
@@ -113,9 +175,46 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
 
     public void saveTags() {
+        if (tagList == null) {
+            // list hasn't been initialized yet - so don't try to save
+            return;
+        }
+        
         // save to xml
-    }
+        final XStream xstream = new XStream(new DomDriver("ISO-8859-1"));
+        xstream.setMode(XStream.XPATH_RELATIVE_REFERENCES);
+        XStream.setupDefaultSecurity(xstream);
+        final Class<?>[] classes = new Class[] { 
+            TagInfo.class, 
+            ObservableListWrapper.class, 
+            SimpleBooleanProperty.class, 
+            SimpleStringProperty.class };
+        xstream.allowTypes(classes);
+        
+        FXConverters.configure(xstream);
+        
+        xstream.alias("taginfo", TagInfo.class);
+        xstream.alias("listProperty", ObservableListWrapper.class);
+        xstream.alias("booleanProperty", SimpleBooleanProperty.class);
+        xstream.alias("stringProperty", SimpleStringProperty.class);
 
+        try (
+            BufferedOutputStream stdout = new BufferedOutputStream(new FileOutputStream(OwnNoteFileManager.getInstance().getNotesPath() + TAG_FILE));
+            Writer writer = new OutputStreamWriter(stdout, "ISO-8859-1");
+        ) {
+            PrettyPrintWriter printer = new PrettyPrintWriter(writer, new char[]{'\t'});
+            writer.write("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>" + System.getProperty("line.separator"));
+        
+            xstream.marshal(tagList, printer);
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(TagManager.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (UnsupportedEncodingException ex) {
+            Logger.getLogger(TagManager.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(TagManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
     @Override
     public boolean processFileChange(WatchEvent.Kind<?> eventKind, Path filePath) {
         return true;
