@@ -77,7 +77,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import tf.helper.javafx.UsefulKeyCodes;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.Note;
 
 /**
  *
@@ -115,7 +115,7 @@ public class OwnNoteHTMLEditor {
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor= null;
     
-    private NoteData editedNote;
+    private Note editedNote;
     
     // defy garbage collection of callback functions
     // https://stackoverflow.com/a/41908133
@@ -651,7 +651,7 @@ public class OwnNoteHTMLEditor {
         }
     }
         
-    public void editNote(final NoteData note, final String text) {
+    public void editNote(final Note note, final String text) {
         Runnable task = () -> {
             //System.out.println("setEditorText " + text);
             setContentDone = false;
@@ -759,7 +759,7 @@ public class OwnNoteHTMLEditor {
         myWebView.setVisible(b);
     }
     
-    public NoteData getEditedNote() {
+    public Note getEditedNote() {
         return editedNote;
     }
     

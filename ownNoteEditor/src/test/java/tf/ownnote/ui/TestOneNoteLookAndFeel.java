@@ -65,8 +65,8 @@ import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 import tf.ownnote.ui.helper.OwnNoteTab;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.main.OwnNoteEditorManager;
-import tf.ownnote.ui.notes.GroupData;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.NoteGroup;
+import tf.ownnote.ui.notes.Note;
 
 /**
  *
@@ -160,7 +160,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // tabs are not nodes!!! So we have to find them the hard way
         final ObservableList<Tab> tabsList = groupsPaneFXML.getTabs();
         allTab = (OwnNoteTab) tabsList.stream().filter(x -> {
-                                                        return ((Label) x.getGraphic()).getText().startsWith(GroupData.ALL_GROUPS);
+                                                        return ((Label) x.getGraphic()).getText().startsWith(NoteGroup.ALL_GROUPS);
                                                     }).findFirst().orElse(null);
         test1Tab = (OwnNoteTab) tabsList.stream().filter(x -> {
                                                         return ((Label) x.getGraphic()).getText().startsWith("Test1");
@@ -297,11 +297,11 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
 
         // #1 ------------------------------------------------------------------
         // check "ALL" tab, that should have 4 entries
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
 
         // #2 ------------------------------------------------------------------
         // check "NOT_GROUPED" tab, that should be empty
-        testTab(1, GroupData.NOT_GROUPED, myTestdata.getNotesCountForGroup(GroupData.NOT_GROUPED));
+        testTab(1, NoteGroup.NOT_GROUPED, myTestdata.getNotesCountForGroup(NoteGroup.NOT_GROUPED));
 
         // #3 ------------------------------------------------------------------
         // check "Test 1" tab, that should have 2 entries
@@ -332,8 +332,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         final int newCount = myTestdata.getNotesList().size() + 1;
         final String newName = "New Note " + newCount;
         assertTrue("Check new notes count", (notesTableFXML.getItems().size() == newCount));
-        assertTrue("Check new note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof NoteData));
-        final NoteData newNote = (NoteData) notesTableFXML.getSelectionModel().getSelectedItem();
+        assertTrue("Check new note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof Note));
+        final Note newNote = (Note) notesTableFXML.getSelectionModel().getSelectedItem();
         assertTrue("Check new note label", newNote.getNoteName().startsWith(newName));
         
         // #2 ------------------------------------------------------------------
@@ -365,8 +365,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         write("TEST1");
         push(KeyCode.ENTER);
 
-        assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof NoteData));
-        NoteData renamedNote = (NoteData) notesTableFXML.getSelectionModel().getSelectedItem();
+        assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof Note));
+        Note renamedNote = (Note) notesTableFXML.getSelectionModel().getSelectedItem();
         assertTrue("Check renamed note label", renamedNote.getNoteName().startsWith("TEST1"));
 
         // #2 ------------------------------------------------------------------
@@ -379,8 +379,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         push(KeyCode.ENTER);
         push(KeyCode.ENTER);
 
-        assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof NoteData));
-        renamedNote = (NoteData) notesTableFXML.getSelectionModel().getSelectedItem();
+        assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof Note));
+        renamedNote = (Note) notesTableFXML.getSelectionModel().getSelectedItem();
         //System.out.println(renamedNote);
         assertTrue("Check renamed note label", renamedNote.getNoteName().startsWith("rename2"));
 
@@ -392,8 +392,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         push(KeyCode.ENTER);
         push(KeyCode.ENTER);
 
-        assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof NoteData));
-        renamedNote = (NoteData) notesTableFXML.getSelectionModel().getSelectedItem();
+        assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof Note));
+        renamedNote = (Note) notesTableFXML.getSelectionModel().getSelectedItem();
         //System.out.println(renamedNote);
         assertTrue("Check renamed note label", renamedNote.getNoteName().startsWith("test1"));
 
@@ -407,8 +407,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         push(KeyCode.ENTER);
         
         // note should still have old name
-        assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof NoteData));
-        renamedNote = (NoteData) notesTableFXML.getSelectionModel().getSelectedItem();
+        assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof Note));
+        renamedNote = (Note) notesTableFXML.getSelectionModel().getSelectedItem();
         //System.out.println(renamedNote);
         assertTrue("Check renamed note label", renamedNote.getNoteName().startsWith("test1"));
     }
@@ -530,7 +530,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         System.out.println("running testNotesFilter()");
 
         // leerer filter -> alle sichtbar
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
         
         //////////////////////////
         // namensfilter
@@ -539,22 +539,22 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // "Test1" als namensfilter -> 2 sichtbar
         clickOn(noteFilterText);
         write("Test1");
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForName("Test1"));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForName("Test1"));
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
         
         // "SUCH" als namensfilter -> 0 sichtbar
         clickOn(noteFilterText);
         write("SUCH");
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForName("SUCH"));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForName("SUCH"));
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
         
         //////////////////////////
         // inhaltsfilter
@@ -565,17 +565,17 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // "Test1" als inhaltsfilter -> 2 sichtbar
         clickOn(noteFilterText);
         write("Test1");
-        testTab(0, GroupData.ALL_GROUPS, 2);
+        testTab(0, NoteGroup.ALL_GROUPS, 2);
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
         
         // "SUCH" als inhaltsfilter -> 1 sichtbar
         clickOn(noteFilterText);
         write("SUCH");
-        testTab(0, GroupData.ALL_GROUPS, 1);
+        testTab(0, NoteGroup.ALL_GROUPS, 1);
         
         // reset everything, PLEASE
         clickOn(noteFilterCheck);
@@ -598,7 +598,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: add a new file to group Test1");
         
         // check new count
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS) + 1);
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS) + 1);
         
         // #2 ------------------------------------------------------------------
         // delete the new file
@@ -607,7 +607,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: delete the new file");
         
         // check new count
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
         
         // #3 ------------------------------------------------------------------
         // add a new file to a new group
@@ -636,7 +636,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify old count
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
 
         // #5 ------------------------------------------------------------------
         // delete file in editor BUT "Save as new"
@@ -648,12 +648,12 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify old count
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
         // but with new note name!
         final int newCount = myTestdata.getNotesList().size() + 1;
         final String newName = "New Note " + newCount;
-        assertTrue("Check new note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof NoteData));
-        final NoteData newNote = (NoteData) notesTableFXML.getSelectionModel().getSelectedItem();
+        assertTrue("Check new note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof Note));
+        final Note newNote = (Note) notesTableFXML.getSelectionModel().getSelectedItem();
         assertTrue("Check new note label", newName.equals(newNote.getNoteName()));
         
         // #6 ------------------------------------------------------------------
@@ -666,7 +666,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify new count
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS) - 1);
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS) - 1);
         
         // create back again
         assertTrue(myTestdata.createTestFile(testpath, "[Test1] " + newName + ".htm"));
@@ -674,7 +674,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: create back again");
 
         // verify old count
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
     }
     
     private void resetForNextTest() {

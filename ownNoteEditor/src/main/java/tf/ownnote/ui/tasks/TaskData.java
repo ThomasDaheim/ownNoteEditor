@@ -11,7 +11,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import org.apache.commons.text.StringEscapeUtils;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.Note;
 
 /**
  * A task in an ownnote.
@@ -26,14 +26,14 @@ public class TaskData {
     private String myHtmlText;
     private int myTextPos;
     
-    private NoteData myNote = null;
+    private Note myNote = null;
     
     private TaskData() {
     }
     
-    public TaskData(final NoteData note, final String noteContent, final int textPos) {
+    public TaskData(final Note note, final String noteContent, final int textPos) {
         if (note == null) {
-            throw new IllegalArgumentException("NoteData is null");
+            throw new IllegalArgumentException("Note is null");
         }
 
         myNote = note;
@@ -134,7 +134,7 @@ public class TaskData {
         }
     }
     
-    public NoteData getNoteData() {
+    public Note getNote() {
         return myNote;
     }
     

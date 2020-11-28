@@ -193,7 +193,8 @@
             </Menu>
             <Menu fx:id="menuTags" mnemonicParsing="false" text="Tags">
                <items>
-                  <MenuItem fx:id="menuTagsDummy" mnemonicParsing="false" text="DUMMY" />
+                  <MenuItem fx:id="menuEditTags" mnemonicParsing="false" text="Edit Tags" />
+                  <MenuItem fx:id="menuGroups2Tags" mnemonicParsing="false" text="Groups2Tags" />
                </items></Menu>
          </menus>
       </MenuBar>

@@ -40,8 +40,8 @@ import javafx.util.converter.DefaultStringConverter;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.CellUtils;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.GroupData;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.NoteGroup;
+import tf.ownnote.ui.notes.Note;
 
 /**
  *
@@ -90,8 +90,7 @@ public class OwnNoteTableColumn {
         myTableColumn.setCellFactory(createObjectCellFactory(linkCursor));
     }
 
-    private Callback<TableColumn<Map, String>, TableCell<Map, String>>
-        createObjectCellFactory(final boolean linkCursor) {
+    private Callback<TableColumn<Map, String>, TableCell<Map, String>> createObjectCellFactory(final boolean linkCursor) {
         assert (this.myEditor != null);
         return (TableColumn<Map, String> param) -> new ObjectCell(this.myEditor, this, linkCursor, new UniversalMouseEvent(this.myEditor));
     }
@@ -164,26 +163,26 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
                             
         boolean reInit = false;
         
-        NoteData curNoteData = null;
-        GroupData curGroupData = null;
+        Note curNote = null;
+        NoteGroup curNoteGroup = null;
         switch(clickedCell.getId()) {
             case "noteNameColFXML":
                 //System.out.println("Clicked in noteNameCol");
-                curNoteData =
-                    new NoteData(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
-                //reInit = this.myEditor.editNote(curNoteData);
+                curNote =
+                    new Note(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
+                //reInit = this.myEditor.editNote(curNote);
                 break;
             case "noteDeleteColFXML":
                 //System.out.println("Clicked in noteDeleteCol");
-                curNoteData =
-                    new NoteData(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
-                reInit = this.myEditor.deleteNoteWrapper(curNoteData);
+                curNote =
+                    new Note(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
+                reInit = this.myEditor.deleteNoteWrapper(curNote);
                 break;
             case "groupDeleteColFXML":
                 //System.out.println("Clicked in groupDeleteCol");
-                curGroupData =
-                    new GroupData(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
-                reInit = this.myEditor.deleteGroupWrapper(curGroupData);
+                curNoteGroup =
+                    new NoteGroup(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
+                reInit = this.myEditor.deleteGroupWrapper(curNoteGroup);
                 break;
             default:
                 //System.out.println("Ignoring click into " + clickedCell.getId() + " for controller " + this.myEditor.toString());
@@ -202,9 +201,9 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
     private TextField textField;
     
     // store link back to the controller of the scene for callback
-    private OwnNoteEditor myOwnNoteEditor;
+    private final OwnNoteEditor myOwnNoteEditor;
     
-    private OwnNoteTableColumn myOwnNoteTableColumn;
+    private final OwnNoteTableColumn myOwnNoteTableColumn;
     
     public ObjectCell(final OwnNoteEditor ownNoteEditor,
             final OwnNoteTableColumn ownNoteTableColumn, 
@@ -223,8 +222,8 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
     
     @Override
     public void startEdit() {
-        if (GroupData.ALL_GROUPS.equals(getText())
-                || GroupData.NOT_GROUPED.equals(getText())) {
+        if (NoteGroup.ALL_GROUPS.equals(getText())
+                || NoteGroup.NOT_GROUPED.equals(getText())) {
             return;
         }
         super.startEdit();
@@ -240,7 +239,7 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
                 textField = CellUtils.createTextField(this, getConverter());
                 
                 // TFE, 20191208: check for valid file names!
-                FormatHelper.getInstance().initNameTextField(textField);
+                FormatHelper.getInstance().initNoteGroupNameTextField(textField);
             }
             
             CellUtils.startEdit(this, getConverter(), null, null, textField);

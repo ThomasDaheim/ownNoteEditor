@@ -12,7 +12,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.tasks.TaskData;
 
 /**
@@ -37,7 +37,7 @@ public class TestTaskData {
     public void testTaskData_Exceptions1() {
         exceptionRule.expect(IllegalArgumentException.class);
         
-        exceptionRule.expectMessage("NoteData is null");
+        exceptionRule.expectMessage("Note is null");
         new TaskData(null, "", -1);
     }
     
@@ -46,36 +46,36 @@ public class TestTaskData {
         exceptionRule.expect(IllegalArgumentException.class);
         
         exceptionRule.expectMessage("TextPos can't be smaller than 0:");
-        final NoteData noteData = OwnNoteFileManager.getInstance().getNotesList().get(0);
-        new TaskData(noteData, "", -1);
+        final Note Note = OwnNoteFileManager.getInstance().getNotesList().get(0);
+        new TaskData(Note, "", -1);
     }
     
     @Test
     public void testTaskData_Exceptions3() {
         exceptionRule.expect(IllegalArgumentException.class);
         
-        final NoteData noteData = OwnNoteFileManager.getInstance().getNotesList().get(0);
-        final String noteContent = OwnNoteFileManager.getInstance().readNote(noteData);
+        final Note Note = OwnNoteFileManager.getInstance().getNotesList().get(0);
+        final String noteContent = OwnNoteFileManager.getInstance().readNote(Note);
         exceptionRule.expectMessage("Text not starting with checkbox pattern: " + noteContent);
-        new TaskData(noteData, noteContent, 0);
+        new TaskData(Note, noteContent, 0);
     }
     
     @Test
     public void testTaskDataOpenTask() {
-        final NoteData noteData = OwnNoteFileManager.getInstance().getNoteData("Test", "TestTasks");
-        final String noteContent = OwnNoteFileManager.getInstance().readNote(noteData);
+        final Note Note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
+        final String noteContent = OwnNoteFileManager.getInstance().readNote(Note);
         
-        TaskData taskData = new TaskData(noteData, noteContent, 64);
+        TaskData taskData = new TaskData(Note, noteContent, 64);
         Assert.assertFalse(taskData.isCompleted());
         Assert.assertEquals(" tell me, what to do!", taskData.getDescription());
     }
     
     @Test
     public void testTaskDataCompletedTask() {
-        final NoteData noteData = OwnNoteFileManager.getInstance().getNoteData("Test", "TestTasks");
-        final String noteContent = OwnNoteFileManager.getInstance().readNote(noteData);
+        final Note Note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
+        final String noteContent = OwnNoteFileManager.getInstance().readNote(Note);
         
-        TaskData taskData = new TaskData(noteData, noteContent, 371);
+        TaskData taskData = new TaskData(Note, noteContent, 371);
         Assert.assertTrue(taskData.isCompleted());
         // feel free to figure out how ? is handled correctly in all this string business
         Assert.assertTrue(taskData.getDescription().startsWith(" of course with something special: "));

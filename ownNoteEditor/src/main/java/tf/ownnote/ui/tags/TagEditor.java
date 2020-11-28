@@ -26,7 +26,7 @@
 package tf.ownnote.ui.tags;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import javafx.collections.SetChangeListener;
@@ -48,7 +48,7 @@ import tf.helper.javafx.EnumHelper;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.main.OwnNoteEditorManager;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.Note;
 
 /**
  * Edit tags & tag structure in a treeview.
@@ -61,7 +61,7 @@ public class TagEditor extends AbstractStage {
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
     
-    private NoteData myWorkNote;
+    private Note myWorkNote;
     
     public enum BulkAction {
         None,
@@ -142,7 +142,7 @@ public class TagEditor extends AbstractStage {
                 TagManager.getInstance().getTagList().setAll(tagsTreeView.getRoot().getValue().getChildren());
                 TagManager.getInstance().saveTags();
             } else {
-                // what to do in case of save???
+                myWorkNote.getMetaData().setTags(tagsTreeView.getSelectedLeafItems());
             }
 
             close();
@@ -154,7 +154,6 @@ public class TagEditor extends AbstractStage {
         final Button cancelBtn = new Button("Cancel");
         cancelBtn.setOnAction((ActionEvent arg0) -> {
             // reload tags from file
-
             close();
         });
         getGridPane().add(cancelBtn, 1, rowNum, 1, 1);
@@ -167,7 +166,7 @@ public class TagEditor extends AbstractStage {
         VBox.setMargin(buttonBox, INSET_TOP_BOTTOM);
     }
     
-    public boolean editTags(final NoteData workNote) {
+    public boolean editTags(final Note workNote) {
         myWorkNote = workNote;
         
         initTags();
@@ -175,16 +174,6 @@ public class TagEditor extends AbstractStage {
         showAndWait();
 
         return ButtonPressed.ACTION_BUTTON.equals(getButtonPressed());
-    }
-    
-    public List<String> getSelectedTags(final SelectedMode checkAction) {
-        if (ButtonPressed.ACTION_BUTTON.equals(getButtonPressed()) || SelectedMode.IGNORE_ACTION.equals(checkAction)) {
-            return tagsTreeView.getSelectedItems().stream().map((t) -> {
-                return t.getName();
-            }).collect(Collectors.toList());
-        } else {
-            return new ArrayList<>();
-        }
     }
     
     private void initTags() {
@@ -196,14 +185,14 @@ public class TagEditor extends AbstractStage {
             bulkActionChoiceBox.setDisable(false);
             applyBulkActionBtn.setManaged(true);
             saveBtn.setText("Save");
+            tagsTreeView.fillTreeView(null);
         } else {
-
             bulkActionChoiceBox.setManaged(false);
             bulkActionChoiceBox.setDisable(true);
             applyBulkActionBtn.setManaged(false);
-            saveBtn.setText("Add");
+            saveBtn.setText("Set");
+            tagsTreeView.fillTreeView(myWorkNote.getMetaData().getTags());
         }
-        tagsTreeView.fillTreeView();
     }
     
     private void doBulkAction(final BulkAction action) {
@@ -222,19 +211,19 @@ public class TagEditor extends AbstractStage {
     public void doRenameTag(final String oldName, final String newName) {
         assert oldName != null;
         
-        final List<NoteData> notesList = OwnNoteFileManager.getInstance().getNotesList();
-        for (NoteData note : notesList) {
-            if (note.getMetaData().getTags().contains(oldName)) {
+        final TagInfo oldTag = TagManager.getInstance().tagForName(oldName);
+        final List<Note> notesList = OwnNoteFileManager.getInstance().getNotesList();
+        for (Note note : notesList) {
+            if (note.getMetaData().getTags().contains(oldTag)) {
                 final boolean inEditor = note.equals(myEditor.getEditedNote());
                 if (!inEditor) {
                     // read note - only if not currently in editor!
                     OwnNoteFileManager.getInstance().readNote(note);
                 }
                 
+                note.getMetaData().getTags().remove(oldTag);
                 if (newName != null) {
-                    Collections.replaceAll(note.getMetaData().getTags(), oldName, newName);
-                } else {
-                    note.getMetaData().getTags().remove(oldName);
+                    note.getMetaData().getTags().add(TagManager.getInstance().tagForName(newName));
                 }
 
                 if (!inEditor) {

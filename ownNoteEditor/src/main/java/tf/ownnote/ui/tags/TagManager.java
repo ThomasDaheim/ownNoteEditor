@@ -26,6 +26,7 @@
 package tf.ownnote.ui.tags;
 
 import com.sun.javafx.collections.ObservableListWrapper;
+import com.sun.javafx.collections.ObservableSetWrapper;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.xml.DomDriver;
 import com.thoughtworks.xstream.io.xml.PrettyPrintWriter;
@@ -43,8 +44,9 @@ import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
+import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -54,6 +56,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.ObservableSet;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.xstreamfx.FXConverters;
 import tf.ownnote.ui.helper.FileContentChangeType;
@@ -61,7 +64,7 @@ import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.Note;
 
 /**
  * Load & save tag info to XML stored along with notes.
@@ -72,7 +75,7 @@ import tf.ownnote.ui.notes.NoteData;
 public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubscriber {
     private final static TagManager INSTANCE = new TagManager();
     
-    private final static String TAG_FILE = File.separator + "tags" + File.separator + "tag_info.xml";
+    private final static String TAG_FILE = File.separator + "MetaData" + File.separator + "tag_info.xml";
     
     private ObservableList<TagInfo> tagList = null;
     
@@ -122,6 +125,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             final Class<?>[] classes = new Class[] { 
                 TagInfo.class, 
                 ObservableListWrapper.class, 
+                ObservableSetWrapper.class, 
                 SimpleBooleanProperty.class, 
                 SimpleStringProperty.class };
             xstream.allowTypes(classes);
@@ -130,6 +134,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
 
             xstream.alias("taginfo", TagInfo.class);
             xstream.alias("listProperty", ObservableListWrapper.class);
+            xstream.alias("setProperty", ObservableSetWrapper.class);
             xstream.alias("booleanProperty", SimpleBooleanProperty.class);
             xstream.alias("stringProperty", SimpleStringProperty.class);
 
@@ -153,25 +158,25 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
 
         // current metadata tags
-        final List<NoteData> noteList = OwnNoteFileManager.getInstance().getNotesList();
-        final Set<String> noteTags = new HashSet<>();
-        for (NoteData note : noteList) {
-            noteTags.addAll(note.getMetaData().getTags());
-        }
+//        final List<Note> noteList = OwnNoteFileManager.getInstance().getNotesList();
+//        final Set<String> noteTags = new HashSet<>();
+//        for (Note note : noteList) {
+//            noteTags.addAll(note.getMetaData().getTags());
+//        }
         
-        // add if not yet in list
-        // flatten tagslist to set
-        // http://squirrel.pl/blog/2015/03/04/walking-recursive-data-structures-using-java-8-streams/
-        // https://stackoverflow.com/a/31992391
-        final Set<String> tagNames = tagList.stream().map((t) -> {
-            return t.flattened().map(TagInfo::getName);
-        }).flatMap(Function.identity()).collect(Collectors.toSet());
-        
-        for (String noteTag : noteTags) {
-            if (!tagNames.contains(noteTag)) {
-                tagList.add(new TagInfo(noteTag));
-            }
-        }
+//        // add if not yet in list
+//        // flatten tagslist to set
+//        // http://squirrel.pl/blog/2015/03/04/walking-recursive-data-structures-using-java-8-streams/
+//        // https://stackoverflow.com/a/31992391
+//        final Set<String> tagNames = tagList.stream().map((t) -> {
+//            return t.flattened().map(TagInfo::getName);
+//        }).flatMap(Function.identity()).collect(Collectors.toSet());
+//        
+//        for (String noteTag : noteTags) {
+//            if (!tagNames.contains(noteTag)) {
+//                tagList.add(new TagInfo(noteTag));
+//            }
+//        }
     }
 
     public void saveTags() {
@@ -187,14 +192,16 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         final Class<?>[] classes = new Class[] { 
             TagInfo.class, 
             ObservableListWrapper.class, 
+            ObservableSetWrapper.class, 
             SimpleBooleanProperty.class, 
             SimpleStringProperty.class };
         xstream.allowTypes(classes);
-        
+
         FXConverters.configure(xstream);
-        
+
         xstream.alias("taginfo", TagInfo.class);
         xstream.alias("listProperty", ObservableListWrapper.class);
+        xstream.alias("setProperty", ObservableSetWrapper.class);
         xstream.alias("booleanProperty", SimpleBooleanProperty.class);
         xstream.alias("stringProperty", SimpleStringProperty.class);
 
@@ -221,7 +228,60 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
 
     @Override
-    public boolean processFileContentChange(final FileContentChangeType changeType, final NoteData note, final String oldContent, final String newContent) {
+    public boolean processFileContentChange(final FileContentChangeType changeType, final Note note, final String oldContent, final String newContent) {
         return true;
+    }
+    
+    public void groupsToTags() {
+        // check all notes if they already have a tag with their group name
+        // if not add such a tag
+        // probaly only used once for "migration" to tag metadata
+        for (Note note : OwnNoteFileManager.getInstance().getNotesList()) {
+            if (!note.getGroupName().isEmpty()) {
+                final TagInfo groupInfo = tagForName(note.getGroupName());
+                if (!note.getMetaData().getTags().contains(groupInfo)) {
+                    System.out.println("Adding tag " + note.getGroupName() + " to note " + note.getNoteName());
+                    OwnNoteFileManager.getInstance().readNote(note);
+                    note.getMetaData().getTags().add(groupInfo);
+                    OwnNoteFileManager.getInstance().saveNote(note);
+                }
+            }
+        }
+        
+    }
+    
+    public TagInfo tagForName(final String tagName) {
+        return tagsForNames(new HashSet<>(Arrays.asList(tagName))).iterator().next();
+    }
+
+    public Set<TagInfo> tagsForNames(final Set<String> tagNames) {
+        final Set<TagInfo> result = new HashSet<>();
+
+        // make sure with the set...
+        getTagList();
+        
+        // flatten tagslist to set
+        // http://squirrel.pl/blog/2015/03/04/walking-recursive-data-structures-using-java-8-streams/
+        // https://stackoverflow.com/a/31992391
+        final Set<TagInfo> flatTags = tagList.stream().map((t) -> {
+            return t.flattened();
+        }).flatMap(Function.identity()).collect(Collectors.toSet());
+
+        for (String tagName : tagNames) {
+            final Optional<TagInfo> tag = flatTags.stream().filter((t) -> {
+                return t.getName().equals(tagName);
+            }).findFirst();
+            
+            if (tag.isPresent()) {
+                result.add(tag.get());
+            } else {
+                // we didn't run into that one before...
+                final TagInfo newTag = new TagInfo(tagName);
+                tagList.add(newTag);
+                result.add(newTag);
+            }
+        }
+        
+        return result;
     }
 }

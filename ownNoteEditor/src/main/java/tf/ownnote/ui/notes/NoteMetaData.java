@@ -26,11 +26,16 @@
 package tf.ownnote.ui.notes;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.ObservableSet;
+import tf.ownnote.ui.tags.TagInfo;
+import tf.ownnote.ui.tags.TagManager;
 
 /**
  * Store for note metadata, e.g. author, last modified, tags, ...
@@ -72,7 +77,7 @@ public class NoteMetaData {
     }
 
     private final ObservableList<NoteVersion> myVersions = FXCollections.observableArrayList();
-    private final ObservableList<String> myTags = FXCollections.observableArrayList();
+    private final ObservableSet<TagInfo> myTags = FXCollections.observableSet();
     
     public NoteMetaData() {
         super();
@@ -111,11 +116,11 @@ public class NoteMetaData {
         }
     }
 
-    public ObservableList<String> getTags() {
+    public ObservableSet<TagInfo> getTags() {
         return myTags;
     }
 
-    public void setTags(final List<String> tags) {
+    public void setTags(final Set<TagInfo> tags) {
         myTags.clear();
         myTags.addAll(tags);
     }
@@ -180,7 +185,7 @@ public class NoteMetaData {
                                 infoFound = true;
                                 break;
                             case TAGS:
-                                result.setTags(Arrays.asList(values));
+                                result.setTags(TagManager.getInstance().tagsForNames(new HashSet<>(Arrays.asList(values))));
                                 infoFound = true;
                                 break;
                             default:
@@ -215,7 +220,9 @@ public class NoteMetaData {
             if (hasData) {
                 result += META_DATA_SEP;
             }
-            result += MetaDataInfo.TAGS.getDataName() + "=\"" + data.getTags().stream().collect(Collectors.joining(META_VALUES_SEP)) + "\"";
+            result += MetaDataInfo.TAGS.getDataName() + "=\"" + data.getTags().stream().map((t) -> {
+                return t.getName();
+            }).collect(Collectors.joining(META_VALUES_SEP)) + "\"";
             hasData = true;
         }
         if (hasData) {

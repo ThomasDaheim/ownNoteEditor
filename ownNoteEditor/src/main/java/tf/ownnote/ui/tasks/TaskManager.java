@@ -20,7 +20,7 @@ import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.Note;
 
 /**
  * Handler for creation, search, update, sync of tasks with their notes.
@@ -59,9 +59,9 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     
     private void initTaskList() {
         // find all notes containing checkbox and parse to create TaskData for them
-        final List<NoteData> taskNotes = OwnNoteFileManager.getInstance().getNotesWithText(OwnNoteEditor.ANY_BOXES);
+        final List<Note> taskNotes = OwnNoteFileManager.getInstance().getNotesWithText(OwnNoteEditor.ANY_BOXES);
         
-        for (NoteData note : taskNotes) {
+        for (Note note : taskNotes) {
             final String noteContent = OwnNoteFileManager.getInstance().readNote(note);
 
             taskList.addAll(tasksFromNote(note, noteContent));
@@ -69,7 +69,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     }
     
     // noteContent as separate parm since it could be called from change withint editor before save
-    public List<TaskData> tasksFromNote(final NoteData note, final String noteContent) {
+    public List<TaskData> tasksFromNote(final Note note, final String noteContent) {
         final List<TaskData> result = new ArrayList<>();
 
         // iterate over all matches and create TaskData items
@@ -123,7 +123,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             return true;
         }
 
-        final NoteData curNote = myEditor.getEditedNote();
+        final Note curNote = myEditor.getEditedNote();
         if (curNote != null && OwnNoteFileManager.getInstance().buildNoteName(curNote).equals(filePath.getFileName().toString())) {
             return true;
         }
@@ -134,12 +134,12 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             if (StandardWatchEventKinds.ENTRY_DELETE.equals(eventKind) || StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                 // file with tasks deleted -> remove tasks from own list
                 taskList.removeIf((t) -> {
-                    return OwnNoteFileManager.getInstance().buildNoteName(t.getNoteData()).equals(filePath.getFileName().toString());
+                    return OwnNoteFileManager.getInstance().buildNoteName(t.getNote()).equals(filePath.getFileName().toString());
                 });
             }
             if (StandardWatchEventKinds.ENTRY_CREATE.equals(eventKind) || StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                 // new file -> scan for tasks and update own list (similar to #2)
-                final NoteData note = OwnNoteFileManager.getInstance().getNoteData(filePath.getFileName().toString());
+                final Note note = OwnNoteFileManager.getInstance().getNote(filePath.getFileName().toString());
                 // TFE, 20201027: make sure we don't try to work on temp files which have been deleted in the meantime...
                 if (note != null) {
                     final String noteContent = OwnNoteFileManager.getInstance().readNote(note);
@@ -155,7 +155,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     }
 
     @Override
-    public boolean processFileContentChange(final FileContentChangeType changeType, final NoteData note, final String oldContent, final String newContent) {
+    public boolean processFileContentChange(final FileContentChangeType changeType, final Note note, final String oldContent, final String newContent) {
 //        System.out.println("processFileContentChange: " + changeType + ", " + note.getNoteName() + ", " + oldContent + ", " + newContent + ".");
         if (inFileChange) {
             return true;
@@ -166,7 +166,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             // rescan text for tasks and update tasklist accordingly
             final List<TaskData> newTasks = tasksFromNote(note, newContent);
             final List<TaskData> oldTasks = taskList.stream().filter((t) -> {
-                return t.getNoteData().getGroupName().equals(note.getGroupName()) && t.getNoteData().getNoteName().equals(note.getNoteName());
+                return t.getNote().getGroupName().equals(note.getGroupName()) && t.getNote().getNoteName().equals(note.getNoteName());
             }).collect(Collectors.toList());
             
             // compare old a new to minimize change impact on observable list
@@ -249,7 +249,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
 
             TaskData changedTask = null;
             for (TaskData task : taskList) {
-                if (task.getNoteData().equals(note) && task.getDescription().equals(oldDescription)) {
+                if (task.getNote().equals(note) && task.getDescription().equals(oldDescription)) {
                     changedTask = task;
                     break;
                 }
@@ -278,7 +278,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         inFileChange = true;
 
 //        System.out.println("processTaskCompletedChanged for: " + task);
-        myEditor.selectNoteAndToggleCheckBox(task.getNoteData(), task.getTextPos(), task.getHtmlText(), task.isCompleted());
+        myEditor.selectNoteAndToggleCheckBox(task.getNote(), task.getTextPos(), task.getHtmlText(), task.isCompleted());
 
         inFileChange = false;
     }
@@ -287,10 +287,10 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         return inFileChange;
     }
     
-    public TaskCount getTaskCount(final NoteData note) {
+    public TaskCount getTaskCount(final Note note) {
         // first all tasks for this note
         final List<TaskData> noteTasks = taskList.stream().filter((t) -> {
-            return t.getNoteData().equals(note);
+            return t.getNote().equals(note);
         }).collect(Collectors.toList());
         
         final long closedTasks = noteTasks.stream().filter((t) -> {

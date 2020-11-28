@@ -31,7 +31,7 @@ import java.util.HashMap;
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class GroupData extends HashMap<String,String> {
+public class NoteGroup extends HashMap<String,String> {
 
     // to reference the columns for groups table
     private enum GroupMapKey {
@@ -44,15 +44,15 @@ public class GroupData extends HashMap<String,String> {
     public static final String NOT_GROUPED = "Not grouped";
     public static final String NEW_GROUP = "New group";
     
-    public GroupData() {
+    public NoteGroup() {
         super();
     }
     
-    public GroupData(final GroupData dataRow) {
+    public NoteGroup(final NoteGroup dataRow) {
         super(dataRow);
     }
     
-    public static String getGroupDataName(final int i) {
+    public static String getNoteGroupName(final int i) {
         return GroupMapKey.values()[i].name();
     }
     

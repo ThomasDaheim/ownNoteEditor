@@ -27,8 +27,10 @@ package tf.ownnote.ui.helper;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javafx.collections.ListChangeListener;
+import javafx.collections.SetChangeListener;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -45,9 +47,11 @@ import javafx.scene.layout.Region;
 import javafx.scene.text.TextAlignment;
 import tf.helper.javafx.AbstractStage;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteVersion;
 import tf.ownnote.ui.tags.TagEditor;
+import tf.ownnote.ui.tags.TagInfo;
+import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tasks.TaskCount;
 import tf.ownnote.ui.tasks.TaskManager;
 
@@ -70,7 +74,7 @@ public class OwnNoteMetaEditor {
     private Label taskstxt;
     private final FlowPane tagsBox = new FlowPane();
     
-    private NoteData editorNote;
+    private Note editorNote;
     private boolean hasChanged = false;
 
     private OwnNoteMetaEditor() {
@@ -123,9 +127,7 @@ public class OwnNoteMetaEditor {
         
         final Button tagsButton = new Button("+");
         tagsButton.setOnAction((t) -> {
-            if (TagEditor.getInstance().editTags(editorNote)) {
-                editorNote.getMetaData().getTags().addAll(TagEditor.getInstance().getSelectedTags(TagEditor.SelectedMode.CHECK_ACTION));
-            }
+            TagEditor.getInstance().editTags(editorNote);
         });
 
         final Label tasksLbl = new Label("Tasks:");
@@ -139,7 +141,7 @@ public class OwnNoteMetaEditor {
         myHBox.getChildren().addAll(authorsLbl, versions, tagsLbl, tagsBox, tagsButton, region1, tasksLbl, taskstxt);
     }
     
-    public void editNote(final NoteData note) {
+    public void editNote(final Note note) {
         if (note == null) {
             return;
         }
@@ -152,32 +154,29 @@ public class OwnNoteMetaEditor {
             editorNote.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), LocalDateTime.now()));
         }
         versions.getItems().addAll(
-                editorNote.getMetaData().getVersions().stream().map((t) -> {
-                    return NoteVersion.toHtmlString(t);
-                }).collect(Collectors.toList())
+            editorNote.getMetaData().getVersions().stream().map((t) -> {
+                return NoteVersion.toHtmlString(t);
+            }).collect(Collectors.toList())
         );
         versions.getSelectionModel().selectLast();
         
         tagsBox.getChildren().clear();
-        for (String tag : editorNote.getMetaData().getTags()) {
+        final Set<String> tags = editorNote.getMetaData().getTags().stream().map((t) -> {
+            return t.getName();
+        }).collect(Collectors.toSet());
+        for (String tag : tags) {
             addTagLabel(tag);
         }
 
         // change listener as well
-        editorNote.getMetaData().getTags().addListener((ListChangeListener.Change<? extends String> c) -> {
+        editorNote.getMetaData().getTags().addListener((SetChangeListener.Change<? extends TagInfo> c) -> {
             hasChanged = true;
 
-            while (c.next()) {
-                if (c.wasRemoved()) {
-                    for (String tag : c.getRemoved()) {
-                        removeTagLabel(tag);
-                    }
-                }
-                if (c.wasAdded()) {
-                    for (String tag : c.getAddedSubList()) {
-                        addTagLabel(tag);
-                    }
-                }
+            if (c.wasRemoved()) {
+                removeTagLabel(c.getElementRemoved().getName());
+            }
+            if (c.wasAdded()) {
+                addTagLabel(c.getElementAdded().getName());
             }
         });
         
@@ -229,7 +228,7 @@ public class OwnNoteMetaEditor {
         
         removeTag.setOnMouseClicked((t) -> {
             // get rid of this tag in the note and of the node in the pane...
-            editorNote.getMetaData().getTags().remove(tag);
+            editorNote.getMetaData().getTags().remove(TagManager.getInstance().tagForName(tag));
         });
         
         result.getChildren().addAll(tagLabel, removeTag);

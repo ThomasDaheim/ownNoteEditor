@@ -25,10 +25,16 @@
  */
 package tf.ownnote.ui.tags;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import tf.helper.javafx.RecursiveTreeItem;
@@ -49,9 +55,19 @@ import tf.helper.javafx.RecursiveTreeItem;
 public class TagsTreeView extends TreeView<TagInfo> {
     private boolean inPropgateUpwardsAction = false;
     
+    public enum WorkMode {
+        EDIT_MODE,
+        SELECT_MODE
+    }
+    private final BooleanProperty allowEdit = new SimpleBooleanProperty(true);
+    
+    private WorkMode workMode = WorkMode.EDIT_MODE;
+    
     private BiConsumer<String, String> renameFunction;
     
-    private ObservableSet<TagInfo> selectedItems = FXCollections.observableSet(new HashSet<>());
+    private final ObservableSet<TagInfo> selectedItems = FXCollections.observableSet(new HashSet<>());
+    
+    private final Set<TagInfo> initialTags = new HashSet<>();
     
     public TagsTreeView() {
         initTreeView();
@@ -60,10 +76,15 @@ public class TagsTreeView extends TreeView<TagInfo> {
     private void initTreeView() {
         setEditable(true);
 
-        final double treeViewHeight = 300.0;
+        final double treeViewHeight = 600.0;
         setPrefHeight(treeViewHeight);
         setMinHeight(treeViewHeight);
         setMaxHeight(treeViewHeight);
+        
+        final double treeViewWidth = 600.0;
+        setPrefWidth(treeViewWidth);
+        setMinWidth(treeViewWidth);
+        setMaxWidth(treeViewWidth);
         
         setCellFactory(TagTreeCellFactory.getInstance());
         
@@ -77,8 +98,38 @@ public class TagsTreeView extends TreeView<TagInfo> {
         });
     }
     
+    private void initWorkMode() {
+        // reset so that change listener gets triggered
+        allowEdit.set(true);
+
+        switch (workMode) {
+        case EDIT_MODE:
+            getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+            
+            // show checkboxes
+            allowEdit.set(true);
+            break;
+        case SELECT_MODE:
+            getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+
+            // hide checkboxes
+            allowEdit.set(false);
+            break;
+        }
+    }
+    
+    public BooleanProperty allowEditProperty() {
+        return allowEdit;
+    }
+    
     public ObservableSet<TagInfo> getSelectedItems() {
         return selectedItems;
+    }
+    
+    public Set<TagInfo> getSelectedLeafItems() {
+        return selectedItems.stream().filter((t) -> {
+            return t.getChildren().isEmpty();
+        }).collect(Collectors.toSet());
     }
     
     // callback to do the work
@@ -86,19 +137,41 @@ public class TagsTreeView extends TreeView<TagInfo> {
         renameFunction = funct;
     }
     
-    public void fillTreeView() {
+    public void fillTreeView(final Set<TagInfo> tags) {
+        initialTags.clear();
+        if (tags != null) {
+            initialTags.addAll(tags);
+            workMode = WorkMode.SELECT_MODE;
+        } else {
+            workMode = WorkMode.EDIT_MODE;
+        }
+        
         selectedItems.clear();
 
+        setRoot(null);
         final TagInfo rootItem = new TagInfo("Tags");
         rootItem.setChildren(TagManager.getInstance().getTagList());
-        
         setRoot(new RecursiveTreeItem<>(rootItem, this::newItemConsumer, (item) -> null, TagInfo::getChildren, true, (item) -> true));
+        
+        // set property after filling list :-)
+        initWorkMode();
     }
     
     public void newItemConsumer(final TreeItem<TagInfo> newItem) {
         newItem.getValue().selectedProperty().addListener((obs, oldValue, newValue) -> {
             changeAction(newItem, oldValue, newValue);
         });
+        
+        final TagInfo tag = newItem.getValue();
+        if (tag != null) {
+            if (initialTags.contains(tag.getName())) {
+                tag.setSelected(true);
+                selectedItems.add(tag);
+            } else {
+                tag.setSelected(false);
+                selectedItems.remove(tag);
+            }
+        }
     }
     
     private void changeAction(final TreeItem<TagInfo> item, final Boolean oldValue, final Boolean newValue) {
@@ -144,5 +217,29 @@ public class TagsTreeView extends TreeView<TagInfo> {
         parent.getValue().setSelected(!unSelectedFlag);
 
         inPropgateUpwardsAction = false;
+    }
+    
+    public boolean isTagNameInTreeView(final String tag) {
+        return (getTreeViewItem(getRoot(), tag) != null);
+    }
+
+    // TODO make a generic helper method out of it with TreeItem<T>, Function<TreeItem<T>, S> and S value
+    public static TreeItem<TagInfo> getTreeViewItem(TreeItem<TagInfo> item , String value) {
+        if (item != null) {
+            if (item.getValue().getName().equals(value)) {
+                // found it!
+                return item;
+            }
+
+            // check children and below
+            for (TreeItem<TagInfo> child : item.getChildren()){
+                TreeItem<TagInfo> s = getTreeViewItem(child, value);
+                if (s != null) {
+                    return s;
+                }
+            }
+        }
+        
+        return null;
     }
 }

@@ -31,7 +31,7 @@ import java.util.HashMap;
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class NoteData extends HashMap<String,String> {
+public class Note extends HashMap<String,String> {
     // to reference the columns for notes table
     private enum NoteMapKey {
         noteName,
@@ -48,32 +48,32 @@ public class NoteData extends HashMap<String,String> {
     // TFE, 20201022: store additional metadata, e.g. tags, author, ...
     private NoteMetaData myMetaData = new NoteMetaData();
 
-    public NoteData() {
+    public Note() {
         super();
     }
     
-    public NoteData(final String groupName, final String noteName) {
+    public Note(final String groupName, final String noteName) {
         super();
         
         setGroupName(groupName);
         setNoteName(noteName);
     }
     
-    public NoteData(final NoteData noteData) {
-        super(noteData);
+    public Note(final Note Note) {
+        super(Note);
         
-        myMetaData = noteData.myMetaData;
+        myMetaData = Note.myMetaData;
     }
     
-    public static String getNoteDataName(final int i) {
+    public static String getNoteName(final int i) {
         return NoteMapKey.values()[i].name();
     }
     
-    public static NoteData fromString(final String groupString) {
+    public static Note fromString(final String groupString) {
         assert (groupString != null);
         assert (groupString.length() > 6);
         
-        final NoteData data = new NoteData();
+        final Note data = new Note();
         final String[] dataStrings = groupString.substring(1, groupString.length()-1).split(", ");
         for (String mapString : dataStrings) {
             final String[] mapStrings = mapString.split("=");

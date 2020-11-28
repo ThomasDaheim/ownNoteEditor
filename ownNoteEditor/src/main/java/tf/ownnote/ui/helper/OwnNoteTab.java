@@ -24,7 +24,7 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.WindowEvent;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.Note;
 
 /**
  * A draggable tab that can optionally be detached from its tab pane and shown
@@ -217,7 +217,7 @@ public class OwnNoteTab extends Tab {
             Dragboard db = event.getDragboard();
             boolean success = false;
             if (db.hasString()) {
-                final NoteData dragNote = NoteData.fromString(db.getString());
+                final Note dragNote = Note.fromString(db.getString());
                 // 1. rename note to new group name
                 if (myEditor.moveNoteWrapper(dragNote, getTabName())) {
                     // 2. focus on this tab

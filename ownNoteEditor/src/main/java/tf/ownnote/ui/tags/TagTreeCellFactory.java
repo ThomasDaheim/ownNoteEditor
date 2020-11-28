@@ -26,6 +26,7 @@
 package tf.ownnote.ui.tags;
 
 import java.util.Objects;
+import javafx.beans.binding.Bindings;
 import javafx.beans.value.ObservableValue;
 import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
@@ -49,6 +50,7 @@ import javafx.util.StringConverter;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AppClipboard;
 import tf.helper.javafx.CellUtils;
+import tf.ownnote.ui.helper.FormatHelper;
 
 /**
  * Add TextFieldTreeCell functionality to CheckBoxTreeCell
@@ -60,10 +62,9 @@ import tf.helper.javafx.CellUtils;
  */
 public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<TagInfo>> {
     private final static TagTreeCellFactory INSTANCE = new TagTreeCellFactory();
-
+    
     public static final DataFormat DRAG_AND_DROP = new DataFormat("application/ownnoteeditor-treetableview-dnd");
     public static final DataFormat COPY_AND_PASTE = new DataFormat("application/ownnoteeditor-treetableview-cnp");
-    
     
     private enum DropPosition{
         TOP(0, 0.2, "-fx-border-color: #eea82f; -fx-border-width: 2 0 0 0"),
@@ -165,7 +166,13 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
                         contextMenu.getItems().addAll(newChildItem);
                     }
 
-                    setContextMenu(contextMenu);
+                    if (treeView instanceof TagsTreeView) {
+                        contextMenuProperty().bind(
+                                Bindings.when(((TagsTreeView) treeView).allowEditProperty()).
+                                        then(contextMenu).otherwise((ContextMenu)null));
+                    } else {
+                        setContextMenu(contextMenu);
+                    }
                 }
             }            
 
@@ -179,6 +186,13 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
                 if (isEditing()) {
                     if (textField == null) {
                         textField = CellUtils.createTextField(this, tagInfoConverter);
+                        
+                        if (treeView instanceof TagsTreeView) {
+                            // set textformatter that checks against existing tags and disables duplicates
+                            FormatHelper.getInstance().initTagNameTextField(textField, (t) -> {
+                                return !((TagsTreeView) treeView).isTagNameInTreeView(t);
+                            });
+                        }
                     }
                     if (hbox == null) {
                         hbox = new HBox(CellUtils.TREE_VIEW_HBOX_GRAPHIC_PADDING);
@@ -199,7 +213,24 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
                 return treeItem == null ? null : treeItem.getGraphic();
             }
         };
-
+        
+        if (treeView instanceof TagsTreeView) {
+            // add listener to TagsTreeView property
+            ((TagsTreeView) treeView).allowEditProperty().addListener((ov, oldValue, newValue) -> {
+                if (newValue != null && newValue) {
+                    cell.setOnDragDetected((MouseEvent event) -> dragDetected(event, cell, treeView));
+                    cell.setOnDragOver((DragEvent event) -> dragOver(event, cell, treeView));
+                    cell.setOnDragDropped((DragEvent event) -> drop(event, cell, treeView));
+                    cell.setOnDragDone((DragEvent event) -> clearDropLocation());
+                } else {
+                    cell.setOnDragDetected((MouseEvent event) -> {});
+                    cell.setOnDragOver((DragEvent event) -> {});
+                    cell.setOnDragDropped((DragEvent event) -> {});
+                    cell.setOnDragDone((DragEvent event) -> {});
+                }
+            });
+        }
+        
         cell.setOnDragDetected((MouseEvent event) -> dragDetected(event, cell, treeView));
         cell.setOnDragOver((DragEvent event) -> dragOver(event, cell, treeView));
         cell.setOnDragDropped((DragEvent event) -> drop(event, cell, treeView));

@@ -5,7 +5,7 @@
  */
 package tf.ownnote.ui.helper;
 
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.Note;
 
 /**
  * Subscriber interface for editor content changes.
@@ -15,5 +15,5 @@ import tf.ownnote.ui.notes.NoteData;
  * @author thomas
  */
 public interface IFileContentChangeSubscriber {
-    abstract boolean processFileContentChange(final FileContentChangeType changeType, final NoteData note, final String oldContent, final String newContent);
+    abstract boolean processFileContentChange(final FileContentChangeType changeType, final Note note, final String oldContent, final String newContent);
 }
