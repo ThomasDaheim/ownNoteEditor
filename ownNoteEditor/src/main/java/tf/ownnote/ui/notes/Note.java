@@ -59,10 +59,10 @@ public class Note extends HashMap<String,String> {
         setNoteName(noteName);
     }
     
-    public Note(final Note Note) {
-        super(Note);
+    public Note(final Note note) {
+        super(note);
         
-        myMetaData = Note.myMetaData;
+        myMetaData = note.myMetaData;
     }
     
     public static String getNoteName(final int i) {

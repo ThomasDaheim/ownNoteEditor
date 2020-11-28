@@ -400,9 +400,9 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         updateTabOrder();
     }
     
-    public void selectGroupForNote(final Note Note) {
+    public void selectGroupForNote(final Note note) {
         // find tab that has group as userdata
-        final NoteGroup NoteGroup = OwnNoteFileManager.getInstance().getNoteGroup(Note);
+        final NoteGroup NoteGroup = OwnNoteFileManager.getInstance().getNoteGroup(note);
         
         Tab groupTab = null;
         for (Tab tab : myTabPane.getTabs()) {

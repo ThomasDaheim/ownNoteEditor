@@ -259,14 +259,14 @@ public class OwnNoteFileManager {
         return result;
     }
     
-    public NoteGroup getNoteGroup(final Note Note) {
-        return getNoteGroup(Note.getGroupName());
+    public NoteGroup getNoteGroup(final Note note) {
+        return getNoteGroup(note.getGroupName());
     }
 
-    public boolean deleteNote(final Note Note) {
-        assert Note != null;
+    public boolean deleteNote(final Note note) {
+        assert note != null;
         
-        return deleteNote(Note.getGroupName(), Note.getNoteName());
+        return deleteNote(note.getGroupName(), note.getNoteName());
     }
     
     public boolean deleteNote(final String groupName, final String noteName) {
@@ -372,24 +372,24 @@ public class OwnNoteFileManager {
         return result;
     }
 
-    public boolean saveNote(final Note Note) {
-        assert Note != null;
+    public boolean saveNote(final Note note) {
+        assert note != null;
         
         boolean result = true;
         initFilesInProgress();
 
-        final String newFileName = buildNoteName(Note);
+        final String newFileName = buildNoteName(note);
         
         String content = "";
         try {
             // TODO: set author
-            content = Note.getNoteEditorContent();
+            content = note.getNoteEditorContent();
             if (content == null) {
-                content = Note.getNoteFileContent();
+                content = note.getNoteFileContent();
             }
             // TFE, 20201024: store note metadata
-            Note.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), LocalDateTime.now()));
-            final String fullContent = NoteMetaData.toHtmlString(Note.getMetaData()) + content;
+            note.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), LocalDateTime.now()));
+            final String fullContent = NoteMetaData.toHtmlString(note.getMetaData()) + content;
             
             final Path savePath = Files.write(Paths.get(this.notesPath, newFileName), fullContent.getBytes());
             
@@ -408,7 +408,7 @@ public class OwnNoteFileManager {
         resetFilesInProgress();
 
         if (result) {
-            Note.setNoteFileContent(content);
+            note.setNoteFileContent(content);
         }
 
         return result;

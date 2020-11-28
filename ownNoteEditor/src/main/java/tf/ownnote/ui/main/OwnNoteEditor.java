@@ -980,23 +980,23 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         return noteHTMLEditor.getEditedNote();
     }
     
-    public void selectNoteAndCheckBox(final Note Note, final int textPos, final String htmlText) {
+    public void selectNoteAndCheckBox(final Note note, final int textPos, final String htmlText) {
         // need to distinguish between views to select group
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-            groupsTable.selectGroupForNote(Note);
+            groupsTable.selectGroupForNote(note);
         } else {
-            groupsPane.selectGroupForNote(Note);
+            groupsPane.selectGroupForNote(note);
         }
         
         // and now select the note - leads to callback to editNote to fill the htmleditor
-        notesTable.selectNote(Note);
+        notesTable.selectNote(note);
         
         noteHTMLEditor.scrollToCheckBox(textPos, htmlText);
     }
     
-    public void selectNoteAndToggleCheckBox(final Note Note, final int textPos, final String htmlText, final boolean newStatus) {
+    public void selectNoteAndToggleCheckBox(final Note note, final int textPos, final String htmlText, final boolean newStatus) {
         // make sure the note is shown and the cursor is in place
-        selectNoteAndCheckBox(Note, textPos, htmlText);
+        selectNoteAndCheckBox(note, textPos, htmlText);
         
         // now change the status
         noteHTMLEditor.toggleCheckBox(textPos, htmlText, newStatus);
@@ -1241,8 +1241,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         return result;
     }
 
-    public boolean saveNoteWrapper(final Note Note) {
-        Boolean result = OwnNoteFileManager.getInstance().saveNote(Note);
+    public boolean saveNoteWrapper(final Note note) {
+        Boolean result = OwnNoteFileManager.getInstance().saveNote(note);
                 
         if (result) {
             if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {

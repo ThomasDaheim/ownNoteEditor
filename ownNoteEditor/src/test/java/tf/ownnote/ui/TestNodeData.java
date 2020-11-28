@@ -188,8 +188,8 @@ public class TestNodeData {
     public int getNotesCountForName(final String noteName) {
         int result = 0;
 
-        for (Note Note : notesList.values()) {
-            if (Note.getNoteName().contains(noteName)) {
+        for (Note note : notesList.values()) {
+            if (note.getNoteName().contains(noteName)) {
                 result++;
             }
         }

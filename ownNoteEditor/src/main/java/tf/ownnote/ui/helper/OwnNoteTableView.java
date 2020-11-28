@@ -193,16 +193,16 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         myTableView.getFocusModel().focus(rownum);
     }
     
-    public void selectGroupForNote(final Note Note) {
+    public void selectGroupForNote(final Note note) {
         assert (TableType.groupsTable.equals(myTableType));
 
-        myTableView.getSelectionModel().select(OwnNoteFileManager.getInstance().getNoteGroup(Note));
+        myTableView.getSelectionModel().select(OwnNoteFileManager.getInstance().getNoteGroup(note));
     }
     
-    public void selectNote(final Note Note) {
+    public void selectNote(final Note note) {
         assert (TableType.notesTable.equals(myTableType));
 
-        myTableView.getSelectionModel().select(Note);
+        myTableView.getSelectionModel().select(note);
     }
 
     private void initTableView() {
@@ -384,11 +384,11 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
             // find & select new entry based on note name and group name
             int selectIndex = -1;
             int i = 0;
-            Note Note;
-            for (Map<String, String> note : getItems()) {
-                Note = new Note(ObjectsHelper.uncheckedCast(note));
+            Note note;
+            for (Map<String, String> noteData : getItems()) {
+                note = new Note(ObjectsHelper.uncheckedCast(noteData));
                 
-                if (newNoteName.equals(Note.getNoteName()) && newGroupName.equals(Note.getGroupName())) {
+                if (newNoteName.equals(note.getNoteName()) && newGroupName.equals(note.getGroupName())) {
                     selectIndex = i;
                     break;
                 }
