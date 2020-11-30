@@ -119,18 +119,18 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     @Override
     public void loadPreferences(final IPreferencesStore store) {
         if (TableType.notesTable.equals(myTableType)) {
-            setSortOrder(TableSortHelper.fromString(store.get(OwnNoteEditorPreferences.RECENTNOTESTABLESORTORDER, "")));
+            setSortOrder(TableSortHelper.fromString(store.get(OwnNoteEditorPreferences.RECENT_NOTESTABLE_SORTORDER, "")));
         } else {
-            setSortOrder(TableSortHelper.fromString(store.get(OwnNoteEditorPreferences.RECENTGROUPSTABLESORTORDER, "")));
+            setSortOrder(TableSortHelper.fromString(store.get(OwnNoteEditorPreferences.RECENT_GROUPSTABLE_SORTORDER, "")));
         }
     }
     
     @Override
     public void savePreferences(final IPreferencesStore store) {
         if (TableType.notesTable.equals(myTableType)) {
-            store.put(OwnNoteEditorPreferences.RECENTNOTESTABLESORTORDER, TableSortHelper.toString(getSortOrder()));
+            store.put(OwnNoteEditorPreferences.RECENT_NOTESTABLE_SORTORDER, TableSortHelper.toString(getSortOrder()));
         } else {
-            store.put(OwnNoteEditorPreferences.RECENTGROUPSTABLESORTORDER, TableSortHelper.toString(getSortOrder()));
+            store.put(OwnNoteEditorPreferences.RECENT_GROUPSTABLE_SORTORDER, TableSortHelper.toString(getSortOrder()));
         }
     }
 
@@ -235,8 +235,8 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                         protected void updateItem(Map<String, String> item, boolean empty) {
                             super.updateItem(item, empty);
                             
-                            // issue #36 - but only for "oneNote" look & feel
-                            if (OwnNoteEditorParameters.LookAndFeel.oneNote.equals(myEditor.getCurrentLookAndFeel())) {
+                            // issue #36 - but only for "groupTabs" look & feel
+                            if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(myEditor.getCurrentLookAndFeel())) {
                                 if (item == null) {
                                     // reset background to default
                                     setStyle("-fx-background-color: none");
@@ -260,8 +260,8 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                     final ContextMenu fullMenu = new ContextMenu();
                     
                     final MenuItem newNote1 = new MenuItem("New Note");
-                    // issue #41 - but only in oneNote look...
-                    if (OwnNoteEditorParameters.LookAndFeel.oneNote.equals(myEditor.getCurrentLookAndFeel())) {
+                    // issue #41 - but only in groupTabs look...
+                    if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(myEditor.getCurrentLookAndFeel())) {
                         newNote1.setAccelerator(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN));
                     }
                     newNote1.setOnAction((ActionEvent event) -> {
@@ -273,8 +273,8 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                         }
                     });
                     final MenuItem renameNote = new MenuItem("Rename Note");
-                    // issue #41 - but only in oneNote look...
-                    if (OwnNoteEditorParameters.LookAndFeel.oneNote.equals(myEditor.getCurrentLookAndFeel())) {
+                    // issue #41 - but only in groupTabs look...
+                    if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(myEditor.getCurrentLookAndFeel())) {
                         renameNote.setAccelerator(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN));
                     }
                     renameNote.setOnAction((ActionEvent event) -> {

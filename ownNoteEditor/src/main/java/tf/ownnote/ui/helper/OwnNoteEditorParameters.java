@@ -21,7 +21,8 @@ public class OwnNoteEditorParameters {
 
     public static enum LookAndFeel {
         classic,
-        oneNote
+        groupTabs,
+        tagTree
     };
 
     // value for owncloud path, if set
@@ -74,7 +75,7 @@ public class OwnNoteEditorParameters {
                         break;
                     case "oneNote":
                         // System.out.println("Option lookAndFeel found: " + laf);
-                        lookAndFeel = LookAndFeel.oneNote;
+                        lookAndFeel = LookAndFeel.groupTabs;
                         break;
                     default:
                         System.out.println("Value \"" + value + "\" for option lookAndFeel not recognized.");

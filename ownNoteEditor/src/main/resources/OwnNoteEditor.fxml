@@ -181,11 +181,12 @@
                   </CustomMenuItem>
                   <Menu fx:id="menuLookAndFeel" mnemonicParsing="false" text="Look &amp; Feel">
                      <items>
-                        <RadioMenuItem fx:id="classicLookAndFeel" mnemonicParsing="false" text="classic">
+                        <RadioMenuItem fx:id="classicLookAndFeel" mnemonicParsing="false" text="Classic">
                            <toggleGroup>
                               <ToggleGroup fx:id="LookAndFeel" />
                            </toggleGroup></RadioMenuItem>
-                        <RadioMenuItem fx:id="oneNoteLookAndFeel" mnemonicParsing="false" text="oneNote" toggleGroup="$LookAndFeel" />
+                        <RadioMenuItem fx:id="groupTabsLookAndFeel" mnemonicParsing="false" text="GroupTabs" toggleGroup="$LookAndFeel" />
+                        <RadioMenuItem fx:id="tagTreeLookAndFeel" mnemonicParsing="false" text="TagTree" />
                         <MenuItem disable="true" mnemonicParsing="false" text="(restart required)" />
                      </items>
                   </Menu>

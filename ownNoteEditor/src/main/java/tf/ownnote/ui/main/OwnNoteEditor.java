@@ -142,12 +142,12 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     private boolean firstNoteAccess = true;
     
     private boolean handleQuickSave = false;
-    // should we show standard ownNote face or oneNotes?
+    // should we show standard ownNote face or groupTabs?
     // TF, 20160630: refactored from "classicLook" to show its real meeaning
     private OwnNoteEditorParameters.LookAndFeel currentLookAndFeel;
 
     private Double classicGroupWidth;
-    private Double oneNoteGroupWidth;
+    private Double groupTabsGroupWidth;
     private Double taskListWidth;
     
     private Note curNote;
@@ -228,7 +228,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     @FXML
     private RadioMenuItem classicLookAndFeel;
     @FXML
-    private RadioMenuItem oneNoteLookAndFeel;
+    private RadioMenuItem groupTabsLookAndFeel;
     @FXML
     private ToggleGroup LookAndFeel;
     @FXML
@@ -269,6 +269,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     @FXML
     private HBox noteMetaEditorFXML;
     private OwnNoteMetaEditor noteMetaEditor = null;
+    @FXML
+    private RadioMenuItem tagTreeLookAndFeel;
 
     public OwnNoteEditor() {
     }
@@ -287,11 +289,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         final String percentWidth = String.valueOf(gridPane.getColumnConstraints().get(0).getPercentWidth());
         // store in the preferences
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTCLASSICGROUPWIDTH, percentWidth);
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_CLASSIC_GROUPWIDTH, percentWidth);
         } else {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTONENOTEGROUPWIDTH, percentWidth);
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH, percentWidth);
         }
-        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTTASKLISTWIDTH, String.valueOf(gridPane.getColumnConstraints().get(2).getPercentWidth()));
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH, String.valueOf(gridPane.getColumnConstraints().get(2).getPercentWidth()));
         
         // issue #45 store sort order for tables
         groupsTable.savePreferences(OwnNoteEditorPreferences.getInstance());
@@ -301,8 +303,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         groupsPane.savePreferences(OwnNoteEditorPreferences.getInstance());
         
         // TFE, 20201030: store name of last edited note
-        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_NOTE, noteHTMLEditor.getEditedNote().getNoteName());
-        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_GROUP, noteHTMLEditor.getEditedNote().getGroupName());
+        if (noteHTMLEditor.getEditedNote() != null) {
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_NOTE, noteHTMLEditor.getEditedNote().getNoteName());
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_GROUP, noteHTMLEditor.getEditedNote().getGroupName());
+        }
         
         // TFE, 20201121: tag info is now stored in a separate file
         TagManager.getInstance().saveTags();
@@ -318,7 +322,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             // 2. try the preference settings - what was used last time?
             try {
                 currentLookAndFeel = OwnNoteEditorParameters.LookAndFeel.valueOf(
-                        OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
+                        OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
                 // System.out.println("Using preference for currentLookAndFeel: " + currentLookAndFeel);
             } catch (SecurityException ex) {
                 Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
@@ -329,11 +333,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // issue #45 store sort order for tables
         try {
             classicGroupWidth = Double.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTCLASSICGROUPWIDTH, "18.3333333"));
-            oneNoteGroupWidth = Double.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTONENOTEGROUPWIDTH, "33.3333333"));
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_CLASSIC_GROUPWIDTH, "18.3333333"));
+            groupTabsGroupWidth = Double.valueOf(
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH, "33.3333333"));
             taskListWidth = Double.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTTASKLISTWIDTH, "15.0"));
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH, "15.0"));
         } catch (SecurityException ex) {
             Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -350,7 +354,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         } else {
             // 2. try the preferences setting - most recent file that was opened
             try {
-                pathname = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, "");
+                pathname = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, "");
                 // System.out.println("Using preference for ownCloudDir: " + pathname);
             } catch (SecurityException ex) {
                 Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
@@ -368,14 +372,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     // --------------------------------------------------------------------------------
     // |                          |                         |                         |
     // | both: noteFilterBox      | classic: buttonBox      | both: taskFilterBox     |
-    // |                          | oneNote: groupsPaneFXML |                         |
+    // |                          | groupTabs: groupsPaneFXML |                         |
     // |                          |                         |                         |
     // --------------------------------------------------------------------------------
     // |                          |                         |                         |
     // | dividerPane              |                         |                         |
     // |                          |                         |                         |
     // | classic: groupsTableFXML | both: noteEditorFXML    | both: taskListFXML      |
-    // | oneNote: notesTableFXML  |                         |                         |
+    // | groupTabs: notesTableFXML  |                         |                         |
     // |                          |                         |                         |
     // --------------------------------------------------------------------------------
     //
@@ -426,7 +430,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             column1.setPercentWidth(classicGroupWidth);
         } else {
-            column1.setPercentWidth(oneNoteGroupWidth);
+            column1.setPercentWidth(groupTabsGroupWidth);
         }
         column1.setHgrow(Priority.ALWAYS);
         ColumnConstraints column2 = new ColumnConstraints();
@@ -691,7 +695,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 
             myGroupList = groupsPane;
             
-            // oneNote look and feel
+            // groupTabs look and feel
             // 1. no groups table, no button list
             groupsTable.setDisable(true);
             groupsTable.setVisible(false);
@@ -802,7 +806,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             classicLookAndFeel.setSelected(true);
         } else {
-            oneNoteLookAndFeel.setSelected(true);
+            groupTabsLookAndFeel.setSelected(true);
         }
         // 2. add listener to track changes of layout - only after setting it initially
         classicLookAndFeel.getToggleGroup().selectedToggleProperty().addListener(
@@ -813,9 +817,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 
                     // store in the preferences
                     if (((RadioMenuItem) arg2).equals(classicLookAndFeel)) {
-                        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name());
+                        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name());
                     } else {
-                        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.oneNote.name());
+                        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.groupTabs.name());
                     }
                 }
             });
@@ -824,7 +828,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         ownCloudPath.textProperty().addListener(
             (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
                 // store in the preferences
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, newValue);
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, newValue);
 
                 // scan files in new directory
                 initFromDirectory(false);

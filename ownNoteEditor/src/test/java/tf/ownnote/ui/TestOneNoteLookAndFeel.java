@@ -106,9 +106,9 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // get current look & feel and notes path
         try {
             currentLookAndFeel = OwnNoteEditorParameters.LookAndFeel.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
 
-            currentPath = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, "");
+            currentPath = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, "");
             // System.out.println("currentPath: " + currentPath);
             // System.out.println("Using preference for ownCloudDir: " + currentPath);
         } catch (SecurityException ex) {
@@ -128,8 +128,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         }
         
         // set look & feel and notes path name
-        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.oneNote.name());
-        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, testpath.toString());
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.groupTabs.name());
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, testpath.toString());
         //System.out.println("testpath: " + testpath.toString());
     }
 
@@ -193,12 +193,12 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         
         // set look & feel to old value
         if (currentLookAndFeel != null) {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, currentLookAndFeel.name());
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, currentLookAndFeel.name());
         }
         
         // set path name to old value
         if (currentPath != null) {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, currentPath);
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, currentPath);
         }
         
         Files.delete(testpath);

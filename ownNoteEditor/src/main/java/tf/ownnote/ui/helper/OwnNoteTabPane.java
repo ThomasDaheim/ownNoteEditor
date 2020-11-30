@@ -275,7 +275,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
 
     @Override
     public void loadPreferences(final IPreferencesStore store) {
-        final String prefString = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTTABORDER, "");
+        final String prefString = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_TAB_ORDER, "");
 
         if (prefString.isEmpty()) {
             return;
@@ -307,7 +307,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         
         prefString.append(OwnNoteEditorPreferences.PREF_STRING_SUFFIX);
         
-        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTTABORDER, prefString.toString());
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TAB_ORDER, prefString.toString());
     }
 
     @Override
