@@ -25,7 +25,6 @@
  */
 package tf.ownnote.ui.tags;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -59,7 +58,7 @@ public class TagsTreeView extends TreeView<TagInfo> {
         EDIT_MODE,
         SELECT_MODE
     }
-    private final BooleanProperty allowEdit = new SimpleBooleanProperty(true);
+    private final BooleanProperty allowReorder = new SimpleBooleanProperty(true);
     
     private WorkMode workMode = WorkMode.EDIT_MODE;
     
@@ -86,8 +85,6 @@ public class TagsTreeView extends TreeView<TagInfo> {
         setMinWidth(treeViewWidth);
         setMaxWidth(treeViewWidth);
         
-        setCellFactory(TagTreeCellFactory.getInstance());
-        
         setOnEditCommit((t) -> {
             if (!t.getNewValue().getName().equals(t.getOldValue().getName())) {
                 assert renameFunction != null;
@@ -100,26 +97,26 @@ public class TagsTreeView extends TreeView<TagInfo> {
     
     private void initWorkMode() {
         // reset so that change listener gets triggered
-        allowEdit.set(true);
+        allowReorder.set(true);
 
         switch (workMode) {
         case EDIT_MODE:
             getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
             
-            // show checkboxes
-            allowEdit.set(true);
+            // allow drag/drop & add/remove
+            allowReorder.set(true);
             break;
         case SELECT_MODE:
             getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
-            // hide checkboxes
-            allowEdit.set(false);
+            // disable drag/drop & add/remove
+            allowReorder.set(false);
             break;
         }
     }
     
-    public BooleanProperty allowEditProperty() {
-        return allowEdit;
+    public BooleanProperty allowReorderProperty() {
+        return allowReorder;
     }
     
     public ObservableSet<TagInfo> getSelectedItems() {
@@ -145,6 +142,8 @@ public class TagsTreeView extends TreeView<TagInfo> {
         } else {
             workMode = WorkMode.EDIT_MODE;
         }
+
+        setCellFactory(TagTreeCellFactory.getInstance());
         
         selectedItems.clear();
 
@@ -164,7 +163,7 @@ public class TagsTreeView extends TreeView<TagInfo> {
         
         final TagInfo tag = newItem.getValue();
         if (tag != null) {
-            if (initialTags.contains(tag.getName())) {
+            if (initialTags.contains(tag)) {
                 tag.setSelected(true);
                 selectedItems.add(tag);
             } else {

@@ -91,8 +91,8 @@ public class OwnNoteTableColumn {
     }
 
     private Callback<TableColumn<Map, String>, TableCell<Map, String>> createObjectCellFactory(final boolean linkCursor) {
-        assert (this.myEditor != null);
-        return (TableColumn<Map, String> param) -> new ObjectCell(this.myEditor, this, linkCursor, new UniversalMouseEvent(this.myEditor));
+        assert (myEditor != null);
+        return (TableColumn<Map, String> param) -> new ObjectCell(myEditor, this, linkCursor, new UniversalMouseEvent(myEditor));
     }
 
     public OwnNoteTableView.TableType getTableType() {

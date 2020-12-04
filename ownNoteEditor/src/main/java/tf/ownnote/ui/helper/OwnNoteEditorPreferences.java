@@ -25,6 +25,7 @@ public class OwnNoteEditorPreferences implements IPreferencesStore {
     public final static String RECENT_TAGTREE_GROUPWIDTH = "recentTagTreeGroupWidth";
     public final static String RECENT_TAGTREE_NOTEWIDTH = "recentTagTreeNoteWidth";
     public final static String RECENT_TASKLIST_WIDTH = "recentTaskListWidth";
+    public final static String RECENT_TASKLIST_VISIBLE = "recentTaskListVisible";
     public final static String RECENT_WINDOW_WIDTH = "recentWindowWidth";
     public final static String RECENT_WINDOW_HEIGTH = "recentWindowHeigth";
     public final static String RECENT_WINDOW_LEFT = "recentWindowLeft";
@@ -42,6 +43,9 @@ public class OwnNoteEditorPreferences implements IPreferencesStore {
     // TFE, 20201030: store last edited file
     public static final String LAST_EDITED_NOTE = "lastEditedNote";
     public static final String LAST_EDITED_GROUP = "lastEditedGroup";
+    
+    // TFE, 20201204: new layout: tag tree as first column
+    public final static String RECENT_TAGTREE_WIDTH = "recentTagTreeWidth";
 
     private OwnNoteEditorPreferences() {
         // Exists only to defeat instantiation.

@@ -56,6 +56,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Control;
@@ -91,6 +92,7 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.Window;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AboutMenu;
+import tf.helper.javafx.EnumHelper;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IGroupListContainer;
@@ -146,9 +148,12 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     // TF, 20160630: refactored from "classicLook" to show its real meeaning
     private OwnNoteEditorParameters.LookAndFeel currentLookAndFeel;
 
+    private Double tagTreeWidth;
     private Double classicGroupWidth;
     private Double groupTabsGroupWidth;
     private Double taskListWidth;
+    
+    private BooleanProperty tasklistVisible = new SimpleBooleanProperty(true);
     
     private Note curNote;
     
@@ -163,6 +168,16 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     // TF, 20170122: use colors similar to OneNote - a bit less bright
     //private static final String[] groupColors = { "lightgrey", "darkseagreen", "cornflowerblue", "lightsalmon", "gold", "orchid", "cadetblue", "goldenrod", "darkorange", "MediumVioletRed" };
     private static final String[] groupColors = { "#F3D275", "#F4A6A6", "#99D0DF", "#F1B87F", "#F2A8D1", "#9FB2E1", "#B4AFDF", "#D4B298", "#C6DA82", "#A2D07F", "#F1B5B5" };
+    
+    // TFE, 20201203: some constants for the different columns of our gridpane
+    private static final int TAGTREE_COLUMN = 0;
+    private static final int NOTE_GROUP_COLUMN = 1;
+    private static final int EDITOR_COLUMN = 2;
+    private static final int TASKLIST_COLUMN = 3;
+    
+    private static final int TAGTREE_NOTE_GROUP_DIVIDER = 0;
+    private static final int NOTE_GROUP_EDITOR_DIVIDER = 1;
+    private static final int EDITOR_TASKLIST_DIVIDER = 2;
     
     private OwnNoteTabPane groupsPane = null;
     @FXML
@@ -259,8 +274,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     @FXML
     private StackPane rightPaneXML;
     @FXML
-    private Menu menuTags;
-    @FXML
     private MenuItem menuEditTags;
     @FXML
     private MenuItem menuGroups2Tags;
@@ -271,6 +284,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     private OwnNoteMetaEditor noteMetaEditor = null;
     @FXML
     private RadioMenuItem tagTreeLookAndFeel;
+    @FXML
+    private CheckMenuItem menuShowTasklist;
+    @FXML
+    private StackPane tagsTreePaneXML;
 
     public OwnNoteEditor() {
     }
@@ -286,14 +303,24 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // store current percentage of group column width
         // if increment is passed as parameter, we need to remove it from the current value
         // otherwise, the percentage grows with each call :-)
-        final String percentWidth = String.valueOf(gridPane.getColumnConstraints().get(0).getPercentWidth());
+        final String percentWidth = String.valueOf(gridPane.getColumnConstraints().get(NOTE_GROUP_COLUMN).getPercentWidth());
         // store in the preferences
         if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
             OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_CLASSIC_GROUPWIDTH, percentWidth);
         } else {
             OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH, percentWidth);
         }
-        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH, String.valueOf(gridPane.getColumnConstraints().get(2).getPercentWidth()));
+        // TFE, 20201204: store tag tree width only for this look & feel
+        if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TAGTREE_WIDTH, String.valueOf(gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth()));
+        }
+        // TFE, 20201203: taskList can be hidden (and therefore have column has width 0)
+        if (tasklistVisible.get()) {
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH, String.valueOf(gridPane.getColumnConstraints().get(TASKLIST_COLUMN).getPercentWidth()));
+        } else {
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH, String.valueOf(taskListWidth));
+        }
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TASKLIST_VISIBLE, String.valueOf(tasklistVisible.get()));
         
         // issue #45 store sort order for tables
         groupsTable.savePreferences(OwnNoteEditorPreferences.getInstance());
@@ -321,25 +348,38 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             // fix for issue #20
             // 2. try the preference settings - what was used last time?
             try {
-                currentLookAndFeel = OwnNoteEditorParameters.LookAndFeel.valueOf(
-                        OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
+                currentLookAndFeel = EnumHelper.getInstance().enumFromPreferenceWithDefault(
+                        OwnNoteEditorPreferences.getInstance(),
+                        OwnNoteEditorPreferences.RECENT_LOOKANDFEEL,
+                        OwnNoteEditorParameters.LookAndFeel.class,
+                        OwnNoteEditorParameters.LookAndFeel.classic.name());
                 // System.out.println("Using preference for currentLookAndFeel: " + currentLookAndFeel);
             } catch (SecurityException ex) {
                 Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
+                currentLookAndFeel = OwnNoteEditorParameters.LookAndFeel.groupTabs;
             }
         }
         
         // issue #30: get percentages for group column width for classic and onenote look & feel
         // issue #45 store sort order for tables
         try {
+            tagTreeWidth = Double.valueOf(
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_TAGTREE_WIDTH, "18.3333333"));
             classicGroupWidth = Double.valueOf(
                     OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_CLASSIC_GROUPWIDTH, "18.3333333"));
             groupTabsGroupWidth = Double.valueOf(
                     OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH, "33.3333333"));
             taskListWidth = Double.valueOf(
                     OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH, "15.0"));
+            tasklistVisible.set(Boolean.valueOf(
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_TASKLIST_VISIBLE, "true")));
         } catch (SecurityException ex) {
             Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
+            tagTreeWidth = 18.3333333;
+            classicGroupWidth = 18.3333333;
+            groupTabsGroupWidth = 33.3333333;
+            taskListWidth = 15.0;
+            tasklistVisible.set(true);
         }
 
         // paint the look
@@ -365,32 +405,30 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     }
 
     //
-    // basic setup is a 32x2 gridpane with a 2 part splitpane in the lower row spanning 2 cols
+    // basic setup is a 3x2 gridpane with a 3 part splitpane in the lower row
     // TFE: 20181028: pathBox has moved to menu to make room for filterBox
     // TFE, 20200810: 3rd column added for task handling
+    // TFE, 20201204: column to the left added for tag tree
     //
-    // --------------------------------------------------------------------------------
-    // |                          |                         |                         |
-    // | both: noteFilterBox      | classic: buttonBox      | both: taskFilterBox     |
-    // |                          | groupTabs: groupsPaneFXML |                         |
-    // |                          |                         |                         |
-    // --------------------------------------------------------------------------------
-    // |                          |                         |                         |
-    // | dividerPane              |                         |                         |
-    // |                          |                         |                         |
-    // | classic: groupsTableFXML | both: noteEditorFXML    | both: taskListFXML      |
-    // | groupTabs: notesTableFXML  |                         |                         |
-    // |                          |                         |                         |
-    // --------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------------------------------------------------
+    // |                            |                            |                           |                           |
+    // |                            | all : noteFilterBox        | classic: buttonBox        | all: taskFilterBox        |
+    // |                            |                            | groupTabs: groupsPaneFXML |                           |
+    // |                            |                            | tagTree: nothing          |                           |
+    // |                            |                            |                           |                           |
+    // -------------------------------------------------------------------------------------------------------------------
+    // |                            |                            |                           |                           |
+    // | classic: nothing           | classic: groupsTableFXML   | all: noteEditorFXML       | all: taskListFXML         |
+    // | groupTabs: nothing         | groupTabs: notesTableFXML  |                           |                           |
+    // | tagTree: TagsTreeView      | tagTree: notesTableFXML    |                           |                           |
+    // |                            |                            |                           |                           |
+    // -------------------------------------------------------------------------------------------------------------------
     //
     // to be able to do proper layout in scenebuilder everything except the dividerPane
     // are added to the fxml into the gridpane - code below does the re-arrangement based on 
     // value of currentLookAndFeel
     //
     private void initEditor() {
-        // init menu handling
-        initMenus();
-        
         // init our wrappers to FXML classes...
         noteNameCol = new OwnNoteTableColumn(noteNameColFXML, this);
         noteModifiedCol = new OwnNoteTableColumn(noteModifiedColFXML, this);
@@ -426,28 +464,49 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         gridPane.getRowConstraints().add(row2);
         
         gridPane.getColumnConstraints().clear();
+        
+        // 1st column: tag tree
         ColumnConstraints column1 = new ColumnConstraints();
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-            column1.setPercentWidth(classicGroupWidth);
+        if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+            column1.setPercentWidth(tagTreeWidth);
         } else {
-            column1.setPercentWidth(groupTabsGroupWidth);
+            column1.setPercentWidth(0d);
         }
-        column1.setHgrow(Priority.ALWAYS);
+
+        // 2nd column: groups table or notes table
         ColumnConstraints column2 = new ColumnConstraints();
-        column2.setPercentWidth((100d - taskListWidth) - column1.getPercentWidth());
+        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
+            column2.setPercentWidth(classicGroupWidth);
+        } else {
+            column2.setPercentWidth(groupTabsGroupWidth);
+        }
         column2.setHgrow(Priority.ALWAYS);
+
+        // 3rd column: notes editor
         ColumnConstraints column3 = new ColumnConstraints();
-        column3.setPercentWidth(taskListWidth);
+        column3.setPercentWidth((100d - taskListWidth) - column3.getPercentWidth());
         column3.setHgrow(Priority.ALWAYS);
-        gridPane.getColumnConstraints().addAll(column1, column2, column3);
+
+        // 4th column: tasklist
+        ColumnConstraints column4 = new ColumnConstraints();
+        column4.setPercentWidth(taskListWidth);
+        column4.setHgrow(Priority.ALWAYS);
+        gridPane.getColumnConstraints().addAll(column1, column2, column3, column4);
         
         //Constrain max size of left & right pane:
-        leftPaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.15));
-        leftPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.5));
+        if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+            tagsTreePaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.2));
+            tagsTreePaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.4));
+        } else {
+            tagsTreePaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0d));
+            tagsTreePaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0d));
+        }
+        leftPaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.2));
+        leftPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.4));
         middlePaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.5));
         middlePaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.85));
         rightPaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.1));
-        rightPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.5));
+        rightPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.3));
 
         // set callback, width, value name, cursor type of columns
         noteNameCol.setTableColumnProperties(0.65, Note.getNoteName(0), OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel));
@@ -703,8 +762,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             buttonBox.setDisable(true);
             buttonBox.setVisible(false);
             
-            groupsPane.setDisable(false);
-            groupsPane.setVisible(true);
+            // TFE, 20201204: no groupsPane left for tagtree layout
+            if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(currentLookAndFeel)) {
+                groupsPane.setDisable(false);
+                groupsPane.setVisible(true);
+            } else {
+                groupsPane.setDisable(true);
+                groupsPane.setVisible(false);
+            }
             
             // 2. note table is shown left
             middlePaneXML.getChildren().remove(notesTableFXML);
@@ -742,6 +807,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             
         }
         
+        // TFE, 20201204: new column to the left for tagtree layout
+        if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+            // show TagsTreeView (special version without checkboxes & drag/drop of tags)
+        }
+        
         // TFE, 20200810: adding third gridpane column for task handling
         taskList = new TaskList(taskListFXML, this);
 
@@ -770,35 +840,86 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         }
         
         // now sync splitpane dividers with grid column width
-        splitPaneXML.setDividerPosition(0, gridPane.getColumnConstraints().get(0).getPercentWidth()/100d);
-        splitPaneXML.setDividerPosition(1, (100d - gridPane.getColumnConstraints().get(2).getPercentWidth())/100d);
+        // TFE, 20201204: gets more tricky with for columns :-)
+        // #1 tagtree is easy - use own percentage
+        splitPaneXML.setDividerPosition(TAGTREE_NOTE_GROUP_DIVIDER, 
+                gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth()/100d);
+        // #2 note/group is easy - use percentage of tagtree + own percentage
+        splitPaneXML.setDividerPosition(NOTE_GROUP_EDITOR_DIVIDER, 
+                (gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth() + gridPane.getColumnConstraints().get(NOTE_GROUP_COLUMN).getPercentWidth())/100d);
+        // #4 tasklist is easy - use 100 - own percentage
+        splitPaneXML.setDividerPosition(EDITOR_TASKLIST_DIVIDER, 
+                (100d - gridPane.getColumnConstraints().get(TASKLIST_COLUMN).getPercentWidth())/100d);
 
         // change width of gridpane when moving divider - but only after initial values have been set
-        splitPaneXML.getDividers().get(0).positionProperty().addListener((observable, oldValue, newValue) -> {
+        splitPaneXML.getDividers().get(TAGTREE_NOTE_GROUP_DIVIDER).positionProperty().addListener((observable, oldValue, newValue) -> {
             // only do magic once the window is showing to avoid initial layout pass
-            if (newValue != null && !newValue.equals(oldValue)) {
+            if (newValue != null && (Math.abs(newValue.doubleValue() - oldValue.doubleValue()) > 0.001)) {
                 // change later to avoid loop calls when resizing scene
                 Platform.runLater(() -> {
-                    // needs to take 3 column into account - if shown
                     final double newPercentage = newValue.doubleValue() * 100d;
-                    gridPane.getColumnConstraints().get(0).setPercentWidth(newPercentage);
-                    gridPane.getColumnConstraints().get(1).setPercentWidth((100d - gridPane.getColumnConstraints().get(2).getPercentWidth()) - newPercentage);
+                    // needs to take 4 column into account - if shown
+                    gridPane.getColumnConstraints().get(TAGTREE_COLUMN).setPercentWidth(newPercentage);
+                    setRemainingColumnWidth(EDITOR_COLUMN);
+
+                    tagTreeWidth = newPercentage;
                 });
             }
         });
 
-        splitPaneXML.getDividers().get(1).positionProperty().addListener((observable, oldValue, newValue) -> {
+        splitPaneXML.getDividers().get(NOTE_GROUP_EDITOR_DIVIDER).positionProperty().addListener((observable, oldValue, newValue) -> {
             // only do magic once the window is showing to avoid initial layout pass
-            if (newValue != null && !newValue.equals(oldValue)) {
+            if (newValue != null && (Math.abs(newValue.doubleValue() - oldValue.doubleValue()) > 0.001)) {
                 // change later to avoid loop calls when resizing scene
                 Platform.runLater(() -> {
-                    // needs to take 3 column into account - if shown
                     final double newPercentage = newValue.doubleValue() * 100d;
-                    gridPane.getColumnConstraints().get(1).setPercentWidth(newPercentage - gridPane.getColumnConstraints().get(0).getPercentWidth());
-                    gridPane.getColumnConstraints().get(2).setPercentWidth(100d - newPercentage);
+                    // needs to take 2 columns into account
+                    gridPane.getColumnConstraints().get(NOTE_GROUP_COLUMN).setPercentWidth(
+                            gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth() + newPercentage);
+                    setRemainingColumnWidth(EDITOR_COLUMN);
+
+                    if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
+                        classicGroupWidth = newPercentage;
+                    } else {
+                        groupTabsGroupWidth = newPercentage;
+                    }
+
+//                    System.out.println("Moved Note/Group divider to " + newPercentage + "%");
                 });
             }
         });
+
+        splitPaneXML.getDividers().get(EDITOR_TASKLIST_DIVIDER).positionProperty().addListener((observable, oldValue, newValue) -> {
+            // TFE, 20201203: ignore divider in case tasklist not visible
+            if (newValue != null && (Math.abs(newValue.doubleValue() - oldValue.doubleValue()) > 0.001)) {
+                // change later to avoid loop calls when resizing scene
+                Platform.runLater(() -> {
+                    final double newPercentage = newValue.doubleValue() * 100d;
+                    gridPane.getColumnConstraints().get(TASKLIST_COLUMN).setPercentWidth(100d - newPercentage);
+                    setRemainingColumnWidth(EDITOR_COLUMN);
+
+                    if (tasklistVisible.get()) {
+                        taskListWidth = newPercentage;
+                    }
+                });
+            }
+        });
+
+        // init menu handling
+        // TFE, 20201203: do this last since it does changes to layout depending on tasklistVisible 
+        initMenus();
+    }
+    
+    private void setRemainingColumnWidth(final int column) {
+        double result = 100d;
+        
+        for (int i = 0; i < gridPane.getColumnConstraints().size(); i++) {
+            if (i != column) {
+                result -= gridPane.getColumnConstraints().get(i).getPercentWidth();
+            }
+        }
+        
+        gridPane.getColumnConstraints().get(column).setPercentWidth(result);
     }
     
     private void initMenus() {
@@ -862,6 +983,16 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             }
         });
         
+        // TFE, 20201130: show / hide tasklist
+        setTasklistVisible(tasklistVisible.get());
+        tasklistVisible.addListener((ov, oldValue, newValue) -> {
+            if (newValue != null) {
+                setTasklistVisible(newValue);
+            }
+        });
+        menuShowTasklist.setSelected(tasklistVisible.get());
+        tasklistVisible.bindBidirectional(menuShowTasklist.selectedProperty());
+
         // TFE, 20201025: and now we have tag management as well :-)
         menuEditTags.setOnAction((t) -> {
             TagEditor.getInstance().editTags(null);
@@ -871,6 +1002,42 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         });
 
         AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v5.0", "https://github.com/ThomasDaheim/ownNoteEditor");
+    }
+    
+    // do everything to show / hide tasklist
+    private void setTasklistVisible(final boolean visible) {
+//        System.out.println("Start switching taskList to " + visible);
+
+        // 1) show / hide taskFilterBox
+        taskFilterBox.setVisible(visible);
+        taskFilterBox.setDisable(!visible);
+        taskFilterBox.setManaged(visible);
+
+        // 2) show / hide taskListFXML container
+        rightPaneXML.setVisible(visible);
+        rightPaneXML.setDisable(!visible);
+        rightPaneXML.setManaged(visible);
+
+        if (visible) {
+            // 2) show / hide taskListFXML container
+            rightPaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.1));
+            rightPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.3));
+
+            // 3) show / hide grid column
+            gridPane.getColumnConstraints().get(TASKLIST_COLUMN).setPercentWidth(taskListWidth);
+        } else {
+            // 2) show / hide taskListFXML container
+            rightPaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.0));
+            rightPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.0));
+
+            // 3) show / hide grid column
+            gridPane.getColumnConstraints().get(TASKLIST_COLUMN).setPercentWidth(0d);
+        }
+
+        // 4) update calculation of percentages for resize
+        splitPaneXML.setDividerPosition(EDITOR_TASKLIST_DIVIDER, (100d - gridPane.getColumnConstraints().get(TASKLIST_COLUMN).getPercentWidth())/100d);
+
+//        System.out.println("Done switching taskList");
     }
     
     public void initFromDirectory(final boolean updateOnly) {

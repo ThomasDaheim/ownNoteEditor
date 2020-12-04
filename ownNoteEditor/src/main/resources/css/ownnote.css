@@ -162,6 +162,7 @@
 .split-pane > .split-pane-divider {  
     -fx-padding: 0 1 0 1;  
     -fx-background-color: darkgray;
+    -fx-fill-color: darkgray;
 } 
 
 /* style box, label, button or path selection */

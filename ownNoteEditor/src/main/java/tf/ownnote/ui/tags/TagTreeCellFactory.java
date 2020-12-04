@@ -168,7 +168,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
 
                     if (treeView instanceof TagsTreeView) {
                         contextMenuProperty().bind(
-                                Bindings.when(((TagsTreeView) treeView).allowEditProperty()).
+                                Bindings.when(((TagsTreeView) treeView).allowReorderProperty()).
                                         then(contextMenu).otherwise((ContextMenu)null));
                     } else {
                         setContextMenu(contextMenu);
@@ -216,7 +216,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
         
         if (treeView instanceof TagsTreeView) {
             // add listener to TagsTreeView property
-            ((TagsTreeView) treeView).allowEditProperty().addListener((ov, oldValue, newValue) -> {
+            ((TagsTreeView) treeView).allowReorderProperty().addListener((ov, oldValue, newValue) -> {
                 if (newValue != null && newValue) {
                     cell.setOnDragDetected((MouseEvent event) -> dragDetected(event, cell, treeView));
                     cell.setOnDragOver((DragEvent event) -> dragOver(event, cell, treeView));
