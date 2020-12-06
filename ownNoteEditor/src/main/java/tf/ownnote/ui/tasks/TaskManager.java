@@ -104,7 +104,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     
     public ObservableList<TaskData> getTaskList() {
         if (taskList == null) {
-            taskList = FXCollections.observableArrayList();
+            taskList = FXCollections.<TaskData>observableArrayList();
             // lazy loading
             initTaskList();
         }

@@ -101,7 +101,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     
     public ObservableList<TagInfo> getTagList() {
         if (tagList == null) {
-            tagList = FXCollections.observableArrayList();
+            tagList = FXCollections.<TagInfo>observableArrayList();
             // lazy loading
             loadTags();
         }
@@ -154,7 +154,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         
         // xstream.fromXML can return null without an exception...
         if (tagList == null) {
-            tagList = FXCollections.observableArrayList();
+            tagList = FXCollections.<TagInfo>observableArrayList();
         }
 
         // current metadata tags

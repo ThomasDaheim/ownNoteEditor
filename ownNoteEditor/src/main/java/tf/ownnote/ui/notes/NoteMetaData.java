@@ -76,8 +76,8 @@ public class NoteMetaData {
         }
     }
 
-    private final ObservableList<NoteVersion> myVersions = FXCollections.observableArrayList();
-    private final ObservableSet<TagInfo> myTags = FXCollections.observableSet();
+    private final ObservableList<NoteVersion> myVersions = FXCollections.<NoteVersion>observableArrayList();
+    private final ObservableSet<TagInfo> myTags = FXCollections.<TagInfo>observableSet();
     
     public NoteMetaData() {
         super();

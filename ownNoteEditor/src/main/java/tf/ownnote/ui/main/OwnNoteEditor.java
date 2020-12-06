@@ -33,6 +33,7 @@ import java.nio.file.WatchEvent;
 import java.text.SimpleDateFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -90,9 +91,11 @@ import javafx.scene.layout.VBox;
 import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Window;
+import org.apache.commons.lang3.tuple.Pair;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AboutMenu;
 import tf.helper.javafx.EnumHelper;
+import tf.helper.javafx.TableMenuUtils;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IGroupListContainer;
@@ -108,6 +111,7 @@ import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.tags.TagEditor;
 import tf.ownnote.ui.tags.TagManager;
+import tf.ownnote.ui.tags.TagsTreeView;
 import tf.ownnote.ui.tasks.TaskData;
 import tf.ownnote.ui.tasks.TaskList;
 import tf.ownnote.ui.tasks.TaskManager;
@@ -136,7 +140,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     
     private final static int TEXTFIELDWIDTH = 100;  
     
-    private final List<String> realGroupNames = new LinkedList<> ();
+    private final List<String> realGroupNames = new LinkedList<>();
     
     private ObservableList<Note> notesList = null;
     
@@ -178,6 +182,22 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     private static final int TAGTREE_NOTE_GROUP_DIVIDER = 0;
     private static final int NOTE_GROUP_EDITOR_DIVIDER = 1;
     private static final int EDITOR_TASKLIST_DIVIDER = 2;
+    
+    // limiting values for width per each column
+    private static final Map<Integer, Pair<Double, Double>> paneSizes = new HashMap<>(); 
+    static {
+        paneSizes.put(TAGTREE_COLUMN, Pair.of(10d, 30d));
+        paneSizes.put(NOTE_GROUP_COLUMN, Pair.of(10d, 30d));
+        paneSizes.put(EDITOR_COLUMN, Pair.of(20d, 80d));
+        paneSizes.put(TASKLIST_COLUMN, Pair.of(10d, 20d));
+    }
+    // https://stackoverflow.com/a/37459951
+    private static <T extends Comparable<? super T>> T limit(T o, T min, T max)
+    {
+        if (o.compareTo(min) < 0) return min;
+        if (o.compareTo(max) > 0) return max;
+        return o;
+    }
     
     private OwnNoteTabPane groupsPane = null;
     @FXML
@@ -288,10 +308,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     private CheckMenuItem menuShowTasklist;
     @FXML
     private StackPane tagsTreePaneXML;
+    private TagsTreeView tagsTreeView;
 
     public OwnNoteEditor() {
     }
-
+    
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // defer initEditor since we need to know the value of the prameters...
@@ -368,7 +389,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             classicGroupWidth = Double.valueOf(
                     OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_CLASSIC_GROUPWIDTH, "18.3333333"));
             groupTabsGroupWidth = Double.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH, "33.3333333"));
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH, "30.0"));
             taskListWidth = Double.valueOf(
                     OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH, "15.0"));
             tasklistVisible.set(Boolean.valueOf(
@@ -381,7 +402,13 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             taskListWidth = 15.0;
             tasklistVisible.set(true);
         }
-
+        
+        // TFE, 20201205: limit values to allowed ones
+        tagTreeWidth = limit(tagTreeWidth, paneSizes.get(TAGTREE_COLUMN).getLeft(), paneSizes.get(TAGTREE_COLUMN).getRight());
+        classicGroupWidth = limit(classicGroupWidth, paneSizes.get(NOTE_GROUP_COLUMN).getLeft(), paneSizes.get(NOTE_GROUP_COLUMN).getRight());
+        groupTabsGroupWidth = limit(groupTabsGroupWidth, paneSizes.get(NOTE_GROUP_COLUMN).getLeft(), paneSizes.get(NOTE_GROUP_COLUMN).getRight());
+        taskListWidth = limit(taskListWidth, paneSizes.get(TASKLIST_COLUMN).getLeft(), paneSizes.get(TASKLIST_COLUMN).getRight());
+        
         // paint the look
         initEditor();
 
@@ -431,14 +458,22 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     private void initEditor() {
         // init our wrappers to FXML classes...
         noteNameCol = new OwnNoteTableColumn(noteNameColFXML, this);
+        noteNameColFXML.setUserData(TableMenuUtils.NO_HIDE_COLUMN);
         noteModifiedCol = new OwnNoteTableColumn(noteModifiedColFXML, this);
         noteDeleteCol = new OwnNoteTableColumn(noteDeleteColFXML, this);
+        noteDeleteColFXML.setUserData(TableMenuUtils.NO_HIDE_COLUMN);
         noteGroupCol = new OwnNoteTableColumn(noteGroupColFXML, this);
+        noteGroupColFXML.setVisible(false);
+        noteGroupColFXML.setMinWidth(0d);
+        noteGroupColFXML.setMaxWidth(0d);
+        noteGroupColFXML.setUserData(TableMenuUtils.NO_LIST_COLUMN);
         notesTable = new OwnNoteTableView(notesTableFXML, this);
         notesTable.loadPreferences(OwnNoteEditorPreferences.getInstance());
 
         groupNameCol = new OwnNoteTableColumn(groupNameColFXML, this);
+        groupNameColFXML.setUserData(TableMenuUtils.NO_HIDE_COLUMN);
         groupDeleteCol = new OwnNoteTableColumn(groupDeleteColFXML, this);
+        groupDeleteColFXML.setUserData(TableMenuUtils.NO_HIDE_COLUMN);
         groupCountCol = new OwnNoteTableColumn(groupCountColFXML, this);
         groupsTable = new OwnNoteTableView(groupsTableFXML, this);
         groupsTable.loadPreferences(OwnNoteEditorPreferences.getInstance());
@@ -484,29 +519,31 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 
         // 3rd column: notes editor
         ColumnConstraints column3 = new ColumnConstraints();
-        column3.setPercentWidth((100d - taskListWidth) - column3.getPercentWidth());
         column3.setHgrow(Priority.ALWAYS);
 
         // 4th column: tasklist
         ColumnConstraints column4 = new ColumnConstraints();
         column4.setPercentWidth(taskListWidth);
         column4.setHgrow(Priority.ALWAYS);
+
         gridPane.getColumnConstraints().addAll(column1, column2, column3, column4);
+        // EDITOR_COLUMN width is gicen by all other width values
+        setRemainingColumnWidth(EDITOR_COLUMN);
         
         //Constrain max size of left & right pane:
         if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
-            tagsTreePaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.2));
-            tagsTreePaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.4));
+            tagsTreePaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(paneSizes.get(TAGTREE_COLUMN).getLeft()/100d));
+            tagsTreePaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(paneSizes.get(TAGTREE_COLUMN).getRight()/100d));
         } else {
             tagsTreePaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0d));
             tagsTreePaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0d));
         }
-        leftPaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.2));
-        leftPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.4));
-        middlePaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.5));
-        middlePaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.85));
-        rightPaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.1));
-        rightPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.3));
+        leftPaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(paneSizes.get(NOTE_GROUP_COLUMN).getLeft()/100d));
+        leftPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(paneSizes.get(NOTE_GROUP_COLUMN).getRight()/100d));
+        middlePaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(paneSizes.get(EDITOR_COLUMN).getLeft()/100d));
+        middlePaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(paneSizes.get(EDITOR_COLUMN).getRight()/100d));
+        rightPaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(paneSizes.get(TASKLIST_COLUMN).getLeft()/100d));
+        rightPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(paneSizes.get(TASKLIST_COLUMN).getRight()/100d));
 
         // set callback, width, value name, cursor type of columns
         noteNameCol.setTableColumnProperties(0.65, Note.getNoteName(0), OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel));
@@ -779,7 +816,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             noteNameCol.setWidthPercentage(0.74);
             noteNameCol.setStyle("notename-font-weight: normal");
             noteModifiedCol.setWidthPercentage(0.24);
-            noteDeleteCol.setVisible(false);
+            noteDeleteColFXML.setVisible(false);
+            noteDeleteColFXML.setMinWidth(0d);
+            noteDeleteColFXML.setMaxWidth(0d);
+            notesTableFXML.getColumns().remove(noteDeleteColFXML);
             
             // name can be changed - but not for all entries!
             noteNameCol.setEditable(true);
@@ -810,6 +850,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // TFE, 20201204: new column to the left for tagtree layout
         if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
             // show TagsTreeView (special version without checkboxes & drag/drop of tags)
+            tagsTreeView = new TagsTreeView();
+            
+            tagsTreePaneXML.getChildren().add(tagsTreeView);
         }
         
         // TFE, 20200810: adding third gridpane column for task handling
@@ -850,6 +893,15 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // #4 tasklist is easy - use 100 - own percentage
         splitPaneXML.setDividerPosition(EDITOR_TASKLIST_DIVIDER, 
                 (100d - gridPane.getColumnConstraints().get(TASKLIST_COLUMN).getPercentWidth())/100d);
+        
+//        System.out.println("TAGTREE_COLUMN: " + gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth());
+//        System.out.println("NOTE_GROUP_COLUMN: " + gridPane.getColumnConstraints().get(NOTE_GROUP_COLUMN).getPercentWidth());
+//        System.out.println("EDITOR_COLUMN: " + gridPane.getColumnConstraints().get(EDITOR_COLUMN).getPercentWidth());
+//        System.out.println("TASKLIST_COLUMN: " + gridPane.getColumnConstraints().get(TASKLIST_COLUMN).getPercentWidth());
+//        
+//        System.out.println("TAGTREE_NOTE_GROUP_DIVIDER: " + splitPaneXML.getDividerPositions()[TAGTREE_NOTE_GROUP_DIVIDER]);
+//        System.out.println("NOTE_GROUP_EDITOR_DIVIDER: " + splitPaneXML.getDividerPositions()[NOTE_GROUP_EDITOR_DIVIDER]);
+//        System.out.println("EDITOR_TASKLIST_DIVIDER: " + splitPaneXML.getDividerPositions()[EDITOR_TASKLIST_DIVIDER]);
 
         // change width of gridpane when moving divider - but only after initial values have been set
         splitPaneXML.getDividers().get(TAGTREE_NOTE_GROUP_DIVIDER).positionProperty().addListener((observable, oldValue, newValue) -> {
@@ -863,6 +915,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                     setRemainingColumnWidth(EDITOR_COLUMN);
 
                     tagTreeWidth = newPercentage;
+
+//                    System.out.println("Moved TagTree-Note/Group divider to " + newPercentage + "%");
                 });
             }
         });
@@ -884,7 +938,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                         groupTabsGroupWidth = newPercentage;
                     }
 
-//                    System.out.println("Moved Note/Group divider to " + newPercentage + "%");
+//                    System.out.println("Moved Note/Group-Editor divider to " + newPercentage + "%");
                 });
             }
         });
@@ -901,6 +955,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                     if (tasklistVisible.get()) {
                         taskListWidth = newPercentage;
                     }
+
+//                    System.out.println("Moved Editor-TaskList divider to " + newPercentage + "%");
                 });
             }
         });
@@ -923,12 +979,19 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     }
     
     private void initMenus() {
-        // select entry based on value of currentLookAndFeel
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-            classicLookAndFeel.setSelected(true);
-        } else {
-            groupTabsLookAndFeel.setSelected(true);
+        // 1. select entry based on value of currentLookAndFeel
+        switch (currentLookAndFeel) {
+            case classic:
+                classicLookAndFeel.setSelected(true);
+                break;
+            case groupTabs:
+                groupTabsLookAndFeel.setSelected(true);
+                break;
+            case tagTree:
+                tagTreeLookAndFeel.setSelected(true);
+                break;
         }
+
         // 2. add listener to track changes of layout - only after setting it initially
         classicLookAndFeel.getToggleGroup().selectedToggleProperty().addListener(
             (ObservableValue<? extends Toggle> arg0, Toggle arg1, Toggle arg2) -> {
@@ -936,11 +999,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                 if (arg2 != null) {
                     assert (arg2 instanceof RadioMenuItem);
 
-                    // store in the preferences
-                    if (((RadioMenuItem) arg2).equals(classicLookAndFeel)) {
+                    // store in the preferences - don't overwrite local variable!
+                    final RadioMenuItem radioArg = ((RadioMenuItem) arg2);
+                    if (radioArg.equals(classicLookAndFeel)) {
                         OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name());
-                    } else {
+                    } else if (radioArg.equals(groupTabsLookAndFeel)) {
                         OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.groupTabs.name());
+                    } else if (radioArg.equals(tagTreeLookAndFeel)) {
+                        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.tagTree.name());
                     }
                 }
             });
@@ -1007,6 +1073,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     // do everything to show / hide tasklist
     private void setTasklistVisible(final boolean visible) {
 //        System.out.println("Start switching taskList to " + visible);
+        if (taskFilterBox.isVisible() == visible) {
+            return;
+        }
 
         // 1) show / hide taskFilterBox
         taskFilterBox.setVisible(visible);
@@ -1050,6 +1119,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         TaskManager.getInstance().resetTaskList();
         taskList.populateTaskList();
         TagManager.getInstance().resetTagList();
+        // TFE, 20201206: re-populate tags treeview as well - if shown
+        if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+            tagsTreeView.fillTreeView(TagsTreeView.WorkMode.LIST_MODE, null);
+        }
         
         // add new table entries & disable & enable accordingly
         notesList = OwnNoteFileManager.getInstance().getNotesList();

@@ -34,14 +34,18 @@
     -fx-font-weight: normal;
 }
 
-/* No background color in table header, please */
+/* No background color in table header, please 
+   https://stackoverflow.com/a/36688012 */
 .table-view.notesTable,
 .table-view.notesTable .column-header,
+.table-view.notesTable .column-header .filler,
 .table-view.notesTable .column-header .label,
 .table-view.notesTable .column-header-background,
+.table-view.notesTable .column-header-background .filler,
 .table-view.notesTable .table-row-cell {
     -fx-background-color: tab-color;
     -fx-table-cell-border-color: transparent;
+    -fx-border-width: 0;
 }
 .table-view.notesTable:row-selection .table-row-cell:selected .text {
     -fx-font-weight: bold;
@@ -80,11 +84,14 @@
 /* No background color in table header, please */
 .table-view.groupsTable,
 .table-view.groupsTable .column-header,
+.table-view.groupsTable .column-header .filler,
 .table-view.groupsTable .column-header .label,
 .table-view.groupsTable .column-header-background,
+.table-view.groupsTable .column-header-background .filler,
 .table-view.groupsTable .table-row-cell {
     -fx-background-color: -fx-base;
     -fx-table-cell-border-color: transparent;
+    -fx-border-width: 0;
 }
 .table-view.groupsTable .table-row-cell:hover:filled,
 .table-view.groupsTable .table-row-cell:selected {

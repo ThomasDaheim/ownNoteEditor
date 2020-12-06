@@ -81,7 +81,7 @@ public class TaskList {
         // be able to react to changes of isCompleted in tasks
         // https://stackoverflow.com/a/30915760
         final ObservableList<TaskData> items = 
-                FXCollections.observableArrayList(item -> new Observable[] {item.isCompletedProperty(), item.descriptionProperty()});
+                FXCollections.<TaskData>observableArrayList(item -> new Observable[] {item.isCompletedProperty(), item.descriptionProperty()});
         items.setAll(TaskManager.getInstance().getTaskList());
         
         // add listener to items to get notified of any changes to completed property

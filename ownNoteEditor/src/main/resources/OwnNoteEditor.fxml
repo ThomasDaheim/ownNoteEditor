@@ -42,14 +42,14 @@
           <RowConstraints maxHeight="535.0" minHeight="10.0" prefHeight="535.0" vgrow="SOMETIMES" />
         </rowConstraints>
          <children>
-            <SplitPane fx:id="splitPaneXML" dividerPositions="0.30957683741648107, 0.6002227171492205, 0.5" prefHeight="200.0" prefWidth="200.0" GridPane.columnSpan="4" GridPane.rowIndex="1">
+            <SplitPane fx:id="splitPaneXML" dividerPositions="0.25041736227045075, 0.4991652754590985, 0.9265442404006677" prefHeight="200.0" prefWidth="200.0" GridPane.columnSpan="4" GridPane.rowIndex="1">
                <items>
                   <StackPane fx:id="tagsTreePaneXML" prefHeight="150.0" prefWidth="200.0" />
                   <StackPane fx:id="leftPaneXML" prefHeight="150.0" prefWidth="200.0">
                      <children>
                         <TableView fx:id="groupsTableFXML" prefHeight="200.0" prefWidth="200.0" styleClass="groupsTable">
                           <columns>
-                            <TableColumn fx:id="groupNameColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="groupNameCol" text="Name" />
+                            <TableColumn fx:id="groupNameColFXML" editable="false" prefWidth="75.0" styleClass="groupNameCol" text="Name" />
                               <TableColumn fx:id="groupDeleteColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="false" styleClass="groupDeleteCol" />
                               <TableColumn fx:id="groupCountColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="true" styleClass="groupCountCol" text="Count" />
                           </columns>
@@ -66,7 +66,7 @@
                         </VBox>
                         <TableView fx:id="notesTableFXML" prefHeight="200.0" prefWidth="200.0" styleClass="notesTable">
                           <columns>
-                            <TableColumn fx:id="noteNameColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteNameCol" text="Name" />
+                            <TableColumn fx:id="noteNameColFXML" editable="false" prefWidth="75.0" styleClass="noteNameCol" text="Name" />
                             <TableColumn fx:id="noteModifiedColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteModifiedCol" text="Modified" />
                               <TableColumn fx:id="noteDeleteColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="false" styleClass="noteDeleteCol" />
                               <TableColumn fx:id="noteGroupColFXML" editable="false" maxWidth="0.0" minWidth="0.0" prefWidth="0.0" resizable="false" sortable="true" styleClass="noteGroupCol" text="Group" visible="false" />
@@ -130,7 +130,7 @@
                </padding></HBox>
             <HBox spacing="10.0" GridPane.columnIndex="1">
                <children>
-                  <TextField fx:id="noteFilterText" prefHeight="25.0" prefWidth="218.0" promptText="Search" styleClass="noteFilterText" />
+                  <TextField fx:id="noteFilterText" minWidth="100.0" prefHeight="25.0" prefWidth="180.0" promptText="Search" styleClass="noteFilterText" />
                   <Label fx:id="noteFilterMode" minWidth="65.0" prefHeight="17.0" prefWidth="65.0" styleClass="noteFilterMode" text="in Files">
                      <HBox.margin>
                         <Insets bottom="5.0" top="5.0" />
@@ -190,7 +190,7 @@
                               <ToggleGroup fx:id="LookAndFeel" />
                            </toggleGroup></RadioMenuItem>
                         <RadioMenuItem fx:id="groupTabsLookAndFeel" mnemonicParsing="false" text="GroupTabs" toggleGroup="$LookAndFeel" />
-                        <RadioMenuItem fx:id="tagTreeLookAndFeel" mnemonicParsing="false" text="TagTree" />
+                        <RadioMenuItem fx:id="tagTreeLookAndFeel" mnemonicParsing="false" text="TagTree" toggleGroup="$LookAndFeel" />
                         <MenuItem disable="true" mnemonicParsing="false" text="(restart required)" />
                      </items>
                   </Menu>

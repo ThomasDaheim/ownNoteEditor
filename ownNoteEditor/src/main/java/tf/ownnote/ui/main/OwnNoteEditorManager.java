@@ -144,7 +144,7 @@ public class OwnNoteEditorManager extends Application {
             myStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/css/ownnote.min.css").toExternalForm());
             
             // TF, 20160620: suppress warnings from css parsing for "-fx-font-weight" - not correctly implemented in the css parser for javafx 8...
-            // TFE, 20181209: times and meethods change :-)
+            // TFE, 20181209: times and methods change :-)
             Logging.getCSSLogger().disableLogging();
             
             // set passed parameters for later use

@@ -464,7 +464,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             function resizeEditor(myHeight) {
                 //console.log('resizeEditor: ' + tinymce.activeEditor);
                 myEditor = tinymce.get('mytextarea');
-                if (myEditor) {
+                if (myEditor &&  myEditor.theme) {
                     if (!myHeight) {            
                         var targetHeight = window.innerHeight; // Change this to the height of your wrapper element
                         // TF, 20170411: below code doesn't work on initial loading of text since .mce-* height values are garbage

@@ -56,15 +56,16 @@ public class TagsTreeView extends TreeView<TagInfo> {
     
     public enum WorkMode {
         EDIT_MODE,
-        SELECT_MODE
+        SELECT_MODE,
+        LIST_MODE
     }
     private final BooleanProperty allowReorder = new SimpleBooleanProperty(true);
     
-    private WorkMode workMode = WorkMode.EDIT_MODE;
+    private WorkMode myWorkMode = WorkMode.EDIT_MODE;
     
     private BiConsumer<String, String> renameFunction;
     
-    private final ObservableSet<TagInfo> selectedItems = FXCollections.observableSet(new HashSet<>());
+    private final ObservableSet<TagInfo> selectedItems = FXCollections.<TagInfo>observableSet(new HashSet<>());
     
     private final Set<TagInfo> initialTags = new HashSet<>();
     
@@ -74,16 +75,6 @@ public class TagsTreeView extends TreeView<TagInfo> {
 
     private void initTreeView() {
         setEditable(true);
-
-        final double treeViewHeight = 600.0;
-        setPrefHeight(treeViewHeight);
-        setMinHeight(treeViewHeight);
-        setMaxHeight(treeViewHeight);
-        
-        final double treeViewWidth = 600.0;
-        setPrefWidth(treeViewWidth);
-        setMinWidth(treeViewWidth);
-        setMaxWidth(treeViewWidth);
         
         setOnEditCommit((t) -> {
             if (!t.getNewValue().getName().equals(t.getOldValue().getName())) {
@@ -99,7 +90,7 @@ public class TagsTreeView extends TreeView<TagInfo> {
         // reset so that change listener gets triggered
         allowReorder.set(true);
 
-        switch (workMode) {
+        switch (myWorkMode) {
         case EDIT_MODE:
             getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
             
@@ -108,6 +99,12 @@ public class TagsTreeView extends TreeView<TagInfo> {
             break;
         case SELECT_MODE:
             getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+
+            // disable drag/drop & add/remove
+            allowReorder.set(false);
+            break;
+        case LIST_MODE:
+            getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
 
             // disable drag/drop & add/remove
             allowReorder.set(false);
@@ -134,16 +131,22 @@ public class TagsTreeView extends TreeView<TagInfo> {
         renameFunction = funct;
     }
     
-    public void fillTreeView(final Set<TagInfo> tags) {
+    public void fillTreeView(final WorkMode workMode, final Set<TagInfo> tags) {
+        myWorkMode = workMode;
+        
         initialTags.clear();
         if (tags != null) {
             initialTags.addAll(tags);
-            workMode = WorkMode.SELECT_MODE;
-        } else {
-            workMode = WorkMode.EDIT_MODE;
         }
 
-        setCellFactory(TagTreeCellFactory.getInstance());
+        // choose tree cell type based on workmode
+        TagTreeCellFactory.TreeCellType cellType;
+        if (!WorkMode.LIST_MODE.equals(myWorkMode)) {
+            cellType = TagTreeCellFactory.TreeCellType.CHECKBOX;
+        } else {
+            cellType = TagTreeCellFactory.TreeCellType.TEXTFIELD;
+        }
+        setCellFactory(new TagTreeCellFactory(cellType));
         
         selectedItems.clear();
 

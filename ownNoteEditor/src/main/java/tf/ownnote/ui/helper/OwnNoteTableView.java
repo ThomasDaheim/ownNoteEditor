@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.collections.FXCollections;
@@ -39,6 +40,7 @@ import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.CacheHint;
 import javafx.scene.Scene;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
@@ -59,6 +61,8 @@ import javafx.scene.text.Text;
 import tf.helper.general.IPreferencesHolder;
 import tf.helper.general.IPreferencesStore;
 import tf.helper.general.ObjectsHelper;
+import tf.helper.javafx.TableMenuUtils;
+import tf.helper.javafx.TableViewPreferences;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.notes.Note;
@@ -119,18 +123,23 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     @Override
     public void loadPreferences(final IPreferencesStore store) {
         if (TableType.notesTable.equals(myTableType)) {
-            setSortOrder(TableSortHelper.fromString(store.get(OwnNoteEditorPreferences.RECENT_NOTESTABLE_SORTORDER, "")));
+//            setSortOrder(TableSortHelper.fromString(store.get(OwnNoteEditorPreferences.RECENT_NOTESTABLE_SORTORDER, "")));
+            TableViewPreferences.loadTableViewPreferences(myTableView, OwnNoteEditorPreferences.RECENT_NOTESTABLE_SETTINGS, store);
         } else {
-            setSortOrder(TableSortHelper.fromString(store.get(OwnNoteEditorPreferences.RECENT_GROUPSTABLE_SORTORDER, "")));
+//            setSortOrder(TableSortHelper.fromString(store.get(OwnNoteEditorPreferences.RECENT_GROUPSTABLE_SORTORDER, "")));
+            TableViewPreferences.loadTableViewPreferences(myTableView, OwnNoteEditorPreferences.RECENT_GROUPSTABLE_SETTINGS, store);
         }
+        setSortOrder();
     }
     
     @Override
     public void savePreferences(final IPreferencesStore store) {
         if (TableType.notesTable.equals(myTableType)) {
-            store.put(OwnNoteEditorPreferences.RECENT_NOTESTABLE_SORTORDER, TableSortHelper.toString(getSortOrder()));
+//            store.put(OwnNoteEditorPreferences.RECENT_NOTESTABLE_SORTORDER, TableSortHelper.toString(getSortOrder()));
+            TableViewPreferences.saveTableViewPreferences(myTableView, OwnNoteEditorPreferences.RECENT_NOTESTABLE_SETTINGS, store);
         } else {
-            store.put(OwnNoteEditorPreferences.RECENT_GROUPSTABLE_SORTORDER, TableSortHelper.toString(getSortOrder()));
+//            store.put(OwnNoteEditorPreferences.RECENT_GROUPSTABLE_SORTORDER, TableSortHelper.toString(getSortOrder()));
+            TableViewPreferences.saveTableViewPreferences(myTableView, OwnNoteEditorPreferences.RECENT_GROUPSTABLE_SETTINGS, store);
         }
     }
 
@@ -156,7 +165,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                     collect(Collectors.toList()));
         }
         
-        final ObservableList<Map<String, String>> newGroups = FXCollections.observableArrayList();
+        final ObservableList<Map<String, String>> newGroups = FXCollections.<Map<String, String>>observableArrayList();
         for (NoteGroup group: groupsList) {
            final String groupName = group.getGroupName();
 
@@ -210,7 +219,13 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         myTableView.getSelectionModel().setCellSelectionEnabled(false);
         myTableView.setDisable(false);
         myTableView.setFocusTraversable(false);
+        myTableView.setCache(true);
+        myTableView.setCacheHint(CacheHint.SPEED);
         
+        Platform.runLater(() -> {
+            TableMenuUtils.addCustomTableViewMenu(myTableView);
+        });
+
         if (myTableType != null) {
             if (TableType.notesTable.equals(myTableType)) {
                 final ContextMenu newMenu = new ContextMenu();
@@ -573,12 +588,8 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         myTableView.setVisible(b);
     }
     
-    public TableSortHelper getSortOrder() {
-        return new TableSortHelper(myTableView.getSortOrder());
-    }
-    
-    public void setSortOrder(final TableSortHelper sortOrder) {
-        mySortOrder = sortOrder.toTableColumnList(myTableView.getColumns());
+    private void setSortOrder() {
+        mySortOrder = myTableView.getSortOrder();
         
         restoreSortOrder();
     }

@@ -26,31 +26,21 @@
 package tf.ownnote.ui.tags;
 
 import java.util.Objects;
-import javafx.beans.binding.Bindings;
 import javafx.beans.value.ObservableValue;
 import javafx.css.PseudoClass;
-import javafx.event.ActionEvent;
-import javafx.scene.Node;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.TextField;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
-import javafx.scene.control.cell.CheckBoxTreeCell;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
-import javafx.scene.layout.HBox;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AppClipboard;
-import tf.helper.javafx.CellUtils;
-import tf.ownnote.ui.helper.FormatHelper;
 
 /**
  * Add TextFieldTreeCell functionality to CheckBoxTreeCell
@@ -61,11 +51,16 @@ import tf.ownnote.ui.helper.FormatHelper;
  * @author thomas
  */
 public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<TagInfo>> {
-    private final static TagTreeCellFactory INSTANCE = new TagTreeCellFactory();
-    
     public static final DataFormat DRAG_AND_DROP = new DataFormat("application/ownnoteeditor-treetableview-dnd");
     public static final DataFormat COPY_AND_PASTE = new DataFormat("application/ownnoteeditor-treetableview-cnp");
     
+    public enum TreeCellType {
+        CHECKBOX,
+        TEXTFIELD
+    }
+    
+    private final TreeCellType myType;
+
     private enum DropPosition{
         TOP(0, 0.2, "-fx-border-color: #eea82f; -fx-border-width: 2 0 0 0"),
         CENTER(0.2, 0.8, "-fx-border-color: #eea82f; -fx-border-width: 0 2 0 0"),
@@ -96,123 +91,27 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
 
     private TagTreeCellFactory() {
         super();
+        myType = null;
     }
 
-    public static TagTreeCellFactory getInstance() {
-        return INSTANCE;
+    public TagTreeCellFactory(final TreeCellType cellType) {
+        super();
+        
+        myType = cellType;
     }
 
     // see https://stackoverflow.com/a/25444841
     final Callback<TreeItem<TagInfo>, ObservableValue<Boolean>> getSelectedProperty = ((p) -> { return p.getValue().selectedProperty(); }); 
-    final StringConverter<TreeItem<TagInfo>> treeItemConverter = new StringConverter<TreeItem<TagInfo>>() {
-        @Override
-        public String toString(TreeItem<TagInfo> item) {
-            return item.getValue().getName();
-        }
-
-        @Override
-        public TreeItem<TagInfo> fromString(String string) {
-            throw new UnsupportedOperationException("Not supported yet.");
-        }
-    };
-    final StringConverter<TagInfo> tagInfoConverter = new StringConverter<TagInfo>() {
-        @Override
-        public String toString(TagInfo item) {
-            return item.getName();
-        }
-
-        @Override
-        public TagInfo fromString(String string) {
-            return new TagInfo(string);
-        }
-    };
 
     @Override
     public TreeCell<TagInfo> call(TreeView<TagInfo> treeView) {
-        TreeCell<TagInfo> cell = new CheckBoxTreeCell<TagInfo>(getSelectedProperty, treeItemConverter) {
-            private TextField textField;
-            private HBox hbox;
-            
-            @Override
-            public void updateItem(TagInfo item, boolean empty) {
-                super.updateItem(item, empty);
-                
-                if (item != null && !empty) {
-                    final TreeItem<TagInfo> treeItem = getTreeItem();
-
-                    final ContextMenu contextMenu = new ContextMenu();
-                        
-                    final MenuItem newChildItem = new MenuItem("New child");
-                    newChildItem.setOnAction((ActionEvent event) -> {
-                        // act on tag lists - RecursiveTreeItem will take care of the rest
-                        getTreeItem().getValue().getChildren().add(new TagInfo("New child tag"));
-                    });
-
-                    if (treeItem.getParent() != null) {
-                        final MenuItem newSilblingItem = new MenuItem("New sibling");
-                        newSilblingItem.setOnAction((ActionEvent event) -> {
-                            // act on tag lists - RecursiveTreeItem will take care of the rest
-                            getTreeItem().getParent().getValue().getChildren().add(new TagInfo("New sibling tag"));
-                        });
-
-                        final MenuItem deleteItem = new MenuItem("Delete");
-                        deleteItem.setOnAction((ActionEvent event) -> {
-                            // act on tag lists - RecursiveTreeItem will take care of the rest
-                            getTreeItem().getParent().getValue().getChildren().remove(getTreeItem().getValue());
-                        });
-
-                        contextMenu.getItems().addAll(newSilblingItem, newChildItem, deleteItem);
-                    } else {
-                        contextMenu.getItems().addAll(newChildItem);
-                    }
-
-                    if (treeView instanceof TagsTreeView) {
-                        contextMenuProperty().bind(
-                                Bindings.when(((TagsTreeView) treeView).allowReorderProperty()).
-                                        then(contextMenu).otherwise((ContextMenu)null));
-                    } else {
-                        setContextMenu(contextMenu);
-                    }
-                }
-            }            
-
-            @Override
-            public void startEdit() {
-                if (! isEditable() || ! getTreeView().isEditable()) {
-                    return;
-                }
-                super.startEdit();
-
-                if (isEditing()) {
-                    if (textField == null) {
-                        textField = CellUtils.createTextField(this, tagInfoConverter);
-                        
-                        if (treeView instanceof TagsTreeView) {
-                            // set textformatter that checks against existing tags and disables duplicates
-                            FormatHelper.getInstance().initTagNameTextField(textField, (t) -> {
-                                return !((TagsTreeView) treeView).isTagNameInTreeView(t);
-                            });
-                        }
-                    }
-                    if (hbox == null) {
-                        hbox = new HBox(CellUtils.TREE_VIEW_HBOX_GRAPHIC_PADDING);
-                    }
-
-                    CellUtils.startEdit(this, tagInfoConverter, hbox, getTreeItemGraphic(), textField);
-                }
-            }
-
-            @Override
-            public void cancelEdit() {
-                super.cancelEdit();
-                CellUtils.cancelEdit(this, tagInfoConverter, getTreeItemGraphic());
-            }
-
-            private Node getTreeItemGraphic() {
-                TreeItem<TagInfo> treeItem = getTreeItem();
-                return treeItem == null ? null : treeItem.getGraphic();
-            }
-        };
+        TreeCell<TagInfo> cell;
+        
+        if (TreeCellType.CHECKBOX.equals(myType)) {
+            cell = new TagCheckBoxTreeCell(treeView, getSelectedProperty);
+        } else {
+            cell = new TagTextFieldTreeCell(treeView);
+        }
         
         if (treeView instanceof TagsTreeView) {
             // add listener to TagsTreeView property

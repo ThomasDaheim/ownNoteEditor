@@ -33,6 +33,9 @@ public class OwnNoteEditorPreferences implements IPreferencesStore {
     // issue #45 store sort order for tables
     public final static String RECENT_GROUPSTABLE_SORTORDER = "recentGroupsTableSortOrder";
     public final static String RECENT_NOTESTABLE_SORTORDER = "recentNotesTableSortOrder";
+    // TFE, 20201205: store everything for tables :-)
+    public final static String RECENT_GROUPSTABLE_SETTINGS = "recentGroupsTableSettings";
+    public final static String RECENT_NOTESTABLE_SETTINGS = "recentNotesTableSettings";
     
     // TFE, 20200907: store tab order
     public static final String PREF_STRING_PREFIX = "[ ";

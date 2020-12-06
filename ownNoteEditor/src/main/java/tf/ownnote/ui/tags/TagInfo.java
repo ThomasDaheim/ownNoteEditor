@@ -44,7 +44,7 @@ import javafx.collections.ObservableList;
 public class TagInfo {
     private final BooleanProperty selectedProperty = new SimpleBooleanProperty(false);
     private final StringProperty name = new SimpleStringProperty();
-    private final ObservableList<TagInfo> children = FXCollections.observableArrayList();
+    private final ObservableList<TagInfo> children = FXCollections.<TagInfo>observableArrayList();
     private final StringProperty iconName = new SimpleStringProperty();
 
     public TagInfo() {
@@ -62,7 +62,7 @@ public class TagInfo {
     public TagInfo(final boolean sel, final String na, final List<TagInfo> childs) {
         selectedProperty.setValue(sel);
         name.set(na);
-        children.setAll(FXCollections.observableArrayList(childs));
+        children.setAll(FXCollections.<TagInfo>observableArrayList(childs));
     }
     
     @Override
@@ -124,7 +124,7 @@ public class TagInfo {
     }
 
     public void setChildren(final List<TagInfo> childs) {
-        children.setAll(FXCollections.observableArrayList(childs));
+        children.setAll(FXCollections.<TagInfo>observableArrayList(childs));
     }
     
     // method to get flat stream of taginfo + all its child tags

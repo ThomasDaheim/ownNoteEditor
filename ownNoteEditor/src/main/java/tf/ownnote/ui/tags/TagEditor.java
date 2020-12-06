@@ -185,13 +185,13 @@ public class TagEditor extends AbstractStage {
             bulkActionChoiceBox.setDisable(false);
             applyBulkActionBtn.setManaged(true);
             saveBtn.setText("Save");
-            tagsTreeView.fillTreeView(null);
+            tagsTreeView.fillTreeView(TagsTreeView.WorkMode.EDIT_MODE, null);
         } else {
             bulkActionChoiceBox.setManaged(false);
             bulkActionChoiceBox.setDisable(true);
             applyBulkActionBtn.setManaged(false);
             saveBtn.setText("Set");
-            tagsTreeView.fillTreeView(myWorkNote.getMetaData().getTags());
+            tagsTreeView.fillTreeView(TagsTreeView.WorkMode.SELECT_MODE, myWorkNote.getMetaData().getTags());
         }
     }
     

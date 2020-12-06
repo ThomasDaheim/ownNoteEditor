@@ -212,11 +212,11 @@ public class OwnNoteFileManager {
     }
     
     public ObservableList<NoteGroup> getGroupsList() {
-        return FXCollections.observableArrayList(groupsList.values());
+        return FXCollections.<NoteGroup>observableArrayList(groupsList.values());
     }
 
     public ObservableList<Note> getNotesList() {
-        return FXCollections.observableArrayList(notesList.values());
+        return FXCollections.<Note>observableArrayList(notesList.values());
     }
     
     public Note getNote(String groupName, String noteName) {
