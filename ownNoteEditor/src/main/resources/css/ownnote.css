@@ -213,3 +213,11 @@
     -fx-font-weight: bold;
     -fx-font-size: 0.8em;
 }
+
+/* style tag treeview */
+.tagsTreeView .tree-cell:selected {
+    -fx-font-weight: bold;
+}
+.tagsTreeView .tree-cell:hover {
+    -fx-background-color: cell_hover_color !important;
+}

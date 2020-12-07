@@ -66,6 +66,7 @@ import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  * Load & save tag info to XML stored along with notes.
@@ -177,10 +178,43 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 
                 System.out.println("No tag for reserved name " + tagName + " found. Initializing...");
             } else if (TagManager.ReservedTagNames.Groups.name().equals(tag.getName())) {
+                boolean hasAllGroups = false;
+                boolean hasNotGrouped = false;
+                
                 // color my children
                 for (TagInfo tagChild : tag.getChildren()) {
-                    tagChild.setColorName(myEditor.getGroupColor(tagChild.getName()));
+                    final String tagChildName = tagChild.getName();
+                    
+                    tagChild.setColorName(OwnNoteEditor.getGroupColor(tagChildName));
+                    
+                    if (NoteGroup.ALL_GROUPS.equals(tagChildName)) {
+                        hasAllGroups = true;
+                        tagChild.setFixed(true);
+                    }
+                    if (NoteGroup.NOT_GROUPED.equals(tagChildName)) {
+                        hasNotGrouped = true;
+                        tagChild.setFixed(true);
+                    }
                 }
+                
+                if (!hasAllGroups) {
+                    // all groups is always the first entry
+                    final TagInfo allGroups = new TagInfo(NoteGroup.ALL_GROUPS);
+                    allGroups.setColorName(OwnNoteEditor.getGroupColor(NoteGroup.ALL_GROUPS));
+                    allGroups.setFixed(true);
+                    
+                    tag.getChildren().add(0, allGroups);
+                }
+                if (!hasNotGrouped) {
+                    // all groups is always the second entry
+                    final TagInfo notGrouped = new TagInfo(NoteGroup.NOT_GROUPED);
+                    notGrouped.setColorName(OwnNoteEditor.getGroupColor(NoteGroup.NOT_GROUPED));
+                    notGrouped.setFixed(true);
+                    
+                    tag.getChildren().add(1, notGrouped);
+                }
+                
+                // TODO: set sort order of groups - do we need this?
             }
             
             tag.setFixed(true);
@@ -256,7 +290,6 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 }
             }
         }
-        
     }
     
     public TagInfo tagForName(final String tagName) {

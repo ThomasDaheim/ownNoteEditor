@@ -128,7 +128,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     
     public final static DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.uuuu HH:mm:ss");
 
-    private final static String NEWNOTENAME = "New Note";
+    private final static String NEW_NOTENAME = "New Note";
+    
+    public final static String GROUP_COLOR_CSS = "group-color";
     
     // TFE, 20200712: add search of unchecked boxes
     // TFE, 20201103: actual both variants of html are valid and need to be supported equally
@@ -138,7 +140,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     public final static String CHECKED_BOXES_2 = "<input type=\"checkbox\" checked=\"checked\">";
     public final static String ANY_BOXES = "<input type=\"checkbox\"";
     
-    private final static int TEXTFIELDWIDTH = 100;  
+    private final static int TEXTFIELD_WIDTH = 100;  
     
     private final List<String> realGroupNames = new LinkedList<>();
     
@@ -1528,7 +1530,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         */
     }
 
-    public void setNotesTableForNewTab(String style) {
+    public void setNotesTableStyle(String style) {
         notesTable.setStyle(style);
     }
     
@@ -1549,7 +1551,16 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                         // done, selectGroupForNote calls selectFirstOrCurrentNote() internally - BUT NO LOOPS PLEASE
                         firstNoteAccess = false;
                         Platform.runLater(() -> {
-                            groupsPane.selectGroupForNote(curNote);
+                            switch (currentLookAndFeel) {
+                                case groupTabs:
+                                    groupsPane.selectGroupForNote(curNote);
+                                    break;
+                                case tagTree:
+                                    tagsTreeView.selectGroupForNote(curNote);
+                                    break;
+                                default:
+                                    break;
+                            }
                         });
                         return;
                     }
@@ -1580,7 +1591,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         int newCount = notesList.size() + 1;
         
         do {
-            result = OwnNoteEditor.NEWNOTENAME + " " + newCount;
+            result = OwnNoteEditor.NEW_NOTENAME + " " + newCount;
             newCount++;
         } while(OwnNoteFileManager.getInstance().noteExists(groupName, result));
         
@@ -1699,7 +1710,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 
     // TF, 20160703: to support coloring of notes table view for individual notes
     // TF, 20170528: determine color from groupname for new colors
-    public String getGroupColor(String groupName) {
+    public static String getGroupColor(String groupName) {
         final FilteredList<NoteGroup> filteredGroups = OwnNoteFileManager.getInstance().getGroupsList().filtered((NoteGroup group) -> {
             // Compare group name to filter text.
             return group.getGroupName().equals(groupName); 

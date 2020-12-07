@@ -32,12 +32,15 @@ import java.util.stream.Collectors;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableSet;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import tf.helper.javafx.RecursiveTreeItem;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  * A TreeView for TagInfo.
@@ -90,6 +93,8 @@ public class TagsTreeView extends TreeView<TagInfo> {
     }
 
     private void initTreeView() {
+        getStyleClass().add("tagsTreeView");
+        
         setEditable(true);
         
         setOnEditCommit((t) -> {
@@ -98,6 +103,31 @@ public class TagsTreeView extends TreeView<TagInfo> {
                 renameFunction.accept(t.getOldValue().getName(), t.getNewValue().getName());
                 
                 t.getOldValue().setName(t.getNewValue().getName());
+            }
+        });
+        
+        getSelectionModel().getSelectedItems().addListener((ListChangeListener.Change<? extends TreeItem<TagInfo>> change) -> {
+            // getSelectionModel().getSelectedItem() can be null even if getSelectionModel().getSelectedItems() isn't empty
+            // list is updated first before property? and therefore ListChangeListener runs before selected item gets set?
+            if (!getSelectionModel().getSelectedItems().isEmpty() && WorkMode.LIST_MODE.equals(myWorkMode)) {
+                final TreeItem<TagInfo> item = getSelectionModel().getSelectedItems().get(0);
+                if (item != null) {
+                    final TagInfo tag = item.getValue();
+                    
+                    if (TagManager.ReservedTagNames.Groups.name().equals(tag.getName())) {
+                        // "Groups" selected => similar to "All" in tabs
+                        myEditor.setGroupNameFilter(NoteGroup.ALL_GROUPS);
+
+                        myEditor.setNotesTableStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": " + OwnNoteEditor.getGroupColor(NoteGroup.ALL_GROUPS));
+                    } else if (item.getParent() != null && TagManager.ReservedTagNames.Groups.name().equals(item.getParent().getValue().getName())) {
+                        // a tag under "Groups" selected => similar to select a tab
+                        myEditor.setGroupNameFilter(tag.getName());
+
+                        myEditor.setNotesTableStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": " + tag.getColorName());
+                    }
+
+                    myEditor.selectFirstOrCurrentNote();
+                }
             }
         });
     }
@@ -175,7 +205,7 @@ public class TagsTreeView extends TreeView<TagInfo> {
         initWorkMode();
     }
     
-    public void newItemConsumer(final TreeItem<TagInfo> newItem) {
+    private void newItemConsumer(final TreeItem<TagInfo> newItem) {
         assert myEditor != null;
 
         newItem.getValue().selectedProperty().addListener((obs, oldValue, newValue) -> {
@@ -237,6 +267,15 @@ public class TagsTreeView extends TreeView<TagInfo> {
         parent.getValue().setSelected(!unSelectedFlag);
 
         inPropgateUpwardsAction = false;
+    }
+    
+    public void selectGroupForNote(final Note note) {
+        assert note != null;
+        
+        final TreeItem<TagInfo> groupItem = getTreeViewItem(getRoot(), note.getGroupName());
+        if (groupItem != null) {
+            getSelectionModel().select(groupItem);
+        }
     }
     
     public boolean isTagNameInTreeView(final String tag) {

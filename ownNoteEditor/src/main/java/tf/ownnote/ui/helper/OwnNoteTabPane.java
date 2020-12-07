@@ -137,7 +137,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
 
                         myEditor.setGroupNameFilter(groupName);
                         // set color of notes table to tab color
-                        myEditor.setNotesTableForNewTab(newTab.getStyle());
+                        myEditor.setNotesTableStyle(newTab.getStyle());
 
                         myTabPane.setStyle(newTab.getStyle());
                     }

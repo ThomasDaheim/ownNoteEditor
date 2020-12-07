@@ -105,7 +105,7 @@ public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagInfo> {
             
             final String colorName = treeItem.getValue().getColorName();
             if (colorName != null && !colorName.isEmpty()) {
-                setStyle("-fx-background-color: " + colorName + " !important;");
+                setStyle("-fx-background-color: " + colorName + ";");
             } else {
                 setStyle(null);
             }
