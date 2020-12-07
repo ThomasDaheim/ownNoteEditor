@@ -263,8 +263,8 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                                     assert (item instanceof Note);
                                     final String groupName = ((Note) item).getGroupName();
 
-                                    // get the color for the pane with the same groupname - not the same as get color for groupname!
-                                    final String groupColor = myEditor.getExistingGroupColor(groupName);
+                                    // get the color for the groupname
+                                    final String groupColor = myEditor.getGroupColor(groupName);
                                     setStyle("-fx-background-color: " + groupColor);
                                     //System.out.println("updateItem - groupName, groupColor: " + groupName + ", " + groupColor);
                                 }

@@ -46,6 +46,8 @@ public class TagInfo {
     private final StringProperty name = new SimpleStringProperty();
     private final ObservableList<TagInfo> children = FXCollections.<TagInfo>observableArrayList();
     private final StringProperty iconName = new SimpleStringProperty();
+    private final BooleanProperty fixedProperty = new SimpleBooleanProperty(false);
+    private final StringProperty colorName = new SimpleStringProperty();
 
     public TagInfo() {
         this("");
@@ -117,6 +119,30 @@ public class TagInfo {
 
     public void setIconName(final String na) {
         iconName.set(na);
+    }
+
+    public StringProperty colorNameProperty() {
+        return colorName;
+    }
+
+    public String getColorName() {
+        return colorName.get();
+    }
+
+    public void setColorName(final String col) {
+        colorName.set(col);
+    }
+
+    public BooleanProperty fixedProperty() {
+        return fixedProperty;
+    }
+
+    public boolean isFixed() {
+        return fixedProperty.get();
+    }
+
+    public void setFixed(final boolean fixed) {
+        fixedProperty.set(fixed);
     }
 
     public ObservableList<TagInfo> getChildren() {

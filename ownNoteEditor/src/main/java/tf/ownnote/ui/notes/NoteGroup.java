@@ -37,7 +37,9 @@ public class NoteGroup extends HashMap<String,String> {
     private enum GroupMapKey {
         groupName,
         groupDelete,
-        groupCount;
+        groupCount,
+        // TFE, 20201207: now thy colors
+        groupColor;
     }
         
     public static final String ALL_GROUPS = "All";
@@ -78,5 +80,13 @@ public class NoteGroup extends HashMap<String,String> {
 
     public void setGroupCount(final String groupCount) {
         put(GroupMapKey.groupCount.name(), groupCount);
+    }
+
+    public String getGroupColor() {
+        return get(GroupMapKey.groupColor.name());
+    }
+
+    public void setGroupColor(final String groupColor) {
+        put(GroupMapKey.groupColor.name(), groupColor);
     }
 }

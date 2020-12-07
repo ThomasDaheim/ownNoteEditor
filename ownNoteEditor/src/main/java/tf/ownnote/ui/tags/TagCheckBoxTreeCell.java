@@ -102,6 +102,13 @@ public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagInfo> {
 
         if (item != null && !empty) {
             final TreeItem<TagInfo> treeItem = getTreeItem();
+            
+            final String colorName = treeItem.getValue().getColorName();
+            if (colorName != null && !colorName.isEmpty()) {
+                setStyle("-fx-background-color: " + colorName + " !important;");
+            } else {
+                setStyle(null);
+            }
 
             final ContextMenu contextMenu = new ContextMenu();
 
@@ -136,6 +143,8 @@ public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagInfo> {
             } else {
                 setContextMenu(contextMenu);
             }
+        } else {
+            setStyle(null);
         }
     }            
 

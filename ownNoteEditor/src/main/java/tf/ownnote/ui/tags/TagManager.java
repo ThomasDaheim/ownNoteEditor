@@ -28,6 +28,7 @@ package tf.ownnote.ui.tags;
 import com.sun.javafx.collections.ObservableListWrapper;
 import com.sun.javafx.collections.ObservableSetWrapper;
 import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.converters.reflection.PureJavaReflectionProvider;
 import com.thoughtworks.xstream.io.xml.DomDriver;
 import com.thoughtworks.xstream.io.xml.PrettyPrintWriter;
 import java.io.BufferedInputStream;
@@ -56,7 +57,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.ObservableSet;
+import org.apache.commons.lang3.EnumUtils;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.xstreamfx.FXConverters;
 import tf.ownnote.ui.helper.FileContentChangeType;
@@ -76,6 +77,16 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     private final static TagManager INSTANCE = new TagManager();
     
     private final static String TAG_FILE = File.separator + "MetaData" + File.separator + "tag_info.xml";
+    
+    // reserved names for tags - can't be moved or edited
+    public enum ReservedTagNames {
+        Groups
+    }
+    
+    private final static Set<String> reservedTagNames = new HashSet<>(EnumUtils.getEnumList(ReservedTagNames.class).stream().map((t) -> {
+        return t.name();
+    }).collect(Collectors.toSet()));
+    private final static Set<TagInfo> reservedTags = new HashSet<>();
     
     private ObservableList<TagInfo> tagList = null;
     
@@ -119,7 +130,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         final File file = new File(fileName);
         if (file.exists() && !file.isDirectory() && file.canRead()) {
             // load from xml AND from current metadata
-            final XStream xstream = new XStream(new DomDriver("ISO-8859-1"));
+            final XStream xstream = new XStream(new PureJavaReflectionProvider(), new DomDriver("ISO-8859-1"));
             xstream.setMode(XStream.XPATH_RELATIVE_REFERENCES);
             XStream.setupDefaultSecurity(xstream);
             final Class<?>[] classes = new Class[] { 
@@ -157,26 +168,24 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             tagList = FXCollections.<TagInfo>observableArrayList();
         }
 
-        // current metadata tags
-//        final List<Note> noteList = OwnNoteFileManager.getInstance().getNotesList();
-//        final Set<String> noteTags = new HashSet<>();
-//        for (Note note : noteList) {
-//            noteTags.addAll(note.getMetaData().getTags());
-//        }
-        
-//        // add if not yet in list
-//        // flatten tagslist to set
-//        // http://squirrel.pl/blog/2015/03/04/walking-recursive-data-structures-using-java-8-streams/
-//        // https://stackoverflow.com/a/31992391
-//        final Set<String> tagNames = tagList.stream().map((t) -> {
-//            return t.flattened().map(TagInfo::getName);
-//        }).flatMap(Function.identity()).collect(Collectors.toSet());
-//        
-//        for (String noteTag : noteTags) {
-//            if (!tagNames.contains(noteTag)) {
-//                tagList.add(new TagInfo(noteTag));
-//            }
-//        }
+        // ensure reserved names are fixed
+        for (String tagName : reservedTagNames) {
+            TagInfo tag = tagForName(tagName);
+            if (tag == null) {
+                tag = new TagInfo(tagName);
+                tagList.add(tag);
+                
+                System.out.println("No tag for reserved name " + tagName + " found. Initializing...");
+            } else if (TagManager.ReservedTagNames.Groups.name().equals(tag.getName())) {
+                // color my children
+                for (TagInfo tagChild : tag.getChildren()) {
+                    tagChild.setColorName(myEditor.getGroupColor(tagChild.getName()));
+                }
+            }
+            
+            tag.setFixed(true);
+            reservedTags.add(tag);
+        }
     }
 
     public void saveTags() {

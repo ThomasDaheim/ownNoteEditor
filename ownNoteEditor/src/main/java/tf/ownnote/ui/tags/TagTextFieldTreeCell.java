@@ -80,6 +80,13 @@ public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfo> {
         if (item != null && !empty) {
             final TreeItem<TagInfo> treeItem = getTreeItem();
 
+            final String colorName = treeItem.getValue().getColorName();
+            if (colorName != null && !colorName.isEmpty()) {
+                setStyle("-fx-background-color: " + colorName + " !important;");
+            } else {
+                setStyle(null);
+            }
+
             final ContextMenu contextMenu = new ContextMenu();
 
             final MenuItem newChildItem = new MenuItem("New child");
@@ -113,6 +120,8 @@ public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfo> {
             } else {
                 setContextMenu(contextMenu);
             }
+        } else {
+            setStyle(null);
         }
     }            
 

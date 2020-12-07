@@ -186,10 +186,16 @@ public class OwnNoteFileManager {
         } catch (IOException | DirectoryIteratorException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
         }
+
+        // TFE, 20201207: initialize color per group
+        for (String groupName : groupsList.keySet()) {
+            groupsList.get(groupName).setGroupColor(myEditor.getGroupColor(groupName));
+        }
         
         // fix #14
         // monitor directory for changes
-        myDirMonitor.setDirectoryToMonitor(notesPath);   
+        myDirMonitor.setDirectoryToMonitor(notesPath);
+        
     }
     
     private String getFirstLine(final File file) {

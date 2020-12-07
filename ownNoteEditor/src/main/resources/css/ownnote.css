@@ -17,7 +17,7 @@
     -fx-text-fill: -fx-text-base-color;
     
     /* our own variables should be initialized here as well to avoid run-time warnings */
-    tab-color: white;
+    group-color: white;
     note-selected-background-color: -fx-base;
     note-selected-font-color: black;
     notename-font-weight: bold;
@@ -43,7 +43,7 @@
 .table-view.notesTable .column-header-background,
 .table-view.notesTable .column-header-background .filler,
 .table-view.notesTable .table-row-cell {
-    -fx-background-color: tab-color;
+    -fx-background-color: group-color;
     -fx-table-cell-border-color: transparent;
     -fx-border-width: 0;
 }
@@ -144,10 +144,10 @@
 .tab-header-area .tab,
 .tab-pane > .tab-header-area > .headers-region > .tab,
 .tab-pane > .tab-header-area > .headers-region > .tab:selected {
-    -fx-background-color: tab-color;
+    -fx-background-color: group-color;
 }
 .tab-pane .tab-content-area {
-    -fx-background-color: tab-color;
+    -fx-background-color: group-color;
 }
 
 /* "+" tab is special */

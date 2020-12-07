@@ -37,6 +37,7 @@ import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import tf.helper.javafx.RecursiveTreeItem;
+import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
  * A TreeView for TagInfo.
@@ -52,6 +53,9 @@ import tf.helper.javafx.RecursiveTreeItem;
 * @author thomas
  */
 public class TagsTreeView extends TreeView<TagInfo> {
+    // callback to OwnNoteEditor
+    private OwnNoteEditor myEditor;
+
     private boolean inPropgateUpwardsAction = false;
     
     public enum WorkMode {
@@ -71,6 +75,18 @@ public class TagsTreeView extends TreeView<TagInfo> {
     
     public TagsTreeView() {
         initTreeView();
+    }
+
+    public TagsTreeView(final OwnNoteEditor editor) {
+        assert editor != null;
+        myEditor = editor;
+        
+        initTreeView();
+    }
+
+    public void setCallback(final OwnNoteEditor editor) {
+        assert editor != null;
+        myEditor = editor;
     }
 
     private void initTreeView() {
@@ -160,6 +176,8 @@ public class TagsTreeView extends TreeView<TagInfo> {
     }
     
     public void newItemConsumer(final TreeItem<TagInfo> newItem) {
+        assert myEditor != null;
+
         newItem.getValue().selectedProperty().addListener((obs, oldValue, newValue) -> {
             changeAction(newItem, oldValue, newValue);
         });

@@ -274,7 +274,7 @@ public class OwnNoteTab extends Tab {
 
     public void setTabColor(final String newTabColor) {
         tabColor = newTabColor;
-        setStyle("tab-color: " + newTabColor);
+        setStyle("group-color: " + newTabColor);
     }
 
     /**

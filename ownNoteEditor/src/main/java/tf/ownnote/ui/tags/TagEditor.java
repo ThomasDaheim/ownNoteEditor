@@ -25,10 +25,7 @@
  */
 package tf.ownnote.ui.tags;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
 import javafx.collections.SetChangeListener;
 import javafx.event.ActionEvent;
 import javafx.scene.control.Button;
@@ -92,6 +89,8 @@ public class TagEditor extends AbstractStage {
 
     public void setCallback(final OwnNoteEditor editor) {
         myEditor = editor;
+
+        tagsTreeView.setCallback(editor);
     }
     
     private void initViewer() {
@@ -167,6 +166,8 @@ public class TagEditor extends AbstractStage {
     }
     
     public boolean editTags(final Note workNote) {
+        assert myEditor != null;
+        
         myWorkNote = workNote;
         
         initTags();
