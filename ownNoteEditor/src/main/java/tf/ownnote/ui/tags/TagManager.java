@@ -150,6 +150,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             xstream.alias("booleanProperty", SimpleBooleanProperty.class);
             xstream.alias("stringProperty", SimpleStringProperty.class);
 
+            xstream.omitField(TagInfo.class, "linkedNotes");
+
             try (
                 BufferedInputStream stdin = new BufferedInputStream(new FileInputStream(fileName));
                 Reader reader = new InputStreamReader(stdin, "ISO-8859-1");
@@ -247,6 +249,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         xstream.alias("setProperty", ObservableSetWrapper.class);
         xstream.alias("booleanProperty", SimpleBooleanProperty.class);
         xstream.alias("stringProperty", SimpleStringProperty.class);
+        
+        xstream.omitField(TagInfo.class, "linkedNotes");
 
         try (
             BufferedOutputStream stdout = new BufferedOutputStream(new FileOutputStream(OwnNoteFileManager.getInstance().getNotesPath() + TAG_FILE));

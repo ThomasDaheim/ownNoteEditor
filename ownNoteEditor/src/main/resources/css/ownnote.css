@@ -52,7 +52,7 @@
 }
 .table-view > .virtual-flow > .clipped-container > .sheet > .table-row-cell .table-cell:hover:filled,
 .table-view > .virtual-flow > .clipped-container > .sheet > .table-row-cell:hover:filled .table-cell{
-    -fx-background-color: cell_hover_color;
+    -fx-background-color: cell_hover_color !important;
 }
 
 /* note name in bold */
@@ -95,7 +95,7 @@
 }
 .table-view.groupsTable .table-row-cell:hover:filled,
 .table-view.groupsTable .table-row-cell:selected {
-    -fx-background-color: darkgray;
+    /*-fx-background-color: darkgray !important;*/
     -fx-font-color: -fx-text-base-color;
 }
 /* selected group info in bold */
@@ -215,9 +215,10 @@
 }
 
 /* style tag treeview */
-.tagsTreeView .tree-cell:selected {
+.tagsTreeView .tree-cell:filled:selected {
+    /*-fx-background-color: darkgray !important;*/
     -fx-font-weight: bold;
 }
-.tagsTreeView .tree-cell:hover {
+.tagsTreeView .tree-cell:filled:hover {
     -fx-background-color: cell_hover_color !important;
 }

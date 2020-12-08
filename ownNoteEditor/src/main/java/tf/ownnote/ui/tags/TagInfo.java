@@ -25,6 +25,7 @@
  */
 package tf.ownnote.ui.tags;
 
+import com.thoughtworks.xstream.annotations.XStreamOmitField;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -35,6 +36,9 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.ObservableSet;
+import javafx.collections.SetChangeListener;
+import tf.ownnote.ui.notes.Note;
 
 /**
  * Helper class to fill TagsTable / TagsTree with info per tag.
@@ -48,6 +52,9 @@ public class TagInfo {
     private final StringProperty iconName = new SimpleStringProperty();
     private final BooleanProperty fixedProperty = new SimpleBooleanProperty(false);
     private final StringProperty colorName = new SimpleStringProperty();
+    
+    // link to notes with this tag - transient, will be re-created on startup
+    private final ObservableSet<Note> linkedNotes = FXCollections.<Note>observableSet();
 
     public TagInfo() {
         this("");
@@ -65,6 +72,15 @@ public class TagInfo {
         selectedProperty.setValue(sel);
         name.set(na);
         children.setAll(FXCollections.<TagInfo>observableArrayList(childs));
+        
+        linkedNotes.addListener((SetChangeListener.Change<? extends Note> change) -> {
+            if (change.wasAdded()) {
+                System.out.println("Note " + change.getElementAdded().getNoteName() + " added to tag " + name.get() + ". Total count: " + linkedNotes.size());
+            }
+            if (change.wasRemoved()) {
+                System.out.println("Note " + change.getElementRemoved().getNoteName() + " removed from tag " + name.get() + ". Total count: " + linkedNotes.size());
+            }
+        });
     }
     
     @Override
@@ -143,6 +159,15 @@ public class TagInfo {
 
     public void setFixed(final boolean fixed) {
         fixedProperty.set(fixed);
+    }
+
+    public ObservableSet<Note> getLinkedNotes() {
+        return linkedNotes;
+    }
+
+    public void setLinkedNotes(final ObservableSet<Note> notes) {
+        linkedNotes.clear();
+        linkedNotes.addAll(notes);
     }
 
     public ObservableList<TagInfo> getChildren() {

@@ -43,10 +43,12 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -172,11 +174,9 @@ public class OwnNoteFileManager {
                 groupRow.setGroupCount(Integer.toString(Integer.valueOf(groupRow.getGroupCount())+1));
                 groupsList.replace(NoteGroup.ALL_GROUPS, new NoteGroup(groupRow));
                 
-                final Note noteRow = new Note();
-                noteRow.setNoteName(noteName);
+                final Note noteRow = new Note(groupName, noteName);
                 noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
                 noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
-                noteRow.setGroupName(groupName);
                 // TFE; 20201023: set note metadata from file content
                 noteRow.setMetaData(NoteMetaData.fromHtmlString(getFirstLine(file)));
                 // use filename and not notename since duplicate note names can exist in different groups
@@ -344,11 +344,9 @@ public class OwnNoteFileManager {
             // update notesList as well
             final LocalDateTime filetime = LocalDateTime.ofInstant((new Date(newPath.toFile().lastModified())).toInstant(), ZoneId.systemDefault());
 
-            final Note noteRow = new Note();
-            noteRow.setNoteName(noteName);
+            final Note noteRow = new Note(groupName, noteName);
             noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
             noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
-            noteRow.setGroupName(groupName);
             // use filename and not notename since duplicate note names can exist in diffeent groups
             notesList.put(newFileName, new Note(noteRow));
         } catch (IOException ex) {
@@ -661,12 +659,12 @@ public class OwnNoteFileManager {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date());
     }
     
-    public List<Note> getNotesWithText(final String searchText) {
+    public Set<Note> getNotesWithText(final String searchText) {
         if (searchText == null || searchText.isEmpty()) {
-            return notesList.values().stream().collect(Collectors.toList());
+            return notesList.values().stream().collect(Collectors.toSet());
         }
         
-        final List<Note> result = new ArrayList<>();
+        final Set<Note> result = new HashSet<>();
         
         // iterate over all file and check context for searchText
         for (Map.Entry<String, Note> note : notesList.entrySet()) {

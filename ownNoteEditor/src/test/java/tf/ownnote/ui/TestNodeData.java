@@ -158,11 +158,9 @@ public class TestNodeData {
         groupRow.setGroupCount(Integer.toString(Integer.valueOf(groupRow.getGroupCount())+1));
         groupsList.replace(NoteGroup.ALL_GROUPS, new NoteGroup(groupRow));
         
-        final Note noteRow = new Note();
-        noteRow.setNoteName(noteName);
+        final Note noteRow = new Note(groupName, noteName);
         noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
         noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
-        noteRow.setGroupName(groupName);
         // use filename and not notename since duplicate note names can exist in diffeent groups
         notesList.put(filename, new Note(noteRow));
     }

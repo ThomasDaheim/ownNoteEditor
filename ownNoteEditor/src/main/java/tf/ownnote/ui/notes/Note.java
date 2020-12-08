@@ -46,10 +46,12 @@ public class Note extends HashMap<String,String> {
     }
     
     // TFE, 20201022: store additional metadata, e.g. tags, author, ...
-    private NoteMetaData myMetaData = new NoteMetaData();
+    private NoteMetaData myMetaData;
 
-    public Note() {
+    private Note() {
         super();
+        
+        setMetaData(new NoteMetaData());
     }
     
     public Note(final String groupName, final String noteName) {
@@ -57,6 +59,7 @@ public class Note extends HashMap<String,String> {
         
         setGroupName(groupName);
         setNoteName(noteName);
+        setMetaData(new NoteMetaData());
     }
     
     public Note(final Note note) {
@@ -146,5 +149,7 @@ public class Note extends HashMap<String,String> {
 
     public void setMetaData(final NoteMetaData metaData) {
         myMetaData = metaData;
+        
+        myMetaData.setNote(this);
     }
 }

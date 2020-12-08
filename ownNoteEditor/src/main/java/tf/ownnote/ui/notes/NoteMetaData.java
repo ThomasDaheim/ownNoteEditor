@@ -52,6 +52,11 @@ public class NoteMetaData {
         SINGLE,
         MULTIPLE
     }
+    
+    private enum UpdateTag {
+        LINK,
+        UNLINK
+    }
 
     // info per available metadata - name & multiplicity
     // TODO: add values here as well
@@ -78,6 +83,8 @@ public class NoteMetaData {
 
     private final ObservableList<NoteVersion> myVersions = FXCollections.<NoteVersion>observableArrayList();
     private final ObservableSet<TagInfo> myTags = FXCollections.<TagInfo>observableSet();
+    
+    private Note myNote;
     
     public NoteMetaData() {
         super();
@@ -121,8 +128,37 @@ public class NoteMetaData {
     }
 
     public void setTags(final Set<TagInfo> tags) {
+        updateTags(UpdateTag.UNLINK);
         myTags.clear();
         myTags.addAll(tags);
+        updateTags(UpdateTag.LINK);
+    }
+    
+    private void updateTags(final UpdateTag updateTag) {
+        if (myNote == null) return;
+        
+        for (TagInfo tag : myTags) {
+            switch (updateTag) {
+                case LINK:
+                    System.out.println("Linking note " + myNote.getNoteName() + " to tag " + tag.getName());
+                    tag.getLinkedNotes().add(myNote);
+                    break;
+                case UNLINK:
+                    System.out.println("Unlinking note " + myNote.getNoteName() + " to tag " + tag.getName());
+                    tag.getLinkedNotes().remove(myNote);
+                    break;
+            }
+        }
+    }
+    
+    public Note getNote() {
+        return myNote;
+    }
+    
+    public void setNote(final Note note) {
+        updateTags(UpdateTag.UNLINK);
+        myNote = note;
+        updateTags(UpdateTag.LINK);
     }
     
     public static boolean hasMetaDataContent(final String htmlString) {

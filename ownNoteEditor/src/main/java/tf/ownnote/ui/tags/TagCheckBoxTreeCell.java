@@ -150,9 +150,16 @@ public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagInfo> {
 
     @Override
     public void startEdit() {
-        if (! isEditable() || ! getTreeView().isEditable()) {
+        if (!isEditable() || !getTreeView().isEditable()) {
             return;
         }
+        
+        // check if item is fixed (means no edit)
+        final TreeItem<TagInfo> treeItem = getTreeItem();
+        if (treeItem != null && treeItem.getValue().isFixed()) {
+            return;
+        }
+        
         super.startEdit();
 
         if (isEditing()) {

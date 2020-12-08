@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
@@ -1114,13 +1115,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
     public void initFromDirectory(final boolean updateOnly) {
         checkChangedNote();
 
-        // scan directory
-        OwnNoteFileManager.getInstance().initNotesPath(ownCloudPath.textProperty().getValue());
-        
         // TFE, 20201115: throw away any current tasklist - we might have changed the path!
         TaskManager.getInstance().resetTaskList();
-        taskList.populateTaskList();
         TagManager.getInstance().resetTagList();
+        
+        // scan directory and re-populate lists
+        OwnNoteFileManager.getInstance().initNotesPath(ownCloudPath.textProperty().getValue());
+
+        taskList.populateTaskList();
         // TFE, 20201206: re-populate tags treeview as well - if shown
         if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
             tagsTreeView.fillTreeView(TagsTreeView.WorkMode.LIST_MODE, null);
@@ -1513,21 +1515,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 
     public void setGroupNameFilter(final String groupName) {
         notesTable.setGroupNameFilter(groupName);
-        
-        // Issue #59: advanced filtering & sorting
-        // do the stuff in the OwnNoteTableView - thats the right place!
-        /*
-        notesTable.getTableView().setUserData(groupName);
-        
-        filteredData.setPredicate((Map<String, String> note) -> {
-            // If filter text is empty, display all persons. Also for "All".
-            if (groupName == null || groupName.isEmpty() || groupName.equals(NoteGroup.ALL_GROUPS) ) {
-                return true;
-            }
-            // Compare note name to filter text.
-            return (new Note(note)).getGroupName().equals(groupName); 
-        });
-        */
+    }
+    
+    public void setNotesFilter(final Set<Note> notes) {
+        notesTable.setNotesFilter(notes);
     }
 
     public void setNotesTableStyle(String style) {
@@ -1770,7 +1761,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         return buttonPressed;
     }
     
-    public List<Note> getNotesWithText(final String searchText) {
+    public Set<Note> getNotesWithText(final String searchText) {
         return OwnNoteFileManager.getInstance().getNotesWithText(searchText);
     }
     

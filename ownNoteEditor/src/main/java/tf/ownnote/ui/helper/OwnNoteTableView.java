@@ -29,6 +29,7 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -80,10 +81,13 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     
     // Issue #59: filter group names and note names
     private String groupNameFilter;
-    private String noteFilterText;
+    private String noteSearchText;
     // default: don't search in files
-    private Boolean noteFilterMode = false;
-    private List<Note> noteFilterNotes;
+    private Boolean noteSearchMode = false;
+    private Set<Note> noteSearchNotes;
+
+    // TFE, 20201208: tag support to show only notes linked to tags
+    private Set<Note> noteFilterNotes;
     
     private TableType myTableType = null;
     
@@ -506,18 +510,30 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         assert (TableType.notesTable.equals(myTableType));
 
         groupNameFilter = filterValue;
+        noteFilterNotes = null;
+
         // force re-run of filtering since refilter() is a private method...
         setFilterPredicate();
     }
     
+    public void setNotesFilter(final Set<Note> notes) {
+        assert (TableType.notesTable.equals(myTableType));
+
+        groupNameFilter = "";
+        noteFilterNotes = notes;
+
+        // force re-run of filtering since refilter() is a private method...
+        setFilterPredicate();
+    }
+
     public void setNoteFilterText(final String filterValue) {
         assert (TableType.notesTable.equals(myTableType));
 
-        noteFilterText = filterValue;
-        if(noteFilterMode) {
-            noteFilterNotes = myEditor.getNotesWithText(noteFilterText);
+        noteSearchText = filterValue;
+        if(noteSearchMode) {
+            noteSearchNotes = myEditor.getNotesWithText(noteSearchText);
         } else {
-            noteFilterNotes = null;
+            noteSearchNotes = null;
         }
 
         // force re-run of filtering since refilter() is a private method...
@@ -527,11 +543,11 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     public void setNoteFilterMode(final Boolean findInFiles) {
         assert (TableType.notesTable.equals(myTableType));
 
-        noteFilterMode = findInFiles;
-        if(noteFilterMode) {
-            noteFilterNotes = myEditor.getNotesWithText(noteFilterText);
+        noteSearchMode = findInFiles;
+        if(noteSearchMode) {
+            noteSearchNotes = myEditor.getNotesWithText(noteSearchText);
         } else {
-            noteFilterNotes = null;
+            noteSearchNotes = null;
         }
         // force re-run of filtering since refilter() is a private method...
         setFilterPredicate();
@@ -543,11 +559,12 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         getTableView().setUserData(groupNameFilter);
         
         filteredData.setPredicate((Note note) -> {
-            boolean result = false;
+            boolean result = true;
+            
             // If group filter text is empty, display all notes, also for "All"
             if (groupNameFilter == null || groupNameFilter.isEmpty() || groupNameFilter.equals(NoteGroup.ALL_GROUPS) ) {
-                // still filter for name in that case!
-                return filterNoteName(note);
+                // still filter for notes in that case!
+                return filterNote(note);
             }
             // Compare group name to group filter text
             if (!note.getGroupName().equals(groupNameFilter)) {
@@ -555,27 +572,38 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
             }
             
             // TFE, 20181028: and now also check for note names
-            return filterNoteName(note);
+            return filterNote(note);
         });
     }
-    private boolean filterNoteName(Note note) {
-        if(noteFilterMode) {
+    private boolean filterNote(Note note) {
+        boolean result = true;
+        
+        if (noteSearchMode) {
             // we find in files, so use name list
-            if (noteFilterNotes == null) {
-                return true;
+            if (noteSearchNotes != null) {
+                // compare note name & group name against list of matches
+                result = noteSearchNotes.contains(note);
+
+                result = (noteSearchNotes.stream().filter((t) -> {
+                    return (t.getNoteName().equals(note.getNoteName()) && t.getGroupName().equals(note.getGroupName()));
+                }).count() > 0);
             }
-            // compare note name & group name against list of matches
-            return (noteFilterNotes.stream().filter((t) -> {
-                return (t.getNoteName().equals(note.getNoteName()) && t.getGroupName().equals(note.getGroupName()));
-            }).count() > 0);
         } else {
             // If name filter text is empty, display all notes.
-            if (noteFilterText == null || noteFilterText.isEmpty()) {
-                return true;
+            if (noteSearchText == null || noteSearchText.isEmpty()) {
+                result = true;
+            } else {
+                // Compare note name to note filter text
+                result = note.getNoteName().contains(noteSearchText); 
             }
-            // Compare note name to note filter text
-            return note.getNoteName().contains(noteFilterText); 
         }
+        
+        // filter also for noteFilterNotes
+        if (result && noteFilterNotes != null) {
+            result = noteFilterNotes.contains(note);
+        }
+        
+        return result;
     }
 
     @Override

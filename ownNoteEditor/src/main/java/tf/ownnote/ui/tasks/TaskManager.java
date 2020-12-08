@@ -11,6 +11,7 @@ import java.nio.file.WatchEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -59,7 +60,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     
     private void initTaskList() {
         // find all notes containing checkbox and parse to create TaskData for them
-        final List<Note> taskNotes = OwnNoteFileManager.getInstance().getNotesWithText(OwnNoteEditor.ANY_BOXES);
+        final Set<Note> taskNotes = OwnNoteFileManager.getInstance().getNotesWithText(OwnNoteEditor.ANY_BOXES);
         
         for (Note note : taskNotes) {
             final String noteContent = OwnNoteFileManager.getInstance().readNote(note);

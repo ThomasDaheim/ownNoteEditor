@@ -129,12 +129,12 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
                 }
             });
         }
-        
+
         cell.setOnDragDetected((MouseEvent event) -> dragDetected(event, cell, treeView));
         cell.setOnDragOver((DragEvent event) -> dragOver(event, cell, treeView));
         cell.setOnDragDropped((DragEvent event) -> drop(event, cell, treeView));
         cell.setOnDragDone((DragEvent event) -> clearDropLocation());
-        
+
         // TODO: find a way to have mouseDragOver in drag-and-drop
         // simulate drag myself? https://stackoverflow.com/a/42890764
 //        cell.setOnMouseDragEntered((MouseDragEvent event) -> mouseDragEntered(event, cell, treeView));
@@ -167,6 +167,8 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
 //    }
     
     private void dragDetected(final MouseEvent event, final TreeCell<TagInfo> treeCell, final TreeView<TagInfo> treeView) {
+        if (treeCell.getItem() == null || treeCell.getItem().isFixed()) return;
+        
         final TreeItem<TagInfo> draggedItem = treeCell.getTreeItem();
 
         // root can't be dragged
@@ -191,6 +193,8 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
     }
 
     private void dragOver(final DragEvent event, final TreeCell<TagInfo> treeCell, final TreeView<TagInfo> treeView) {
+        if (treeCell.getItem() == null || treeCell.getItem().isFixed()) return;
+        
         if (!event.getDragboard().hasContent(DRAG_AND_DROP)) return;
         final TreeItem<TagInfo> thisItem = treeCell.getTreeItem();
 
@@ -217,11 +221,13 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
                 dropPosition = DropPosition.CENTER;
             }
             
-            dropZone.setStyle(dropPosition.dropHint);
+            dropZone.setStyle(dropZone.getStyle() + dropPosition.dropHint);
         }
     }
 
     private void drop(final DragEvent event, final TreeCell<TagInfo> treeCell, final TreeView<TagInfo> treeView) {
+        if (treeCell.getItem() == null || treeCell.getItem().isFixed()) return;
+        
         boolean success = false;
         if (!event.getDragboard().hasContent(DRAG_AND_DROP)) return;
 
@@ -261,6 +267,14 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
     }
 
     private void clearDropLocation() {
-        if (dropZone != null) dropZone.setStyle("");
+        if (dropZone != null) {
+            dropZone.setStyle(
+                    dropZone.getStyle().
+                            replace(DropPosition.CENTER.dropHint, "").
+                            replace(DropPosition.BOTTOM.dropHint, "").
+                            replace(DropPosition.TOP.dropHint, ""));
+            
+            dropZone = null;
+        }
     }
 }

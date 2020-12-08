@@ -124,6 +124,13 @@ public class TagsTreeView extends TreeView<TagInfo> {
                         myEditor.setGroupNameFilter(tag.getName());
 
                         myEditor.setNotesTableStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": " + tag.getColorName());
+                    } else {
+                        // any "normal" tag has been selected - set filter on all its and childrens notes
+                        final Set<Note> tagNotes = tag.flattened().map((t) -> {
+                            return t.getLinkedNotes();
+                        }).flatMap(Set::stream).collect(Collectors.toSet());
+                        
+                        myEditor.setNotesFilter(tagNotes);
                     }
 
                     myEditor.selectFirstOrCurrentNote();
