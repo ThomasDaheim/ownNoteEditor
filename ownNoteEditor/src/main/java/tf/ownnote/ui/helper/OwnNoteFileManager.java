@@ -136,14 +136,10 @@ public class OwnNoteFileManager {
         DirectoryStream<Path> stream = null;
         try {
             stream = Files.newDirectoryStream(Paths.get(this.notesPath), "*.htm");
-            
             for (Path path: stream) {
                 final File file = path.toFile();
                 final String filename = file.getName();
                 
-                // extract info from file and fill maps accordingly
-                final LocalDateTime filetime = LocalDateTime.ofInstant((new Date(file.lastModified())).toInstant(), ZoneId.systemDefault());
-
                 String noteName = "";
                 String groupName = "";
                 // split filename to notes & group names
@@ -173,7 +169,30 @@ public class OwnNoteFileManager {
                 groupRow = groupsList.get(NoteGroup.ALL_GROUPS);
                 groupRow.setGroupCount(Integer.toString(Integer.valueOf(groupRow.getGroupCount())+1));
                 groupsList.replace(NoteGroup.ALL_GROUPS, new NoteGroup(groupRow));
+            }
+
+            // TFE, 20201209: decouple reading of groups from reading of notes - since we want to have group data loaded when we init the tags
+            stream = Files.newDirectoryStream(Paths.get(this.notesPath), "*.htm");
+            for (Path path: stream) {
+                final File file = path.toFile();
+                final String filename = file.getName();
                 
+                String noteName = "";
+                String groupName = "";
+                // split filename to notes & group names
+                if (filename.startsWith("[")) {
+                    groupName = filename.substring(1, filename.indexOf("]"));
+                    // see pull request #44
+                    noteName = filename.substring(filename.indexOf("]")+2, filename.lastIndexOf("."));
+                } else {
+                    groupName = NoteGroup.NOT_GROUPED;
+                    // see pull request #44
+                    noteName = filename.substring(0, filename.lastIndexOf("."));
+                }
+
+                // extract info from file and fill maps accordingly
+                final LocalDateTime filetime = LocalDateTime.ofInstant((new Date(file.lastModified())).toInstant(), ZoneId.systemDefault());
+
                 final Note noteRow = new Note(groupName, noteName);
                 noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
                 noteRow.setNoteDelete(OwnNoteFileManager.deleteString);

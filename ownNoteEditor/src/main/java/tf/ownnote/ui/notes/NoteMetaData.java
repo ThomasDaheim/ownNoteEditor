@@ -140,11 +140,11 @@ public class NoteMetaData {
         for (TagInfo tag : myTags) {
             switch (updateTag) {
                 case LINK:
-                    System.out.println("Linking note " + myNote.getNoteName() + " to tag " + tag.getName());
+//                    System.out.println("Linking note " + myNote.getNoteName() + " to tag " + tag.getName());
                     tag.getLinkedNotes().add(myNote);
                     break;
                 case UNLINK:
-                    System.out.println("Unlinking note " + myNote.getNoteName() + " to tag " + tag.getName());
+//                    System.out.println("Unlinking note " + myNote.getNoteName() + " to tag " + tag.getName());
                     tag.getLinkedNotes().remove(myNote);
                     break;
             }

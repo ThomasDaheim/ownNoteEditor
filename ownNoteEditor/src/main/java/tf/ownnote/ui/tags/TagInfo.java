@@ -25,7 +25,6 @@
  */
 package tf.ownnote.ui.tags;
 
-import com.thoughtworks.xstream.annotations.XStreamOmitField;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -37,7 +36,6 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
-import javafx.collections.SetChangeListener;
 import tf.ownnote.ui.notes.Note;
 
 /**
@@ -72,15 +70,6 @@ public class TagInfo {
         selectedProperty.setValue(sel);
         name.set(na);
         children.setAll(FXCollections.<TagInfo>observableArrayList(childs));
-        
-        linkedNotes.addListener((SetChangeListener.Change<? extends Note> change) -> {
-            if (change.wasAdded()) {
-                System.out.println("Note " + change.getElementAdded().getNoteName() + " added to tag " + name.get() + ". Total count: " + linkedNotes.size());
-            }
-            if (change.wasRemoved()) {
-                System.out.println("Note " + change.getElementRemoved().getNoteName() + " removed from tag " + name.get() + ". Total count: " + linkedNotes.size());
-            }
-        });
     }
     
     @Override

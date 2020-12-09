@@ -1724,7 +1724,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                     default: groupColor = groupColors[groupIndex % groupColors.length];
                             break;
                 }
-                //System.out.println("Found group: " + groupName + " as number: " + groupIndex + " color: " + groupColor);
+//                System.out.println("Found group: " + groupName + " as number: " + groupIndex + " color: " + groupColor);
             }
         }
         return groupColor;

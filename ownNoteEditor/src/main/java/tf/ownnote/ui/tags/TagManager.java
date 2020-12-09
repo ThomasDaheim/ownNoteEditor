@@ -53,6 +53,7 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -309,7 +310,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         // flatten tagslist to set
         // http://squirrel.pl/blog/2015/03/04/walking-recursive-data-structures-using-java-8-streams/
         // https://stackoverflow.com/a/31992391
-        final Set<TagInfo> flatTags = tagList.stream().map((t) -> {
+        final Set<TagInfo> flatTags = getTagList().stream().map((t) -> {
             return t.flattened();
         }).flatMap(Function.identity()).collect(Collectors.toSet());
 
