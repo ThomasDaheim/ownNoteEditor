@@ -47,14 +47,15 @@ import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -140,7 +141,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 ObservableListWrapper.class, 
                 ObservableSetWrapper.class, 
                 SimpleBooleanProperty.class, 
-                SimpleStringProperty.class };
+                SimpleStringProperty.class,
+                SimpleObjectProperty.class};
             xstream.allowTypes(classes);
 
             FXConverters.configure(xstream);
@@ -150,8 +152,14 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             xstream.alias("setProperty", ObservableSetWrapper.class);
             xstream.alias("booleanProperty", SimpleBooleanProperty.class);
             xstream.alias("stringProperty", SimpleStringProperty.class);
+            xstream.alias("objectProperty", SimpleObjectProperty.class);
 
+            xstream.aliasField("name", TagInfo.class, "nameProperty");
+            xstream.aliasField("iconName", TagInfo.class, "iconNameProperty");
+            xstream.aliasField("colorName", TagInfo.class, "colorNameProperty");
+            
             xstream.omitField(TagInfo.class, "linkedNotes");
+            xstream.omitField(TagInfo.class, "parentProperty");
 
             try (
                 BufferedInputStream stdin = new BufferedInputStream(new FileInputStream(fileName));
@@ -240,7 +248,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             ObservableListWrapper.class, 
             ObservableSetWrapper.class, 
             SimpleBooleanProperty.class, 
-            SimpleStringProperty.class };
+            SimpleStringProperty.class,
+            SimpleObjectProperty.class};
         xstream.allowTypes(classes);
 
         FXConverters.configure(xstream);
@@ -250,8 +259,14 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         xstream.alias("setProperty", ObservableSetWrapper.class);
         xstream.alias("booleanProperty", SimpleBooleanProperty.class);
         xstream.alias("stringProperty", SimpleStringProperty.class);
+        xstream.alias("objectProperty", SimpleObjectProperty.class);
+
+        xstream.aliasField("name", TagInfo.class, "nameProperty");
+        xstream.aliasField("iconName", TagInfo.class, "iconNameProperty");
+        xstream.aliasField("colorName", TagInfo.class, "colorNameProperty");
         
         xstream.omitField(TagInfo.class, "linkedNotes");
+        xstream.omitField(TagInfo.class, "parentProperty");
 
         try (
             BufferedOutputStream stdout = new BufferedOutputStream(new FileOutputStream(OwnNoteFileManager.getInstance().getNotesPath() + TAG_FILE));
@@ -287,7 +302,12 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         for (Note note : OwnNoteFileManager.getInstance().getNotesList()) {
             if (!note.getGroupName().isEmpty()) {
                 final TagInfo groupInfo = tagForName(note.getGroupName());
-                if (!note.getMetaData().getTags().contains(groupInfo)) {
+                if (note.getMetaData().getTags().contains(groupInfo)) {
+                    System.out.println("Removing tag " + note.getGroupName() + " from note " + note.getNoteName());
+                    OwnNoteFileManager.getInstance().readNote(note);
+                    note.getMetaData().getTags().remove(groupInfo);
+                    OwnNoteFileManager.getInstance().saveNote(note);
+                } else {
                     System.out.println("Adding tag " + note.getGroupName() + " to note " + note.getNoteName());
                     OwnNoteFileManager.getInstance().readNote(note);
                     note.getMetaData().getTags().add(groupInfo);
@@ -330,5 +350,49 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
         
         return result;
+    }
+    
+    public void doRenameTag(final String oldName, final String newName) {
+        assert oldName != null;
+        
+        final TagInfo oldTag = TagManager.getInstance().tagForName(oldName);
+        final boolean groupTag = isGroupTag(oldTag);
+        
+        final List<Note> notesList = OwnNoteFileManager.getInstance().getNotesList();
+        for (Note note : notesList) {
+            if (note.getMetaData().getTags().contains(oldTag)) {
+                final boolean inEditor = note.equals(myEditor.getEditedNote());
+                if (!inEditor) {
+                    // read note - only if not currently in editor!
+                    OwnNoteFileManager.getInstance().readNote(note);
+                }
+                
+                note.getMetaData().getTags().remove(oldTag);
+                if (newName != null) {
+                    note.getMetaData().getTags().add(TagManager.getInstance().tagForName(newName));
+                }
+
+                if (!inEditor) {
+                    // save new metadata - only if not currently in editor!
+                    OwnNoteFileManager.getInstance().saveNote(note);
+                }
+            }
+        }
+        
+        // if groupTag rename group (and with it note file) as well
+        if (groupTag) {
+            myEditor.renameGroupWrapper(oldName, newName);
+        }
+    }
+    
+    public static boolean isGroupTag(final TagInfo tag) {
+        return (tag.getParent() != null && TagManager.ReservedTagNames.Groups.name().equals(tag.getParent().getName()));
+    }
+    
+    public void deleteTag(final TagInfo tag) {
+        // go through tag tree an delete tag
+        if (tag.getParent() != null) {
+            tag.getParent().getChildren().remove(tag);
+        }
     }
 }

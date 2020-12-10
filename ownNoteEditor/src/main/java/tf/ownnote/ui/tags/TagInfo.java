@@ -9,7 +9,7 @@
  *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer in the
  *     documentation and/or other materials provided with the distribution.
- *  3. The name of the author may not be used to endorse or promote products
+ *  3. The nameProperty of the author may not be used to endorse or promote products
  *     derived from this software without specific prior written permission.
  *  
  *  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
@@ -30,10 +30,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
 import tf.ownnote.ui.notes.Note;
@@ -45,11 +48,12 @@ import tf.ownnote.ui.notes.Note;
  */
 public class TagInfo {
     private final BooleanProperty selectedProperty = new SimpleBooleanProperty(false);
-    private final StringProperty name = new SimpleStringProperty();
+    private final StringProperty nameProperty = new SimpleStringProperty("");
     private final ObservableList<TagInfo> children = FXCollections.<TagInfo>observableArrayList();
-    private final StringProperty iconName = new SimpleStringProperty();
+    private final ObjectProperty<TagInfo> parentProperty = new SimpleObjectProperty<>(null);
+    private final StringProperty iconNameProperty = new SimpleStringProperty("");
     private final BooleanProperty fixedProperty = new SimpleBooleanProperty(false);
-    private final StringProperty colorName = new SimpleStringProperty();
+    private final StringProperty colorNameProperty = new SimpleStringProperty("");
     
     // link to notes with this tag - transient, will be re-created on startup
     private final ObservableSet<Note> linkedNotes = FXCollections.<Note>observableSet();
@@ -68,7 +72,27 @@ public class TagInfo {
 
     public TagInfo(final boolean sel, final String na, final List<TagInfo> childs) {
         selectedProperty.setValue(sel);
-        name.set(na);
+        nameProperty.set(na);
+        
+        children.addListener((ListChangeListener.Change<? extends TagInfo> change) -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (TagInfo tag: change.getAddedSubList()) {
+                        tag.setParent(this);
+                    }
+                }
+
+                if (change.wasRemoved()) {
+                    for (TagInfo tag: change.getRemoved()) {
+                        // might already have been added to other tag...
+                        if (this.equals(tag.getParent())) {
+                            tag.setParent(null);
+                        }
+                    }
+                }
+            }
+        });
+        
         children.setAll(FXCollections.<TagInfo>observableArrayList(childs));
     }
     
@@ -79,14 +103,14 @@ public class TagInfo {
         if (!(o instanceof TagInfo))
             return false;
         TagInfo other = (TagInfo)o;
-        // we can't have two tags with same name...
-        return this.name.get().equals(other.name.get());
+        // we can't have two tags with same nameProperty...
+        return this.nameProperty.get().equals(other.nameProperty.get());
     }
 
     @Override
     public int hashCode() {
         int hash = 7;
-        hash = 11 * hash + Objects.hashCode(this.name.get());
+        hash = 11 * hash + Objects.hashCode(this.nameProperty.get());
         return hash;
     }
 
@@ -103,39 +127,39 @@ public class TagInfo {
     }
 
     public StringProperty nameProperty() {
-        return name;
+        return nameProperty;
     }
 
     public String getName() {
-        return name.get();
+        return nameProperty.get();
     }
 
     public void setName(final String na) {
-        name.set(na);
+        nameProperty.set(na);
     }
 
     public StringProperty iconNameProperty() {
-        return iconName;
+        return iconNameProperty;
     }
 
     public String getIconName() {
-        return iconName.get();
+        return iconNameProperty.get();
     }
 
     public void setIconName(final String na) {
-        iconName.set(na);
+        iconNameProperty.set(na);
     }
 
     public StringProperty colorNameProperty() {
-        return colorName;
+        return colorNameProperty;
     }
 
     public String getColorName() {
-        return colorName.get();
+        return colorNameProperty.get();
     }
 
     public void setColorName(final String col) {
-        colorName.set(col);
+        colorNameProperty.set(col);
     }
 
     public BooleanProperty fixedProperty() {
@@ -165,6 +189,18 @@ public class TagInfo {
 
     public void setChildren(final List<TagInfo> childs) {
         children.setAll(FXCollections.<TagInfo>observableArrayList(childs));
+    }
+    
+    public ObjectProperty<TagInfo> parentProperty() {
+        return parentProperty;
+    }
+    
+    public TagInfo getParent() {
+        return parentProperty.get();
+    }
+
+    public void setParent(final TagInfo parent) {
+        parentProperty.set(parent);
     }
     
     // method to get flat stream of taginfo + all its child tags

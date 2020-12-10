@@ -854,6 +854,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
             // show TagsTreeView (special version without checkboxes & drag/drop of tags)
             tagsTreeView = new TagsTreeView(this);
+            tagsTreeView.setRenameFunction(TagManager.getInstance()::doRenameTag);
             
             tagsTreePaneXML.getChildren().add(tagsTreeView);
         }

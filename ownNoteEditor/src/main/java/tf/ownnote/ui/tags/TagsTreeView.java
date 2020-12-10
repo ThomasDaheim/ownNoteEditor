@@ -286,7 +286,12 @@ public class TagsTreeView extends TreeView<TagInfo> {
     }
     
     public boolean isTagNameInTreeView(final String tag) {
-        return (getTreeViewItem(getRoot(), tag) != null);
+        return isTagNameElsewhereInTreeView(tag, null);
+    }
+
+    public boolean isTagNameElsewhereInTreeView(final String tag, final TreeItem<TagInfo> thisItem) {
+        final TreeItem<TagInfo> otherItem = getTreeViewItem(getRoot(), tag);
+        return (otherItem != null && !otherItem.equals(thisItem));
     }
 
     // TODO make a generic helper method out of it with TreeItem<T>, Function<TreeItem<T>, S> and S value

@@ -201,7 +201,7 @@
                   <CheckMenuItem fx:id="menuShowTasklist" mnemonicParsing="false" selected="true" text="Show Tasklist" />
                   <SeparatorMenuItem mnemonicParsing="false" />
                   <MenuItem fx:id="menuEditTags" mnemonicParsing="false" text="Edit Tags" />
-                  <MenuItem fx:id="menuGroups2Tags" mnemonicParsing="false" text="Groups2Tags" />
+                  <MenuItem fx:id="menuGroups2Tags" mnemonicParsing="false" text="Add/remove Group Tags" />
                </items></Menu>
          </menus>
       </MenuBar>

@@ -27,12 +27,18 @@ package tf.ownnote.ui.tags;
 
 import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.control.cell.TextFieldTreeCell;
+import javafx.scene.layout.HBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.util.StringConverter;
 import tf.helper.javafx.CellUtils;
 import tf.ownnote.ui.helper.FormatHelper;
@@ -82,9 +88,18 @@ public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfo> {
 
             final String colorName = treeItem.getValue().getColorName();
             if (colorName != null && !colorName.isEmpty()) {
-                setStyle("-fx-background-color: " + colorName + ";");
-            } else {
-                setStyle(null);
+                // happy for any hint how this look can be achieved with less effort...
+                final HBox holder = new HBox();
+                holder.setAlignment(Pos.CENTER);
+                
+                final Label spacer = new Label("");
+                spacer.setGraphic(getGraphic());
+
+                final Label graphic = new Label("   ");
+                graphic.setStyle("-fx-background-color: " + colorName + ";");
+                
+                holder.getChildren().addAll(spacer, graphic);
+                setGraphic(holder);
             }
 
             final ContextMenu contextMenu = new ContextMenu();
@@ -120,14 +135,12 @@ public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfo> {
             } else {
                 setContextMenu(contextMenu);
             }
-        } else {
-            setStyle(null);
         }
     }            
 
     @Override
     public void startEdit() {
-        if (! isEditable() || ! getTreeView().isEditable()) {
+        if (!isEditable() || ! getTreeView().isEditable()) {
             return;
         }
 
@@ -146,7 +159,7 @@ public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfo> {
                 if (myTreeView instanceof TagsTreeView) {
                     // set textformatter that checks against existing tags and disables duplicates
                     FormatHelper.getInstance().initTagNameTextField(textField, (t) -> {
-                        return !((TagsTreeView) myTreeView).isTagNameInTreeView(t);
+                        return !((TagsTreeView) myTreeView).isTagNameElsewhereInTreeView(t, treeItem);
                     });
                 }
             }

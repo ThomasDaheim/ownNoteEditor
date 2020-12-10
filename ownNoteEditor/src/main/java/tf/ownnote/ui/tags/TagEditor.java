@@ -25,7 +25,6 @@
  */
 package tf.ownnote.ui.tags;
 
-import java.util.List;
 import javafx.collections.SetChangeListener;
 import javafx.event.ActionEvent;
 import javafx.scene.control.Button;
@@ -127,7 +126,7 @@ public class TagEditor extends AbstractStage {
         
         rowNum++;
         // table to hold tags
-        tagsTreeView.setRenameFunction(this::doRenameTag);
+        tagsTreeView.setRenameFunction(TagManager.getInstance()::doRenameTag);
         getGridPane().add(tagsTreeView, 0, rowNum, 2, 1);
         GridPane.setMargin(tagsTreeView, INSET_TOP);
         GridPane.setVgrow(tagsTreeView, Priority.ALWAYS);
@@ -200,38 +199,13 @@ public class TagEditor extends AbstractStage {
         tagsTreeView.getSelectedItems().stream().forEach((t) -> {
             switch (action) {
                 case Delete:
-                    doRenameTag(t.getName(), null);
+                    TagManager.getInstance().doRenameTag(t.getName(), null);
+                    TagManager.getInstance().deleteTag(t);
                     break;
             }
         });
         
         // a lot might have changed - start from scratch
         initTags();
-    }
-    
-    public void doRenameTag(final String oldName, final String newName) {
-        assert oldName != null;
-        
-        final TagInfo oldTag = TagManager.getInstance().tagForName(oldName);
-        final List<Note> notesList = OwnNoteFileManager.getInstance().getNotesList();
-        for (Note note : notesList) {
-            if (note.getMetaData().getTags().contains(oldTag)) {
-                final boolean inEditor = note.equals(myEditor.getEditedNote());
-                if (!inEditor) {
-                    // read note - only if not currently in editor!
-                    OwnNoteFileManager.getInstance().readNote(note);
-                }
-                
-                note.getMetaData().getTags().remove(oldTag);
-                if (newName != null) {
-                    note.getMetaData().getTags().add(TagManager.getInstance().tagForName(newName));
-                }
-
-                if (!inEditor) {
-                    // save new metadata - only if not currently in editor!
-                    OwnNoteFileManager.getInstance().saveNote(note);
-                }
-            }
-        }
     }
 }

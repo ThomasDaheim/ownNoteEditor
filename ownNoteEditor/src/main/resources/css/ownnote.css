@@ -215,8 +215,18 @@
 }
 
 /* style tag treeview */
+/*.tagsTreeView, 
+.tagsTreeView .tree-cell,
+    -fx-background-color: black;
+    -fx-font-color: white !important;
+    -fx-text-fill: white !important;
+}*/
+/*.tree-cell > .tree-disclosure-node > .arrow {
+    color: white !important;
+    fill: white !important;
+    stroke: white !important;
+}*/
 .tagsTreeView .tree-cell:filled:selected {
-    /*-fx-background-color: darkgray !important;*/
     -fx-font-weight: bold;
 }
 .tagsTreeView .tree-cell:filled:hover {

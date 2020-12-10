@@ -45,6 +45,7 @@ import javafx.scene.CacheHint;
 import javafx.scene.Scene;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
@@ -221,6 +222,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     private void initTableView() {
         myTableView.setPlaceholder(new Text(""));
         myTableView.getSelectionModel().setCellSelectionEnabled(false);
+        myTableView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         myTableView.setDisable(false);
         myTableView.setFocusTraversable(false);
         myTableView.setCache(true);
