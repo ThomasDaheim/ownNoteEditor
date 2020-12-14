@@ -137,7 +137,6 @@ public class TagEditor extends AbstractStage {
         saveBtn.setOnAction((ActionEvent arg0) -> {
             // save tags to file
             if (myWorkNote == null) {
-                TagManager.getInstance().getTagList().setAll(tagsTreeView.getRoot().getValue().getChildren());
                 TagManager.getInstance().saveTags();
             } else {
                 myWorkNote.getMetaData().setTags(tagsTreeView.getSelectedLeafItems());

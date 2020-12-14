@@ -187,8 +187,8 @@ public class TagInfo {
         return children;
     }
 
-    public void setChildren(final List<TagInfo> childs) {
-        children.setAll(FXCollections.<TagInfo>observableArrayList(childs));
+    public void setChildren(final ObservableList<TagInfo> childs) {
+        children.setAll(childs);
     }
     
     public ObjectProperty<TagInfo> parentProperty() {

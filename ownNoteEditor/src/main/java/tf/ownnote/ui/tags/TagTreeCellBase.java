@@ -1,0 +1,186 @@
+/*
+ *  Copyright (c) 2014ff Thomas Feuster
+ *  All rights reserved.
+ *  
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  1. Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *  3. The name of the author may not be used to endorse or promote products
+ *     derived from this software without specific prior written permission.
+ *  
+ *  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ *  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ *  OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ *  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ *  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ *  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package tf.ownnote.ui.tags;
+
+import javafx.beans.binding.Bindings;
+import javafx.event.ActionEvent;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.Cell;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.TextField;
+import javafx.scene.control.TreeCell;
+import javafx.scene.control.TreeItem;
+import javafx.scene.input.KeyCode;
+import javafx.scene.layout.HBox;
+import javafx.util.StringConverter;
+import tf.helper.javafx.CellUtils;
+import tf.ownnote.ui.helper.FormatHelper;
+
+/**
+ * Base class for some common functionality of all tag treeview cells.
+ * 
+ * @author thomas
+ */
+public class TagTreeCellBase {
+    public final static StringConverter<TreeItem<TagInfo>> treeItemConverter = new StringConverter<TreeItem<TagInfo>>() {
+        @Override
+        public String toString(TreeItem<TagInfo> item) {
+            return item.getValue().getName();
+        }
+
+        @Override
+        public TreeItem<TagInfo> fromString(String string) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+    };
+
+    public final static StringConverter<TagInfo> tagInfoConverter = new StringConverter<TagInfo>() {
+        @Override
+        public String toString(TagInfo item) {
+            return item.getName();
+        }
+
+        @Override
+        public TagInfo fromString(String string) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+    };
+    
+    public static void updateItem(ITagTreeCell cell, TagInfo item, boolean empty) {
+        if (item != null && !empty) {
+            final TreeCell<TagInfo> treeCell = cell.getTreeCell();
+            
+            final TreeItem<TagInfo> treeItem = treeCell.getTreeItem();
+            
+            final String colorName = treeItem.getValue().getColorName();
+            if (colorName != null && !colorName.isEmpty()) {
+                // happy for any hint how this look can be achieved with less effort...
+                final HBox holder = new HBox();
+                holder.setAlignment(Pos.CENTER);
+                
+                final Label spacer = new Label("");
+                spacer.setGraphic(treeCell.getGraphic());
+
+                final Label graphic = new Label("   ");
+                graphic.setStyle("-fx-background-color: " + colorName + ";");
+                
+                holder.getChildren().addAll(spacer, graphic);
+                treeCell.setGraphic(holder);
+            }
+
+            final ContextMenu contextMenu = new ContextMenu();
+
+            final MenuItem newChildItem = new MenuItem("New child");
+            newChildItem.setOnAction((ActionEvent event) -> {
+                // act on tag lists - RecursiveTreeItem will take care of the rest
+                treeCell.getTreeItem().getValue().getChildren().add(new TagInfo("New child tag"));
+            });
+
+            if (treeItem.getParent() != null) {
+                final MenuItem newSilblingItem = new MenuItem("New sibling");
+                newSilblingItem.setOnAction((ActionEvent event) -> {
+                    // act on tag lists - RecursiveTreeItem will take care of the rest
+                    treeCell.getTreeItem().getParent().getValue().getChildren().add(new TagInfo("New sibling tag"));
+                });
+
+                final MenuItem deleteItem = new MenuItem("Delete");
+                deleteItem.setOnAction((ActionEvent event) -> {
+                    // act on tag lists - RecursiveTreeItem will take care of the rest
+                    treeCell.getTreeItem().getParent().getValue().getChildren().remove(treeCell.getTreeItem().getValue());
+                });
+
+                contextMenu.getItems().addAll(newSilblingItem, newChildItem, deleteItem);
+            } else {
+                contextMenu.getItems().addAll(newChildItem);
+            }
+
+            if (treeCell.getTreeView() instanceof TagsTreeView) {
+                treeCell.contextMenuProperty().bind(
+                        Bindings.when(((TagsTreeView) treeCell.getTreeView()).allowReorderProperty()).
+                                then(contextMenu).otherwise((ContextMenu)null));
+            } else {
+                treeCell.setContextMenu(contextMenu);
+            }
+        }
+    }            
+
+    public static void startEdit(ITagTreeCell cell) {
+        final TreeCell<TagInfo> treeCell = cell.getTreeCell();
+
+        if (treeCell.isEditing()) {
+            final TextField textField = createTextField(treeCell, cell.getTextConverter());
+
+            if (treeCell.getTreeView() instanceof TagsTreeView) {
+                // set textformatter that checks against existing tags and disables duplicates
+                FormatHelper.getInstance().initTagNameTextField(textField, (t) -> {
+                    return !((TagsTreeView) treeCell.getTreeView()).isTagNameElsewhereInTreeView(t, treeCell.getTreeItem());
+                });
+            }
+            final HBox hbox = new HBox(CellUtils.TREE_VIEW_HBOX_GRAPHIC_PADDING);
+
+            CellUtils.startEdit(treeCell, cell.getTextConverter(), hbox, getTreeItemGraphic(treeCell), textField);
+        }
+    }
+
+    public static void cancelEdit(ITagTreeCell cell) {
+        final TreeCell<TagInfo> treeCell = cell.getTreeCell();
+
+        CellUtils.cancelEdit(treeCell, cell.getTextConverter(), getTreeItemGraphic(treeCell));
+    }
+
+    private static Node getTreeItemGraphic(TreeCell<TagInfo> cell) {
+        TreeItem<TagInfo> treeItem = cell.getTreeItem();
+        return treeItem == null ? null : treeItem.getGraphic();
+    }
+
+    public static TextField createTextField(final Cell<TagInfo> cell, final StringConverter<TagInfo> converter) {
+        final TextField textField = new TextField(CellUtils.getItemText(cell, converter));
+
+        // Use onAction here rather than onKeyReleased (with check for Enter),
+        // as otherwise we encounter RT-34685
+        textField.setOnAction(event -> {
+            if (converter == null) {
+                throw new IllegalStateException(
+                        "Attempting to convert text input into Object, but provided "
+                                + "StringConverter is null. Be sure to set a StringConverter "
+                                + "in your cell factory.");
+            }
+            cell.getItem().setName(textField.getText());
+            cell.commitEdit(cell.getItem());
+            event.consume();
+        });
+        textField.setOnKeyReleased(t -> {
+            if (t.getCode() == KeyCode.ESCAPE) {
+                cell.cancelEdit();
+                t.consume();
+            }
+        });
+        return textField;
+    }
+}

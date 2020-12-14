@@ -91,11 +91,12 @@ public class TagsTreeView extends TreeView<TagInfo> {
         assert editor != null;
         myEditor = editor;
     }
-
+    
     private void initTreeView() {
         getStyleClass().add("tagsTreeView");
         
         setEditable(true);
+        setShowRoot(false);
         
         setOnEditCommit((t) -> {
             if (!t.getNewValue().getName().equals(t.getOldValue().getName())) {
@@ -203,10 +204,7 @@ public class TagsTreeView extends TreeView<TagInfo> {
         
         selectedItems.clear();
 
-        setRoot(null);
-        final TagInfo rootItem = new TagInfo("Tags");
-        rootItem.setChildren(TagManager.getInstance().getTagList());
-        setRoot(new RecursiveTreeItem<>(rootItem, this::newItemConsumer, (item) -> null, TagInfo::getChildren, true, (item) -> true));
+        setRoot(new RecursiveTreeItem<>(TagManager.getInstance().getRootTag(), this::newItemConsumer, (item) -> null, TagInfo::getChildren, true, (item) -> true));
         
         // set property after filling list :-)
         initWorkMode();
@@ -217,6 +215,10 @@ public class TagsTreeView extends TreeView<TagInfo> {
 
         newItem.getValue().selectedProperty().addListener((obs, oldValue, newValue) -> {
             changeAction(newItem, oldValue, newValue);
+        });
+        
+        newItem.getValue().nameProperty().addListener((obs, oldValue, newValue) -> {
+            refresh();
         });
         
         final TagInfo tag = newItem.getValue();

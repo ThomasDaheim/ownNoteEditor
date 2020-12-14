@@ -54,6 +54,7 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -91,7 +92,9 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }).collect(Collectors.toSet()));
     private final static Set<TagInfo> reservedTags = new HashSet<>();
     
-    private ObservableList<TagInfo> tagList = null;
+    private final static String ROOT_TAG_NAME = "Tags";
+    // root of all tags - not saved or loaded
+    private final static TagInfo ROOT_TAG = new TagInfo(ROOT_TAG_NAME);
     
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
@@ -113,19 +116,18 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         myEditor.getNoteEditor().subscribe(INSTANCE);
     }
     
-    public ObservableList<TagInfo> getTagList() {
-        if (tagList == null) {
-            tagList = FXCollections.<TagInfo>observableArrayList();
+    public TagInfo getRootTag() {
+        if (ROOT_TAG.getChildren().isEmpty()) {
             // lazy loading
             loadTags();
         }
         
         // you can use but not change
-        return tagList;
+        return ROOT_TAG;
     }
     
     public void resetTagList() {
-        tagList = null;
+        ROOT_TAG.getChildren().clear();
     }
     
     public void loadTags() {
@@ -165,7 +167,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 BufferedInputStream stdin = new BufferedInputStream(new FileInputStream(fileName));
                 Reader reader = new InputStreamReader(stdin, "ISO-8859-1");
             ) {
-                tagList = ObjectsHelper.uncheckedCast(xstream.fromXML(reader));
+                ROOT_TAG.setChildren(ObjectsHelper.uncheckedCast(xstream.fromXML(reader)));
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(TagManager.class.getName()).log(Level.SEVERE, null, ex);
             } catch (UnsupportedEncodingException ex) {
@@ -175,17 +177,12 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             }
         }
         
-        // xstream.fromXML can return null without an exception...
-        if (tagList == null) {
-            tagList = FXCollections.<TagInfo>observableArrayList();
-        }
-
         // ensure reserved names are fixed
         for (String tagName : reservedTagNames) {
             TagInfo tag = tagForName(tagName);
             if (tag == null) {
                 tag = new TagInfo(tagName);
-                tagList.add(tag);
+                ROOT_TAG.getChildren().add(tag);
                 
                 System.out.println("No tag for reserved name " + tagName + " found. Initializing...");
             } else if (TagManager.ReservedTagNames.Groups.name().equals(tag.getName())) {
@@ -234,7 +231,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
 
     public void saveTags() {
-        if (tagList == null) {
+        if (ROOT_TAG.getChildren().isEmpty()) {
             // list hasn't been initialized yet - so don't try to save
             return;
         }
@@ -275,7 +272,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             PrettyPrintWriter printer = new PrettyPrintWriter(writer, new char[]{'\t'});
             writer.write("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>" + System.getProperty("line.separator"));
         
-            xstream.marshal(tagList, printer);
+            xstream.marshal(ROOT_TAG.getChildren(), printer);
         } catch (FileNotFoundException ex) {
             Logger.getLogger(TagManager.class.getName()).log(Level.SEVERE, null, ex);
         } catch (UnsupportedEncodingException ex) {
@@ -324,13 +321,10 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     public Set<TagInfo> tagsForNames(final Set<String> tagNames) {
         final Set<TagInfo> result = new HashSet<>();
 
-        // make sure with the set...
-        getTagList();
-        
         // flatten tagslist to set
         // http://squirrel.pl/blog/2015/03/04/walking-recursive-data-structures-using-java-8-streams/
         // https://stackoverflow.com/a/31992391
-        final Set<TagInfo> flatTags = getTagList().stream().map((t) -> {
+        final Set<TagInfo> flatTags = getRootTag().getChildren().stream().map((t) -> {
             return t.flattened();
         }).flatMap(Function.identity()).collect(Collectors.toSet());
 
@@ -344,7 +338,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             } else {
                 // we didn't run into that one before...
                 final TagInfo newTag = new TagInfo(tagName);
-                tagList.add(newTag);
+                getRootTag().getChildren().add(newTag);
                 result.add(newTag);
             }
         }
