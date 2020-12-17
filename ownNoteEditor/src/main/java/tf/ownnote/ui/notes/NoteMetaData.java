@@ -25,6 +25,8 @@
  */
 package tf.ownnote.ui.notes;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -62,7 +64,8 @@ public class NoteMetaData {
     // TODO: add values here as well
     private static enum MetaDataInfo {
         VERSIONS("versions", Multiplicity.MULTIPLE),
-        TAGS("tags", Multiplicity.MULTIPLE);
+        TAGS("tags", Multiplicity.MULTIPLE),
+        CHARSET("charset", Multiplicity.SINGLE);
         
         private final String dataName;
         private final Multiplicity dataMulti;
@@ -83,7 +86,9 @@ public class NoteMetaData {
 
     private final ObservableList<NoteVersion> myVersions = FXCollections.<NoteVersion>observableArrayList();
     private final ObservableSet<TagInfo> myTags = FXCollections.<TagInfo>observableSet();
-    
+    // TFE, 20201217: add charset to metadata - since we switched to UTF-8 on 17.12.2020 we need to be able to handle old notes
+    private Charset myCharset = StandardCharsets.ISO_8859_1;
+
     private Note myNote;
     
     public NoteMetaData() {
@@ -161,6 +166,14 @@ public class NoteMetaData {
         updateTags(UpdateTag.LINK);
     }
     
+    public Charset getCharset() {
+        return myCharset;
+    }
+
+    public void setCharset(final Charset charset) {
+        myCharset = charset;
+    }
+    
     public static boolean hasMetaDataContent(final String htmlString) {
         if (htmlString == null) {
             return false;
@@ -224,6 +237,9 @@ public class NoteMetaData {
                                 result.setTags(TagManager.getInstance().tagsForNames(new HashSet<>(Arrays.asList(values))));
                                 infoFound = true;
                                 break;
+                            case CHARSET:
+                                result.setCharset(Charset.forName(values[0]));
+                                break;
                             default:
                         }
                     }
@@ -244,26 +260,21 @@ public class NoteMetaData {
         }
 
         String result = "";
-        boolean hasData = false;
         
+        result += MetaDataInfo.CHARSET.getDataName() + "=\"" + data.getCharset().name() + "\"";
+        result += META_DATA_SEP;
         if (data.getVersion() != null) {
             result += MetaDataInfo.VERSIONS.getDataName() + "=\"" + data.getVersions().stream().map((t) -> {
                 return NoteVersion.toHtmlString(t);
             }).collect(Collectors.joining(META_VALUES_SEP)) + "\"";
-            hasData = true;
         }
         if (!data.getTags().isEmpty()) {
-            if (hasData) {
-                result += META_DATA_SEP;
-            }
+            result += META_DATA_SEP;
             result += MetaDataInfo.TAGS.getDataName() + "=\"" + data.getTags().stream().map((t) -> {
                 return t.getName();
             }).collect(Collectors.joining(META_VALUES_SEP)) + "\"";
-            hasData = true;
         }
-        if (hasData) {
-            result = META_STRING_PREFIX + result + META_STRING_SUFFIX + "\n";
-        }
+        result = META_STRING_PREFIX + result + META_STRING_SUFFIX + "\n";
         
         return result;
     }

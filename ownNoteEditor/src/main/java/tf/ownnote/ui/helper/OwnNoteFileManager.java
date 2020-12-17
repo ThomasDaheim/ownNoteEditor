@@ -26,9 +26,12 @@
 package tf.ownnote.ui.helper;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -220,10 +223,9 @@ public class OwnNoteFileManager {
     private String getFirstLine(final File file) {
         String result = "";
         
-        try {
+        try (final BufferedReader in = 
+                    new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
             // use https://stackoverflow.com/a/19486413 to quickly read first line from file
-            final BufferedReader in = 
-                    new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8));
             result = in.readLine();
         } catch (IOException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
@@ -382,11 +384,33 @@ public class OwnNoteFileManager {
         
         String result = "";
         
-        try {
-            result = new String(Files.readAllBytes(Paths.get(notesPath, buildNoteName(curNote.getGroupName(), curNote.getNoteName()))));
-        } catch (IOException ex) {
-            Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
-            result = "";
+        final Path readPath = Paths.get(notesPath, buildNoteName(curNote.getGroupName(), curNote.getNoteName()));
+        if (StandardCharsets.ISO_8859_1.equals(curNote.getMetaData().getCharset())) {
+            try {
+                result = new String(Files.readAllBytes(readPath));
+            } catch (IOException ex) {
+                Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                result = "";
+            }
+        } else {
+            try (final BufferedReader reader = 
+                    new BufferedReader(new InputStreamReader(new FileInputStream(readPath.toFile()), StandardCharsets.UTF_8))) {
+
+                boolean firstLine = true;
+                String str;
+                while ((str = reader.readLine()) != null) {
+                    if (!firstLine) {
+                        // don't use System.lineseparator() to avoid messup with metadata parsing
+                        result += "\n";
+                    }
+                    result += str;
+                    
+                    firstLine = false;
+                }
+            } catch (IOException ex) {
+                Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                result = "";
+            }
         }
         
         // TFE; 20200814: store content in Note
@@ -404,29 +428,35 @@ public class OwnNoteFileManager {
         final String newFileName = buildNoteName(note);
         
         String content = "";
-        try {
-            // TODO: set author
-            content = note.getNoteEditorContent();
-            if (content == null) {
-                content = note.getNoteFileContent();
-            }
-            // TFE, 20201024: store note metadata
-            note.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), LocalDateTime.now()));
-            final String fullContent = NoteMetaData.toHtmlString(note.getMetaData()) + content;
-            
-            final Path savePath = Files.write(Paths.get(this.notesPath, newFileName), fullContent.getBytes());
-            
-            // // TF, 20170723: update modified date of the file
-            final LocalDateTime filetime = LocalDateTime.ofInstant((new Date(savePath.toFile().lastModified())).toInstant(), ZoneId.systemDefault());
-            final Note dataRow = notesList.get(newFileName);
-            // TFE; 20200814: store content in Note
-            dataRow.setNoteFileContent(content);
-            dataRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
-            notesList.put(newFileName, dataRow);
+        // TODO: set author
+        content = note.getNoteEditorContent();
+        if (content == null) {
+            content = note.getNoteFileContent();
+        }
+        // TFE, 20201024: store note metadata
+        note.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), LocalDateTime.now()));
+        // TFE, 20201217: from now on you're UTF-8
+        note.getMetaData().setCharset(StandardCharsets.UTF_8);
+        final String fullContent = NoteMetaData.toHtmlString(note.getMetaData()) + content;
+
+        // TFE, 20201217: make sure we write UTF-8...
+//            final Path savePath = Files.write(Paths.get(this.notesPath, newFileName), fullContent.getBytes());
+        final Path savePath = Paths.get(this.notesPath, newFileName);
+        try (FileWriter fw = new FileWriter(savePath.toFile(), StandardCharsets.UTF_8);
+             BufferedWriter writer = new BufferedWriter(fw)) {
+            writer.write(fullContent);
         } catch (IOException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = false;
         }
+
+        // // TF, 20170723: update modified date of the file
+        final LocalDateTime filetime = LocalDateTime.ofInstant((new Date(savePath.toFile().lastModified())).toInstant(), ZoneId.systemDefault());
+        final Note dataRow = notesList.get(newFileName);
+        // TFE; 20200814: store content in Note
+        dataRow.setNoteFileContent(content);
+        dataRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
+        notesList.put(newFileName, dataRow);
 
         resetFilesInProgress();
 
