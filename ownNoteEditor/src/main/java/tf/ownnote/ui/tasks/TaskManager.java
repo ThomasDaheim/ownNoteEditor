@@ -318,7 +318,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     
     public TaskCount getTaskCount(final Note note) {
         // first all tasks for this note
-        final List<TaskData> noteTasks = taskList.stream().filter((t) -> {
+        final List<TaskData> noteTasks = getTaskList().stream().filter((t) -> {
             return t.getNote().equals(note);
         }).collect(Collectors.toList());
         

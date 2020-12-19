@@ -933,7 +933,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                     final double newPercentage = newValue.doubleValue() * 100d;
                     // needs to take 2 columns into account
                     gridPane.getColumnConstraints().get(NOTE_GROUP_COLUMN).setPercentWidth(
-                            gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth() + newPercentage);
+                            newPercentage - gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth());
                     setRemainingColumnWidth(EDITOR_COLUMN);
 
                     if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {

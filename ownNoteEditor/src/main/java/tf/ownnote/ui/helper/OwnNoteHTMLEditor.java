@@ -89,6 +89,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.text.StringEscapeUtils;
+import tf.helper.general.ImageHelper;
 import tf.helper.javafx.UsefulKeyCodes;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
@@ -555,9 +556,7 @@ public class OwnNoteHTMLEditor {
             }
             final String imageType = imageString.substring(contentStart, contentEnd);
 //            System.out.println("imageType: " + imageType);
-            // TODO: only works for png
-            // gif: animations get lost - would need something like https://codereview.stackexchange.com/q/113998 writer.writeToSequence
-            // jpg: error Bogus input colorspace
+            // TODO: only works for png & jpeg
             if ("gif".equals(imageType)) {
                 continue;
             }
@@ -619,68 +618,7 @@ public class OwnNoteHTMLEditor {
 //            System.out.println("imageHeight: " + imageWidth);
 
             // 3) compress image based on type images
-            String newImageBas64 = imageBase64;
-            
-            // https://www.tutorialspoint.com/java_dip/image_compression_technique.htm
-            byte[] imageByte = null; 
-            try {
-                imageByte = Base64.decodeBase64(imageBase64);
-            } catch (IllegalArgumentException ex) {
-                Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
-            }
-            if (imageByte == null) {
-                continue;
-            }
-            
-            try (ByteArrayInputStream bis = new ByteArrayInputStream(imageByte);
-                 ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                 ImageOutputStream ios = ImageIO.createImageOutputStream(bos)) {
-                final BufferedImage bufferedImage = ImageIO.read(bis);
-                if (imageWidth == -1) {
-                    imageWidth = bufferedImage.getWidth();
-                }
-                if (imageHeight == -1) {
-                    imageHeight = bufferedImage.getHeight();
-                }
-                
-                // a) rescale image to actual size used in note - if size has changed
-                BufferedImage scaledBufferedImage = bufferedImage;
-                if ((imageWidth > -1) || (imageHeight > -1)) {
-                    scaledBufferedImage = toBufferedImage(bufferedImage.getScaledInstance(imageWidth, imageHeight, Image.SCALE_SMOOTH));
-                }
-                
-                // b) compress image by reducing quality - if size too big
-                // https://stackoverflow.com/a/8351216
-                float compression = 1f;
-                
-                if (imageByte.length > 1024*1024) {
-                    compression = 0.25f;
-                }
-                
-                if ((imageWidth > -1) || (imageHeight > -1) || (compression < 1f)) {
-                    // we actual have done something
-                    final ImageWriter writer = ImageIO.getImageWritersByFormatName(imageType).next();
-                    writer.setOutput(ios);
-                    final ImageWriteParam param = writer.getDefaultWriteParam();
-                    // TODO: something fancy to compress png
-                    if (param.canWriteCompressed() && (compression < 1f)) {
-                        param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-                        param.setCompressionQuality(compression);
-                    }
-
-                    writer.write(null, new IIOImage(scaledBufferedImage, null, null), param);
-                    writer.dispose();
-                    ios.flush();
-                    bos.flush();
-
-                    final byte[] imageBytes = bos.toByteArray();
-                    newImageBas64 = Base64.encodeBase64String(imageBytes);
-                } else {
-                    System.out.println("Nothing to compress for image starting @" + imageStart);
-                }
-            } catch (IOException | NullPointerException | IllegalArgumentException ex) {
-                Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
-            }
+            final String newImageBas64 = ImageHelper.compressBase64Image(imageBase64, imageType, imageWidth, imageHeight);
 
             // 4) replace imageString
             String newImageString = DATA_START + imageType + BASE64_START + newImageBas64 + "\"";
@@ -701,31 +639,6 @@ public class OwnNoteHTMLEditor {
         editNote(editedNote, content);
     }
     
-    /**
-     * Converts a given Image into a BufferedImage
-     * https://stackoverflow.com/a/13605411
-     *
-     * @param img The Image to be converted
-     * @return The converted BufferedImage
-     */
-    public static BufferedImage toBufferedImage(Image img)
-    {
-        if (img instanceof BufferedImage) {
-            return (BufferedImage) img;
-        }
-
-        // Create a buffered image with transparency
-        final BufferedImage bimage = new BufferedImage(img.getWidth(null), img.getHeight(null), BufferedImage.TYPE_INT_RGB);
-
-        // Draw the image on to the buffered image
-        final Graphics2D bGr = bimage.createGraphics();
-        bGr.drawImage(img, 0, 0, null);
-        bGr.dispose();
-
-        // Return the buffered image
-        return bimage;
-    }    
-
     private PopupWindow getPopupWindow() {
         final ObservableList<Window> windows = Window.getWindows();
 
@@ -973,7 +886,7 @@ public class OwnNoteHTMLEditor {
         String newEditorText = "";
 
         if (editorInitialized) {
-            Object dummy = wrapExecuteScript(myWebEngine, "saveGetContent();");
+            Object dummy = wrapExecuteScript(myWebEngine, "saveGetContent(true);");
             
             assert (dummy instanceof String);
             newEditorText = (String) dummy;
@@ -1063,7 +976,7 @@ public class OwnNoteHTMLEditor {
             // $(editor.getBody()).on("change", ":checkbox", function(el) is called
             return;
         }
-        
+
         editedNote.setNoteEditorContent(newContent);
 
         // send change note to all subscribes
