@@ -72,23 +72,6 @@ public class Note extends HashMap<String,String> {
         return NoteMapKey.values()[i].name();
     }
     
-    public static Note fromString(final String groupString) {
-        assert (groupString != null);
-        assert (groupString.length() > 6);
-        
-        final Note data = new Note();
-        final String[] dataStrings = groupString.substring(1, groupString.length()-1).split(", ");
-        for (String mapString : dataStrings) {
-            final String[] mapStrings = mapString.split("=");
-            if (mapStrings.length == 2) {
-                data.put( mapStrings[0], mapStrings[1] );
-            } else {
-                data.put( mapStrings[0], "" );
-            }
-        }
-        return data;
-    }
-    
     public String getNoteName() {
         return get(NoteMapKey.noteName.name());
     }

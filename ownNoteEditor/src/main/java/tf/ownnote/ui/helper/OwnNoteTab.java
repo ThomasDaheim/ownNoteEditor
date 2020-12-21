@@ -23,6 +23,8 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.WindowEvent;
+import tf.helper.general.ObjectsHelper;
+import tf.helper.javafx.AppClipboard;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 
@@ -184,8 +186,7 @@ public class OwnNoteTab extends Tab {
         nameLabel.setOnDragOver((DragEvent event) -> {
             // accept only if dragged from a notesTable row
             // and if not the "ALL" group...
-            if (event.getDragboard().hasHtml() &&
-                    event.getDragboard().getHtml().equals("notesTable") &&
+            if (event.getDragboard().hasContent(OwnNoteTableView.DRAG_AND_DROP) &&
                     droptarget) {
                 event.acceptTransferModes(TransferMode.MOVE);
             }
@@ -194,8 +195,7 @@ public class OwnNoteTab extends Tab {
         });
 
         nameLabel.setOnDragEntered((DragEvent event) -> {
-            if (event.getDragboard().hasHtml() &&
-                    event.getDragboard().getHtml().equals("notesTable")) {
+            if (event.getDragboard().hasContent(OwnNoteTableView.DRAG_AND_DROP)) {
                 //nameLabel.setFill(Color.GREEN);
             }
             
@@ -203,8 +203,7 @@ public class OwnNoteTab extends Tab {
         });
 
         nameLabel.setOnDragExited((DragEvent event) -> {
-            if (event.getDragboard().hasHtml() &&
-                    event.getDragboard().getHtml().equals("notesTable")) {
+            if (event.getDragboard().hasContent(OwnNoteTableView.DRAG_AND_DROP)) {
                 //nameLabel.setFill(Color.GREEN);
             }
             
@@ -216,18 +215,17 @@ public class OwnNoteTab extends Tab {
         
             Dragboard db = event.getDragboard();
             boolean success = false;
-            if (db.hasString()) {
-                final Note dragNote = Note.fromString(db.getString());
-                // 1. rename note to new group name
-                if (myEditor.moveNoteWrapper(dragNote, getTabName())) {
-                    // 2. focus on this tab
-                    getTabPane().getSelectionModel().select(this);
-                    
-                    // TF, 20161105: update tab count on both tabs
-                    myEditor.initFromDirectory(true);
-                    
-                    success = true;
-                }
+
+            final Note dragNote = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(OwnNoteTableView.DRAG_AND_DROP));
+            // 1. rename note to new group name
+            if (myEditor.moveNoteWrapper(dragNote, getTabName())) {
+                // 2. focus on this tab
+                getTabPane().getSelectionModel().select(this);
+
+                // TF, 20161105: update tab count on both tabs
+                myEditor.initFromDirectory(true, false);
+
+                success = true;
             }
             event.setDropCompleted(success);
             

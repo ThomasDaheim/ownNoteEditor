@@ -65,8 +65,8 @@ import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 import tf.ownnote.ui.helper.OwnNoteTab;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.main.OwnNoteEditorManager;
-import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  *

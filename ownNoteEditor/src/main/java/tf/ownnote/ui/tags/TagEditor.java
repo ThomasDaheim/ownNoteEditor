@@ -41,7 +41,6 @@ import static tf.helper.javafx.AbstractStage.INSET_SMALL;
 import static tf.helper.javafx.AbstractStage.INSET_TOP;
 import static tf.helper.javafx.AbstractStage.INSET_TOP_BOTTOM;
 import tf.helper.javafx.EnumHelper;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.main.OwnNoteEditorManager;
 import tf.ownnote.ui.notes.Note;

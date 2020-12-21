@@ -45,8 +45,8 @@ import javafx.scene.input.MouseEvent;
 import tf.helper.general.IPreferencesHolder;
 import tf.helper.general.IPreferencesStore;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  *
@@ -508,7 +508,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
             final NoteGroup curGroup = (NoteGroup) deleteTab.getUserData();
             
             if (myEditor.deleteGroupWrapper(curGroup)) {
-                myEditor.initFromDirectory(false);
+                myEditor.initFromDirectory(false, false);
             }
         });
         

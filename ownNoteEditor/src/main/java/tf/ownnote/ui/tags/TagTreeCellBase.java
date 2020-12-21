@@ -41,6 +41,7 @@ import javafx.scene.layout.HBox;
 import javafx.util.StringConverter;
 import tf.helper.javafx.CellUtils;
 import tf.ownnote.ui.helper.FormatHelper;
+import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  * Base class for some common functionality of all tag treeview cells.
@@ -76,9 +77,7 @@ public class TagTreeCellBase {
         if (item != null && !empty) {
             final TreeCell<TagInfo> treeCell = cell.getTreeCell();
             
-            final TreeItem<TagInfo> treeItem = treeCell.getTreeItem();
-            
-            final String colorName = treeItem.getValue().getColorName();
+            final String colorName = item.getColorName();
             if (colorName != null && !colorName.isEmpty()) {
                 // happy for any hint how this look can be achieved with less effort...
                 final HBox holder = new HBox();
@@ -96,28 +95,36 @@ public class TagTreeCellBase {
 
             final ContextMenu contextMenu = new ContextMenu();
 
-            final MenuItem newChildItem = new MenuItem("New child");
-            newChildItem.setOnAction((ActionEvent event) -> {
+            final String sibling = TagManager.isGroupsChildTag(item) ? NoteGroup.NEW_GROUP : "New sibling";
+            final MenuItem newSilblingItem = new MenuItem(sibling);
+            newSilblingItem.setOnAction((ActionEvent event) -> {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
-                treeCell.getTreeItem().getValue().getChildren().add(new TagInfo("New child tag"));
+                item.getParent().getChildren().add(TagManager.getInstance().createTag(sibling, TagManager.isGroupsChildTag(item)));
             });
 
-            if (treeItem.getParent() != null) {
-                final MenuItem newSilblingItem = new MenuItem("New sibling");
-                newSilblingItem.setOnAction((ActionEvent event) -> {
-                    // act on tag lists - RecursiveTreeItem will take care of the rest
-                    treeCell.getTreeItem().getParent().getValue().getChildren().add(new TagInfo("New sibling tag"));
-                });
+            // only if allowed
+            final String child = TagManager.isGroupsTag(item) ? NoteGroup.NEW_GROUP : "New child";
+            final MenuItem newChildItem = new MenuItem(child);
+            newChildItem.setOnAction((ActionEvent event) -> {
+                // act on tag lists - RecursiveTreeItem will take care of the rest
+                item.getChildren().add(TagManager.getInstance().createTag(child, TagManager.isGroupsTag(item)));
+            });
 
-                final MenuItem deleteItem = new MenuItem("Delete");
-                deleteItem.setOnAction((ActionEvent event) -> {
-                    // act on tag lists - RecursiveTreeItem will take care of the rest
-                    treeCell.getTreeItem().getParent().getValue().getChildren().remove(treeCell.getTreeItem().getValue());
-                });
+            // only if allowed
+            final MenuItem deleteItem = new MenuItem("Delete");
+            deleteItem.setOnAction((ActionEvent event) -> {
+                TagManager.getInstance().deleteTag(item);
+            });
 
-                contextMenu.getItems().addAll(newSilblingItem, newChildItem, deleteItem);
-            } else {
-                contextMenu.getItems().addAll(newChildItem);
+            if (item.getParent() != null) {
+                // no siblings for root
+                contextMenu.getItems().add(newSilblingItem);
+            }
+            if (TagManager.childTagsAllowed(item)) {
+                contextMenu.getItems().add(newChildItem);
+            }
+            if (!TagManager.isFixedTag(item)) {
+                contextMenu.getItems().add(deleteItem);
             }
 
             if (treeCell.getTreeView() instanceof TagsTreeView) {

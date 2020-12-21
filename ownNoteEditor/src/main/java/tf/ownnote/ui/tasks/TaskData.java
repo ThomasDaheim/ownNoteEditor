@@ -5,7 +5,6 @@
  */
 package tf.ownnote.ui.tasks;
 
-import java.time.Instant;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;

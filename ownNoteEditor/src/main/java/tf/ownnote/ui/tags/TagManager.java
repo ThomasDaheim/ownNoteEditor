@@ -54,12 +54,9 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import org.apache.commons.lang3.EnumUtils;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.xstreamfx.FXConverters;
@@ -162,6 +159,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             
             xstream.omitField(TagInfo.class, "linkedNotes");
             xstream.omitField(TagInfo.class, "parentProperty");
+            // TFE, 20201220: we had that in for a while
+            xstream.omitField(TagInfo.class, "fixedProperty");
 
             try (
                 BufferedInputStream stdin = new BufferedInputStream(new FileInputStream(fileName));
@@ -185,7 +184,9 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 ROOT_TAG.getChildren().add(tag);
                 
                 System.out.println("No tag for reserved name " + tagName + " found. Initializing...");
-            } else if (TagManager.ReservedTagNames.Groups.name().equals(tag.getName())) {
+            }
+            
+            if (TagManager.ReservedTagNames.Groups.name().equals(tag.getName())) {
                 boolean hasAllGroups = false;
                 boolean hasNotGrouped = false;
                 
@@ -193,15 +194,13 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 for (TagInfo tagChild : tag.getChildren()) {
                     final String tagChildName = tagChild.getName();
                     
-                    tagChild.setColorName(OwnNoteEditor.getGroupColor(tagChildName));
+                    initGroupTag(tagChild);
                     
                     if (NoteGroup.ALL_GROUPS.equals(tagChildName)) {
                         hasAllGroups = true;
-                        tagChild.setFixed(true);
                     }
                     if (NoteGroup.NOT_GROUPED.equals(tagChildName)) {
                         hasNotGrouped = true;
-                        tagChild.setFixed(true);
                     }
                 }
                 
@@ -209,7 +208,6 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                     // all groups is always the first entry
                     final TagInfo allGroups = new TagInfo(NoteGroup.ALL_GROUPS);
                     allGroups.setColorName(OwnNoteEditor.getGroupColor(NoteGroup.ALL_GROUPS));
-                    allGroups.setFixed(true);
                     
                     tag.getChildren().add(0, allGroups);
                 }
@@ -217,16 +215,23 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                     // all groups is always the second entry
                     final TagInfo notGrouped = new TagInfo(NoteGroup.NOT_GROUPED);
                     notGrouped.setColorName(OwnNoteEditor.getGroupColor(NoteGroup.NOT_GROUPED));
-                    notGrouped.setFixed(true);
                     
                     tag.getChildren().add(1, notGrouped);
                 }
-                
-                // TODO: set sort order of groups - do we need this?
             }
             
-            tag.setFixed(true);
             reservedTags.add(tag);
+        }
+
+        // backlink all parents
+        final Set<TagInfo> flatTags = getRootTag().getChildren().stream().map((t) -> {
+            return t.flattened();
+        }).flatMap(Function.identity()).collect(Collectors.toSet());
+
+        for (TagInfo tag: flatTags) {
+            for (TagInfo childTag : tag.getChildren()) {
+                childTag.setParent(tag);
+            }
         }
     }
 
@@ -350,7 +355,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         assert oldName != null;
         
         final TagInfo oldTag = TagManager.getInstance().tagForName(oldName);
-        final boolean groupTag = isGroupTag(oldTag);
+        final boolean groupTag = isGroupsChildTag(oldTag);
         
         final List<Note> notesList = OwnNoteFileManager.getInstance().getNotesList();
         for (Note note : notesList) {
@@ -379,14 +384,64 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
     }
     
-    public static boolean isGroupTag(final TagInfo tag) {
-        return (tag.getParent() != null && TagManager.ReservedTagNames.Groups.name().equals(tag.getParent().getName()));
+    public TagInfo createTag(final String name, final boolean isGroup) {
+        final TagInfo result = new TagInfo(name);
+        if (isGroup) {
+            TagManager.initGroupTag(result);
+        }
+        return result;
     }
     
     public void deleteTag(final TagInfo tag) {
-        // go through tag tree an delete tag
-        if (tag.getParent() != null) {
-            tag.getParent().getChildren().remove(tag);
+        // remove group as well - if it exists (= has notes)
+        boolean doDelete = true;
+        if (TagManager.isGroupsChildTag(tag) && OwnNoteFileManager.getInstance().getNoteGroup(tag.getName()) != null) {
+            assert myEditor != null;
+            doDelete = myEditor.deleteGroupWrapper(OwnNoteFileManager.getInstance().getNoteGroup(tag.getName()));
         }
+
+        // delete for groups might fail! e.g. duplicate note names - in this case we can't delete the tag
+        if (doDelete) {
+            // go through tag tree an delete tag
+            if (tag.getParent() != null) {
+                tag.getParent().getChildren().remove(tag);
+            }
+        }
+    }
+    
+    public static void initGroupTag(final TagInfo tag) {
+        tag.setColorName(OwnNoteEditor.getGroupColor(tag.getName()));
+    }
+    
+    public static boolean isAnyGroupTag(final TagInfo tag) {
+        // a group tag is the "Groups" itself and everything below it
+        return (isGroupsTag(tag) || isGroupsChildTag(tag));
+    }
+    
+    public static boolean isGroupsTag(final TagInfo tag) {
+        // a group tag is the "Groups" itself and everything below it
+        return TagManager.ReservedTagNames.Groups.name().equals(tag.getName());
+    }
+    
+    public static boolean isGroupsChildTag(final TagInfo tag) {
+        // a group tag is the "Groups" itself and everything below it
+        return (tag.getParent() != null) && TagManager.ReservedTagNames.Groups.name().equals(tag.getParent().getName());
+    }
+    
+    public static boolean isEditableTag(final TagInfo tag) {
+        // editable: currently same as fixed
+        return isFixedTag(tag);
+    }
+
+    public static boolean isFixedTag(final TagInfo tag) {
+        // fixed: "Groups", "All", "Not grouped" tags
+        return reservedTags.contains(tag) ||
+                NoteGroup.ALL_GROUPS.equals(tag.getName()) ||
+                NoteGroup.NOT_GROUPED.equals(tag.getName());
+    }
+    
+    public static boolean childTagsAllowed(final TagInfo tag) {
+        // no child tags: anything below "Groups" tag
+        return !isGroupsChildTag(tag);
     }
 }

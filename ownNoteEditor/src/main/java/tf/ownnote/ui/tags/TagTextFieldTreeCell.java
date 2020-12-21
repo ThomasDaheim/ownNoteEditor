@@ -30,6 +30,7 @@ import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.control.cell.TextFieldTreeCell;
 import javafx.util.StringConverter;
+import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
  * TextFieldTreeCell functionality for tags
@@ -40,17 +41,23 @@ import javafx.util.StringConverter;
  * @author thomas
  */
 public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfo> implements ITagTreeCell {
+    // callback to OwnNoteEditor
+    private final OwnNoteEditor myEditor;
     private final TreeView<TagInfo> myTreeView;
+    
+    private TagTextFieldTreeCell() {
+        myEditor = null;
+        myTreeView = null;
+    }
 
-    public TagTextFieldTreeCell(final TreeView<TagInfo> treeView) {
-        super(TagTreeCellBase.tagInfoConverter);
-        
-        myTreeView = treeView;
+    public TagTextFieldTreeCell(final TreeView<TagInfo> treeView, final OwnNoteEditor editor) {
+        this(treeView, TagTreeCellBase.tagInfoConverter, editor);
     }
     
-    public TagTextFieldTreeCell(final TreeView<TagInfo> treeView, final StringConverter<TagInfo> sc) {
+    public TagTextFieldTreeCell(final TreeView<TagInfo> treeView, final StringConverter<TagInfo> sc, final OwnNoteEditor editor) {
         super(sc);
         
+        myEditor = editor;
         myTreeView = treeView;
     }
     
@@ -66,9 +73,9 @@ public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfo> implements 
             return;
         }
         
-        // check if item is fixed (means no edit)
+        // check if item can be edited
         final TreeItem<TagInfo> treeItem = getTreeItem();
-        if (treeItem != null && treeItem.getValue().isFixed()) {
+        if ((treeItem != null) && TagManager.isEditableTag(treeItem.getValue())) {
             return;
         }
         
@@ -80,6 +87,11 @@ public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfo> implements 
     public void cancelEdit() {
         super.cancelEdit();
         TagTreeCellBase.cancelEdit(this);
+    }
+
+    @Override
+    public OwnNoteEditor getEditor() {
+        return myEditor;
     }
 
     @Override

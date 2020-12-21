@@ -32,6 +32,7 @@ import javafx.scene.control.TreeView;
 import javafx.scene.control.cell.CheckBoxTreeCell;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
+import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
  * Add TextFieldTreeCell functionality to CheckBoxTreeCell
@@ -42,23 +43,27 @@ import javafx.util.StringConverter;
  * @author thomas
  */
 public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagInfo> implements ITagTreeCell {
+    // callback to OwnNoteEditor
+    private final OwnNoteEditor myEditor;
     private final TreeView<TagInfo> myTreeView;
 
-    public TagCheckBoxTreeCell(final TreeView<TagInfo> treeView) {
-        super();
-        
-        myTreeView = treeView;
-    }
-    
-    public TagCheckBoxTreeCell(final TreeView<TagInfo> treeView, final Callback<TreeItem<TagInfo>, ObservableValue<Boolean>> clbck) {
-        super(clbck, TagTreeCellBase.treeItemConverter);
-        
-        myTreeView = treeView;
+    private TagCheckBoxTreeCell() {
+        myEditor = null;
+        myTreeView = null;
     }
 
-    public TagCheckBoxTreeCell(final TreeView<TagInfo> treeView, final Callback<TreeItem<TagInfo>, ObservableValue<Boolean>> clbck, final StringConverter<TreeItem<TagInfo>> sc) {
+    public TagCheckBoxTreeCell(final TreeView<TagInfo> treeView, final OwnNoteEditor editor) {
+        this(treeView, null, TagTreeCellBase.treeItemConverter, editor);
+    }
+    
+    public TagCheckBoxTreeCell(final TreeView<TagInfo> treeView, final Callback<TreeItem<TagInfo>, ObservableValue<Boolean>> clbck, final OwnNoteEditor editor) {
+        this(treeView, clbck, TagTreeCellBase.treeItemConverter, editor);
+    }
+
+    public TagCheckBoxTreeCell(final TreeView<TagInfo> treeView, final Callback<TreeItem<TagInfo>, ObservableValue<Boolean>> clbck, final StringConverter<TreeItem<TagInfo>> sc, final OwnNoteEditor editor) {
         super(clbck, sc);
         
+        myEditor = editor;
         myTreeView = treeView;
     }
     
@@ -74,9 +79,9 @@ public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagInfo> implements IT
             return;
         }
         
-        // check if item is fixed (means no edit)
+        // check if item can be edited
         final TreeItem<TagInfo> treeItem = getTreeItem();
-        if (treeItem != null && treeItem.getValue().isFixed()) {
+        if ((treeItem != null) && TagManager.isEditableTag(treeItem.getValue())) {
             return;
         }
         
@@ -88,6 +93,11 @@ public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagInfo> implements IT
     public void cancelEdit() {
         super.cancelEdit();
         TagTreeCellBase.cancelEdit(this);
+    }
+
+    @Override
+    public OwnNoteEditor getEditor() {
+        return myEditor;
     }
 
     @Override

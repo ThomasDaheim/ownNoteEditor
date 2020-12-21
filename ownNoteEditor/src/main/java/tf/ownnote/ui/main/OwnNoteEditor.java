@@ -108,8 +108,8 @@ import tf.ownnote.ui.helper.OwnNoteMetaEditor;
 import tf.ownnote.ui.helper.OwnNoteTabPane;
 import tf.ownnote.ui.helper.OwnNoteTableColumn;
 import tf.ownnote.ui.helper.OwnNoteTableView;
-import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.tags.TagEditor;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tags.TagsTreeView;
@@ -606,7 +606,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                         curEntry.setGroupName(t.getOldValue());
 
                         // workaround til TODO above resolved :-)
-                        initFromDirectory(false);
+                        initFromDirectory(false, false);
                     } else {
                         // update group name in table
                         curEntry.setGroupName(t.getNewValue());
@@ -715,7 +715,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                 if (doCreate) {
                     if (createNoteWrapper(newGroupName, newNoteName)) {
                         hideAndDisableAllCreateControls();
-                        initFromDirectory(false);
+                        initFromDirectory(false, false);
                     }
                 }
             });
@@ -1022,7 +1022,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                 OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, newValue);
 
                 // scan files in new directory
-                initFromDirectory(false);
+                initFromDirectory(false, true);
             }); 
         // TFE, 20181028: open file chooser also when left clicking on pathBox
         ownCloudPath.setOnMouseClicked((event) -> {
@@ -1113,12 +1113,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
 //        System.out.println("Done switching taskList");
     }
     
-    public void initFromDirectory(final boolean updateOnly) {
+    public void initFromDirectory(final boolean updateOnly, final boolean resetTasksTags) {
         checkChangedNote();
 
-        // TFE, 20201115: throw away any current tasklist - we might have changed the path!
-        TaskManager.getInstance().resetTaskList();
-        TagManager.getInstance().resetTagList();
+        if (resetTasksTags) {
+            // TFE, 20201115: throw away any current tasklist - we might have changed the path!
+            TaskManager.getInstance().resetTaskList();
+            TagManager.getInstance().resetTagList();
+        }
         
         // scan directory and re-populate lists
         OwnNoteFileManager.getInstance().initNotesPath(ownCloudPath.textProperty().getValue());
@@ -1497,7 +1499,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
                 hideAndDisableAllEditControls();
                 hideNoteEditor();
-                initFromDirectory(false);
+                initFromDirectory(false, false);
             } else {
                 // TF, 20170723: refresh notes list since modified has changed
                 notesTableFXML.refresh();
@@ -1672,7 +1674,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                 // show only notes for selected group
                 final String curGroupName = myGroupList.getCurrentGroup().getGroupName();
 
-                initFromDirectory(true);
+                initFromDirectory(true, true);
                 selectFirstOrCurrentNote();
                 
                 // but only if group still exists in the list!

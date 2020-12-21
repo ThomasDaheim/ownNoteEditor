@@ -186,6 +186,8 @@ public class TagsTreeView extends TreeView<TagInfo> {
     }
     
     public void fillTreeView(final WorkMode workMode, final Set<TagInfo> tags) {
+        assert myEditor != null;
+        
         myWorkMode = workMode;
         
         initialTags.clear();
@@ -200,7 +202,7 @@ public class TagsTreeView extends TreeView<TagInfo> {
         } else {
             cellType = TagTreeCellFactory.TreeCellType.TEXTFIELD;
         }
-        setCellFactory(new TagTreeCellFactory(cellType));
+        setCellFactory(new TagTreeCellFactory(cellType, myEditor));
         
         selectedItems.clear();
 

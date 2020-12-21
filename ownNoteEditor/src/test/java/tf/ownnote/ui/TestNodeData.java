@@ -39,8 +39,8 @@ import java.util.Map;
 import org.apache.commons.io.FilenameUtils;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
-import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  *

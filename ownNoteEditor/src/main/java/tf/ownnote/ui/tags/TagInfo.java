@@ -52,7 +52,6 @@ public class TagInfo {
     private final ObservableList<TagInfo> children = FXCollections.<TagInfo>observableArrayList();
     private final ObjectProperty<TagInfo> parentProperty = new SimpleObjectProperty<>(null);
     private final StringProperty iconNameProperty = new SimpleStringProperty("");
-    private final BooleanProperty fixedProperty = new SimpleBooleanProperty(false);
     private final StringProperty colorNameProperty = new SimpleStringProperty("");
     
     // link to notes with this tag - transient, will be re-created on startup
@@ -74,10 +73,18 @@ public class TagInfo {
         selectedProperty.setValue(sel);
         nameProperty.set(na);
         
+        readResolve();
+        
+        children.setAll(FXCollections.<TagInfo>observableArrayList(childs));
+    }
+    
+    // required for deserialization by xstream
+    private Object readResolve() {
         children.addListener((ListChangeListener.Change<? extends TagInfo> change) -> {
             while (change.next()) {
                 if (change.wasAdded()) {
                     for (TagInfo tag: change.getAddedSubList()) {
+//                        System.out.println("Setting tag parent: " + this.getName() + " for tag: " + tag.getName() + ", " + tag);
                         tag.setParent(this);
                     }
                 }
@@ -86,14 +93,15 @@ public class TagInfo {
                     for (TagInfo tag: change.getRemoved()) {
                         // might already have been added to other tag...
                         if (this.equals(tag.getParent())) {
+//                            System.out.println("Removing tag parent: " + this.getName() + " for tag: " + tag.getName() + ", " + tag);
                             tag.setParent(null);
                         }
                     }
                 }
             }
         });
-        
-        children.setAll(FXCollections.<TagInfo>observableArrayList(childs));
+
+        return this;
     }
     
     @Override
@@ -160,18 +168,6 @@ public class TagInfo {
 
     public void setColorName(final String col) {
         colorNameProperty.set(col);
-    }
-
-    public BooleanProperty fixedProperty() {
-        return fixedProperty;
-    }
-
-    public boolean isFixed() {
-        return fixedProperty.get();
-    }
-
-    public void setFixed(final boolean fixed) {
-        fixedProperty.set(fixed);
     }
 
     public ObservableSet<Note> getLinkedNotes() {

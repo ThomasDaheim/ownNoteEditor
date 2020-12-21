@@ -27,6 +27,7 @@ package tf.ownnote.ui.tags;
 
 import javafx.scene.control.TreeCell;
 import javafx.util.StringConverter;
+import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
  * Interface implemented by all variants of tag treeview cells.
@@ -35,6 +36,7 @@ import javafx.util.StringConverter;
  * @author thomas
  */
 public interface ITagTreeCell {
+    public OwnNoteEditor getEditor();
     public TreeCell<TagInfo> getTreeCell();
     public StringConverter<TagInfo> getTextConverter();
 }

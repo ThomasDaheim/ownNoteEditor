@@ -51,6 +51,7 @@ import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.DataFormat;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
@@ -63,17 +64,20 @@ import javafx.scene.text.Text;
 import tf.helper.general.IPreferencesHolder;
 import tf.helper.general.IPreferencesStore;
 import tf.helper.general.ObjectsHelper;
+import tf.helper.javafx.AppClipboard;
 import tf.helper.javafx.TableMenuUtils;
 import tf.helper.javafx.TableViewPreferences;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder {
+    public static final DataFormat DRAG_AND_DROP = new DataFormat("application/ownnoteeditor-ownnotetableview-dnd");
+
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor= null;
     
@@ -312,7 +316,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                             final Note curNote = new Note(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
 
                             if(myEditor.deleteNoteWrapper(curNote)) {
-                                myEditor.initFromDirectory(false);
+                                myEditor.initFromDirectory(false, false);
                             }
                         }
                     });
@@ -329,13 +333,14 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                     row.setOnDragDetected((MouseEvent event) -> {
                         final Note curNote = new Note(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
                         
+                        AppClipboard.getInstance().addContent(DRAG_AND_DROP, curNote);
+
                         /* allow any transfer mode */
                         Dragboard db = row.startDragAndDrop(TransferMode.MOVE);
                         
                         /* put a string on dragboard */
                         ClipboardContent content = new ClipboardContent();
-                        content.putHtml("notesTable");
-                        content.putString(curNote.toString());
+                        content.put(DRAG_AND_DROP, curNote.toString());
                         db.setContent(content);
                         
                         // use note ext as image
@@ -375,8 +380,8 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                         // start editing new note
                         assert (newSelection instanceof Note);
                         if (myEditor.editNote((Note) newSelection)) {
-                            // rescan diretory - also group name counters need to be updated...
-                            myEditor.initFromDirectory(false);
+                            // rescan directory - also group name counters need to be updated...
+                            myEditor.initFromDirectory(false, false);
                         }
                     }
                 });        
@@ -397,7 +402,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         assert (TableType.notesTable.equals(myTableType));
         
         if (myEditor.createNoteWrapper(newGroupName, newNoteName)) {
-            myEditor.initFromDirectory(true);
+            myEditor.initFromDirectory(true, false);
             
             // issue 39: start editing note name
             // https://stackoverflow.com/questions/28456215/tableview-edit-focused-cell
