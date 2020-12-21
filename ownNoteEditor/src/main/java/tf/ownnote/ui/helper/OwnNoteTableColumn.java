@@ -40,8 +40,8 @@ import javafx.util.converter.DefaultStringConverter;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.CellUtils;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  *
@@ -190,7 +190,7 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
         
         if (reInit) {
             // rescan diretory - also group name counters need to be updated...
-            this.myEditor.initFromDirectory(false);
+            this.myEditor.initFromDirectory(false, false);
         }
     }
 };
