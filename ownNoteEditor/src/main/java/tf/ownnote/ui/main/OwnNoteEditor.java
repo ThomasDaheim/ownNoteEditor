@@ -726,7 +726,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                 final Note curNote = noteHTMLEditor.getEditedNote();
                 curNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
                 
-                // TODO: set author
                 if (OwnNoteFileManager.getInstance().saveNote(curNote)) {
                 } else {
                     // error message - most likely note in "Not grouped" with same name already exists
@@ -784,7 +783,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                 if (doSave) {
                     final Note newNote = new Note(newGroupName, newNoteName);
                     newNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
-                    // TODO: set author
                     if (saveNoteWrapper(newNote)) {
                     }
                 }
@@ -816,13 +814,20 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             leftPaneXML.getChildren().setAll(notesTableFXML);
             
             // 3. and can't be deleted with trashcan
-            noteNameCol.setWidthPercentage(0.74);
-            noteNameCol.setStyle("notename-font-weight: normal");
-            noteModifiedCol.setWidthPercentage(0.24);
+            noteNameCol.setStyle("-fx-font-weight: normal;");
+            noteModifiedCol.setStyle("-fx-font-weight: normal;");
             noteDeleteColFXML.setVisible(false);
             noteDeleteColFXML.setMinWidth(0d);
             noteDeleteColFXML.setMaxWidth(0d);
             notesTableFXML.getColumns().remove(noteDeleteColFXML);
+
+            // maximize noteNameCol
+            // http://bekwam.blogspot.com/2016/02/getting-around-javafx-tableview.html
+            noteNameColFXML.prefWidthProperty().bind(
+                                notesTableFXML.widthProperty()
+                                .subtract(noteModifiedColFXML.widthProperty())
+                                .subtract(2)
+                             );
             
             // name can be changed - but not for all entries!
             noteNameCol.setEditable(true);
@@ -1044,7 +1049,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                     directoryChooser.setInitialDirectory(ownFile);
                 }
             }
-            File selectedDirectory = directoryChooser.showDialog(setOwnCloudPath.getScene().getWindow());
+            File selectedDirectory = directoryChooser.showDialog(getWindow());
 
             if(selectedDirectory == null){
                 //System.out.println("No Directory selected");
@@ -1139,30 +1144,13 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         // do the stuff in the OwnNoteTableView - thats the right place!
         notesTable.setNotes(notesList);
         
-        /*
-        // 1. Wrap the ObservableList in a FilteredList (initially display all data).
-        filteredData = new FilteredList<>(notesList, p -> true);
-        // re-apply filter predicate when already set
-        final String curGroupName = (String) notesTable.getTableView().getEditedNote();
-        if (curGroupName != null) {
-            setGroupNameFilter(curGroupName);
+        // TFE, 20201223: no groups list control enabled for tag tree
+        if (!OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+            // triggers setFirstOrCurrentNote
+            myGroupList.setGroups(OwnNoteFileManager.getInstance().getGroupsList(), updateOnly);
+        } else {
+            selectFirstOrCurrentNote();
         }
-
-        // 2. Set the filter Predicate whenever the filter changes.
-        // done in TabPane and TableView controls
-
-        // 3. Wrap the FilteredList in a SortedList. 
-        SortedList<Map<String, String>> sortedData = new SortedList<Map<String, String>>(filteredData);
-
-        // 4. Bind the SortedList comparator to the TableView comparator.
-        sortedData.comparatorProperty().bind(notesTable.comparatorProperty());
-
-        // 5. Add sorted (and filtered) data to the table.        
-        notesTable.setNotes(sortedData);
-        */
-        
-        ObservableList<NoteGroup> groupsList = OwnNoteFileManager.getInstance().getGroupsList();
-        myGroupList.setGroups(groupsList, updateOnly);
         
         // and now store group names (real ones!) for later use
         initGroupNames();
@@ -1188,7 +1176,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                     // save note
                     final Note prevNote = noteHTMLEditor.getEditedNote();
                     prevNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
-                    // TODO: set author
                     if (saveNoteWrapper(prevNote)) {
                     }
                 }
@@ -1633,7 +1620,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                                     // save own note independent of file system changes
                                     final Note saveNote = noteHTMLEditor.getEditedNote();
                                     saveNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
-                                    // TODO: set author
                                     if (saveNoteWrapper(saveNote)) {
                                     }
                                 }
@@ -1645,7 +1631,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
                                     if (createNoteWrapper(saveNote.getGroupName(), newNoteName)) {
                                         final Note newNote = new Note(saveNote.getGroupName(), newNoteName);
                                         newNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
-                                        // TODO: set author
                                         if (saveNoteWrapper(newNote)) {
                                             // we effectively just renamed the note...
                                             final String oldNoteName = saveNote.getNoteName();

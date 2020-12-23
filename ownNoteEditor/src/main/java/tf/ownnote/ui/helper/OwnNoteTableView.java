@@ -264,18 +264,17 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                             if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(myEditor.getCurrentLookAndFeel())) {
                                 if (item == null) {
                                     // reset background to default
-                                    setStyle("-fx-background-color: none");
+                                    setStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": none");
                                 } else {
                                     // TF, 20160627: add support for issue #36 using ideas from
                                     // https://rterp.wordpress.com/2015/04/11/atlas-trader-test/
 
                                     // get tab color for notes group name
                                     assert (item instanceof Note);
-                                    final String groupName = ((Note) item).getGroupName();
 
                                     // get the color for the groupname
-                                    final String groupColor = myEditor.getGroupColor(groupName);
-                                    setStyle("-fx-background-color: " + groupColor);
+                                    final String groupColor = myEditor.getGroupColor(((Note) item).getGroupName());
+                                    setStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": " + groupColor);
                                     //System.out.println("updateItem - groupName, groupColor: " + groupName + ", " + groupColor);
                                 }
                             }

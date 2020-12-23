@@ -29,6 +29,7 @@ import java.util.Comparator;
 import java.util.Map;
 import javafx.event.EventHandler;
 import javafx.scene.Cursor;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TextField;
@@ -48,7 +49,6 @@ import tf.ownnote.ui.notes.NoteGroup;
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public class OwnNoteTableColumn {
-    
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor = null;
     
@@ -86,7 +86,7 @@ public class OwnNoteTableColumn {
     
     public void setTableColumnProperties(final double percentage, final String valueName, final boolean linkCursor) {
         setWidthPercentage(percentage);
-        myTableColumn.setCellValueFactory(new MapValueFactory<String>(valueName));
+        myTableColumn.setCellValueFactory(new MapValueFactory<>(valueName));
         myTableColumn.setCellFactory(createObjectCellFactory(linkCursor));
     }
 
@@ -201,17 +201,17 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
     private TextField textField;
     
     // store link back to the controller of the scene for callback
-    private final OwnNoteEditor myOwnNoteEditor;
+    private final OwnNoteEditor myEditor;
     
-    private final OwnNoteTableColumn myOwnNoteTableColumn;
+    private final OwnNoteTableColumn myTableColumn;
     
-    public ObjectCell(final OwnNoteEditor ownNoteEditor,
-            final OwnNoteTableColumn ownNoteTableColumn, 
+    public ObjectCell(final OwnNoteEditor editor,
+            final OwnNoteTableColumn tableColumn, 
             final boolean linkCursor, 
             final EventHandler<MouseEvent> mouseEvent) {
         super(new DefaultStringConverter());
-        myOwnNoteEditor = ownNoteEditor;
-        myOwnNoteTableColumn = ownNoteTableColumn;
+        myEditor = editor;
+        myTableColumn = tableColumn;
         
         if (linkCursor) {
             this.setCursor(Cursor.HAND);
@@ -260,6 +260,15 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
         
         CellUtils.updateItem(this, getConverter(), null, null, textField);
 
+        Label graphic = null;
+        if (item != null && getTableRow().getItem() != null &&
+                "noteNameColFXML".equals(getId()) && 
+                OwnNoteEditorParameters.LookAndFeel.tagTree.equals(myEditor.getCurrentLookAndFeel())) {
+            final Note note = ObjectsHelper.uncheckedCast(getTableRow().getItem());
+            final String groupColor = myEditor.getGroupColor(note.getGroupName());
+            graphic = new Label("    ");
+            graphic.setStyle("-fx-background-color: " + groupColor + ";");
+        }
         if (item != null) {
             // add class to indicate not null content - to be used in css
             this.getStyleClass().add(ObjectCell.valueSet);
@@ -267,6 +276,7 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
             // add class to indicate null content - to be used in css
             this.getStyleClass().removeAll(ObjectCell.valueSet);
         }
+        this.setGraphic(graphic);
 
         setTooltip(null);
     }

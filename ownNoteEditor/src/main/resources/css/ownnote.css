@@ -20,7 +20,6 @@
     group-color: white;
     note-selected-background-color: -fx-base;
     note-selected-font-color: black;
-    notename-font-weight: bold;
 }
 
 .nametooltip {
@@ -45,6 +44,7 @@
 .table-view.notesTable .table-row-cell {
     -fx-background-color: group-color;
     -fx-table-cell-border-color: transparent;
+    -fx-border-color: transparent;
     -fx-border-width: 0;
 }
 .table-view.notesTable:row-selection .table-row-cell:selected .text {
@@ -57,11 +57,12 @@
 
 /* note name in bold */
 .noteNameCol {
-    -fx-font-weight: notename-font-weight;
+    -fx-font-weight: bold;
     -fx-alignment: CENTER_LEFT;
 }
 /* note date in gray */
 .noteModifiedCol {
+    -fx-font-weight: bold;
     -fx-alignment: CENTER;
 }
 /*.table-view.notesTable .table-row-cell .noteModifiedCol {

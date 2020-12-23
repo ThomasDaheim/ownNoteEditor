@@ -96,6 +96,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
     
+    private boolean tagsLoaded = false;
+    
     private TagManager() {
         super();
         // Exists only to defeat instantiation.
@@ -114,7 +116,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
     
     public TagInfo getRootTag() {
-        if (ROOT_TAG.getChildren().isEmpty()) {
+        if (!tagsLoaded) {
             // lazy loading
             loadTags();
         }
@@ -125,6 +127,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     
     public void resetTagList() {
         ROOT_TAG.getChildren().clear();
+        tagsLoaded = false;
     }
     
     public void loadTags() {
@@ -175,6 +178,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 Logger.getLogger(TagManager.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+        tagsLoaded = true;
         
         // ensure reserved names are fixed
         for (String tagName : reservedTagNames) {

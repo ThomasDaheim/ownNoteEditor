@@ -118,13 +118,9 @@ public class TagsTreeView extends TreeView<TagInfo> {
                     if (TagManager.ReservedTagNames.Groups.name().equals(tag.getName())) {
                         // "Groups" selected => similar to "All" in tabs
                         myEditor.setGroupNameFilter(NoteGroup.ALL_GROUPS);
-
-                        myEditor.setNotesTableStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": " + OwnNoteEditor.getGroupColor(NoteGroup.ALL_GROUPS));
                     } else if (item.getParent() != null && TagManager.ReservedTagNames.Groups.name().equals(item.getParent().getValue().getName())) {
                         // a tag under "Groups" selected => similar to select a tab
                         myEditor.setGroupNameFilter(tag.getName());
-
-                        myEditor.setNotesTableStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": " + tag.getColorName());
                     } else {
                         // any "normal" tag has been selected - set filter on all its and childrens notes
                         final Set<Note> tagNotes = tag.flattened().map((t) -> {
@@ -206,7 +202,10 @@ public class TagsTreeView extends TreeView<TagInfo> {
         
         selectedItems.clear();
 
-        setRoot(new RecursiveTreeItem<>(TagManager.getInstance().getRootTag(), this::newItemConsumer, (item) -> null, TagInfo::getChildren, true, (item) -> true));
+        // for SELECT_MODE we don't show Groups - since its handled implicitly & is connected to the group name of the notes file
+        setRoot(new RecursiveTreeItem<>(TagManager.getInstance().getRootTag(), this::newItemConsumer, (item) -> null, TagInfo::getChildren, true, (item) -> {
+            return !(WorkMode.SELECT_MODE.equals(myWorkMode) && TagManager.isGroupsTag(item));
+        }));
         
         // set property after filling list :-)
         initWorkMode();
