@@ -234,7 +234,7 @@ public class NoteMetaData {
                                 infoFound = true;
                                 break;
                             case TAGS:
-                                result.setTags(TagManager.getInstance().tagsForNames(new HashSet<>(Arrays.asList(values))));
+                                result.setTags(TagManager.getInstance().tagsForNames(new HashSet<>(Arrays.asList(values)), null, true));
                                 infoFound = true;
                                 break;
                             case CHARSET:

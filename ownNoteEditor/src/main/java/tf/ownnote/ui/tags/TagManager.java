@@ -182,7 +182,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         
         // ensure reserved names are fixed
         for (String tagName : reservedTagNames) {
-            TagInfo tag = tagForName(tagName);
+            TagInfo tag = tagForName(tagName, ROOT_TAG, false);
             if (tag == null) {
                 tag = new TagInfo(tagName);
                 ROOT_TAG.getChildren().add(tag);
@@ -193,6 +193,16 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             if (TagManager.ReservedTagNames.Groups.name().equals(tag.getName())) {
                 boolean hasAllGroups = false;
                 boolean hasNotGrouped = false;
+                
+                // add all groups from group names to tags - in case something new has come up...
+                for (NoteGroup group : OwnNoteFileManager.getInstance().getGroupsList()) {
+                    final String groupName = group.getGroupName();
+                    // as usual "All" and "Not grouped" need special treatment
+                    if (!NoteGroup.ALL_GROUPS.equals(groupName) && !NoteGroup.NOT_GROUPED.equals(groupName) && tagForName(groupName, tag, false) == null) {
+                        System.out.println("No tag for group " + groupName + " found. Adding...");
+                        tagForName(groupName, tag, true);
+                    }
+                }
                 
                 // color my children
                 for (TagInfo tagChild : tag.getChildren()) {
@@ -210,6 +220,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 
                 if (!hasAllGroups) {
                     // all groups is always the first entry
+                    System.out.println("No tag for group " + NoteGroup.ALL_GROUPS + " found. Adding...");
                     final TagInfo allGroups = new TagInfo(NoteGroup.ALL_GROUPS);
                     allGroups.setColorName(OwnNoteEditor.getGroupColor(NoteGroup.ALL_GROUPS));
                     
@@ -217,6 +228,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 }
                 if (!hasNotGrouped) {
                     // all groups is always the second entry
+                    System.out.println("No tag for group " + NoteGroup.NOT_GROUPED + " found. Adding...");
                     final TagInfo notGrouped = new TagInfo(NoteGroup.NOT_GROUPED);
                     notGrouped.setColorName(OwnNoteEditor.getGroupColor(NoteGroup.NOT_GROUPED));
                     
@@ -307,7 +319,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         // probaly only used once for "migration" to tag metadata
         for (Note note : OwnNoteFileManager.getInstance().getNotesList()) {
             if (!note.getGroupName().isEmpty()) {
-                final TagInfo groupInfo = tagForName(note.getGroupName());
+                final TagInfo groupInfo = tagForName(note.getGroupName(), getRootTag(), true);
                 if (note.getMetaData().getTags().contains(groupInfo)) {
                     System.out.println("Removing tag " + note.getGroupName() + " from note " + note.getNoteName());
                     OwnNoteFileManager.getInstance().readNote(note);
@@ -323,17 +335,25 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
     }
     
-    public TagInfo tagForName(final String tagName) {
-        return tagsForNames(new HashSet<>(Arrays.asList(tagName))).iterator().next();
+    public TagInfo tagForName(final String tagName, final TagInfo startTag, final boolean createIfNotFound) {
+        final Set<TagInfo> tags = tagsForNames(new HashSet<>(Arrays.asList(tagName)), startTag, createIfNotFound);
+        
+        if (tags.isEmpty()) {
+            return null;
+        } else {
+            return tags.iterator().next();
+        }
     }
 
-    public Set<TagInfo> tagsForNames(final Set<String> tagNames) {
+    public Set<TagInfo> tagsForNames(final Set<String> tagNames, final TagInfo startTag, final boolean createIfNotFound) {
         final Set<TagInfo> result = new HashSet<>();
+        
+        final TagInfo realStartTag = (startTag != null) ? startTag : getRootTag();
 
         // flatten tagslist to set
         // http://squirrel.pl/blog/2015/03/04/walking-recursive-data-structures-using-java-8-streams/
         // https://stackoverflow.com/a/31992391
-        final Set<TagInfo> flatTags = getRootTag().getChildren().stream().map((t) -> {
+        final Set<TagInfo> flatTags = realStartTag.getChildren().stream().map((t) -> {
             return t.flattened();
         }).flatMap(Function.identity()).collect(Collectors.toSet());
 
@@ -346,9 +366,11 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 result.add(tag.get());
             } else {
                 // we didn't run into that one before...
-                final TagInfo newTag = new TagInfo(tagName);
-                getRootTag().getChildren().add(newTag);
-                result.add(newTag);
+                if (createIfNotFound) {
+                    final TagInfo newTag = new TagInfo(tagName);
+                    realStartTag.getChildren().add(newTag);
+                    result.add(newTag);
+                }
             }
         }
         
@@ -358,7 +380,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     public void doRenameTag(final String oldName, final String newName) {
         assert oldName != null;
         
-        final TagInfo oldTag = TagManager.getInstance().tagForName(oldName);
+        final TagInfo oldTag = tagForName(oldName, getRootTag(), false);
+        if (oldTag == null) return;
         final boolean groupTag = isGroupsChildTag(oldTag);
         
         final List<Note> notesList = OwnNoteFileManager.getInstance().getNotesList();
@@ -372,7 +395,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 
                 note.getMetaData().getTags().remove(oldTag);
                 if (newName != null) {
-                    note.getMetaData().getTags().add(TagManager.getInstance().tagForName(newName));
+                    note.getMetaData().getTags().add(tagForName(newName, oldTag.getParent(), true));
                 }
 
                 if (!inEditor) {

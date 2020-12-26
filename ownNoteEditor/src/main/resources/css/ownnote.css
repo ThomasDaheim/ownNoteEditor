@@ -14,6 +14,7 @@
     -fx-border-width: 0;
     -fx-font-size: 1.166667em;
     -fx-font-color: -fx-text-base-color;
+    -fx-font-weight: normal;
     -fx-text-fill: -fx-text-base-color;
     
     /* our own variables should be initialized here as well to avoid run-time warnings */
@@ -57,12 +58,10 @@
 
 /* note name in bold */
 .noteNameCol {
-    -fx-font-weight: bold;
     -fx-alignment: CENTER_LEFT;
 }
 /* note date in gray */
 .noteModifiedCol {
-    -fx-font-weight: bold;
     -fx-alignment: CENTER;
 }
 /*.table-view.notesTable .table-row-cell .noteModifiedCol {

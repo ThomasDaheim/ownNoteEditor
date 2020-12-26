@@ -44,6 +44,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import tf.helper.general.IPreferencesHolder;
 import tf.helper.general.IPreferencesStore;
+import tf.helper.javafx.StyleHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
@@ -56,6 +57,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
     private final String PLUS_TAB = "+";
     
     private TabPane myTabPane = null;
+    private String backgroundColor = "white";
     
     // since we have no buttons we do context menus
     private final ContextMenu fullMenu = new ContextMenu();
@@ -95,6 +97,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
     }
 
     private void initTabPane() {
+        myTabPane.applyCss();
         // drop down menu doesn't update when renaming tabs - would need to implement own TabPaneSkin :-(
         // https://stackoverflow.com/questions/31734292/show-some-tabs-ahead-from-selected-tab-in-a-javafx-8-tabpane-header
         
@@ -137,9 +140,9 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
 
                         myEditor.setGroupNameFilter(groupName);
                         // set color of notes table to tab color
-                        myEditor.setNotesTableStyle(newTab.getStyle());
+                        myEditor.setNotesTableBackgroundColor(((OwnNoteTab) newTab).getBackgroundColor());
 
-                        myTabPane.setStyle(newTab.getStyle());
+                        setBackgroundColor(((OwnNoteTab) newTab).getBackgroundColor());
                     }
                 }
                 
@@ -210,7 +213,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         
         // set color of tab to something fancy
         final String groupColor = myEditor.getGroupColor(newTab.getTabName());
-        newTab.setTabColor(groupColor);
+        newTab.setBackgroundColor(groupColor);
         //System.out.println("addOwnNoteTab - groupName, groupColor: " + newTab.getTabName() + ", " + groupColor);
         
         myTabPane.getTabs().add(myTabPane.getTabs().size() - 1, newTab);
@@ -557,8 +560,12 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
     /* Required getter and setter methods are forwarded to internal TableView */
 
     @Override
-    public void setStyle(final String style) {
-        myTabPane.setStyle(style);
+    public void setBackgroundColor(final String color) {
+        myTabPane.setStyle(StyleHelper.addAndRemoveStyles(
+                myTabPane, 
+                StyleHelper.cssString(OwnNoteEditor.GROUP_COLOR_CSS, color), 
+                StyleHelper.cssString(OwnNoteEditor.GROUP_COLOR_CSS, backgroundColor)));
+        backgroundColor = color;
     }
 
     @Override

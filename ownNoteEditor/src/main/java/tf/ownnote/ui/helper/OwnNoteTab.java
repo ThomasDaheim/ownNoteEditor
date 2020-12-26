@@ -25,6 +25,7 @@ import javafx.stage.StageStyle;
 import javafx.stage.WindowEvent;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AppClipboard;
+import tf.helper.javafx.StyleHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 
@@ -50,7 +51,7 @@ public class OwnNoteTab extends Tab {
     
     private String tabName;
     private String tabCount;
-    private String tabColor;
+    private String backgroundColor = "white";
 
     // can this tab be a drop target for notes?
     private boolean droptarget;
@@ -266,13 +267,16 @@ public class OwnNoteTab extends Tab {
         setLabelText(tabName);
     }
     
-    public String getTabColor() {
-        return tabColor;
+    public String getBackgroundColor() {
+        return backgroundColor;
     }
 
-    public void setTabColor(final String newTabColor) {
-        tabColor = newTabColor;
-        setStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": " + newTabColor);
+    public void setBackgroundColor(final String color) {
+        setStyle(StyleHelper.addAndRemoveStyles(
+                this, 
+                StyleHelper.cssString(OwnNoteEditor.GROUP_COLOR_CSS, color), 
+                StyleHelper.cssString(OwnNoteEditor.GROUP_COLOR_CSS, backgroundColor)));
+        backgroundColor = color;
     }
 
     /**

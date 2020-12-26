@@ -40,7 +40,7 @@ public interface IGroupListContainer {
     
     public abstract NoteGroup getCurrentGroup();
     
-    public abstract void setStyle(final String style);
+    public abstract void setBackgroundColor(final String style);
     
     public abstract void setDisable(final boolean b);
 

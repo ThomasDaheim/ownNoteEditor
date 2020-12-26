@@ -40,6 +40,7 @@ import javafx.util.Callback;
 import javafx.util.converter.DefaultStringConverter;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.CellUtils;
+import tf.helper.javafx.StyleHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
@@ -53,6 +54,7 @@ public class OwnNoteTableColumn {
     private OwnNoteEditor myEditor = null;
     
     private TableColumn<Map, String> myTableColumn = null;
+    private String backgroundColor = "white";
     
     // we need to know the tabletype as well...
     private OwnNoteTableView.TableType myTableType = null;
@@ -118,8 +120,12 @@ public class OwnNoteTableColumn {
         myTableColumn.setOnEditCommit(value);
     }
     
-    public void setStyle(final String style) {
-        myTableColumn.setStyle(style);
+    public void setBackgroundColor(final String color) {
+        myTableColumn.setStyle(StyleHelper.addAndRemoveStyles(
+                myTableColumn, 
+                StyleHelper.cssString(OwnNoteEditor.GROUP_COLOR_CSS, color), 
+                StyleHelper.cssString(OwnNoteEditor.GROUP_COLOR_CSS, backgroundColor)));
+        backgroundColor = color;
     }
 
     public void setVisible(final boolean b) {

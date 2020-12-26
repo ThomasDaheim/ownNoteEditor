@@ -32,7 +32,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.collections.ObservableList;
@@ -45,34 +44,35 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
-import javafx.scene.control.Tab;
-import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TreeView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
-import org.junit.AfterClass;
+import org.apache.commons.io.FileUtils;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.testfx.api.FxRobot;
 import org.testfx.framework.junit.ApplicationTest;
 import tf.ownnote.ui.helper.OwnNoteEditorParameters;
 import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
-import tf.ownnote.ui.helper.OwnNoteTab;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.main.OwnNoteEditorManager;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
+import tf.ownnote.ui.tags.TagInfo;
+import tf.ownnote.ui.tags.TagTextFieldTreeCell;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class TestOneNoteLookAndFeel extends ApplicationTest {
+public class TestTagTreeLookAndFeel extends ApplicationTest {
+    private static double SCALING = 0.85;
+    
     private Stage myStage;
     
     @Override
@@ -82,7 +82,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         OwnNoteEditorManager app = new OwnNoteEditorManager();
         // TODO: set command line parameters to avoid tweaking stored values
         app.start(stage);
-
+        
         /* Do not forget to put the GUI in front of windows. Otherwise, the robots may interact with another
         window, the one in front of all the windows... */
         stage.toFront();
@@ -124,23 +124,22 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         try {
             myTestdata.copyTestFiles(testpath);
         } catch (Throwable ex) {
-            Logger.getLogger(TestOneNoteLookAndFeel.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TestTagTreeLookAndFeel.class.getName()).log(Level.SEVERE, null, ex);
         }
         
         // set look & feel and notes path name
-        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.groupTabs.name());
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.tagTree.name());
         OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, testpath.toString());
         //System.out.println("testpath: " + testpath.toString());
     }
 
     private Label ownCloudPath;
     private TableView<Map<String, String>> notesTableFXML;
-    private TabPane groupsPaneFXML;
-    private OwnNoteTab allTab;
-    private OwnNoteTab test1Tab;
-    private OwnNoteTab test2Tab;
-    private OwnNoteTab test3Tab;
-    private OwnNoteTab testPLUSTab;
+    private TreeView<TagInfo> tagsTreeView;
+    private TagTextFieldTreeCell allTag;
+    private TagTextFieldTreeCell test1Tag;
+    private TagTextFieldTreeCell test2Tag;
+    private TagTextFieldTreeCell test3Tag;
     private TextField noteFilterText;
     private CheckBox noteFilterCheck;
 
@@ -150,38 +149,38 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         return lookup(query).query();
     }
 
-    @BeforeClass
-    public void getNodes() {
+    private void getNodes() {
         System.out.println("running getNodes()");
 
         notesTableFXML = (TableView<Map<String, String>>) find(".notesTable");
-        groupsPaneFXML = (TabPane) find(".groupsPane");
+        tagsTreeView = (TreeView<TagInfo>) find(".tagsTreeView");
         
-        // tabs are not nodes!!! So we have to find them the hard way
-        final ObservableList<Tab> tabsList = groupsPaneFXML.getTabs();
-        allTab = (OwnNoteTab) tabsList.stream().filter(x -> {
-                                                        return ((Label) x.getGraphic()).getText().startsWith(NoteGroup.ALL_GROUPS);
-                                                    }).findFirst().orElse(null);
-        test1Tab = (OwnNoteTab) tabsList.stream().filter(x -> {
-                                                        return ((Label) x.getGraphic()).getText().startsWith("Test1");
-                                                    }).findFirst().orElse(null);
-        test2Tab = (OwnNoteTab) tabsList.stream().filter(x -> {
-                                                        return ((Label) x.getGraphic()).getText().startsWith("Test2");
-                                                    }).findFirst().orElse(null);
-        test3Tab = (OwnNoteTab) tabsList.stream().filter(x -> {
-                                                        return ((Label) x.getGraphic()).getText().startsWith("Test3");
-                                                    }).findFirst().orElse(null);
-        testPLUSTab = (OwnNoteTab) tabsList.stream().filter(x -> {
-                                                        return "+".equals(((Label) x.getGraphic()).getText());
-                                                    }).findFirst().orElse(null);
+        allTag = (TagTextFieldTreeCell) find("#" + NoteGroup.ALL_GROUPS);
+        test1Tag = (TagTextFieldTreeCell) find("#Test1");
+        test2Tag = (TagTextFieldTreeCell) find("#Test2");
+        test3Tag = (TagTextFieldTreeCell) find("#Test3");
+
+//        // tabs are not nodes!!! So we have to find them the hard way
+//        final ObservableList<Node> nodesList = tagsTreeView.getChildrenUnmodifiable();
+//        allTag = (TagTextFieldTreeCell) tabsList.stream().filter(x -> {
+//                                                        return ((Label) x.getGraphic()).getText().startsWith(NoteGroup.ALL_GROUPS);
+//                                                    }).findFirst().orElse(null);
+//        test1Tag = (TagTextFieldTreeCell) tabsList.stream().filter(x -> {
+//                                                        return ((Label) x.getGraphic()).getText().startsWith("Test1");
+//                                                    }).findFirst().orElse(null);
+//        test2Tag = (TagTextFieldTreeCell) tabsList.stream().filter(x -> {
+//                                                        return ((Label) x.getGraphic()).getText().startsWith("Test2");
+//                                                    }).findFirst().orElse(null);
+//        test3Tag = (TagTextFieldTreeCell) tabsList.stream().filter(x -> {
+//                                                        return ((Label) x.getGraphic()).getText().startsWith("Test3");
+//                                                    }).findFirst().orElse(null);
         
         noteFilterText = (TextField) find(".noteFilterText");
         noteFilterCheck = (CheckBox) find(".noteFilterCheck");
     }
     
     /* IMO, it is quite recommended to clear the ongoing events, in case of. */
-    @AfterClass
-    public void tearDown() throws TimeoutException, IOException {
+    private void tearDown() {
         System.out.println("running tearDown()");
 
         /* Close the window. It will be re-opened at the next test. */
@@ -201,7 +200,11 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
             OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, currentPath);
         }
         
-        Files.delete(testpath);
+        try {
+            FileUtils.deleteDirectory(testpath.toFile());
+        } catch (IOException ex) {
+            Logger.getLogger(TestTagTreeLookAndFeel.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     private void testAlert(final String headerText, final ButtonBar.ButtonData buttonToPress) {
@@ -235,21 +238,23 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     private void selectTab(final int tabIndex) {
         interact(() -> {
             // only do select if tab has changed
-            if (groupsPaneFXML.getSelectionModel().getSelectedIndex() != tabIndex) {
-                groupsPaneFXML.getSelectionModel().select(tabIndex);
-            }
+//            if (groupsPaneFXML.getSelectionModel().getSelectedIndex() != tabIndex) {
+//                groupsPaneFXML.getSelectionModel().select(tabIndex);
+//            }
         });
     }
     
     private void testTab(final int tabIndex, final String tabName, final int tabCount) {
         selectTab(tabIndex);
 
-        assertTrue("Check tab name", ((Label) groupsPaneFXML.getSelectionModel().getSelectedItem().getGraphic()).getText().startsWith(tabName));
+//        assertTrue("Check tab name", ((Label) groupsPaneFXML.getSelectionModel().getSelectedItem().getGraphic()).getText().startsWith(tabName));
         assertTrue("Check notes count", (notesTableFXML.getItems().size() == tabCount));
     }
 
     @Test
     public void runTests() {
+        getNodes();
+
         testNodes();
         testInitialSetup();
         resetForNextTest();
@@ -276,18 +281,19 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         
         // TFE, 20180930: must be last test and no resetForNextTest() afterwards - to avoid "File has changed" dialogue
         testFileSystemChange();
+        
+        tearDown();
     }
     
     private void testNodes() {
         System.out.println("running testNodes()");
 
         assertNotNull(notesTableFXML);
-        assertNotNull(groupsPaneFXML);
-        assertNotNull(allTab);
-        assertNotNull(test1Tab);
-        assertNotNull(test2Tab);
-        assertNotNull(test3Tab);
-        assertNotNull(testPLUSTab);
+        assertNotNull(tagsTreeView);
+        assertNotNull(allTag);
+        assertNotNull(test1Tag);
+        assertNotNull(test2Tag);
+        assertNotNull(test3Tag);
         assertNotNull(noteFilterText);
         assertNotNull(noteFilterCheck);
     }
@@ -340,7 +346,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // delete note with right click + menu item
         clickOn(notesTableFXML);
         // TODO: get better coordinates to move to
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         rightClickOn();
         push(KeyCode.DOWN);
         push(KeyCode.DOWN);
@@ -356,7 +362,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // #1 ------------------------------------------------------------------
         // rename note via right click + menu item
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         rightClickOn();
         push(KeyCode.DOWN);
         push(KeyCode.DOWN);
@@ -372,7 +378,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // #2 ------------------------------------------------------------------
         // rename note via right click + CTRL+R
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         rightClickOn();
         push(KeyCode.CONTROL, KeyCode.R);
         write("rename2");
@@ -400,7 +406,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // #4 ------------------------------------------------------------------
         // Alert when renaming to existing name
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         doubleClickOn();
         write("test2");
         push(KeyCode.ENTER);
@@ -418,14 +424,15 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
 
         // #1 ------------------------------------------------------------------
         // get x, y coordinates from tab 2
-        Label testLabel = test2Tab.getLabel();
+        Label testLabel = null;
+//        testLabel = test2Tag.getLabel();
         Bounds testBounds = testLabel.localToScreen(testLabel.getBoundsInLocal());
         assertNotNull(testBounds);
         double centerX = testBounds.getMinX() + (testBounds.getMaxX() - testBounds.getMinX())/2.0;
         double centerY = testBounds.getMinY() + (testBounds.getMaxY() - testBounds.getMinY())/2.0;
         
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         Point p = MouseInfo.getPointerInfo().getLocation();
         Point2D p2d = new Point2D(p.getX(), p.getY());
 
@@ -440,13 +447,13 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         
         // #2 ------------------------------------------------------------------
         // drag note back
-        testLabel = test1Tab.getLabel();
+//        testLabel = test1Tag.getLabel();
         testBounds = testLabel.localToScreen(testLabel.getBoundsInLocal());
         centerX = testBounds.getMinX() + (testBounds.getMaxX() - testBounds.getMinX())/2.0;
         centerY = testBounds.getMinY() + (testBounds.getMaxY() - testBounds.getMinY())/2.0;
         
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         p = MouseInfo.getPointerInfo().getLocation();
         p2d = new Point2D(p.getX(), p.getY());
 
@@ -461,7 +468,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         
         // #3 ------------------------------------------------------------------
         // Alert when dragging to group with same note name
-        testLabel = test3Tab.getLabel();
+//        testLabel = test3Tag.getLabel();
         testBounds = testLabel.localToScreen(testLabel.getBoundsInLocal());
         centerX = testBounds.getMinX() + (testBounds.getMaxX() - testBounds.getMinX())/2.0;
         centerY = testBounds.getMinY() + (testBounds.getMaxY() - testBounds.getMinY())/2.0;
@@ -470,7 +477,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         selectTab(0);
 
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         p = MouseInfo.getPointerInfo().getLocation();
         p2d = new Point2D(p.getX(), p.getY());
 
@@ -493,7 +500,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // #1 ------------------------------------------------------------------
         // add group
         // get x, y coordinates from PLUS tab
-        Label testLabel = testPLUSTab.getLabel();
+        Label testLabel = null;
+//        testLabel = testPLUSTab.getLabel();
         Bounds testBounds = testLabel.localToScreen(testLabel.getBoundsInLocal());
         double centerX = testBounds.getMinX() + (testBounds.getMaxX() - testBounds.getMinX())/2.0;
         double centerY = testBounds.getMinY() + (testBounds.getMaxY() - testBounds.getMinY())/2.0;
@@ -502,7 +510,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         clickOn();
         
         // All, Not Grouped, Test1, Test2, Test3, New Group 3, + => 7 tabs
-        assertTrue(groupsPaneFXML.getTabs().size() == myTestdata.getGroupsList().size() + 2);
+//        assertTrue(groupsPaneFXML.getTabs().size() == myTestdata.getGroupsList().size() + 2);
         
         // #2 ------------------------------------------------------------------
         // rename group
@@ -511,7 +519,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         push(KeyCode.ENTER);
         push(KeyCode.ENTER);
         
-        assertTrue("Check Test4 tab", ((Label) groupsPaneFXML.getSelectionModel().getSelectedItem().getGraphic()).getText().startsWith("Test4"));
+//        assertTrue("Check Test4 tab", ((Label) groupsPaneFXML.getSelectionModel().getSelectedItem().getGraphic()).getText().startsWith("Test4"));
         
         // #3 ------------------------------------------------------------------
         // delete group
@@ -522,7 +530,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         //push(KeyCode.DOWN);
         push(KeyCode.ENTER);
 
-        assertTrue(groupsPaneFXML.getTabs().size() == myTestdata.getGroupsList().size() + 1);
+//        assertTrue(groupsPaneFXML.getTabs().size() == myTestdata.getGroupsList().size() + 1);
     }
 
     
@@ -616,7 +624,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: add a new file to a new group");
         
         // All, Not Grouped, Test1, Test2, Test3, Test4, + => 7 tabs
-        assertTrue(groupsPaneFXML.getTabs().size() == myTestdata.getGroupsList().size() + 2);
+//        assertTrue(groupsPaneFXML.getTabs().size() == myTestdata.getGroupsList().size() + 2);
 
         // delete the new file
         assertTrue(myTestdata.deleteTestFile(testpath, "[Test4] test4.htm"));
@@ -624,7 +632,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: delete the new file");
 
         // All, Not Grouped, Test1, Test2, Test3, + => 7 tabs
-        assertTrue(groupsPaneFXML.getTabs().size() == myTestdata.getGroupsList().size() + 1);
+//        assertTrue(groupsPaneFXML.getTabs().size() == myTestdata.getGroupsList().size() + 1);
 
         // #4 ------------------------------------------------------------------
         // delete file in editor BUT "Save own"

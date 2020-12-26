@@ -56,7 +56,7 @@ public class TestTaskData {
         
         final Note note = OwnNoteFileManager.getInstance().getNotesList().get(0);
         final String noteContent = OwnNoteFileManager.getInstance().readNote(note);
-        exceptionRule.expectMessage("Text not starting with checkbox pattern: " + noteContent);
+        exceptionRule.expectMessage("Text not starting with checkbox pattern: " + noteContent.split(System.lineSeparator())[0]);
         new TaskData(note, noteContent, 0);
     }
     

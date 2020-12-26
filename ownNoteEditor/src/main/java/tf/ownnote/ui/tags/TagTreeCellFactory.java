@@ -297,7 +297,10 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
             final TagInfo thisTag = treeCell.getTreeItem().getValue();
             if (TagManager.isAnyGroupTag(thisTag)) {
                 // if group was also a tag -> remove & add
-                final TagInfo groupTag = TagManager.getInstance().tagForName(dragNote.getGroupName());
+                final TagInfo groupTag = TagManager.getInstance().tagForName(dragNote.getGroupName(), null, false);
+                if (groupTag == null) {
+                    System.err.println("Something is wrong here! Tried to drag to group that doesn't have a tag?!?!?!");
+                }
                 if (dragNote.getMetaData().getTags().contains(groupTag)) {
                     dragNote.getMetaData().getTags().remove(groupTag);
                     dragNote.getMetaData().getTags().add(thisTag);

@@ -96,6 +96,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AboutMenu;
 import tf.helper.javafx.EnumHelper;
+import tf.helper.javafx.StyleHelper;
 import tf.helper.javafx.TableMenuUtils;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
@@ -814,8 +815,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
             leftPaneXML.getChildren().setAll(notesTableFXML);
             
             // 3. and can't be deleted with trashcan
-            noteNameCol.setStyle("-fx-font-weight: normal;");
-            noteModifiedCol.setStyle("-fx-font-weight: normal;");
             noteDeleteColFXML.setVisible(false);
             noteDeleteColFXML.setMinWidth(0d);
             noteDeleteColFXML.setMaxWidth(0d);
@@ -1511,8 +1510,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber {
         notesTable.setNotesFilter(notes);
     }
 
-    public void setNotesTableStyle(String style) {
-        notesTable.setStyle(style);
+    public void setNotesTableBackgroundColor(final String color) {
+        notesTable.setBackgroundColor(color);
     }
     
     public void selectFirstOrCurrentNote() {

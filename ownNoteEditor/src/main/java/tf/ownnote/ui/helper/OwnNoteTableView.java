@@ -65,6 +65,7 @@ import tf.helper.general.IPreferencesHolder;
 import tf.helper.general.IPreferencesStore;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AppClipboard;
+import tf.helper.javafx.StyleHelper;
 import tf.helper.javafx.TableMenuUtils;
 import tf.helper.javafx.TableViewPreferences;
 import tf.ownnote.ui.main.OwnNoteEditor;
@@ -95,6 +96,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     private Set<Note> noteFilterNotes;
     
     private TableType myTableType = null;
+    private String backgroundColor = "white";
     
     private List<TableColumn<Map<String, String>,?>> mySortOrder;
     
@@ -224,6 +226,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     }
 
     private void initTableView() {
+        myTableView.applyCss();
         myTableView.setPlaceholder(new Text(""));
         myTableView.getSelectionModel().setCellSelectionEnabled(false);
         myTableView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
@@ -476,8 +479,12 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     }
 
     @Override
-    public void setStyle(final String style) {
-        myTableView.setStyle(style);
+    public void setBackgroundColor(final String color) {
+        myTableView.setStyle(StyleHelper.addAndRemoveStyles(
+                myTableView, 
+                StyleHelper.cssString(OwnNoteEditor.GROUP_COLOR_CSS, color), 
+                StyleHelper.cssString(OwnNoteEditor.GROUP_COLOR_CSS, backgroundColor)));
+        backgroundColor = color;
     }
 
     public ObservableList<Map<String, String>> getItems() {

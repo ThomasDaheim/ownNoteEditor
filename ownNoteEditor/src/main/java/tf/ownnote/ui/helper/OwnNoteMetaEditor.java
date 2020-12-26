@@ -227,7 +227,7 @@ public class OwnNoteMetaEditor {
         
         removeTag.setOnMouseClicked((t) -> {
             // get rid of this tag in the note and of the node in the pane...
-            editorNote.getMetaData().getTags().remove(TagManager.getInstance().tagForName(tag));
+            editorNote.getMetaData().getTags().remove(TagManager.getInstance().tagForName(tag, null, false));
         });
         
         result.getChildren().addAll(tagLabel, removeTag);
