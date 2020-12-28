@@ -57,6 +57,7 @@ import java.util.stream.Collectors;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.EnumUtils;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.xstreamfx.FXConverters;
@@ -65,6 +66,7 @@ import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
 
@@ -74,11 +76,12 @@ import tf.ownnote.ui.notes.NoteGroup;
  * 
  * @author thomas
  */
-public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubscriber {
+public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubscriber, INoteCRMDS {
     private final static TagManager INSTANCE = new TagManager();
     
-    private final static String TAG_FILE = File.separator + "MetaData" + File.separator + "tag_info.xml";
-    
+    private final static String TAG_DIR = File.separator + "MetaData";
+    private final static String TAG_FILE = TAG_DIR + File.separator + "tag_info.xml";
+
     // reserved names for tags - can't be moved or edited
     public enum ReservedTagNames {
         Groups
@@ -198,7 +201,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 for (NoteGroup group : OwnNoteFileManager.getInstance().getGroupsList()) {
                     final String groupName = group.getGroupName();
                     // as usual "All" and "Not grouped" need special treatment
-                    if (!NoteGroup.ALL_GROUPS.equals(groupName) && !NoteGroup.NOT_GROUPED.equals(groupName) && tagForName(groupName, tag, false) == null) {
+                    if (!NoteGroup.isSpecialGroup(groupName) && tagForName(groupName, tag, false) == null) {
                         System.out.println("No tag for group " + groupName + " found. Adding...");
                         tagForName(groupName, tag, true);
                     }
@@ -234,6 +237,12 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                     
                     tag.getChildren().add(1, notGrouped);
                 }
+
+                // link notes to group tags - notes might not have the tags explicitly...
+                for (TagInfo tagChild : tag.getChildren()) {
+                    tagChild.getLinkedNotes().addAll(OwnNoteFileManager.getInstance().getNotesForGroup(tagChild.getName()));
+                }
+
             }
             
             reservedTags.add(tag);
@@ -254,6 +263,18 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     public void saveTags() {
         if (ROOT_TAG.getChildren().isEmpty()) {
             // list hasn't been initialized yet - so don't try to save
+            return;
+        }
+
+        try {
+            FileUtils.forceMkdir(new File(OwnNoteFileManager.getInstance().getNotesPath() + TAG_DIR));
+        } catch (IOException ex) {
+            Logger.getLogger(TagManager.class.getName()).log(Level.SEVERE, null, ex);
+            return;
+        }
+        final String fileName = OwnNoteFileManager.getInstance().getNotesPath() + TAG_FILE;
+        final File file = new File(fileName);
+        if (file.exists() && (file.isDirectory() || !file.canWrite())) {
             return;
         }
         
@@ -287,7 +308,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         xstream.omitField(TagInfo.class, "parentProperty");
 
         try (
-            BufferedOutputStream stdout = new BufferedOutputStream(new FileOutputStream(OwnNoteFileManager.getInstance().getNotesPath() + TAG_FILE));
+            BufferedOutputStream stdout = new BufferedOutputStream(new FileOutputStream(fileName));
             Writer writer = new OutputStreamWriter(stdout, "ISO-8859-1");
         ) {
             PrettyPrintWriter printer = new PrettyPrintWriter(writer, new char[]{'\t'});
@@ -316,10 +337,11 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     public void groupsToTags() {
         // check all notes if they already have a tag with their group name
         // if not add such a tag
-        // probaly only used once for "migration" to tag metadata
+        // probably only used once for "migration" to tag metadata
         for (Note note : OwnNoteFileManager.getInstance().getNotesList()) {
-            if (!note.getGroupName().isEmpty()) {
-                final TagInfo groupInfo = tagForName(note.getGroupName(), getRootTag(), true);
+            // lets not store a "Not grouped" tag...
+            if (!NoteGroup.isNotGrouped(note.getGroupName())) {
+                final TagInfo groupInfo = tagForGroupName(note.getGroupName(), true);
                 if (note.getMetaData().getTags().contains(groupInfo)) {
                     System.out.println("Removing tag " + note.getGroupName() + " from note " + note.getNoteName());
                     OwnNoteFileManager.getInstance().readNote(note);
@@ -335,6 +357,10 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
     }
     
+    public TagInfo tagForGroupName(final String groupName, final boolean createIfNotFound) {
+        return tagForName(groupName.isEmpty() ? NoteGroup.NOT_GROUPED : groupName, getRootTag(), createIfNotFound);
+    }
+
     public TagInfo tagForName(final String tagName, final TagInfo startTag, final boolean createIfNotFound) {
         final Set<TagInfo> tags = tagsForNames(new HashSet<>(Arrays.asList(tagName)), startTag, createIfNotFound);
         
@@ -470,5 +496,53 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     public static boolean childTagsAllowed(final TagInfo tag) {
         // no child tags: anything below "Groups" tag
         return !isGroupsChildTag(tag);
+    }
+
+    @Override
+    public boolean createNote(String newGroupName, String newNoteName) {
+        final Note newNote = OwnNoteFileManager.getInstance().getNote(newGroupName, newNoteName);
+        tagForGroupName(newNote.getGroupName(), false).getLinkedNotes().add(newNote);
+        tagForGroupName(NoteGroup.ALL_GROUPS, false).getLinkedNotes().add(newNote);
+
+        return true;
+    }
+
+    @Override
+    public boolean renameNote(Note curNote, String newValue) {
+        return true;
+    }
+
+    @Override
+    public boolean moveNote(Note curNote, String newGroupName) {
+        // we have been called after the fact... so the linkedNotes have already been updated with the new group name
+        final Note movedNote = OwnNoteFileManager.getInstance().getNote(newGroupName, curNote.getNoteName());
+
+        // TFE, 20201227: allign tags and their note links as well...
+        final TagInfo oldGroupTag = TagManager.getInstance().tagForGroupName(curNote.getGroupName(), false);
+        final TagInfo newGroupTag = TagManager.getInstance().tagForGroupName(newGroupName, false);
+        if (movedNote.getMetaData().getTags().contains(oldGroupTag)) {
+            movedNote.getMetaData().getTags().remove(oldGroupTag);
+            movedNote.getMetaData().getTags().add(newGroupTag);
+        } else {
+            // need to manually update the linkt tag <-> note - both variants, just to be sure...
+            oldGroupTag.getLinkedNotes().remove(curNote);
+            oldGroupTag.getLinkedNotes().remove(movedNote);
+            newGroupTag.getLinkedNotes().add(movedNote);
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean deleteNote(Note curNote) {
+        tagForGroupName(curNote.getGroupName(), false).getLinkedNotes().remove(curNote);
+        tagForGroupName(NoteGroup.ALL_GROUPS, false).getLinkedNotes().remove(curNote);
+
+        return true;
+    }
+
+    @Override
+    public boolean saveNote(Note note) {
+        return true;
     }
 }

@@ -247,7 +247,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                     // no note selected - above empty part of the table
                     String newGroupName = (String) getTableView().getUserData();
                     // TF, 20160524: group name could be "All" - thats to be changed to "Not grouped"
-                    if (newGroupName.equals(NoteGroup.ALL_GROUPS)) {
+                    if (newGroupName == null || newGroupName.equals(NoteGroup.ALL_GROUPS)) {
                         newGroupName = "";
                     }
                     final String newNoteName = myEditor.uniqueNewNoteNameForGroup(newGroupName);
@@ -301,12 +301,12 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                     });
                     final MenuItem renameNote = new MenuItem("Rename Note");
                     // issue #41 - but only in groupTabs look...
-                    if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(myEditor.getCurrentLookAndFeel())) {
+                    if (!OwnNoteEditorParameters.LookAndFeel.classic.equals(myEditor.getCurrentLookAndFeel())) {
                         renameNote.setAccelerator(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN));
                     }
                     renameNote.setOnAction((ActionEvent event) -> {
                         if (myTableView.getSelectionModel().getSelectedItem() != null) {
-                            final Note curNote = new Note(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
+                            final Note curNote = ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem());
                             
                             startEditingName(myTableView.getSelectionModel().getSelectedIndex());
                         }
@@ -315,9 +315,9 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                     // issue #41 - no accelarator for delete...
                     deleteNote.setOnAction((ActionEvent event) -> {
                         if (myTableView.getSelectionModel().getSelectedItem() != null) {
-                            final Note curNote = new Note(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
+                            final Note curNote = ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem());
 
-                            if(myEditor.deleteNoteWrapper(curNote)) {
+                            if(myEditor.deleteNote(curNote)) {
                                 myEditor.initFromDirectory(false, false);
                             }
                         }
@@ -333,7 +333,8 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                     
                     // support for dragging
                     row.setOnDragDetected((MouseEvent event) -> {
-                        final Note curNote = new Note(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
+                        // TFE, 20201227: don't use copy of note but the real one
+                        final Note curNote = ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem());
                         
                         AppClipboard.getInstance().addContent(DRAG_AND_DROP, curNote);
 
@@ -403,7 +404,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     private void createNoteWrapper(final String newGroupName, final String newNoteName) {
         assert (TableType.notesTable.equals(myTableType));
         
-        if (myEditor.createNoteWrapper(newGroupName, newNoteName)) {
+        if (myEditor.createNote(newGroupName, newNoteName)) {
             myEditor.initFromDirectory(true, false);
             
             // issue 39: start editing note name
@@ -414,9 +415,9 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
             int i = 0;
             Note note;
             for (Map<String, String> noteData : getItems()) {
-                note = new Note(ObjectsHelper.uncheckedCast(noteData));
+                note = ObjectsHelper.uncheckedCast(noteData);
                 
-                if (newNoteName.equals(note.getNoteName()) && newGroupName.equals(note.getGroupName())) {
+                if (newNoteName.equals(note.getNoteName()) && NoteGroup.isSameGroup(newGroupName, note.getGroupName())) {
                     selectIndex = i;
                     break;
                 }

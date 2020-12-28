@@ -175,14 +175,14 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
             case "noteNameColFXML":
                 //System.out.println("Clicked in noteNameCol");
                 curNote =
-                    new Note(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
+                    ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex()));
                 //reInit = this.myEditor.editNote(curNote);
                 break;
             case "noteDeleteColFXML":
                 //System.out.println("Clicked in noteDeleteCol");
                 curNote =
-                    new Note(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
-                reInit = this.myEditor.deleteNoteWrapper(curNote);
+                    ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex()));
+                reInit = this.myEditor.deleteNote(curNote);
                 break;
             case "groupDeleteColFXML":
                 //System.out.println("Clicked in groupDeleteCol");
@@ -228,8 +228,7 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
     
     @Override
     public void startEdit() {
-        if (NoteGroup.ALL_GROUPS.equals(getText())
-                || NoteGroup.NOT_GROUPED.equals(getText())) {
+        if (NoteGroup.isSpecialGroup(getText())) {
             return;
         }
         super.startEdit();

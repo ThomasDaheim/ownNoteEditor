@@ -46,11 +46,11 @@ import tf.ownnote.ui.notes.NoteGroup;
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class TestNodeData {
+public class TestNoteData {
     private final Map<String, NoteGroup> groupsList = new LinkedHashMap<>();
     private final Map<String, Note> notesList = new LinkedHashMap<>();
 
-    public TestNodeData() {
+    public TestNoteData() {
         // init groupsList for know groups - ALL & NOT_GROUPED
         NoteGroup groupRow = new NoteGroup();
         groupRow.setGroupName(NoteGroup.ALL_GROUPS);
@@ -162,7 +162,7 @@ public class TestNodeData {
         noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
         noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
         // use filename and not notename since duplicate note names can exist in diffeent groups
-        notesList.put(filename, new Note(noteRow));
+        notesList.put(filename, noteRow);
     }
     
     public Collection<NoteGroup> getGroupsList() {

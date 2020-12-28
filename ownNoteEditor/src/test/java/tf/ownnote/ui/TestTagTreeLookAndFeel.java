@@ -64,6 +64,7 @@ import tf.ownnote.ui.main.OwnNoteEditorManager;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.tags.TagInfo;
+import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tags.TagTextFieldTreeCell;
 
 /**
@@ -73,6 +74,20 @@ import tf.ownnote.ui.tags.TagTextFieldTreeCell;
 public class TestTagTreeLookAndFeel extends ApplicationTest {
     private static double SCALING = 0.85;
     
+    private enum CheckMode {
+        TAG_CHILDREN,
+        TABLE_ELEMENTS,
+        BOTH;
+        
+        public static boolean doCheckTagChildren(final CheckMode mode) {
+            return (TAG_CHILDREN.equals(mode) || BOTH.equals(mode));
+        }
+        
+        public static boolean doCheckTableElements(final CheckMode mode) {
+            return (TABLE_ELEMENTS.equals(mode) || BOTH.equals(mode));
+        }
+    }
+    
     private Stage myStage;
     
     @Override
@@ -81,20 +96,23 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         
         OwnNoteEditorManager app = new OwnNoteEditorManager();
         // TODO: set command line parameters to avoid tweaking stored values
-        app.start(stage);
+        app.start(myStage);
         
         /* Do not forget to put the GUI in front of windows. Otherwise, the robots may interact with another
         window, the one in front of all the windows... */
-        stage.toFront();
+        myStage.toFront();
         
         // TF, 20170205: under gradle in netbeans toFront() still leves the window in the background...
-        stage.requestFocus();
+        myStage.requestFocus();
     }
 
-    private final TestNodeData myTestdata = new TestNodeData();
+    private final TestNoteData myTestdata = new TestNoteData();
   
     private String currentPath;
     private Path testpath;
+
+    private String lastGroupName;
+    private String lastNoteName;
     
     private OwnNoteEditorParameters.LookAndFeel currentLookAndFeel;
 
@@ -111,6 +129,9 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
             currentPath = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, "");
             // System.out.println("currentPath: " + currentPath);
             // System.out.println("Using preference for ownCloudDir: " + currentPath);
+
+            lastGroupName = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.LAST_EDITED_GROUP, "");
+            lastNoteName = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.LAST_EDITED_NOTE, "");
         } catch (SecurityException ex) {
             Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
         }        
@@ -130,6 +151,8 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         // set look & feel and notes path name
         OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.tagTree.name());
         OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, testpath.toString());
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_GROUP, "");
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_NOTE, "");
         //System.out.println("testpath: " + testpath.toString());
     }
 
@@ -160,21 +183,6 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         test2Tag = (TagTextFieldTreeCell) find("#Test2");
         test3Tag = (TagTextFieldTreeCell) find("#Test3");
 
-//        // tabs are not nodes!!! So we have to find them the hard way
-//        final ObservableList<Node> nodesList = tagsTreeView.getChildrenUnmodifiable();
-//        allTag = (TagTextFieldTreeCell) tabsList.stream().filter(x -> {
-//                                                        return ((Label) x.getGraphic()).getText().startsWith(NoteGroup.ALL_GROUPS);
-//                                                    }).findFirst().orElse(null);
-//        test1Tag = (TagTextFieldTreeCell) tabsList.stream().filter(x -> {
-//                                                        return ((Label) x.getGraphic()).getText().startsWith("Test1");
-//                                                    }).findFirst().orElse(null);
-//        test2Tag = (TagTextFieldTreeCell) tabsList.stream().filter(x -> {
-//                                                        return ((Label) x.getGraphic()).getText().startsWith("Test2");
-//                                                    }).findFirst().orElse(null);
-//        test3Tag = (TagTextFieldTreeCell) tabsList.stream().filter(x -> {
-//                                                        return ((Label) x.getGraphic()).getText().startsWith("Test3");
-//                                                    }).findFirst().orElse(null);
-        
         noteFilterText = (TextField) find(".noteFilterText");
         noteFilterCheck = (CheckBox) find(".noteFilterCheck");
     }
@@ -198,6 +206,13 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         // set path name to old value
         if (currentPath != null) {
             OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, currentPath);
+        }
+        
+        if (lastGroupName != null) {
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_GROUP, lastGroupName);
+        }
+        if (lastNoteName != null) {
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_NOTE, lastNoteName);
         }
         
         try {
@@ -235,25 +250,24 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         });
     }
     
-    private void selectTab(final int tabIndex) {
+    private void selectTag(final TagTextFieldTreeCell tag) {
         interact(() -> {
-            // only do select if tab has changed
-//            if (groupsPaneFXML.getSelectionModel().getSelectedIndex() != tabIndex) {
-//                groupsPaneFXML.getSelectionModel().select(tabIndex);
-//            }
+            clickOn(tag, MouseButton.PRIMARY);
         });
     }
     
-    private void testTab(final int tabIndex, final String tabName, final int tabCount) {
-        selectTab(tabIndex);
-
-//        assertTrue("Check tab name", ((Label) groupsPaneFXML.getSelectionModel().getSelectedItem().getGraphic()).getText().startsWith(tabName));
-        assertTrue("Check notes count", (notesTableFXML.getItems().size() == tabCount));
+    private void testTag(final String tagName, final int tabCount, final CheckMode mode) {
+        if (CheckMode.doCheckTagChildren(mode)) {
+            assertTrue("Check notes children for tag " + tagName, (TagManager.getInstance().tagForGroupName(tagName, false).getLinkedNotes().size() == tabCount));
+        }
+        if (CheckMode.doCheckTableElements(mode)) {
+            assertTrue("Check table elements for tag " + tagName, (notesTableFXML.getItems().size() == tabCount));
+        }
     }
 
     @Test
     public void runTests() {
-        getNodes();
+        resetForNextTest();
 
         testNodes();
         testInitialSetup();
@@ -302,24 +316,24 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         System.out.println("running testInitialSetup()");
 
         // #1 ------------------------------------------------------------------
-        // check "ALL" tab, that should have 4 entries
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        // check "ALL" tag, that should have 4 entries
+        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.TAG_CHILDREN);
 
         // #2 ------------------------------------------------------------------
-        // check "NOT_GROUPED" tab, that should be empty
-        testTab(1, NoteGroup.NOT_GROUPED, myTestdata.getNotesCountForGroup(NoteGroup.NOT_GROUPED));
+        // check "NOT_GROUPED" tag, that should be empty
+        testTag(NoteGroup.NOT_GROUPED, myTestdata.getNotesCountForGroup(NoteGroup.NOT_GROUPED), CheckMode.TAG_CHILDREN);
 
         // #3 ------------------------------------------------------------------
-        // check "Test 1" tab, that should have 2 entries
-        testTab(2, "Test1", myTestdata.getNotesCountForGroup("Test1"));
+        // check "Test 1" tag, that should have 2 entries
+        testTag("Test1", myTestdata.getNotesCountForGroup("Test1"), CheckMode.TAG_CHILDREN);
 
         // #4 ------------------------------------------------------------------
-        // check "Test 2" tab, that should have 1 entry
-        testTab(3, "Test2", myTestdata.getNotesCountForGroup("Test2"));
+        // check "Test 2" tag, that should have 1 entry
+        testTag("Test2", myTestdata.getNotesCountForGroup("Test2"), CheckMode.TAG_CHILDREN);
 
         // #5 ------------------------------------------------------------------
-        // check "Test 3" tab, that should have 1 entry
-        testTab(4, "Test3", myTestdata.getNotesCountForGroup("Test3"));
+        // check "Test 3" tag, that should have 1 entry
+        testTag("Test3", myTestdata.getNotesCountForGroup("Test3"), CheckMode.TAG_CHILDREN);
     }
 
     
@@ -332,7 +346,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         push(KeyCode.DOWN);
         push(KeyCode.ENTER);
         push(KeyCode.ENTER);
-        // TFE, 20181003: java 9: somwhow one more "ENTER" is needed
+        // TFE, 20181003: java 9: somehow one more "ENTER" is needed
         push(KeyCode.ENTER);
 
         final int newCount = myTestdata.getNotesList().size() + 1;
@@ -365,7 +379,6 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         rightClickOn();
         push(KeyCode.DOWN);
-        push(KeyCode.DOWN);
         push(KeyCode.ENTER);
         // TFE, 20191220: note names can be CaSe sensitive
         write("TEST1");
@@ -392,7 +405,8 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 
         // #3 ------------------------------------------------------------------
         // rename note via double click
-        selectTab(0);
+        clickOn(notesTableFXML);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         doubleClickOn();
         write("test1");
         push(KeyCode.ENTER);
@@ -424,9 +438,9 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 
         // #1 ------------------------------------------------------------------
         // get x, y coordinates from tab 2
-        Label testLabel = null;
-//        testLabel = test2Tag.getLabel();
-        Bounds testBounds = testLabel.localToScreen(testLabel.getBoundsInLocal());
+        Node testLabel = null;
+        testLabel = test2Tag.getGraphic();
+        Bounds testBounds = test2Tag.localToScreen(testLabel.getBoundsInLocal());
         assertNotNull(testBounds);
         double centerX = testBounds.getMinX() + (testBounds.getMaxX() - testBounds.getMinX())/2.0;
         double centerY = testBounds.getMinY() + (testBounds.getMaxY() - testBounds.getMinY())/2.0;
@@ -440,14 +454,14 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         dragNote.dropTo(centerX, centerY);
         
         // check "Test 1" tab, that should have 1 less entries
-        testTab(2, "Test1", myTestdata.getNotesCountForGroup("Test1") - 1);
+        testTag("Test1", myTestdata.getNotesCountForGroup("Test1") - 1, CheckMode.TAG_CHILDREN);
 
         // check "Test 2" tab, that should have 1 more entry
-        testTab(3, "Test2", myTestdata.getNotesCountForGroup("Test2") + 1);
+        testTag("Test2", myTestdata.getNotesCountForGroup("Test2") + 1, CheckMode.TAG_CHILDREN);
         
         // #2 ------------------------------------------------------------------
         // drag note back
-//        testLabel = test1Tag.getLabel();
+        testLabel = test1Tag.getGraphic();
         testBounds = testLabel.localToScreen(testLabel.getBoundsInLocal());
         centerX = testBounds.getMinX() + (testBounds.getMaxX() - testBounds.getMinX())/2.0;
         centerY = testBounds.getMinY() + (testBounds.getMaxY() - testBounds.getMinY())/2.0;
@@ -461,20 +475,20 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         dragNote.dropTo(centerX, centerY);
         
         // check "Test 1" tab, that should have 2 entries
-        testTab(2, "Test1", myTestdata.getNotesCountForGroup("Test1"));
+        testTag("Test1", myTestdata.getNotesCountForGroup("Test1"), CheckMode.TAG_CHILDREN);
 
         // check "Test 2" tab, that should have 1 entry
-        testTab(3, "Test2", myTestdata.getNotesCountForGroup("Test2"));
+        testTag("Test2", myTestdata.getNotesCountForGroup("Test2"), CheckMode.TAG_CHILDREN);
         
         // #3 ------------------------------------------------------------------
         // Alert when dragging to group with same note name
-//        testLabel = test3Tag.getLabel();
+        testLabel = test3Tag.getGraphic();
         testBounds = testLabel.localToScreen(testLabel.getBoundsInLocal());
         centerX = testBounds.getMinX() + (testBounds.getMaxX() - testBounds.getMinX())/2.0;
         centerY = testBounds.getMinY() + (testBounds.getMaxY() - testBounds.getMinY())/2.0;
 
         // go back to the ALL tab
-        selectTab(0);
+        selectTag(allTag);
 
         clickOn(notesTableFXML);
         moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
@@ -488,47 +502,36 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         testAlert("An error occured while moving the note.", ButtonBar.ButtonData.OK_DONE);
 
         // check "Test 1" tab, that should have 2 entries
-        testTab(2, "Test1", myTestdata.getNotesCountForGroup("Test1"));
+        testTag("Test1", myTestdata.getNotesCountForGroup("Test1"), CheckMode.TAG_CHILDREN);
 
         // check "Test 3" tab, that should have 1 entry
-        testTab(4, "Test3", myTestdata.getNotesCountForGroup("Test3"));
+        testTag("Test3", myTestdata.getNotesCountForGroup("Test3"), CheckMode.TAG_CHILDREN);
    }
     
     private void testGroups() {
         System.out.println("running testGroups()");
 
-        // #1 ------------------------------------------------------------------
-        // add group
-        // get x, y coordinates from PLUS tab
-        Label testLabel = null;
-//        testLabel = testPLUSTab.getLabel();
-        Bounds testBounds = testLabel.localToScreen(testLabel.getBoundsInLocal());
-        double centerX = testBounds.getMinX() + (testBounds.getMaxX() - testBounds.getMinX())/2.0;
-        double centerY = testBounds.getMinY() + (testBounds.getMaxY() - testBounds.getMinY())/2.0;
+        // All, Not Grouped, Test1, Test2, Test3 => 5 tags
+        assertTrue(TagManager.getInstance().tagForName(TagManager.ReservedTagNames.Groups.name(), null, true).getChildren().size() == myTestdata.getGroupsList().size());
+        assertTrue(tagsTreeView.getRoot().getChildren().get(0).getChildren().size() == myTestdata.getGroupsList().size());
         
-        moveTo(centerX, centerY);
-        clickOn();
-        
-        // All, Not Grouped, Test1, Test2, Test3, New Group 3, + => 7 tabs
-//        assertTrue(groupsPaneFXML.getTabs().size() == myTestdata.getGroupsList().size() + 2);
-        
-        // #2 ------------------------------------------------------------------
-        // rename group
-        doubleClickOn();
-        write("Test4");
-        push(KeyCode.ENTER);
-        push(KeyCode.ENTER);
-        
-//        assertTrue("Check Test4 tab", ((Label) groupsPaneFXML.getSelectionModel().getSelectedItem().getGraphic()).getText().startsWith("Test4"));
-        
-        // #3 ------------------------------------------------------------------
-        // delete group
-        rightClickOn();
-        push(KeyCode.DOWN);
-        push(KeyCode.DOWN);
-        // TFE, 20181003: java 9: right click selects the first menu item... so one "DOWN" less here
-        //push(KeyCode.DOWN);
-        push(KeyCode.ENTER);
+//        // #2 ------------------------------------------------------------------
+//        // rename group
+//        doubleClickOn();
+//        write("Test4");
+//        push(KeyCode.ENTER);
+//        push(KeyCode.ENTER);
+//        
+////        assertTrue("Check Test4 tab", ((Label) groupsPaneFXML.getSelectionModel().getSelectedItem().getGraphic()).getText().startsWith("Test4"));
+//        
+//        // #3 ------------------------------------------------------------------
+//        // delete group
+//        rightClickOn();
+//        push(KeyCode.DOWN);
+//        push(KeyCode.DOWN);
+//        // TFE, 20181003: java 9: right click selects the first menu item... so one "DOWN" less here
+//        //push(KeyCode.DOWN);
+//        push(KeyCode.ENTER);
 
 //        assertTrue(groupsPaneFXML.getTabs().size() == myTestdata.getGroupsList().size() + 1);
     }
@@ -538,31 +541,31 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         System.out.println("running testNotesFilter()");
 
         // leerer filter -> alle sichtbar
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.TABLE_ELEMENTS);
         
         //////////////////////////
         // namensfilter
         //////////////////////////
 
-        // "Test1" als namensfilter -> 2 sichtbar
+        // "Test1" als namensfilter -> 0 sichtbar
         clickOn(noteFilterText);
         write("Test1");
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForName("Test1"));
+        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForName("Test1"), CheckMode.TABLE_ELEMENTS);
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.TABLE_ELEMENTS);
         
         // "SUCH" als namensfilter -> 0 sichtbar
         clickOn(noteFilterText);
         write("SUCH");
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForName("SUCH"));
+        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForName("SUCH"), CheckMode.TABLE_ELEMENTS);
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.TABLE_ELEMENTS);
         
         //////////////////////////
         // inhaltsfilter
@@ -573,17 +576,17 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         // "Test1" als inhaltsfilter -> 2 sichtbar
         clickOn(noteFilterText);
         write("Test1");
-        testTab(0, NoteGroup.ALL_GROUPS, 2);
+        testTag(NoteGroup.ALL_GROUPS, 2, CheckMode.TABLE_ELEMENTS);
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.TABLE_ELEMENTS);
         
         // "SUCH" als inhaltsfilter -> 1 sichtbar
         clickOn(noteFilterText);
         write("SUCH");
-        testTab(0, NoteGroup.ALL_GROUPS, 1);
+        testTag(NoteGroup.ALL_GROUPS, 1, CheckMode.TABLE_ELEMENTS);
         
         // reset everything, PLEASE
         clickOn(noteFilterCheck);
@@ -597,7 +600,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         long sleepTime = 1000;
         
         // TFE, 20190930: switch to correct tab initially to avoid later chanegs that might trigger hasChanged() calls
-        selectTab(0);
+        selectTag(allTag);
         
         // #1 ------------------------------------------------------------------
         // add a new file to group Test1 and give UI some time to discover it
@@ -606,7 +609,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: add a new file to group Test1");
         
         // check new count
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS) + 1);
+        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS) + 1, CheckMode.BOTH);
         
         // #2 ------------------------------------------------------------------
         // delete the new file
@@ -615,7 +618,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: delete the new file");
         
         // check new count
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.BOTH);
         
         // #3 ------------------------------------------------------------------
         // add a new file to a new group
@@ -644,7 +647,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify old count
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.BOTH);
 
         // #5 ------------------------------------------------------------------
         // delete file in editor BUT "Save as new"
@@ -656,7 +659,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify old count
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.BOTH);
         // but with new note name!
         final int newCount = myTestdata.getNotesList().size() + 1;
         final String newName = "New Note " + newCount;
@@ -674,7 +677,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify new count
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS) - 1);
+        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS) - 1, CheckMode.BOTH);
         
         // create back again
         assertTrue(myTestdata.createTestFile(testpath, "[Test1] " + newName + ".htm"));
@@ -682,20 +685,21 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: create back again");
 
         // verify old count
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.BOTH);
     }
     
     private void resetForNextTest() {
         // tabs might have been changed
         getNodes();
-        
-        // go back to the ALL tab
-        selectTab(0);
+
         // select first note
         interact(() -> {
             notesTableFXML.requestFocus();
             notesTableFXML.getSelectionModel().select(0);
             notesTableFXML.getFocusModel().focus(0);
         });
+
+        // go back to the ALL tab
+        selectTag(allTag);
     }
 }

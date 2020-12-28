@@ -481,7 +481,7 @@ public class OwnNoteHTMLEditor {
         // we might not have selected a note yet... accelerator always works :-(
         if (editedNote != null) {
             editedNote.setNoteEditorContent(getNoteText());
-            if (myEditor.saveNoteWrapper(editedNote)) {
+            if (myEditor.saveNote(editedNote)) {
             }
         }
     }
@@ -832,10 +832,9 @@ public class OwnNoteHTMLEditor {
     }
         
     public void editNote(final Note note, final String text) {
+        setContentDone = false;
         Runnable task = () -> {
             //System.out.println("setEditorText " + text);
-            setContentDone = false;
-            
             wrapExecuteScript(myWebEngine, "saveSetContent('" + replaceForEditor(text) + "');");
         };
         
@@ -896,7 +895,7 @@ public class OwnNoteHTMLEditor {
         boolean result = false;
 
         // only try to read context when we had the callback from last setcontent() javascript call
-        if (setContentDone) {
+        if (editorInitialized && setContentDone) {
             final String newEditorText = readNoteText();
 
             if (editedNote == null || editedNote.getNoteFileContent() == null) {

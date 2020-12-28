@@ -26,12 +26,13 @@
 package tf.ownnote.ui.notes;
 
 import java.util.HashMap;
+import java.util.Objects;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class Note extends HashMap<String,String> {
+public class Note extends HashMap<String, String> {
     // to reference the columns for notes table
     private enum NoteMapKey {
         noteName,
@@ -66,6 +67,31 @@ public class Note extends HashMap<String,String> {
         super(note);
         
         myMetaData = note.myMetaData;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 59 * hash + Objects.hashCode(getGroupName()) + Objects.hashCode(getNoteName());
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Note other = (Note) obj;
+        if (!NoteGroup.isSameGroup(this.getGroupName(), other.getGroupName()) || !Objects.equals(this.getNoteName(), other.getNoteName())) {
+            return false;
+        }
+        return true;
     }
     
     public static String getNoteName(final int i) {

@@ -267,7 +267,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
             assert (tab instanceof OwnNoteTab);
 
             final String tabLabel = ((OwnNoteTab) tab).getTabName();
-            if (!tabLabel.equals(NoteGroup.NOT_GROUPED) && !tabLabel.equals(NoteGroup.ALL_GROUPS) && !tabLabel.equals(PLUS_TAB)) {
+            if (!NoteGroup.isSpecialGroup(tabLabel) && !tabLabel.equals(PLUS_TAB)) {
                 // add group name
                 tabOrder.add(tabLabel);
             }
@@ -349,7 +349,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
                 newTab.setDetachable(false);
 
                 // ALL and NOT are reserved names
-                if (!groupName.equals(NoteGroup.NOT_GROUPED) && !groupName.equals(NoteGroup.ALL_GROUPS)) {
+                if (!NoteGroup.isSpecialGroup(groupName)) {
                     newTab.setProtectedTab(false);
                     newTab.setDroptarget(true);
                     newTab.setClosable(true);

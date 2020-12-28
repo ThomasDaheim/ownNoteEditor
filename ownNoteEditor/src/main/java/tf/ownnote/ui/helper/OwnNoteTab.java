@@ -219,7 +219,7 @@ public class OwnNoteTab extends Tab {
 
             final Note dragNote = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(OwnNoteTableView.DRAG_AND_DROP));
             // 1. rename note to new group name
-            if (myEditor.moveNoteWrapper(dragNote, getTabName())) {
+            if (myEditor.moveNote(dragNote, getTabName())) {
                 // 2. focus on this tab
                 getTabPane().getSelectionModel().select(this);
 

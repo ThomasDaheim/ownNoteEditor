@@ -26,6 +26,7 @@
 package tf.ownnote.ui.tags;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -33,11 +34,14 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import tf.helper.javafx.RecursiveTreeItem;
+import tf.ownnote.ui.helper.IGroupListContainer;
+import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
@@ -55,12 +59,12 @@ import tf.ownnote.ui.notes.NoteGroup;
 
 * @author thomas
  */
-public class TagsTreeView extends TreeView<TagInfo> {
+public class TagsTreeView extends TreeView<TagInfo> implements IGroupListContainer {
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
 
     private boolean inPropgateUpwardsAction = false;
-    
+
     public enum WorkMode {
         EDIT_MODE,
         SELECT_MODE,
@@ -75,6 +79,8 @@ public class TagsTreeView extends TreeView<TagInfo> {
     private final ObservableSet<TagInfo> selectedItems = FXCollections.<TagInfo>observableSet(new HashSet<>());
     
     private final Set<TagInfo> initialTags = new HashSet<>();
+    
+    private NoteGroup currentGroup;
     
     public TagsTreeView() {
         initTreeView();
@@ -115,17 +121,19 @@ public class TagsTreeView extends TreeView<TagInfo> {
                 if (item != null) {
                     final TagInfo tag = item.getValue();
                     
-                    if (TagManager.ReservedTagNames.Groups.name().equals(tag.getName())) {
+                    if (TagManager.isGroupsTag(tag)) {
                         // "Groups" selected => similar to "All" in tabs
+                        currentGroup = OwnNoteFileManager.getInstance().getNoteGroup(NoteGroup.ALL_GROUPS);
                         myEditor.setGroupNameFilter(NoteGroup.ALL_GROUPS);
-                    } else if (item.getParent() != null && TagManager.ReservedTagNames.Groups.name().equals(item.getParent().getValue().getName())) {
+                    } else if (TagManager.isAnyGroupTag(tag)) {
                         // a tag under "Groups" selected => similar to select a tab
+                        currentGroup = OwnNoteFileManager.getInstance().getNoteGroup(tag.getName());
                         myEditor.setGroupNameFilter(tag.getName());
                     } else {
                         // any "normal" tag has been selected - set filter on all its and childrens notes
                         final Set<Note> tagNotes = tag.flattened().map((t) -> {
                             return t.getLinkedNotes();
-                        }).flatMap(Set::stream).collect(Collectors.toSet());
+                        }).flatMap(List::stream).collect(Collectors.toSet());
                         
                         myEditor.setNotesFilter(tagNotes);
                     }
@@ -160,6 +168,8 @@ public class TagsTreeView extends TreeView<TagInfo> {
             allowReorder.set(false);
             break;
         }
+        
+        currentGroup = OwnNoteFileManager.getInstance().getNoteGroup(NoteGroup.ALL_GROUPS);
     }
     
     public BooleanProperty allowReorderProperty() {
@@ -315,5 +325,20 @@ public class TagsTreeView extends TreeView<TagInfo> {
         }
         
         return null;
+    }
+
+    @Override
+    public void setGroups(ObservableList<NoteGroup> groupsList, boolean updateOnly) {
+        myEditor.selectFirstOrCurrentNote();
+    }
+
+    @Override
+    public NoteGroup getCurrentGroup() {
+        return currentGroup;
+    }
+
+    @Override
+    public void setBackgroundColor(String style) {
+        return;
     }
 }

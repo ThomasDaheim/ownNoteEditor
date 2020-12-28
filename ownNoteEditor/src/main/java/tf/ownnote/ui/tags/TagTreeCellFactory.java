@@ -237,7 +237,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
                 // you can't drop on your own group, on "Groups" or "All" tags
                 // how about other tags that aren't leafs?
                 dropAllowed = !thisTag.getName().equals(dragNote.getGroupName()) && 
-                        !TagManager.ReservedTagNames.Groups.name().equals(thisTag.getName()) && 
+                        !TagManager.isGroupsTag(thisTag) && 
                         !NoteGroup.ALL_GROUPS.equals(thisTag.getName());
             } else {
                 dropAllowed = !dragNote.getMetaData().getTags().contains(thisTag);
@@ -297,17 +297,15 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
             final TagInfo thisTag = treeCell.getTreeItem().getValue();
             if (TagManager.isAnyGroupTag(thisTag)) {
                 // if group was also a tag -> remove & add
-                final TagInfo groupTag = TagManager.getInstance().tagForName(dragNote.getGroupName(), null, false);
+                final TagInfo groupTag = TagManager.getInstance().tagForGroupName(dragNote.getGroupName(), false);
                 if (groupTag == null) {
                     System.err.println("Something is wrong here! Tried to drag to group that doesn't have a tag?!?!?!");
                 }
-                if (dragNote.getMetaData().getTags().contains(groupTag)) {
-                    dragNote.getMetaData().getTags().remove(groupTag);
-                    dragNote.getMetaData().getTags().add(thisTag);
-                }
 
                 // move note to group
-                myEditor.moveNoteWrapper(dragNote, thisTag.getName());
+                final String oldGroupName = dragNote.getGroupName();
+                if (myEditor.moveNote(dragNote, thisTag.getName())) {
+                }
             } else {
                 // add tag to note
                 dragNote.getMetaData().getTags().add(thisTag);

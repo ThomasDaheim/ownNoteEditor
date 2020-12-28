@@ -91,7 +91,7 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         stage.requestFocus();
     }
 
-    private final TestNodeData myTestdata = new TestNodeData();
+    private final TestNoteData myTestdata = new TestNoteData();
   
     private String currentPath;
     private Path testpath;
@@ -542,7 +542,7 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         // namensfilter
         //////////////////////////
 
-        // "Test1" als namensfilter -> 2 sichtbar
+        // "Test1" als namensfilter -> 0 sichtbar
         clickOn(noteFilterText);
         write("Test1");
         testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForName("Test1"));

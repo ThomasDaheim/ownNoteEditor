@@ -34,8 +34,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
+import javafx.collections.SetChangeListener;
 import tf.ownnote.ui.tags.TagInfo;
 import tf.ownnote.ui.tags.TagManager;
 
@@ -93,6 +95,24 @@ public class NoteMetaData {
     
     public NoteMetaData() {
         super();
+
+        // go, tell it to the mountains
+        myTags.addListener((SetChangeListener.Change<? extends TagInfo> change) -> {
+            // can happen e.g. when using constructor fromHtmlString()
+            if (myNote == null) {
+                return;
+            }
+            
+            if (change.wasAdded()) {
+//                System.out.println("Linking note " + myNote.getNoteName() + " to tag " + change.getElementAdded().getName());
+                change.getElementAdded().getLinkedNotes().add(myNote);
+            }
+
+            if (change.wasRemoved()) {
+//                System.out.println("Unlinking note " + myNote.getNoteName() + " from tag " + change.getElementRemoved().getName());
+                change.getElementRemoved().getLinkedNotes().remove(myNote);
+            }
+        });
     }
     
     public boolean isEmpty() {
@@ -133,10 +153,8 @@ public class NoteMetaData {
     }
 
     public void setTags(final Set<TagInfo> tags) {
-        updateTags(UpdateTag.UNLINK);
         myTags.clear();
         myTags.addAll(tags);
-        updateTags(UpdateTag.LINK);
     }
     
     private void updateTags(final UpdateTag updateTag) {
@@ -150,6 +168,7 @@ public class NoteMetaData {
                     break;
                 case UNLINK:
 //                    System.out.println("Unlinking note " + myNote.getNoteName() + " to tag " + tag.getName());
+                    // TFE; 20201227: for some obscure reason the following doesn't work - don't ask
                     tag.getLinkedNotes().remove(myNote);
                     break;
             }

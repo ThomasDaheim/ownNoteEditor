@@ -28,6 +28,8 @@ package tf.ownnote.ui.tags;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
@@ -38,8 +40,8 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.collections.ObservableSet;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  * Helper class to fill TagsTable / TagsTree with info per tag.
@@ -55,7 +57,25 @@ public class TagInfo {
     private final StringProperty colorNameProperty = new SimpleStringProperty("");
     
     // link to notes with this tag - transient, will be re-created on startup
-    private final ObservableSet<Note> linkedNotes = FXCollections.<Note>observableSet();
+    private final ObservableList<Note> linkedNotes = FXCollections.<Note>observableArrayList();
+//    private final ObservableSet<Note> linkedNotes = FXCollections.<Note>observableSet(new HashSet<>() {
+//        @Override
+//        public boolean remove(Object o) {
+//            // TFE; 20201227: for some obscure reason the following doesn't work - don't ask
+//            boolean result = super.remove(o);
+//            if (!result) {
+//                Iterator<Note> it = iterator();
+//                while(it.hasNext()){
+//                    if (it.next().equals(o)) {
+//                        it.remove();
+//                        result = true;
+//                        break;
+//                    }
+//                }
+//            }
+//            return result;
+//        }        
+//    });
 
     public TagInfo() {
         this("");
@@ -170,20 +190,20 @@ public class TagInfo {
         colorNameProperty.set(col);
     }
 
-    public ObservableSet<Note> getLinkedNotes() {
+    public ObservableList<Note> getLinkedNotes() {
         return linkedNotes;
     }
 
-    public void setLinkedNotes(final ObservableSet<Note> notes) {
+    public void setLinkedNotes(final Set<Note> notes) {
         linkedNotes.clear();
         linkedNotes.addAll(notes);
     }
-
+    
     public ObservableList<TagInfo> getChildren() {
         return children;
     }
 
-    public void setChildren(final ObservableList<TagInfo> childs) {
+    public void setChildren(final List<TagInfo> childs) {
         children.setAll(childs);
     }
     

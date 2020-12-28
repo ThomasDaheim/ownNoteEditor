@@ -46,6 +46,23 @@ public class NoteGroup extends HashMap<String,String> {
     public static final String NOT_GROUPED = "Not grouped";
     public static final String NEW_GROUP = "New group";
     
+    // helper methods to check for All, Not Grouped 
+    public static boolean isSpecialGroup(final String groupName) {
+        return (isNotGrouped(groupName) || ALL_GROUPS.equals(groupName));
+    }
+    
+    public static boolean isNotGrouped(final String groupName) {
+        // isEmpty() happens for new notes, otherwise, hrou names are NOT_GROUPED from OwnNoteFileManager.initNotesPath()
+        return (groupName.isEmpty() || NOT_GROUPED.equals(groupName));
+    }
+    
+    public static boolean isSameGroup(final String groupName1, final String groupName2) {
+        assert groupName1 != null;
+        assert groupName2 != null;
+        // either both are equal or both are part of "Not grouped"
+        return (groupName1.equals(groupName2) || isNotGrouped(groupName1) && isNotGrouped(groupName2));
+    }
+    
     public NoteGroup() {
         super();
     }

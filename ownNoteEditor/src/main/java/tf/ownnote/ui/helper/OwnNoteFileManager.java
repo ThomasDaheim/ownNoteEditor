@@ -37,7 +37,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryIteratorException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -60,12 +59,13 @@ import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.notes.NoteMetaData;
 import tf.ownnote.ui.notes.NoteVersion;
+import tf.ownnote.ui.notes.INoteCRMDS;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class OwnNoteFileManager {
+public class OwnNoteFileManager implements INoteCRMDS {
     private final static OwnNoteFileManager INSTANCE = new OwnNoteFileManager();
     
     // callback to OwnNoteEditor required for e.g. delete & rename
@@ -268,6 +268,20 @@ public class OwnNoteFileManager {
         return result;
     }
     
+    public Set<Note> getNotesForGroup(final String groupName) {
+        final Set<Note> result = new HashSet<>();
+        
+        for (Map.Entry<String, Note> note : notesList.entrySet()) {
+            if (NoteGroup.ALL_GROUPS.equals(groupName) ||
+                    NoteGroup.ALL_GROUPS.equals(groupName) && note.getValue().getGroupName().isEmpty() ||
+                    note.getValue().getGroupName().equals(groupName)) {
+                result.add(note.getValue());
+            }
+        }
+        
+        return result;
+    }
+    
     public NoteGroup getNoteGroup(final String groupName) {
         if (groupName == null) {
             return null;
@@ -336,7 +350,7 @@ public class OwnNoteFileManager {
         
         String result = null;
         
-        if (groupName.equals(NoteGroup.NOT_GROUPED) || groupName.isEmpty() || groupName.equals(NoteGroup.ALL_GROUPS)) {
+        if (NoteGroup.isSpecialGroup(groupName)) {
             // only the note name
             result = "";
         } else {
@@ -347,7 +361,7 @@ public class OwnNoteFileManager {
         return result;
     }
 
-    public boolean createNewNote(final String groupName, final String noteName) {
+    public boolean createNote(final String groupName, final String noteName) {
         assert groupName != null;
         assert noteName != null;
         
@@ -367,7 +381,7 @@ public class OwnNoteFileManager {
             noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
             noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
             // use filename and not notename since duplicate note names can exist in diffeent groups
-            notesList.put(newFileName, new Note(noteRow));
+            notesList.put(newFileName, noteRow);
         } catch (IOException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = false;
@@ -465,6 +479,12 @@ public class OwnNoteFileManager {
         return result;
     }
     
+    public boolean renameNote(final Note note, final String newNoteName) {
+        assert note != null;
+        
+        return renameNote(note.getGroupName(), note.getNoteName(), newNoteName);
+    }
+
     public boolean renameNote(final String groupName, final String oldNoteName, final String newNoteName) {
         assert groupName != null;
         assert oldNoteName != null;
@@ -501,17 +521,17 @@ public class OwnNoteFileManager {
         return result;
     }
     
-    public boolean moveNote(final String oldGroupName, final String noteName, final String newGroupName) {
-        assert oldGroupName != null;
-        assert noteName != null;
+    public boolean moveNote(final Note note, final String newGroupName) {
+        assert note != null;
         assert newGroupName != null;
         
         boolean result = true;
         initFilesInProgress();
 
-        final String oldFileName = buildNoteName(oldGroupName, noteName);
+        final String oldGroupName = note.getGroupName();
+        final String oldFileName = buildNoteName(note);
         final Path oldFile = Paths.get(this.notesPath, oldFileName);
-        final String newFileName = buildNoteName(newGroupName, noteName);
+        final String newFileName = buildNoteName(newGroupName, note.getNoteName());
         final Path newFile = Paths.get(this.notesPath, newFileName);
         
         // TF, 20160815: check existence of the file - not something that should be done by catching the exception...
@@ -533,6 +553,9 @@ public class OwnNoteFileManager {
         }
         
         if (result) {
+            // TFE, 20201227: the beenfits of testing... finding an old bug :-)
+            note.setGroupName(newGroupName);
+            
             // change count on groups
             final NoteGroup oldGroupRow = groupsList.get(oldGroupName);
             final NoteGroup newGroupRow = groupsList.get(newGroupName);
@@ -546,7 +569,7 @@ public class OwnNoteFileManager {
         return result;
     }
 
-    public boolean createNewGroup(final String groupName) {
+    public boolean createGroup(final String groupName) {
         assert groupName != null;
         
         boolean result = true;
@@ -631,7 +654,7 @@ public class OwnNoteFileManager {
                         // TF, 20151129
                         // update notelist as well
                         noteRow = notesList.remove(filename);
-                        noteRow.setGroupName(newGroupName);
+                        noteRow.setGroupName(NoteGroup.isNotGrouped(newGroupName) ? NoteGroup.NOT_GROUPED : newGroupName);
                         notesList.put(newFileName, noteRow);
 
                     } catch (IOException ex) {
