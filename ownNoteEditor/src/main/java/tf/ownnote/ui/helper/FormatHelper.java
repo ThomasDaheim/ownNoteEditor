@@ -28,6 +28,7 @@ package tf.ownnote.ui.helper;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
+import java.util.function.Predicate;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.control.Tooltip;
@@ -41,7 +42,7 @@ import tf.helper.javafx.TooltipHelper;
 public class FormatHelper {
     private final static FormatHelper INSTANCE = new FormatHelper();
     
-    private Comparator<String> fileTimeComparator;
+    private final Comparator<String> fileTimeComparator;
     
     private enum TimeIntervals {
         now("Right now"),
@@ -181,7 +182,7 @@ public class FormatHelper {
         return fileTimeComparator;
     }
     
-    public void initNameTextField(final TextField textField) {
+    public void initNoteGroupNameTextField(final TextField textField) {
         // https://stackoverflow.com/a/54552791
         // https://stackoverflow.com/a/49918923
         // https://stackoverflow.com/a/45201446
@@ -196,6 +197,23 @@ public class FormatHelper {
         tooltext.append("Chars not allowed:\n");
         tooltext.append("<>,\"/\\|?* and chars 00-31");
         t.setText(tooltext.toString());
+        t.getStyleClass().addAll("nametooltip");
+        TooltipHelper.updateTooltipBehavior(t, 0, 10000, 0, true);
+
+        Tooltip.install(textField, t);
+    }
+    
+    public void initTagNameTextField(final TextField textField, final Predicate<String> isValueAllowed) {
+        // https://stackoverflow.com/a/54552791
+        // https://stackoverflow.com/a/49918923
+        // https://stackoverflow.com/a/45201446
+        // to check for illegal chars in note & group names
+        // use more restrictive windows rules to make sure notes can be stored anywhere
+
+        textField.setTextFormatter(new TextFormatter<>(change ->
+            (isValueAllowed.test(change.getControlNewText()) ? change : null)));
+
+        final Tooltip t = new Tooltip("No duplicate tag names allowed");
         t.getStyleClass().addAll("nametooltip");
         TooltipHelper.updateTooltipBehavior(t, 0, 10000, 0, true);
 

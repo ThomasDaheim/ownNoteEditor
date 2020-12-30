@@ -67,6 +67,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             // https://stackoverrun.com/de/q/9359780#39265109
             var regularPaste = false;
             
+            // TFE, 20201219: don't send a contentChanged on every change - performance nightmare fpr long notes
+            // better: mark that a change has occured and check every 10secs...
+            var contentChanged = false;
+            
             function initEditor() {
                 tinymce.init({
                     selector: '#mytextarea',
@@ -225,7 +229,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         editor.on('Paste Change input Undo Redo', function (ed) {
                             // this is want needs to be done if you want to track all changes
                             // https://stackoverflow.com/a/49530340
-                            editorCallback.contentChanged(saveGetContent());
+                            contentChanged = true;
                         });
                         
                         editor.on('GetContent', function (ed) { 
@@ -246,6 +250,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             // TF, 20170415: editor.getContent() fails for images!
                             editorCallback.setContentDone(); 
                             //console.log('JavaScript: SetContent done.');
+                            contentChanged = false;
                         });
                         
                         editor.addButton('insertImage', {
@@ -267,7 +272,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                 //console.log('JavaScript: insertCheckBox was clicked.');
                                 tinymce.activeEditor.execCommand("mceInsertContent", false, "<input type='checkbox'>");
                                 // go, tell it to the mountains... above doesn't trigger change, ...
-                                editorCallback.contentChanged(saveGetContent());
+                                contentChanged = true;
+                                checkContentChanged()
                                 //console.log('JavaScript: insertCheckBox done.');
                             }
                         });
@@ -356,10 +362,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 // TFE, 20181203: reset undo history since it would re-create previous note text...
                 // https://community.tiny.cloud/communityQuestion?id=9066100000097T2AAI
                 tinymce.activeEditor.undoManager.clear();
+                
+                contentChanged = false;
             }
 
             // try getContent() and if fails use tinymce.activeEditor.getBody().innerHTML AND replace img blobs by real base64 data
-            function saveGetContent() {
+            function saveGetContent(unwrap) {
                 //console.log('JavaScript: saveGetContent was called.');
                 var content = "";
                 content = tinymce.activeEditor.getContent();
@@ -372,7 +380,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 //console.log('content: ' + content);
                         
                 //console.log('JavaScript: saveGetContent done.');
-                return unwrapCheckboxes(content);
+                // TFE, 20201218: unwrap is a slow function - can't be done for every change callback but only in the end (its also done during saveSetContent()...)
+                if (unwrap) {
+                    // console.log('JavaScript: unwrapCheckboxes');
+                    content = unwrapCheckboxes(content);
+                }
+                
+                contentChanged = false;
+                return content;
             }
             
             // similar to saveGetContent() - only for current selection
@@ -416,13 +431,21 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 var element = findCheckBox(textPos, htmlText);
                 
                 if (element && element.checkbox) {
-                    //console.log('checkbox found');
+                    //console.log('checkbox found: "' + element.checkbox + '", "' + element.checkbox.outerHTML + '", "' + element.checkbox.parentNode.innerHTML + '"');
                     element.checkbox.checked = newStatus;
+                    // see https://stackoverflow.com/questions/6003819/what-is-the-difference-between-properties-and-attributes-in-html
+                    // for the difference between HTML properties and DOM attributes
+                    if (newStatus) {
+                        element.checkbox.setAttribute('checked', "checked");
+                    } else {
+                        element.checkbox.removeAttribute('checked');
+                    }
+                    //console.log('checkbox toggled: "' + element.checkbox + '", "' + element.checkbox.outerHTML + '", "' + element.checkbox.parentNode.innerHTML + '"');
                 }
             }
             
             function findCheckBox(textPos, htmlText) {
-                //console.log('findCheckBox start: ' + textPos + ', ' + htmlText);
+                //console.log('findCheckBox start: ' + textPos + ', "' + htmlText + '"');
                 var checkbox;
                 var content;
                 var checkboxFound = false;
@@ -430,22 +453,31 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 // iterate over checkboxes to find the one with text following
                 // needs to be done the other way around! find text node with content and change previous content result
                 $(tinymce.activeEditor.getBody()).find(':checkbox').each(function() {
+                    //console.log('findCheckBox, checking: ' + this.outerHTML);
+                    checkbox = this;
                     $(this).parent().contents().each(function() {
                         //console.log('findCheckBox, checking: ' + this.innerHTML + ', ' + this.nodeValue);
                         // check text nodes only
                         if (this.nodeType === 3) {
-                            //console.log('  CONTENTS.text: ' + this.nodeValue);
-                            if (this.nodeValue == htmlText) {
+                            //console.log('  CONTENTS.nodeValue: "' + this.nodeValue + '"');
+                            //console.log('  PARENT.textContent: "' + this.parentNode.textContent + '"');
+                            if (this.parentNode.textContent.endsWith(htmlText)) {
                                 //console.log('findCheckBox, foundit!');
                                 checkboxFound = true;
                                 
-                                content = this;
+                                // make sure we highlight the correct thing...
+                                if (this.parentNode.textContent === this.nodeValue) {
+                                    content = this;
+                                } else {
+                                    // this highlights the whole line in case of text before the checkbox...
+                                    // TODO: a good idea to "shrink" this to the correct text
+                                    content = this.parentNode;
+                                }
                                 
                                 // done, end loop prematurely
                                 return false;
                             }
                         }
-                        checkbox = this;
                     });
                     
                     if (checkboxFound) {
@@ -464,7 +496,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             function resizeEditor(myHeight) {
                 //console.log('resizeEditor: ' + tinymce.activeEditor);
                 myEditor = tinymce.get('mytextarea');
-                if (myEditor) {
+                if (myEditor &&  myEditor.theme) {
                     if (!myHeight) {            
                         var targetHeight = window.innerHeight; // Change this to the height of your wrapper element
                         // TF, 20170411: below code doesn't work on initial loading of text since .mce-* height values are garbage
@@ -480,6 +512,22 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     myEditor.theme.resizeTo('100%', myHeight);  // sets the dimensions of the editable area
                 }
             }
+            
+            function checkContentChanged() {
+                if (contentChanged) {
+                    //console.log('Changed content found!')
+                    editorCallback.contentChanged(saveGetContent(true));
+                    contentChanged = false;
+                }
+            }
+
+            // https://javascript.info/settimeout-setinterval
+            var delay = 5000;
+            var timerId = window.setTimeout(function request() {
+                //console.log('Checking for changed content')
+                checkContentChanged();
+                timerId = window.setTimeout(request, delay);
+            }, delay);
             
             window.onresize = function() {
                 //console.log('Window was resized! outerWidth: ' + window.outerWidth + " outerHeight " + window.outerHeight);

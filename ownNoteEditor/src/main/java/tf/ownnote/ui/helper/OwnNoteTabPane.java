@@ -44,9 +44,10 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import tf.helper.general.IPreferencesHolder;
 import tf.helper.general.IPreferencesStore;
+import tf.helper.javafx.StyleHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.GroupData;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  *
@@ -56,6 +57,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
     private final String PLUS_TAB = "+";
     
     private TabPane myTabPane = null;
+    private String backgroundColor = "white";
     
     // since we have no buttons we do context menus
     private final ContextMenu fullMenu = new ContextMenu();
@@ -74,7 +76,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
     private OwnNoteEditor myEditor= null;
             
     // store selected group before changing the group lists for later re-select
-    private String selectedGroupName = GroupData.ALL_GROUPS;
+    private String selectedGroupName = NoteGroup.ALL_GROUPS;
     
     // TFE, 20200907: keep track of group order
     private final List<String> tabOrder = new LinkedList<>();
@@ -95,6 +97,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
     }
 
     private void initTabPane() {
+        myTabPane.applyCss();
         // drop down menu doesn't update when renaming tabs - would need to implement own TabPaneSkin :-(
         // https://stackoverflow.com/questions/31734292/show-some-tabs-ahead-from-selected-tab-in-a-javafx-8-tabpane-header
         
@@ -132,14 +135,14 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
                         }
                     } else {
                         // select matching notes for group
-                        assert (newTab.getUserData() instanceof GroupData);
-                        final String groupName = ((GroupData) newTab.getUserData()).getGroupName();
+                        assert (newTab.getUserData() instanceof NoteGroup);
+                        final String groupName = ((NoteGroup) newTab.getUserData()).getGroupName();
 
                         myEditor.setGroupNameFilter(groupName);
                         // set color of notes table to tab color
-                        myEditor.setNotesTableForNewTab(newTab.getStyle());
+                        myEditor.setNotesTableBackgroundColor(((OwnNoteTab) newTab).getBackgroundColor());
 
-                        myTabPane.setStyle(newTab.getStyle());
+                        setBackgroundColor(((OwnNoteTab) newTab).getBackgroundColor());
                     }
                 }
                 
@@ -179,7 +182,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
             newTab.setDroptarget(true);
 
             // set user data - required for change listener
-            final GroupData dataRow = new GroupData();
+            final NoteGroup dataRow = new NoteGroup();
             dataRow.setGroupName(tabName);
             dataRow.setGroupDelete(OwnNoteFileManager.deleteString);
             dataRow.setGroupCount("0");
@@ -209,8 +212,8 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         }
         
         // set color of tab to something fancy
-        final String groupColor = myEditor.getNewGroupColor(newTab.getTabName());
-        newTab.setTabColor(groupColor);
+        final String groupColor = myEditor.getGroupColor(newTab.getTabName());
+        newTab.setBackgroundColor(groupColor);
         //System.out.println("addOwnNoteTab - groupName, groupColor: " + newTab.getTabName() + ", " + groupColor);
         
         myTabPane.getTabs().add(myTabPane.getTabs().size() - 1, newTab);
@@ -264,7 +267,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
             assert (tab instanceof OwnNoteTab);
 
             final String tabLabel = ((OwnNoteTab) tab).getTabName();
-            if (!tabLabel.equals(GroupData.NOT_GROUPED) && !tabLabel.equals(GroupData.ALL_GROUPS) && !tabLabel.equals(PLUS_TAB)) {
+            if (!NoteGroup.isSpecialGroup(tabLabel) && !tabLabel.equals(PLUS_TAB)) {
                 // add group name
                 tabOrder.add(tabLabel);
             }
@@ -275,7 +278,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
 
     @Override
     public void loadPreferences(final IPreferencesStore store) {
-        final String prefString = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTTABORDER, "");
+        final String prefString = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_TAB_ORDER, "");
 
         if (prefString.isEmpty()) {
             return;
@@ -307,11 +310,11 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         
         prefString.append(OwnNoteEditorPreferences.PREF_STRING_SUFFIX);
         
-        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTTABORDER, prefString.toString());
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TAB_ORDER, prefString.toString());
     }
 
     @Override
-    public void setGroups(final ObservableList<GroupData> groupsList, final boolean updateOnly) {
+    public void setGroups(final ObservableList<NoteGroup> groupsList, final boolean updateOnly) {
         if (!updateOnly) {
             myTabPane.getTabs().clear();
             addPlusTab();
@@ -330,13 +333,13 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
                     collect(Collectors.toList());
         final List<String> newGroupNames =
                 groupsList.stream().
-                    map((GroupData s) -> {
+                    map((NoteGroup s) -> {
                         return s.getGroupName();
                     }).
                     collect(Collectors.toList());
                 
         OwnNoteTab newTab = null;
-        for (GroupData group: groupsList) {
+        for (NoteGroup group: groupsList) {
            final String groupName = group.getGroupName();
            final String groupCount = group.getGroupCount();
             
@@ -346,7 +349,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
                 newTab.setDetachable(false);
 
                 // ALL and NOT are reserved names
-                if (!groupName.equals(GroupData.NOT_GROUPED) && !groupName.equals(GroupData.ALL_GROUPS)) {
+                if (!NoteGroup.isSpecialGroup(groupName)) {
                     newTab.setProtectedTab(false);
                     newTab.setDroptarget(true);
                     newTab.setClosable(true);
@@ -400,13 +403,14 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         updateTabOrder();
     }
     
-    public void selectGroupForNote(final NoteData noteData) {
+    @Override
+    public void selectGroupForNote(final Note note) {
         // find tab that has group as userdata
-        final GroupData groupData = OwnNoteFileManager.getInstance().getGroupData(noteData);
+        final NoteGroup NoteGroup = OwnNoteFileManager.getInstance().getNoteGroup(note);
         
         Tab groupTab = null;
         for (Tab tab : myTabPane.getTabs()) {
-            if (groupData.equals(tab.getUserData())) {
+            if (NoteGroup.equals(tab.getUserData())) {
                 groupTab = tab;
                 break;
             }
@@ -418,36 +422,13 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
     }
     
     @Override
-    public GroupData getCurrentGroup() {
-        return ((GroupData) myTabPane.getSelectionModel().getSelectedItem().getUserData());
-    }
-    
-    public String getMatchingPaneColor(final String groupName) {
-        String groupColor = "darkgrey";
-
-        // name lists for current and new groups
-        final List<String> groupNames =
-            myTabPane.getTabs().stream().
-                map(s -> {
-                    assert (s instanceof OwnNoteTab);
-                    final OwnNoteTab os = (OwnNoteTab) s;
-                    return os.getTabName();
-                }).
-                collect(Collectors.toList());
-        
-        // find tab for group name and return its tab-color style value
-        if (groupNames.contains(groupName)) {
-            final OwnNoteTab groupTab = (OwnNoteTab) myTabPane.getTabs().get(groupNames.indexOf(groupName));
-             
-            groupColor = groupTab.getTabColor();
-        }
-        
-        return groupColor;
+    public NoteGroup getCurrentGroup() {
+        return ((NoteGroup) myTabPane.getSelectionModel().getSelectedItem().getUserData());
     }
     
     private void initNameField() {
         // TFE, 20191208: check for valid file names!
-        FormatHelper.getInstance().initNameTextField(nameField);
+        FormatHelper.getInstance().initNoteGroupNameTextField(nameField);
 
         // change on ENTER
         nameField.setOnAction((ActionEvent event) -> {
@@ -455,15 +436,15 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         
             // 1. check whether new name is not "ALL" or "+"
             final String newGroupName = nameField.getText();
-            if (GroupData.ALL_GROUPS.equals(newGroupName) || PLUS_TAB.equals(newGroupName)) {
+            if (NoteGroup.ALL_GROUPS.equals(newGroupName) || PLUS_TAB.equals(newGroupName)) {
                 // error message
-                myEditor.showAlert(Alert.AlertType.ERROR, "Error Dialog", "New group name invalid.", "A group cannot be named '" + GroupData.ALL_GROUPS + "' or '" + PLUS_TAB + "'.");
+                myEditor.showAlert(Alert.AlertType.ERROR, "Error Dialog", "New group name invalid.", "A group cannot be named '" + NoteGroup.ALL_GROUPS + "' or '" + PLUS_TAB + "'.");
                 
                 return;
             }
 
             // 2. rename group
-            final GroupData curGroup = (GroupData) activeTab.getUserData();
+            final NoteGroup curGroup = (NoteGroup) activeTab.getUserData();
             
             if (myEditor.renameGroupWrapper(curGroup.getGroupName(), newGroupName)) {
                 // 3. if tab with same name exists, delete it
@@ -528,10 +509,10 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
             assert (myEditor != null);
             
             final Tab deleteTab = myTabPane.getSelectionModel().selectedItemProperty().getValue();
-            final GroupData curGroup = (GroupData) deleteTab.getUserData();
+            final NoteGroup curGroup = (NoteGroup) deleteTab.getUserData();
             
             if (myEditor.deleteGroupWrapper(curGroup)) {
-                myEditor.initFromDirectory(false);
+                myEditor.initFromDirectory(false, false);
             }
         });
         
@@ -556,7 +537,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         if (myTabPane.getSelectionModel().getSelectedItem() != null) {
             selectedGroupName = getCurrentGroup().getGroupName();
         } else {
-            selectedGroupName = GroupData.ALL_GROUPS;
+            selectedGroupName = NoteGroup.ALL_GROUPS;
         }
     }
 
@@ -580,8 +561,12 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
     /* Required getter and setter methods are forwarded to internal TableView */
 
     @Override
-    public void setStyle(final String style) {
-        myTabPane.setStyle(style);
+    public void setBackgroundColor(final String color) {
+        myTabPane.setStyle(StyleHelper.addAndRemoveStyles(
+                myTabPane, 
+                StyleHelper.cssString(OwnNoteEditor.GROUP_COLOR_CSS, color), 
+                StyleHelper.cssString(OwnNoteEditor.GROUP_COLOR_CSS, backgroundColor)));
+        backgroundColor = color;
     }
 
     @Override

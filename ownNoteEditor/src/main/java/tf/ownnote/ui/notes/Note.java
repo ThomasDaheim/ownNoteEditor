@@ -26,12 +26,13 @@
 package tf.ownnote.ui.notes;
 
 import java.util.HashMap;
+import java.util.Objects;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class NoteData extends HashMap<String,String> {
+public class Note extends HashMap<String, String> {
     // to reference the columns for notes table
     private enum NoteMapKey {
         noteName,
@@ -46,44 +47,55 @@ public class NoteData extends HashMap<String,String> {
     }
     
     // TFE, 20201022: store additional metadata, e.g. tags, author, ...
-    private NoteMetaData myMetaData = new NoteMetaData();
+    private NoteMetaData myMetaData;
 
-    public NoteData() {
+    private Note() {
         super();
+        
+        setMetaData(new NoteMetaData());
     }
     
-    public NoteData(final String groupName, final String noteName) {
+    public Note(final String groupName, final String noteName) {
         super();
         
         setGroupName(groupName);
         setNoteName(noteName);
+        setMetaData(new NoteMetaData());
     }
     
-    public NoteData(final NoteData noteData) {
-        super(noteData);
+    public Note(final Note note) {
+        super(note);
         
-        myMetaData = noteData.myMetaData;
+        myMetaData = note.myMetaData;
     }
-    
-    public static String getNoteDataName(final int i) {
-        return NoteMapKey.values()[i].name();
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 59 * hash + Objects.hashCode(getGroupName()) + Objects.hashCode(getNoteName());
+        return hash;
     }
-    
-    public static NoteData fromString(final String groupString) {
-        assert (groupString != null);
-        assert (groupString.length() > 6);
-        
-        final NoteData data = new NoteData();
-        final String[] dataStrings = groupString.substring(1, groupString.length()-1).split(", ");
-        for (String mapString : dataStrings) {
-            final String[] mapStrings = mapString.split("=");
-            if (mapStrings.length == 2) {
-                data.put( mapStrings[0], mapStrings[1] );
-            } else {
-                data.put( mapStrings[0], "" );
-            }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
         }
-        return data;
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Note other = (Note) obj;
+        if (!NoteGroup.isSameGroup(this.getGroupName(), other.getGroupName()) || !Objects.equals(this.getNoteName(), other.getNoteName())) {
+            return false;
+        }
+        return true;
+    }
+    
+    public static String getNoteName(final int i) {
+        return NoteMapKey.values()[i].name();
     }
     
     public String getNoteName() {
@@ -146,5 +158,7 @@ public class NoteData extends HashMap<String,String> {
 
     public void setMetaData(final NoteMetaData metaData) {
         myMetaData = metaData;
+        
+        myMetaData.setNote(this);
     }
 }

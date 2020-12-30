@@ -32,7 +32,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.collections.ObservableList;
@@ -53,10 +52,9 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
-import org.junit.After;
+import org.apache.commons.io.FileUtils;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import org.junit.Before;
 import org.junit.Test;
 import org.testfx.api.FxRobot;
 import org.testfx.framework.junit.ApplicationTest;
@@ -65,36 +63,43 @@ import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 import tf.ownnote.ui.helper.OwnNoteTab;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.main.OwnNoteEditorManager;
-import tf.ownnote.ui.notes.GroupData;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class TestOneNoteLookAndFeel extends ApplicationTest {
+public class TestGroupTabsLookAndFeel extends ApplicationTest {
+    private static double SCALING = 0.85;
+    
     private Stage myStage;
+    private OwnNoteEditorManager myApp;
     
     @Override
     public void start(Stage stage) throws Exception {
+        System.out.println("running start()");
         myStage = stage;
         
-        OwnNoteEditorManager app = new OwnNoteEditorManager();
+        myApp = new OwnNoteEditorManager();
         // TODO: set command line parameters to avoid tweaking stored values
-        app.start(stage);
-
+        myApp.start(stage);
+        
         /* Do not forget to put the GUI in front of windows. Otherwise, the robots may interact with another
         window, the one in front of all the windows... */
-        stage.toFront();
+        myStage.toFront();
         
         // TF, 20170205: under gradle in netbeans toFront() still leves the window in the background...
-        stage.requestFocus();
+        myStage.requestFocus();
     }
 
-    private final TestNodeData myTestdata = new TestNodeData();
+    private final TestNoteData myTestdata = new TestNoteData();
   
     private String currentPath;
     private Path testpath;
+    
+    private String lastGroupName;
+    private String lastNoteName;
     
     private OwnNoteEditorParameters.LookAndFeel currentLookAndFeel;
 
@@ -106,17 +111,19 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // get current look & feel and notes path
         try {
             currentLookAndFeel = OwnNoteEditorParameters.LookAndFeel.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
 
-            currentPath = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, "");
-            // System.out.println("currentPath: " + currentPath);
-            // System.out.println("Using preference for ownCloudDir: " + currentPath);
+            currentPath = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, "");
+//            System.out.println("currentPath: " + currentPath);
+
+            lastGroupName = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.LAST_EDITED_GROUP, "");
+            lastNoteName = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.LAST_EDITED_NOTE, "");
         } catch (SecurityException ex) {
             Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
         }        
 
         // copy test files to directory
-        testpath = Files.createTempDirectory("TestNotes");
+        testpath = Files.createTempDirectory("TestGroupTabsLookAndFeel");
         // TFE, 20180930: set read/write/ exec for all to avoid exceptions in monitoring thread
         testpath.toFile().setReadable(true, false);
         testpath.toFile().setWritable(true, false);
@@ -124,12 +131,14 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         try {
             myTestdata.copyTestFiles(testpath);
         } catch (Throwable ex) {
-            Logger.getLogger(TestOneNoteLookAndFeel.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TestGroupTabsLookAndFeel.class.getName()).log(Level.SEVERE, null, ex);
         }
         
         // set look & feel and notes path name
-        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.oneNote.name());
-        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, testpath.toString());
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.groupTabs.name());
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, testpath.toString());
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_GROUP, "");
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_NOTE, "");
         //System.out.println("testpath: " + testpath.toString());
     }
 
@@ -150,8 +159,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         return lookup(query).query();
     }
 
-    @Before
-    public void getNodes() {
+    private void getNodes() {
         System.out.println("running getNodes()");
 
         notesTableFXML = (TableView<Map<String, String>>) find(".notesTable");
@@ -160,7 +168,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // tabs are not nodes!!! So we have to find them the hard way
         final ObservableList<Tab> tabsList = groupsPaneFXML.getTabs();
         allTab = (OwnNoteTab) tabsList.stream().filter(x -> {
-                                                        return ((Label) x.getGraphic()).getText().startsWith(GroupData.ALL_GROUPS);
+                                                        return ((Label) x.getGraphic()).getText().startsWith(NoteGroup.ALL_GROUPS);
                                                     }).findFirst().orElse(null);
         test1Tab = (OwnNoteTab) tabsList.stream().filter(x -> {
                                                         return ((Label) x.getGraphic()).getText().startsWith("Test1");
@@ -180,25 +188,40 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     }
     
     /* IMO, it is quite recommended to clear the ongoing events, in case of. */
-    @After
-    public void tearDown() throws TimeoutException, IOException {
+    private void tearDown() {
         System.out.println("running tearDown()");
 
         /* Close the window. It will be re-opened at the next test. */
         release(new KeyCode[] {});
         release(new MouseButton[] {});
 
-        // delete temp directory + files
-        //FileUtils.deleteDirectory(testpath.toFile());
+        try {
+            myApp.closeStage(false);
+        } catch (Exception ex) {
+            Logger.getLogger(TestTagTreeLookAndFeel.class.getName()).log(Level.SEVERE, null, ex);
+        }
         
         // set look & feel to old value
         if (currentLookAndFeel != null) {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTLOOKANDFEEL, currentLookAndFeel.name());
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, currentLookAndFeel.name());
         }
         
         // set path name to old value
         if (currentPath != null) {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTOWNCLOUDPATH, currentPath);
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, currentPath);
+        }
+        
+        if (lastGroupName != null) {
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_GROUP, lastGroupName);
+        }
+        if (lastNoteName != null) {
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_NOTE, lastNoteName);
+        }
+
+        try {
+            FileUtils.deleteDirectory(testpath.toFile());
+        } catch (IOException ex) {
+            Logger.getLogger(TestGroupTabsLookAndFeel.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
@@ -248,6 +271,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
 
     @Test
     public void runTests() {
+        resetForNextTest();
+
         testNodes();
         testInitialSetup();
         resetForNextTest();
@@ -274,6 +299,8 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         
         // TFE, 20180930: must be last test and no resetForNextTest() afterwards - to avoid "File has changed" dialogue
         testFileSystemChange();
+        
+        tearDown();
     }
     
     private void testNodes() {
@@ -295,11 +322,11 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
 
         // #1 ------------------------------------------------------------------
         // check "ALL" tab, that should have 4 entries
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
 
         // #2 ------------------------------------------------------------------
         // check "NOT_GROUPED" tab, that should be empty
-        testTab(1, GroupData.NOT_GROUPED, myTestdata.getNotesCountForGroup(GroupData.NOT_GROUPED));
+        testTab(1, NoteGroup.NOT_GROUPED, myTestdata.getNotesCountForGroup(NoteGroup.NOT_GROUPED));
 
         // #3 ------------------------------------------------------------------
         // check "Test 1" tab, that should have 2 entries
@@ -330,15 +357,15 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         final int newCount = myTestdata.getNotesList().size() + 1;
         final String newName = "New Note " + newCount;
         assertTrue("Check new notes count", (notesTableFXML.getItems().size() == newCount));
-        assertTrue("Check new note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof NoteData));
-        final NoteData newNote = (NoteData) notesTableFXML.getSelectionModel().getSelectedItem();
+        assertTrue("Check new note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof Note));
+        final Note newNote = (Note) notesTableFXML.getSelectionModel().getSelectedItem();
         assertTrue("Check new note label", newNote.getNoteName().startsWith(newName));
         
         // #2 ------------------------------------------------------------------
         // delete note with right click + menu item
         clickOn(notesTableFXML);
         // TODO: get better coordinates to move to
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         rightClickOn();
         push(KeyCode.DOWN);
         push(KeyCode.DOWN);
@@ -354,7 +381,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // #1 ------------------------------------------------------------------
         // rename note via right click + menu item
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         rightClickOn();
         push(KeyCode.DOWN);
         push(KeyCode.DOWN);
@@ -363,22 +390,22 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         write("TEST1");
         push(KeyCode.ENTER);
 
-        assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof NoteData));
-        NoteData renamedNote = (NoteData) notesTableFXML.getSelectionModel().getSelectedItem();
+        assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof Note));
+        Note renamedNote = (Note) notesTableFXML.getSelectionModel().getSelectedItem();
         assertTrue("Check renamed note label", renamedNote.getNoteName().startsWith("TEST1"));
 
         // #2 ------------------------------------------------------------------
         // rename note via right click + CTRL+R
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         rightClickOn();
         push(KeyCode.CONTROL, KeyCode.R);
         write("rename2");
         push(KeyCode.ENTER);
         push(KeyCode.ENTER);
 
-        assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof NoteData));
-        renamedNote = (NoteData) notesTableFXML.getSelectionModel().getSelectedItem();
+        assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof Note));
+        renamedNote = (Note) notesTableFXML.getSelectionModel().getSelectedItem();
         //System.out.println(renamedNote);
         assertTrue("Check renamed note label", renamedNote.getNoteName().startsWith("rename2"));
 
@@ -390,23 +417,23 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         push(KeyCode.ENTER);
         push(KeyCode.ENTER);
 
-        assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof NoteData));
-        renamedNote = (NoteData) notesTableFXML.getSelectionModel().getSelectedItem();
+        assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof Note));
+        renamedNote = (Note) notesTableFXML.getSelectionModel().getSelectedItem();
         //System.out.println(renamedNote);
         assertTrue("Check renamed note label", renamedNote.getNoteName().startsWith("test1"));
 
         // #4 ------------------------------------------------------------------
         // Alert when renaming to existing name
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         doubleClickOn();
         write("test2");
         push(KeyCode.ENTER);
         push(KeyCode.ENTER);
         
         // note should still have old name
-        assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof NoteData));
-        renamedNote = (NoteData) notesTableFXML.getSelectionModel().getSelectedItem();
+        assertTrue("Check renamed note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof Note));
+        renamedNote = (Note) notesTableFXML.getSelectionModel().getSelectedItem();
         //System.out.println(renamedNote);
         assertTrue("Check renamed note label", renamedNote.getNoteName().startsWith("test1"));
     }
@@ -423,7 +450,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         double centerY = testBounds.getMinY() + (testBounds.getMaxY() - testBounds.getMinY())/2.0;
         
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         Point p = MouseInfo.getPointerInfo().getLocation();
         Point2D p2d = new Point2D(p.getX(), p.getY());
 
@@ -444,7 +471,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         centerY = testBounds.getMinY() + (testBounds.getMaxY() - testBounds.getMinY())/2.0;
         
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         p = MouseInfo.getPointerInfo().getLocation();
         p2d = new Point2D(p.getX(), p.getY());
 
@@ -468,7 +495,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         selectTab(0);
 
         clickOn(notesTableFXML);
-        moveBy(0, - notesTableFXML.getHeight() / 2 * 0.8);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         p = MouseInfo.getPointerInfo().getLocation();
         p2d = new Point2D(p.getX(), p.getY());
 
@@ -528,31 +555,31 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         System.out.println("running testNotesFilter()");
 
         // leerer filter -> alle sichtbar
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
         
         //////////////////////////
         // namensfilter
         //////////////////////////
 
-        // "Test1" als namensfilter -> 2 sichtbar
+        // "Test1" als namensfilter -> 0 sichtbar
         clickOn(noteFilterText);
         write("Test1");
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForName("Test1"));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForName("Test1"));
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
         
         // "SUCH" als namensfilter -> 0 sichtbar
         clickOn(noteFilterText);
         write("SUCH");
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForName("SUCH"));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForName("SUCH"));
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
         
         //////////////////////////
         // inhaltsfilter
@@ -563,17 +590,17 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         // "Test1" als inhaltsfilter -> 2 sichtbar
         clickOn(noteFilterText);
         write("Test1");
-        testTab(0, GroupData.ALL_GROUPS, 2);
+        testTab(0, NoteGroup.ALL_GROUPS, 2);
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
         
         // "SUCH" als inhaltsfilter -> 1 sichtbar
         clickOn(noteFilterText);
         write("SUCH");
-        testTab(0, GroupData.ALL_GROUPS, 1);
+        testTab(0, NoteGroup.ALL_GROUPS, 1);
         
         // reset everything, PLEASE
         clickOn(noteFilterCheck);
@@ -584,7 +611,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
     private void testFileSystemChange() {
         System.out.println("running testFileSystemChange()");
 
-        long sleepTime = 1000;
+        long sleepTime = 1200;
         
         // TFE, 20190930: switch to correct tab initially to avoid later chanegs that might trigger hasChanged() calls
         selectTab(0);
@@ -596,7 +623,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: add a new file to group Test1");
         
         // check new count
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS) + 1);
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS) + 1);
         
         // #2 ------------------------------------------------------------------
         // delete the new file
@@ -605,7 +632,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: delete the new file");
         
         // check new count
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
         
         // #3 ------------------------------------------------------------------
         // add a new file to a new group
@@ -634,7 +661,7 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify old count
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
 
         // #5 ------------------------------------------------------------------
         // delete file in editor BUT "Save as new"
@@ -646,12 +673,12 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify old count
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
         // but with new note name!
         final int newCount = myTestdata.getNotesList().size() + 1;
         final String newName = "New Note " + newCount;
-        assertTrue("Check new note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof NoteData));
-        final NoteData newNote = (NoteData) notesTableFXML.getSelectionModel().getSelectedItem();
+        assertTrue("Check new note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof Note));
+        final Note newNote = (Note) notesTableFXML.getSelectionModel().getSelectedItem();
         assertTrue("Check new note label", newName.equals(newNote.getNoteName()));
         
         // #6 ------------------------------------------------------------------
@@ -664,15 +691,15 @@ public class TestOneNoteLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify new count
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS) - 1);
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS) - 1);
         
         // create back again
-        assertTrue(myTestdata.createTestFile(testpath, "[Test1] " + newName + ".htm"));
+        assertTrue(myTestdata.createTestFile(testpath, "[Test1] test1.htm"));
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 //        System.out.println("after sleep for: create back again");
 
         // verify old count
-        testTab(0, GroupData.ALL_GROUPS, myTestdata.getNotesCountForGroup(GroupData.ALL_GROUPS));
+        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
     }
     
     private void resetForNextTest() {

@@ -109,15 +109,15 @@ public class OwnNoteEditorManager extends Application {
         try {
             // issue #30: store width and height of window as well - but here so that the scene can be created accordingly
             Double recentWindowWidth = Double.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, "1200"));
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_WINDOW_WIDTH, "1200"));
             Double recentWindowHeigth = Double.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, "600"));
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_WINDOW_HEIGTH, "600"));
             // TFE, 20201020: store left & top as well
             final Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
             Double recentWindowLeft = Double.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWLEFT, String.valueOf((primScreenBounds.getWidth() - recentWindowWidth) / 2.0)));
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_WINDOW_LEFT, String.valueOf((primScreenBounds.getWidth() - recentWindowWidth) / 2.0)));
             Double recentWindowTop = Double.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENTWINDOWTOP, String.valueOf((primScreenBounds.getHeight() - recentWindowHeigth) / 2.0)));
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_WINDOW_TOP, String.valueOf((primScreenBounds.getHeight() - recentWindowHeigth) / 2.0)));
             // TFE, 20201011: check that not larger than current screens - might happen with multiple monitors
             if (Screen.getScreensForRectangle(recentWindowLeft, recentWindowTop, recentWindowWidth, recentWindowHeigth).isEmpty()) {
                 recentWindowWidth = 1200.0;
@@ -144,7 +144,7 @@ public class OwnNoteEditorManager extends Application {
             myStage.getScene().getStylesheets().add(OwnNoteEditorManager.class.getResource("/css/ownnote.min.css").toExternalForm());
             
             // TF, 20160620: suppress warnings from css parsing for "-fx-font-weight" - not correctly implemented in the css parser for javafx 8...
-            // TFE, 20181209: times and meethods change :-)
+            // TFE, 20181209: times and methods change :-)
             Logging.getCSSLogger().disableLogging();
             
             // set passed parameters for later use
@@ -177,7 +177,7 @@ public class OwnNoteEditorManager extends Application {
         // TF, 20160619: stop() is called on minimize as well - we only want to do closeStage() once
         // also, with Platform.setImplicitExit(false) we need to shut down things ourselves
         myStage.setOnCloseRequest((WindowEvent t) -> {
-            closeStage();
+            closeStage(true);
         });
         
         myStage.show();
@@ -239,7 +239,9 @@ public class OwnNoteEditorManager extends Application {
             // and select the exit option, this will shutdown JavaFX and remove the
             // tray icon (removing the tray icon will also shut down AWT).
             final java.awt.MenuItem exitItem = new java.awt.MenuItem("Exit");
-            exitItem.addActionListener((ActionEvent event) -> Platform.runLater(this::closeStage));
+            exitItem.addActionListener((ActionEvent event) -> Platform.runLater(() -> {
+                this.closeStage(true);
+            }));
 
             // setup the popup menu for the application.
             final java.awt.PopupMenu popup = new java.awt.PopupMenu();
@@ -276,7 +278,7 @@ public class OwnNoteEditorManager extends Application {
         }
     }
 
-    public void closeStage() {
+    public void closeStage(final boolean productiveRun) {
         // TF, 20170421: show before close - otherwise check by "save changed" isn't shown...
         showStage();
 
@@ -286,23 +288,28 @@ public class OwnNoteEditorManager extends Application {
             Logger.getLogger(OwnNoteEditorManager.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        // TF, 20170904: maximized gives wrong values for width & height - surely same with minimized...
-        if (!myStage.isMaximized() && !myStage.isIconified()) {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTWINDOWWIDTH, String.valueOf(myStage.getScene().getWidth()));
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTWINDOWHEIGTH, String.valueOf(myStage.getScene().getHeight()));
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTWINDOWLEFT, String.valueOf(myStage.getX()));
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENTWINDOWTOP, String.valueOf(myStage.getY()));
+        // TFE, 20201230: this is now also cllaed from tests - so we need to be able to distinguish the cases
+        if (productiveRun) {
+            // TF, 20170904: maximized gives wrong values for width & height - surely same with minimized...
+            if (!myStage.isMaximized() && !myStage.isIconified()) {
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_WINDOW_WIDTH, String.valueOf(myStage.getScene().getWidth()));
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_WINDOW_HEIGTH, String.valueOf(myStage.getScene().getHeight()));
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_WINDOW_LEFT, String.valueOf(myStage.getX()));
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_WINDOW_TOP, String.valueOf(myStage.getY()));
+            }
         }
         
         if (controller != null) {
-            controller.stop();
+            controller.stop(productiveRun);
         }
         
         if(tray!= null && trayIcon != null) {
             tray.remove(trayIcon);
         }
-                    
-        Platform.exit();
+
+        if (productiveRun) {
+            Platform.exit();
+        }
     }
     
     private void restoreStagePos() {

@@ -17,29 +17,38 @@ public class OwnNoteEditorPreferences implements IPreferencesStore {
     private final static OwnNoteEditorPreferences INSTANCE = new OwnNoteEditorPreferences();
 
     private final static Preferences MYPREFERENCES = Preferences.userNodeForPackage(OwnNoteEditor.class);
-    public final static String RECENTOWNCLOUDPATH = "recentOwnCloudPath";
-    public final static String RECENTLOOKANDFEEL = "recentLookAndFeel";
+    public final static String RECENT_OWNCLOUDPATH = "recentOwnCloudPath";
+    public final static String RECENT_LOOKANDFEEL = "recentLookAndFeel";
     // issue #30 store percentage for group column width
-    public final static String RECENTCLASSICGROUPWIDTH = "recentClassicGroupWidth";
-    public final static String RECENTONENOTEGROUPWIDTH = "recentOneNoteGroupWidth";
-    public final static String RECENTTASKLISTWIDTH = "recentTaskListWidth";
-    public final static String RECENTWINDOWWIDTH = "recentWindowWidth";
-    public final static String RECENTWINDOWHEIGTH = "recentWindowHeigth";
-    public final static String RECENTWINDOWLEFT = "recentWindowLeft";
-    public final static String RECENTWINDOWTOP = "recentWindowTop";
+    public final static String RECENT_CLASSIC_GROUPWIDTH = "recentClassicGroupWidth";
+    public final static String RECENT_GROUPTABS_GROUPWIDTH = "recentGroupTabsGroupWidth";
+    public final static String RECENT_TAGTREE_GROUPWIDTH = "recentTagTreeGroupWidth";
+    public final static String RECENT_TAGTREE_NOTEWIDTH = "recentTagTreeNoteWidth";
+    public final static String RECENT_TASKLIST_WIDTH = "recentTaskListWidth";
+    public final static String RECENT_TASKLIST_VISIBLE = "recentTaskListVisible";
+    public final static String RECENT_WINDOW_WIDTH = "recentWindowWidth";
+    public final static String RECENT_WINDOW_HEIGTH = "recentWindowHeigth";
+    public final static String RECENT_WINDOW_LEFT = "recentWindowLeft";
+    public final static String RECENT_WINDOW_TOP = "recentWindowTop";
     // issue #45 store sort order for tables
-    public final static String RECENTGROUPSTABLESORTORDER = "recentGroupsTableSortOrder";
-    public final static String RECENTNOTESTABLESORTORDER = "recentNotesTableSortOrder";
+    public final static String RECENT_GROUPSTABLE_SORTORDER = "recentGroupsTableSortOrder";
+    public final static String RECENT_NOTESTABLE_SORTORDER = "recentNotesTableSortOrder";
+    // TFE, 20201205: store everything for tables :-)
+    public final static String RECENT_GROUPSTABLE_SETTINGS = "recentGroupsTableSettings";
+    public final static String RECENT_NOTESTABLE_SETTINGS = "recentNotesTableSettings";
     
     // TFE, 20200907: store tab order
     public static final String PREF_STRING_PREFIX = "[ ";
     public static final String PREF_STRING_SUFFIX = " ]";
     public static final String PREF_STRING_SEP = " ::: ";
-    public static final String RECENTTABORDER = "recentTabOrder";
+    public static final String RECENT_TAB_ORDER = "recentTabOrder";
     
     // TFE, 20201030: store last edited file
     public static final String LAST_EDITED_NOTE = "lastEditedNote";
     public static final String LAST_EDITED_GROUP = "lastEditedGroup";
+    
+    // TFE, 20201204: new layout: tag tree as first column
+    public final static String RECENT_TAGTREE_WIDTH = "recentTagTreeWidth";
 
     private OwnNoteEditorPreferences() {
         // Exists only to defeat instantiation.

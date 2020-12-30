@@ -67,7 +67,7 @@ if (!hasProperty('mainClass')) {
 mainClassName = 'tf.ownnote.ui.main.OwnNoteEditorManager'
 def appName='OwnNoteEditor'
 group='tf.OwnNoteEditor'
-version='4.8'
+version='5.0'
 
 // In this section you declare the dependencies for your production and test code
 dependencies {
@@ -84,22 +84,24 @@ dependencies {
     compile "org.openjfx:javafx-media:$javafx_version:$platform"
     
     // TFE, 20200809: use our own helper library
-    compile 'tf.JavaHelper:JavaHelper:1.8'
+    compile 'tf.JavaHelper:JavaHelper:1.9'
 
     compile 'org.slf4j:slf4j-api:1.7.12'
     compile 'commons-cli:commons-cli:1.4'
     compile 'commons-io:commons-io:2.6'
     compile 'org.apache.commons:commons-lang3:3.9'
     compile group: 'org.apache.commons', name: 'commons-text', version: '1.8'
+    compile group: 'commons-codec', name: 'commons-codec', version: '1.15'
+    compile group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.14'
     
     // new look & feel for old code :-)
     // TFE, 20181209: not working with Java9+
     // TFE, 20200508: should work now... - needs investigation
     // TFE, 20201028: trying to only include JMetro css files for better fine tuning
-    compile group: 'org.jfxtras', name: 'jmetro', version: '11.6.12'
+    compile group: 'org.jfxtras', name: 'jmetro', version: '11.6.14'
 
-    testCompile "org.testfx:testfx-junit:4.0.16-alpha"
-    testCompile "org.testfx:testfx-core:4.0.16-alpha"
+    testCompile "org.testfx:testfx-junit:4.0.+"
+    testCompile "org.testfx:testfx-core:4.0.+"
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.6.2'
 }
 
@@ -136,7 +138,13 @@ def newArgs = [ '--add-modules', 'javafx.controls,javafx.graphics,javafx.base,ja
                 '--add-exports', 'javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED',
                 '--add-exports', 'javafx.media/com.sun.media.jfxmedia=ALL-UNNAMED',
                 '--add-exports', 'javafx.media/com.sun.media.jfxmedia.events=ALL-UNNAMED',
+                '--add-exports', 'javafx.graphics/com.sun.javafx.tk=ALL-UNNAMED',
                 '--add-exports', 'javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED',
+                '--add-exports', 'javafx.base/com.sun.javafx.collections=ALL-UNNAMED',
+                // TFE, 20200803: workaround for "WARNING: Illegal reflective access by com.rits.cloning.Cloner"
+                // https://github.com/x-stream/xstream/issues/101#issuecomment-667734663
+                '--add-opens', 'java.base/java.util=ALL-UNNAMED',
+                '--add-opens', 'javafx.base/com.sun.javafx.collections=ALL-UNNAMED',
     ]
     
 // extend Netbeans Gradle "Run" task

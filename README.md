@@ -5,7 +5,17 @@ Aim was to mimic the behaviour of the ownNote web client using JavaFX and workin
 
 Note on Java 11: After various tweaks to build.gradle this now also runs under Java 11. See e.g. https://github.com/kelemen/netbeans-gradle-project/issues/403 an some of the discussion that where required to get there... Unfortunately, there is one isseu with the TestFX framework when trying to drag & drop notes. Since I wasn't able to fix this I had to disable the "testDragNote()" test step.
 
-Note on v5.0: A lot has happened since the initial version of the editor. ownNotes / nextNotes project for NextCloud seems to have died and there is no need anymore to try to mimic their behaviour and notes / groups handling. Therefore, its time for some re-design :-) E.g. support for the "classic" look & feel will be dropped along with other things I might come up with...
+Note on v5.0: A lot has happened since the initial version of the editor. ownNotes / nextNotes project for NextCloud seems to have died and there is no need anymore to try to mimic their behaviour and notes / groups handling. Therefore, its time for some re-design :-)
+
+V 5.0: Styling up for Christmas...
+
+* A new look & feel using tags: TagTree! Instead of having groups as tabs above we now have the complete tag tree to the left to select notes based on any tags
+* Groups are a special form of tags - since they also show up in the filename. (Maybe that'll change in the future - once I have gained some more experience with the new look)
+* Add tags via drag & drop to tag tree
+* Option "Archive" closed tasks by replacing the checkbox with a symbol - to speed up things once a lot of tasks have been used
+* Option to compress images to reduce note file size
+* As usual: various bugfixes and speed improvments
+* NOTE: As part of the refactoring the name of the look & feel has changed - that doesn't act well with stored preferences. So first time things will default to "classic" ownNote look & feel
 
 V 4.8: Tags!
 
@@ -113,7 +123,7 @@ If you want to, you can reference your locally synced notes dir directly with a 
 To change to look and feel you can use
 
 ```
---lookAndFeel="classic" or "oneNote"
+--lookAndFeel="classic" / "groupTabs" / "tagTree"
 ```
 
 Both things can also be changed using the UI.
@@ -128,6 +138,8 @@ The tree will be in `build/install`.
 
 ## create a Mac OS X .app bundle
 
+NOTE: Not sure if this still works...
+
 ```
 ./gradlew createApp
 ```
@@ -135,6 +147,8 @@ The tree will be in `build/install`.
 The resulting application will be in the directory `build/macApp`.
 
 ## create a Mac OS X .dmg file (will only work on Mac OS X)
+
+NOTE: Not sure if this still works...
 
 ```
 ./gradlew createDmg
@@ -149,12 +163,15 @@ Of course, such a project depends on the results of many others! I've tried to a
 
 Explicit dependencies:
 
-* tf.JavaHelper:JavaHelper:1.78 (see my other repros)
+* tf.JavaHelper:JavaHelper:1.9 https://github.com/ThomasDaheim/JavaHelper, not available via maven <- any help appreciated on how to best include as sub/meta/... repository
 * 'org.slf4j:slf4j-api:1.7.12'
 * 'commons-cli:commons-cli:1.4'
 * 'commons-io:commons-io:2.6'
 * 'org.apache.commons:commons-lang3:3.9'
-* 'org.jfxtras:jmetro:11.6.12'
+* 'org.apache.commons:commons-text:1.8'
+* 'commons-codec:commons-codec:1.15'
+* 'com.thoughtworks.xstream:xstream:1.4.14'
+* 'org.jfxtras:jmetro:11.6.14'
 * 'org.testfx:testfx-junit:4.0.+'
 * 'org.testfx:testfx-core:4.0.+'
 * 'org.junit.jupiter:junit-jupiter-api:5.6.2'

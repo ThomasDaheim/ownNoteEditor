@@ -67,7 +67,7 @@ public class TaskList {
             if (newSelection != null && !newSelection.equals(oldSelection)) {
                 if (!TaskManager.getInstance().inFileChange()) {
                     // select group and note
-                    myEditor.selectNoteAndCheckBox(newSelection.getNoteData(), newSelection.getTextPos(), newSelection.getDescription());
+                    myEditor.selectNoteAndCheckBox(newSelection.getNote(), newSelection.getTextPos(), newSelection.getDescription());
                 } else {
                     // tricky, we have lost the item in the list because the checkbox was clicked...
                     // we don't want to change the selection to avoid closing of file in tinymce.
@@ -81,7 +81,7 @@ public class TaskList {
         // be able to react to changes of isCompleted in tasks
         // https://stackoverflow.com/a/30915760
         final ObservableList<TaskData> items = 
-                FXCollections.observableArrayList(item -> new Observable[] {item.isCompletedProperty(), item.descriptionProperty()});
+                FXCollections.<TaskData>observableArrayList(item -> new Observable[] {item.isCompletedProperty(), item.descriptionProperty()});
         items.setAll(TaskManager.getInstance().getTaskList());
         
         // add listener to items to get notified of any changes to completed property
@@ -124,7 +124,7 @@ public class TaskList {
                 return 1;
             }
             // compare note names
-            int result = o1.getNoteData().getNoteName().compareTo(o2.getNoteData().getNoteName());
+            int result = o1.getNote().getNoteName().compareTo(o2.getNote().getNoteName());
             if (result == 0) {
                 // sort by textpos for same note
                 result = o1.getTextPos() - o2.getTextPos();

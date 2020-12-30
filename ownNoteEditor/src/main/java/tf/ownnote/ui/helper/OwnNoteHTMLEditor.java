@@ -36,12 +36,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
@@ -73,17 +76,26 @@ import javafx.stage.PopupWindow;
 import javafx.stage.Window;
 import javax.imageio.ImageIO;
 import netscape.javascript.JSObject;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.text.StringEscapeUtils;
+import tf.helper.general.ImageHelper;
 import tf.helper.javafx.UsefulKeyCodes;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.Note;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public class OwnNoteHTMLEditor {
+    // TFE, 20201216: speed up searching in long notes
+    private final static Pattern TAG_PATTERN = Pattern.compile("\\<.*?\\>");
+    private final static Pattern IMAGE_PATTERN = Pattern.compile("img src=['\"]data:image");
+    private final static String DATA_START = "img src=\"data:image/";
+    private final static String BASE64_START = ";base64,";
+
     // TFE, 20200504: support more than one language here
     private static final String CONTEXT_MENU = ".context-menu";
     private static final List<String> RELOAD_PAGE = List.of("Reload page", "Seite neu laden");
@@ -94,6 +106,9 @@ public class OwnNoteHTMLEditor {
     private static final List<String> COPY_SELECTION = List.of("Copy", "Kopieren");
     private static final List<String> COPY_TEXT_SELECTION = List.of("Copy Text", "Kopieren als Text");
     private static final List<String> SAVE_NOTE = List.of("Save", "Speichern");
+    private static final List<String> COMPRESS_IMAGES = List.of("Compress images", "Bilder komprimieren");
+    private static final List<String> REPLACE_CHECKEDBOXES = List.of("Checked box -> \u2611", "Checked Box -> \u2611");
+    private static final List<String> REPLACE_CHECKMARKS = List.of("\u2611 -> Checked box", "\u2611 -> Checked Box");
     
     private int language;
 
@@ -115,7 +130,7 @@ public class OwnNoteHTMLEditor {
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor= null;
     
-    private NoteData editedNote;
+    private Note editedNote;
     
     // defy garbage collection of callback functions
     // https://stackoverflow.com/a/41908133
@@ -408,10 +423,10 @@ public class OwnNoteHTMLEditor {
                 throw new VerifyError("File is too big.");
             }
             //get mime type of the file
-            String type = java.nio.file.Files.probeContentType(file.toPath());
+            final String type = Files.probeContentType(file.toPath());
             //get html content
-            byte[] data = org.apache.commons.io.FileUtils.readFileToByteArray(file);
-            String base64data = java.util.Base64.getEncoder().encodeToString(data);
+            final byte[] data = FileUtils.readFileToByteArray(file);
+            final String base64data = Base64.encodeBase64String(data);
             
             //insert html
             wrapExecuteScript(myWebEngine, "insertMedia('" + type + "', '" + base64data + "');");
@@ -466,9 +481,153 @@ public class OwnNoteHTMLEditor {
         // we might not have selected a note yet... accelerator always works :-(
         if (editedNote != null) {
             editedNote.setNoteEditorContent(getNoteText());
-            if (myEditor.saveNoteWrapper(editedNote)) {
+            if (myEditor.saveNote(editedNote)) {
             }
         }
+    }
+    
+    private void replaceCheckedBoxes() {
+        assert (myEditor != null);
+        
+        String content = getNoteText();
+        content = content.replace(OwnNoteEditor.CHECKED_BOXES_1, "\u2611");
+        content = content.replace(OwnNoteEditor.CHECKED_BOXES_2, "\u2611");
+        
+        contentChanged(content);
+        editNote(editedNote, content);
+    }
+    
+    private void replaceCheckmarks() {
+        assert (myEditor != null);
+        
+        String content = getNoteText();
+        content = content.replace("\u2611", OwnNoteEditor.CHECKED_BOXES_2);
+        
+        contentChanged(content);
+        editNote(editedNote, content);
+    }
+    
+    private void compressImages() {
+        assert (myEditor != null);
+        
+        String content = getNoteText();
+
+        // 1) find all images in the note
+        // "<img src='data:" + mediaType + ";base64," + mediaData + ">"
+        final LinkedList<Integer> images = new LinkedList<>();
+        final Matcher matcher = IMAGE_PATTERN.matcher(content);
+        while (matcher.find()) {
+            images.add(matcher.start());
+        }
+        
+        if (images.isEmpty()) {
+            // no images in this note
+            return;
+        }
+        
+        // reverse list since file positions change during replace
+        
+        Collections.reverse(images); 
+        for (int imageStart : images) {
+            // 2) create image from base64
+            final int imageEnd = content.indexOf(">", imageStart);
+            if (imageEnd == -1) {
+                // something wrong with this image...
+                continue;
+            }
+            final String imageString = content.substring(imageStart, imageEnd);
+//            System.out.println("imageString: starts with " + imageString.subSequence(0, 5) + " ends with " + imageString.substring(imageString.length()-5) + " and has length " + imageString.length());
+            
+            // extract "data:image/jpeg;base64," content
+            int contentStart = DATA_START.length();
+            int contentEnd = imageString.indexOf(BASE64_START, contentStart);
+            if (contentEnd == -1) {
+                // something wrong with this image...
+                continue;
+            }
+            final String imageType = imageString.substring(contentStart, contentEnd);
+//            System.out.println("imageType: " + imageType);
+            // TODO: only works for png & jpeg
+            if ("gif".equals(imageType)) {
+                continue;
+            }
+            
+            contentStart = imageString.indexOf(BASE64_START) + BASE64_START.length();
+            if (contentStart == -1) {
+                // something wrong with this image...
+                continue;
+            }
+            if (imageString.indexOf("\"", contentStart) > 0) {
+                contentEnd = imageString.indexOf("\"", contentStart);
+            } else {
+                contentEnd = imageString.indexOf("'", contentStart);
+            }
+            if (contentEnd == -1) {
+                // something wrong with this image...
+                continue;
+            }
+            final String imageBase64 = imageString.substring(contentStart, contentEnd);
+//            System.out.println("imageBase64: starts with " + imageBase64.subSequence(0, 5) + " ends with " + imageBase64.substring(imageBase64.length()-5) + " and has length " + imageBase64.length());
+
+            // extract width="xyz" height="abc" content if available
+            Integer imageWidth = -1;
+            contentStart = imageString.indexOf("width=\"");
+            if (contentStart == -1) {
+                contentStart = imageString.indexOf("width='");
+            }
+            if (contentStart > -1) {
+                contentStart += "width='".length();
+                contentEnd = imageString.indexOf("\"", contentStart);
+                if (contentEnd == -1) {
+                    contentEnd = imageString.indexOf("'", contentStart);
+                }
+                if (contentEnd == -1) {
+                    // something wrong with this image...
+                    continue;
+                }
+                imageWidth = Integer.valueOf(imageString.substring(contentStart, contentEnd));
+            }
+//            System.out.println("imageWidth: " + imageWidth);
+
+            Integer imageHeight = -1;
+            contentStart = imageString.indexOf("height=\"");
+            if (contentStart == -1) {
+                contentStart = imageString.indexOf("height='");
+            }
+            if (contentStart > -1) {
+                contentStart += "height='".length();
+                contentEnd = imageString.indexOf("\"", contentStart);
+                if (contentEnd == -1) {
+                    contentEnd = imageString.indexOf("'", contentStart);
+                }
+                if (contentEnd == -1) {
+                    // something wrong with this image...
+                    continue;
+                }
+                imageHeight = Integer.valueOf(imageString.substring(contentStart, contentEnd));
+            }
+//            System.out.println("imageHeight: " + imageWidth);
+
+            // 3) compress image based on type images
+            final String newImageBas64 = ImageHelper.compressBase64Image(imageBase64, imageType, imageWidth, imageHeight);
+
+            // 4) replace imageString
+            String newImageString = DATA_START + imageType + BASE64_START + newImageBas64 + "\"";
+            if (imageWidth > -1) {
+                newImageString += (" width=\"" + imageWidth + "\"");
+            }
+            if (imageHeight > -1) {
+                newImageString += (" height=\"" + imageHeight + "\"");
+            }
+            
+            if (newImageString.length() < imageString.length()) {
+                content = content.replace(imageString, newImageString);
+                System.out.println("Replaced " + imageString.length() + " chars of image data with " + newImageString.length() + " chars for image starting @" + imageStart);
+            }
+        }
+        
+        contentChanged(content);
+        editNote(editedNote, content);
     }
     
     private PopupWindow getPopupWindow() {
@@ -535,8 +694,29 @@ public class OwnNoteHTMLEditor {
                             // work is done in myWebView.addEventHandler(KeyEvent.KEY_PRESSED...
                             saveMenu.setAccelerator(UsefulKeyCodes.CNTRL_S.getKeyCodeCombination());
                             
-                            // add new item:
+                            // checkbox -> symbol
+                            final MenuItem replaceCheckedBoxesMenu = new MenuItem(REPLACE_CHECKEDBOXES.get(language));
+                            replaceCheckedBoxesMenu.setOnAction((ActionEvent event) -> {
+                                replaceCheckedBoxes();
+                            });
+
+                            // symbol -> checkbox
+                            final MenuItem replaceCheckmarksMenu = new MenuItem(REPLACE_CHECKMARKS.get(language));
+                            replaceCheckmarksMenu.setOnAction((ActionEvent event) -> {
+                                replaceCheckmarks();
+                            });
+
+                            // compress images
+                            final MenuItem compressImagesMenu = new MenuItem(COMPRESS_IMAGES.get(language));
+                            compressImagesMenu.setOnAction((ActionEvent event) -> {
+                                compressImages();
+                            });
+
+                            // add new items:
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(saveMenu));
+                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(compressImagesMenu));
+                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(replaceCheckedBoxesMenu));
+                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(replaceCheckmarksMenu));
 
                             return (PopupWindow)window;
                         }
@@ -581,7 +761,7 @@ public class OwnNoteHTMLEditor {
         if (!copyFullHTML) {
             // TFE, 20191211: remove html tags BUT convert </p> to </p> + line break
             selection = selection.replaceAll("\\</p\\>", "</p>" + System.lineSeparator());
-            selection = selection.replaceAll("\\<.*?\\>", "");
+            selection = stripHtmlTags(selection);
             // convert all &uml; back to &
             selection = StringEscapeUtils.unescapeHtml4(selection);
         }
@@ -651,11 +831,10 @@ public class OwnNoteHTMLEditor {
         }
     }
         
-    public void editNote(final NoteData note, final String text) {
+    public void editNote(final Note note, final String text) {
+        setContentDone = false;
         Runnable task = () -> {
             //System.out.println("setEditorText " + text);
-            setContentDone = false;
-            
             wrapExecuteScript(myWebEngine, "saveSetContent('" + replaceForEditor(text) + "');");
         };
         
@@ -670,11 +849,11 @@ public class OwnNoteHTMLEditor {
 
         // https://stackoverflow.com/questions/17802239/jsexception-while-loading-a-file-in-a-codemirror-based-editor-using-java-using-s
         // TFE, 20181030: for tinymce we also need to escape \
-        result = result.replace("\\", "\\\\");
-        result = result.replace("'", "\\'");
-        result = result.replace(System.getProperty("line.separator"), "\\n");
-        result = result.replace("\n", "\\n");
-        result = result.replace("\r", "\\n");
+        result = result.replace("\\", "\\\\")
+                       .replace("'", "\\'")
+                       .replace(System.lineSeparator(), "\\n")
+                       .replace("\n", "\\n")
+                       .replace("\r", "\\n");
         
         return result;
     }
@@ -697,7 +876,7 @@ public class OwnNoteHTMLEditor {
         String newEditorText = "";
 
         if (editorInitialized) {
-            Object dummy = wrapExecuteScript(myWebEngine, "saveGetContent();");
+            Object dummy = wrapExecuteScript(myWebEngine, "saveGetContent(true);");
             
             assert (dummy instanceof String);
             newEditorText = (String) dummy;
@@ -716,7 +895,7 @@ public class OwnNoteHTMLEditor {
         boolean result = false;
 
         // only try to read context when we had the callback from last setcontent() javascript call
-        if (setContentDone) {
+        if (editorInitialized && setContentDone) {
             final String newEditorText = readNoteText();
 
             if (editedNote == null || editedNote.getNoteFileContent() == null) {
@@ -759,7 +938,7 @@ public class OwnNoteHTMLEditor {
         myWebView.setVisible(b);
     }
     
-    public NoteData getEditedNote() {
+    public Note getEditedNote() {
         return editedNote;
     }
     
@@ -782,6 +961,12 @@ public class OwnNoteHTMLEditor {
         }
         
         final String oldContent = editedNote.getNoteEditorContent();
+        if (oldContent.equals(newContent)) {
+            // TFE, 20201216: this can happen when checkbox is clicked since input event comes before the 
+            // $(editor.getBody()).on("change", ":checkbox", function(el) is called
+            return;
+        }
+
         editedNote.setNoteEditorContent(newContent);
 
         // send change note to all subscribes
@@ -790,6 +975,10 @@ public class OwnNoteHTMLEditor {
                 break;
             }
         }
+    }
+    
+    public static String stripHtmlTags(final String input) {
+        return input.contains("<") ? TAG_PATTERN.matcher(input).replaceAll("") : input;
     }
 
     // https://stackoverflow.com/questions/28687640/javafx-8-webengine-how-to-get-console-log-from-javascript-to-system-out-in-ja

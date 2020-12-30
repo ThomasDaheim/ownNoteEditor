@@ -23,8 +23,11 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.WindowEvent;
+import tf.helper.general.ObjectsHelper;
+import tf.helper.javafx.AppClipboard;
+import tf.helper.javafx.StyleHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.Note;
 
 /**
  * A draggable tab that can optionally be detached from its tab pane and shown
@@ -48,7 +51,7 @@ public class OwnNoteTab extends Tab {
     
     private String tabName;
     private String tabCount;
-    private String tabColor;
+    private String backgroundColor = "white";
 
     // can this tab be a drop target for notes?
     private boolean droptarget;
@@ -184,8 +187,7 @@ public class OwnNoteTab extends Tab {
         nameLabel.setOnDragOver((DragEvent event) -> {
             // accept only if dragged from a notesTable row
             // and if not the "ALL" group...
-            if (event.getDragboard().hasHtml() &&
-                    event.getDragboard().getHtml().equals("notesTable") &&
+            if (event.getDragboard().hasContent(OwnNoteTableView.DRAG_AND_DROP) &&
                     droptarget) {
                 event.acceptTransferModes(TransferMode.MOVE);
             }
@@ -194,8 +196,7 @@ public class OwnNoteTab extends Tab {
         });
 
         nameLabel.setOnDragEntered((DragEvent event) -> {
-            if (event.getDragboard().hasHtml() &&
-                    event.getDragboard().getHtml().equals("notesTable")) {
+            if (event.getDragboard().hasContent(OwnNoteTableView.DRAG_AND_DROP)) {
                 //nameLabel.setFill(Color.GREEN);
             }
             
@@ -203,8 +204,7 @@ public class OwnNoteTab extends Tab {
         });
 
         nameLabel.setOnDragExited((DragEvent event) -> {
-            if (event.getDragboard().hasHtml() &&
-                    event.getDragboard().getHtml().equals("notesTable")) {
+            if (event.getDragboard().hasContent(OwnNoteTableView.DRAG_AND_DROP)) {
                 //nameLabel.setFill(Color.GREEN);
             }
             
@@ -216,18 +216,17 @@ public class OwnNoteTab extends Tab {
         
             Dragboard db = event.getDragboard();
             boolean success = false;
-            if (db.hasString()) {
-                final NoteData dragNote = NoteData.fromString(db.getString());
-                // 1. rename note to new group name
-                if (myEditor.moveNoteWrapper(dragNote, getTabName())) {
-                    // 2. focus on this tab
-                    getTabPane().getSelectionModel().select(this);
-                    
-                    // TF, 20161105: update tab count on both tabs
-                    myEditor.initFromDirectory(true);
-                    
-                    success = true;
-                }
+
+            final Note dragNote = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(OwnNoteTableView.DRAG_AND_DROP));
+            // 1. rename note to new group name
+            if (myEditor.moveNote(dragNote, getTabName())) {
+                // 2. focus on this tab
+                getTabPane().getSelectionModel().select(this);
+
+                // TF, 20161105: update tab count on both tabs
+                myEditor.initFromDirectory(true, false);
+
+                success = true;
             }
             event.setDropCompleted(success);
             
@@ -268,13 +267,16 @@ public class OwnNoteTab extends Tab {
         setLabelText(tabName);
     }
     
-    public String getTabColor() {
-        return tabColor;
+    public String getBackgroundColor() {
+        return backgroundColor;
     }
 
-    public void setTabColor(final String newTabColor) {
-        tabColor = newTabColor;
-        setStyle("tab-color: " + newTabColor);
+    public void setBackgroundColor(final String color) {
+        setStyle(StyleHelper.addAndRemoveStyles(
+                this, 
+                StyleHelper.cssString(OwnNoteEditor.GROUP_COLOR_CSS, color), 
+                StyleHelper.cssString(OwnNoteEditor.GROUP_COLOR_CSS, backgroundColor)));
+        backgroundColor = color;
     }
 
     /**

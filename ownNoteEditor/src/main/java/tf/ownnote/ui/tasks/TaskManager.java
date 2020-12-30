@@ -9,8 +9,12 @@ import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -19,8 +23,9 @@ import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.Note;
 
 /**
  * Handler for creation, search, update, sync of tasks with their notes.
@@ -33,6 +38,9 @@ import tf.ownnote.ui.notes.NoteData;
  */
 public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSubscriber {
     private final static TaskManager INSTANCE = new TaskManager();
+    
+    // TFE, 20201216: speed up searching in long notes
+    private final static Pattern TASK_PATTERN = Pattern.compile(OwnNoteEditor.ANY_BOXES, Pattern.LITERAL);
     
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
@@ -59,9 +67,9 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     
     private void initTaskList() {
         // find all notes containing checkbox and parse to create TaskData for them
-        final List<NoteData> taskNotes = OwnNoteFileManager.getInstance().getNotesWithText(OwnNoteEditor.ANY_BOXES);
+        final Set<Note> taskNotes = OwnNoteFileManager.getInstance().getNotesWithText(OwnNoteEditor.ANY_BOXES);
         
-        for (NoteData note : taskNotes) {
+        for (Note note : taskNotes) {
             final String noteContent = OwnNoteFileManager.getInstance().readNote(note);
 
             taskList.addAll(tasksFromNote(note, noteContent));
@@ -69,42 +77,51 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     }
     
     // noteContent as separate parm since it could be called from change withint editor before save
-    public List<TaskData> tasksFromNote(final NoteData note, final String noteContent) {
+    public List<TaskData> tasksFromNote(final Note note, final String noteContent) {
+//        System.out.println("tasksFromNote started: " + Instant.now());
         final List<TaskData> result = new ArrayList<>();
 
         // iterate over all matches and create TaskData items
-        for (int textPos : findAllOccurences(noteContent, OwnNoteEditor.ANY_BOXES)) {
+        for (int textPos : findAllOccurences(noteContent)) {
+//            System.out.println("  task found: " + Instant.now());
             result.add(new TaskData(note, noteContent, textPos));
+//            System.out.println("  task added: " + Instant.now());
         }
         
+//        System.out.println("tasksFromNote completed: " + Instant.now());
         return result;
     }
     
-    private List<Integer> findAllOccurences(final String text, final String tofind) {
-        final List<Integer> result = new ArrayList<>();
+    private List<Integer> findAllOccurences(final String text) {
+        final List<Integer> result = new LinkedList<>();
         
-        if (text.isEmpty() || tofind.isEmpty()) {
+        if (text.isEmpty()) {
             return result;
         }
         
-        int index = 0;
-        while (true) {
-            index = text.indexOf(tofind, index);
-            if (index != -1) {
-                result.add(index);
-                // works here under the assumption that we don't search for e.g. "AA" in "AAA"
-                index += tofind.length();
-            } else {
-                break;
-            }
+        final Matcher matcher = TASK_PATTERN.matcher(text);
+        while (matcher.find()) {
+            result.add(matcher.start());
         }
+        
+//        int index = 0;
+//        while (true) {
+//            index = text.indexOf(tofind, index);
+//            if (index != -1) {
+//                result.add(index);
+//                // works here under the assumption that we don't search for e.g. "AA" in "AAA"
+//                index += tofind.length();
+//            } else {
+//                break;
+//            }
+//        }
         
         return result;
     }
     
     public ObservableList<TaskData> getTaskList() {
         if (taskList == null) {
-            taskList = FXCollections.observableArrayList();
+            taskList = FXCollections.<TaskData>observableArrayList();
             // lazy loading
             initTaskList();
         }
@@ -123,7 +140,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             return true;
         }
 
-        final NoteData curNote = myEditor.getEditedNote();
+        final Note curNote = myEditor.getEditedNote();
         if (curNote != null && OwnNoteFileManager.getInstance().buildNoteName(curNote).equals(filePath.getFileName().toString())) {
             return true;
         }
@@ -134,12 +151,12 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             if (StandardWatchEventKinds.ENTRY_DELETE.equals(eventKind) || StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                 // file with tasks deleted -> remove tasks from own list
                 taskList.removeIf((t) -> {
-                    return OwnNoteFileManager.getInstance().buildNoteName(t.getNoteData()).equals(filePath.getFileName().toString());
+                    return OwnNoteFileManager.getInstance().buildNoteName(t.getNote()).equals(filePath.getFileName().toString());
                 });
             }
             if (StandardWatchEventKinds.ENTRY_CREATE.equals(eventKind) || StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                 // new file -> scan for tasks and update own list (similar to #2)
-                final NoteData note = OwnNoteFileManager.getInstance().getNoteData(filePath.getFileName().toString());
+                final Note note = OwnNoteFileManager.getInstance().getNote(filePath.getFileName().toString());
                 // TFE, 20201027: make sure we don't try to work on temp files which have been deleted in the meantime...
                 if (note != null) {
                     final String noteContent = OwnNoteFileManager.getInstance().readNote(note);
@@ -155,19 +172,23 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     }
 
     @Override
-    public boolean processFileContentChange(final FileContentChangeType changeType, final NoteData note, final String oldContent, final String newContent) {
+    public boolean processFileContentChange(final FileContentChangeType changeType, final Note note, final String oldContent, final String newContent) {
 //        System.out.println("processFileContentChange: " + changeType + ", " + note.getNoteName() + ", " + oldContent + ", " + newContent + ".");
         if (inFileChange) {
             return true;
         }
+        
+//        System.out.println("processFileContentChange started: " + Instant.now());
 
         inFileChange = true;
         if (FileContentChangeType.CONTENT_CHANGED.equals(changeType)) {
             // rescan text for tasks and update tasklist accordingly
             final List<TaskData> newTasks = tasksFromNote(note, newContent);
+//            System.out.println(" newTasks found: " + Instant.now());
             final List<TaskData> oldTasks = taskList.stream().filter((t) -> {
-                return t.getNoteData().getGroupName().equals(note.getGroupName()) && t.getNoteData().getNoteName().equals(note.getNoteName());
+                return t.getNote().equals(note);
             }).collect(Collectors.toList());
+//            System.out.println(" oldTasks found: " + Instant.now());
             
             // compare old a new to minimize change impact on observable list
             // 1: same description = only pos & selected might have changed
@@ -186,6 +207,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                     oldTasks.remove(oldnew.get());
                 }
             }
+//            System.out.println(" same description checked: " + Instant.now());
             
             // 2. same position but different description = description & selected might have changed
             // takes care of all changes inside task
@@ -203,6 +225,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                     oldTasks.remove(oldnew.get());
                 }
             }
+//            System.out.println(" same position checked: " + Instant.now());
             
             // 3. what is left? add & delete of tasks
             taskList.removeAll(oldTasks);
@@ -213,29 +236,32 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             // checkbox might not be start of innerHtml, whereas TaskData description is only the part after checkbox...
             // FFFFUUUUCCCCKKKK innerHtml sends back <input type="checkbox" checked="checked"> instead of <input type="checkbox" checked="checked" />
             // TFE, 20201103: better safe than sorry and check for both variants of valid html
-            String oldDescription = null;
+            String oldHtmlText = null;
             int checkIndex = oldContent.indexOf(OwnNoteEditor.UNCHECKED_BOXES_1);
             if (checkIndex > -1) {
-                oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.UNCHECKED_BOXES_1.length());
+                oldHtmlText = oldContent.substring(checkIndex + OwnNoteEditor.UNCHECKED_BOXES_1.length());
             } else {
                 checkIndex = oldContent.indexOf(OwnNoteEditor.UNCHECKED_BOXES_2);
                 if (checkIndex > -1) {
-                    oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.UNCHECKED_BOXES_2.length());
+                    oldHtmlText = oldContent.substring(checkIndex + OwnNoteEditor.UNCHECKED_BOXES_2.length());
                 }
             }
             checkIndex = oldContent.indexOf(OwnNoteEditor.CHECKED_BOXES_1);
             if (checkIndex > -1) {
-                oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.CHECKED_BOXES_1.length());
+                oldHtmlText = oldContent.substring(checkIndex + OwnNoteEditor.CHECKED_BOXES_1.length());
             } else {
                 checkIndex = oldContent.indexOf(OwnNoteEditor.CHECKED_BOXES_2);
                 if (checkIndex > -1) {
-                    oldDescription = oldContent.substring(checkIndex + OwnNoteEditor.CHECKED_BOXES_2.length());
+                    oldHtmlText = oldContent.substring(checkIndex + OwnNoteEditor.CHECKED_BOXES_2.length());
                 }
             }
-            if (oldDescription == null) {
+            if (oldHtmlText == null) {
                 System.err.println("Something went wrong with task completion change!" + note + ", " + oldContent + ", " + newContent);
                 return true;
             }
+            // TFE, 20201216: this must be done in sync with TaskData changes to make sure text match works
+            oldHtmlText = OwnNoteHTMLEditor.stripHtmlTags(oldHtmlText);
+            
             Boolean newCompleted = null;
             if (newContent.contains(OwnNoteEditor.UNCHECKED_BOXES_2)) {
                 newCompleted = false;
@@ -249,7 +275,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
 
             TaskData changedTask = null;
             for (TaskData task : taskList) {
-                if (task.getNoteData().equals(note) && task.getDescription().equals(oldDescription)) {
+                if (task.getNote().equals(note) && task.getHtmlText().equals(oldHtmlText)) {
                     changedTask = task;
                     break;
                 }
@@ -266,6 +292,8 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         }
             
         inFileChange = false;
+
+//        System.out.println("processFileContentChange ended: " + Instant.now());
         
         return true;
     }
@@ -278,7 +306,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         inFileChange = true;
 
 //        System.out.println("processTaskCompletedChanged for: " + task);
-        myEditor.selectNoteAndToggleCheckBox(task.getNoteData(), task.getTextPos(), task.getHtmlText(), task.isCompleted());
+        myEditor.selectNoteAndToggleCheckBox(task.getNote(), task.getTextPos(), task.getHtmlText(), task.isCompleted());
 
         inFileChange = false;
     }
@@ -287,10 +315,10 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         return inFileChange;
     }
     
-    public TaskCount getTaskCount(final NoteData note) {
+    public TaskCount getTaskCount(final Note note) {
         // first all tasks for this note
-        final List<TaskData> noteTasks = taskList.stream().filter((t) -> {
-            return t.getNoteData().equals(note);
+        final List<TaskData> noteTasks = getTaskList().stream().filter((t) -> {
+            return t.getNote().equals(note);
         }).collect(Collectors.toList());
         
         final long closedTasks = noteTasks.stream().filter((t) -> {

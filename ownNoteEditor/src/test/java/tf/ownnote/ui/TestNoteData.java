@@ -39,30 +39,30 @@ import java.util.Map;
 import org.apache.commons.io.FilenameUtils;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
-import tf.ownnote.ui.notes.GroupData;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class TestNodeData {
-    private final Map<String, GroupData> groupsList = new LinkedHashMap<>();
-    private final Map<String, NoteData> notesList = new LinkedHashMap<>();
+public class TestNoteData {
+    private final Map<String, NoteGroup> groupsList = new LinkedHashMap<>();
+    private final Map<String, Note> notesList = new LinkedHashMap<>();
 
-    public TestNodeData() {
+    public TestNoteData() {
         // init groupsList for know groups - ALL & NOT_GROUPED
-        GroupData groupRow = new GroupData();
-        groupRow.setGroupName(GroupData.ALL_GROUPS);
+        NoteGroup groupRow = new NoteGroup();
+        groupRow.setGroupName(NoteGroup.ALL_GROUPS);
         groupRow.setGroupDelete(null);
         groupRow.setGroupCount("0");
-        groupsList.put("All", new GroupData(groupRow));
+        groupsList.put("All", new NoteGroup(groupRow));
         
         groupRow.clear();
-        groupRow.setGroupName(GroupData.NOT_GROUPED);
+        groupRow.setGroupName(NoteGroup.NOT_GROUPED);
         groupRow.setGroupDelete(null);
         groupRow.setGroupCount("0");
-        groupsList.put("Not grouped", new GroupData(groupRow));
+        groupsList.put("Not grouped", new NoteGroup(groupRow));
     }
     
     public void copyTestFiles(final Path testpath) throws Throwable {
@@ -135,43 +135,41 @@ public class TestNodeData {
             // see pull request #44
             noteName = filename.substring(filename.indexOf("]")+2, filename.lastIndexOf("."));
         } else {
-            groupName = GroupData.NOT_GROUPED;
+            groupName = NoteGroup.NOT_GROUPED;
             // see pull request #44
             noteName = filename.substring(0, filename.lastIndexOf("."));
         }
         
-        GroupData groupRow = new GroupData();
+        NoteGroup groupRow = new NoteGroup();
         if (groupsList.containsKey(groupName)) {
             // group already exists - increase counter
             groupRow = groupsList.get(groupName);
             groupRow.setGroupCount(Integer.toString(Integer.valueOf(groupRow.getGroupCount())+1));
-            groupsList.replace(groupName, new GroupData(groupRow));
+            groupsList.replace(groupName, new NoteGroup(groupRow));
         } else {                    // new group - add to list
             groupRow.clear();
             groupRow.setGroupName(groupName);
             groupRow.setGroupDelete(OwnNoteFileManager.deleteString);
             groupRow.setGroupCount("1");
-            groupsList.put(groupName, new GroupData(groupRow));
+            groupsList.put(groupName, new NoteGroup(groupRow));
         }
         // allways increment count for all :-)
-        groupRow = groupsList.get(GroupData.ALL_GROUPS);
+        groupRow = groupsList.get(NoteGroup.ALL_GROUPS);
         groupRow.setGroupCount(Integer.toString(Integer.valueOf(groupRow.getGroupCount())+1));
-        groupsList.replace(GroupData.ALL_GROUPS, new GroupData(groupRow));
+        groupsList.replace(NoteGroup.ALL_GROUPS, new NoteGroup(groupRow));
         
-        final NoteData noteRow = new NoteData();
-        noteRow.setNoteName(noteName);
+        final Note noteRow = new Note(groupName, noteName);
         noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
         noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
-        noteRow.setGroupName(groupName);
         // use filename and not notename since duplicate note names can exist in diffeent groups
-        notesList.put(filename, new NoteData(noteRow));
+        notesList.put(filename, noteRow);
     }
     
-    public Collection<GroupData> getGroupsList() {
+    public Collection<NoteGroup> getGroupsList() {
         return groupsList.values();
     }
     
-    public Collection<NoteData> getNotesList() {
+    public Collection<Note> getNotesList() {
         return notesList.values();
     }
     
@@ -188,8 +186,8 @@ public class TestNodeData {
     public int getNotesCountForName(final String noteName) {
         int result = 0;
 
-        for (NoteData noteData : notesList.values()) {
-            if (noteData.getNoteName().contains(noteName)) {
+        for (Note note : notesList.values()) {
+            if (note.getNoteName().contains(noteName)) {
                 result++;
             }
         }

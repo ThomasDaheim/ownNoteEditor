@@ -31,28 +31,47 @@ import java.util.HashMap;
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class GroupData extends HashMap<String,String> {
+public class NoteGroup extends HashMap<String,String> {
 
     // to reference the columns for groups table
     private enum GroupMapKey {
         groupName,
         groupDelete,
-        groupCount;
+        groupCount,
+        // TFE, 20201207: now thy colors
+        groupColor;
     }
         
     public static final String ALL_GROUPS = "All";
     public static final String NOT_GROUPED = "Not grouped";
     public static final String NEW_GROUP = "New group";
     
-    public GroupData() {
+    // helper methods to check for All, Not Grouped 
+    public static boolean isSpecialGroup(final String groupName) {
+        return (isNotGrouped(groupName) || ALL_GROUPS.equals(groupName));
+    }
+    
+    public static boolean isNotGrouped(final String groupName) {
+        // isEmpty() happens for new notes, otherwise, hrou names are NOT_GROUPED from OwnNoteFileManager.initNotesPath()
+        return (groupName.isEmpty() || NOT_GROUPED.equals(groupName));
+    }
+    
+    public static boolean isSameGroup(final String groupName1, final String groupName2) {
+        assert groupName1 != null;
+        assert groupName2 != null;
+        // either both are equal or both are part of "Not grouped"
+        return (groupName1.equals(groupName2) || isNotGrouped(groupName1) && isNotGrouped(groupName2));
+    }
+    
+    public NoteGroup() {
         super();
     }
     
-    public GroupData(final GroupData dataRow) {
+    public NoteGroup(final NoteGroup dataRow) {
         super(dataRow);
     }
     
-    public static String getGroupDataName(final int i) {
+    public static String getNoteGroupName(final int i) {
         return GroupMapKey.values()[i].name();
     }
     
@@ -78,5 +97,13 @@ public class GroupData extends HashMap<String,String> {
 
     public void setGroupCount(final String groupCount) {
         put(GroupMapKey.groupCount.name(), groupCount);
+    }
+
+    public String getGroupColor() {
+        return get(GroupMapKey.groupColor.name());
+    }
+
+    public void setGroupColor(final String groupColor) {
+        put(GroupMapKey.groupColor.name(), groupColor);
     }
 }

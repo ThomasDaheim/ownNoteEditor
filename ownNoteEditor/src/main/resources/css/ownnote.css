@@ -14,13 +14,13 @@
     -fx-border-width: 0;
     -fx-font-size: 1.166667em;
     -fx-font-color: -fx-text-base-color;
+    -fx-font-weight: normal;
     -fx-text-fill: -fx-text-base-color;
     
     /* our own variables should be initialized here as well to avoid run-time warnings */
-    tab-color: white;
+    group-color: white;
     note-selected-background-color: -fx-base;
     note-selected-font-color: black;
-    notename-font-weight: bold;
 }
 
 .nametooltip {
@@ -34,26 +34,30 @@
     -fx-font-weight: normal;
 }
 
-/* No background color in table header, please */
+/* No background color in table header, please 
+   https://stackoverflow.com/a/36688012 */
 .table-view.notesTable,
 .table-view.notesTable .column-header,
+.table-view.notesTable .column-header .filler,
 .table-view.notesTable .column-header .label,
 .table-view.notesTable .column-header-background,
+.table-view.notesTable .column-header-background .filler,
 .table-view.notesTable .table-row-cell {
-    -fx-background-color: tab-color;
+    -fx-background-color: group-color;
     -fx-table-cell-border-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
 }
 .table-view.notesTable:row-selection .table-row-cell:selected .text {
     -fx-font-weight: bold;
 }
 .table-view > .virtual-flow > .clipped-container > .sheet > .table-row-cell .table-cell:hover:filled,
 .table-view > .virtual-flow > .clipped-container > .sheet > .table-row-cell:hover:filled .table-cell{
-    -fx-background-color: cell_hover_color;
+    -fx-background-color: cell_hover_color !important;
 }
 
 /* note name in bold */
 .noteNameCol {
-    -fx-font-weight: notename-font-weight;
     -fx-alignment: CENTER_LEFT;
 }
 /* note date in gray */
@@ -80,15 +84,18 @@
 /* No background color in table header, please */
 .table-view.groupsTable,
 .table-view.groupsTable .column-header,
+.table-view.groupsTable .column-header .filler,
 .table-view.groupsTable .column-header .label,
 .table-view.groupsTable .column-header-background,
+.table-view.groupsTable .column-header-background .filler,
 .table-view.groupsTable .table-row-cell {
     -fx-background-color: -fx-base;
     -fx-table-cell-border-color: transparent;
+    -fx-border-width: 0;
 }
 .table-view.groupsTable .table-row-cell:hover:filled,
 .table-view.groupsTable .table-row-cell:selected {
-    -fx-background-color: darkgray;
+    /*-fx-background-color: darkgray !important;*/
     -fx-font-color: -fx-text-base-color;
 }
 /* selected group info in bold */
@@ -137,10 +144,10 @@
 .tab-header-area .tab,
 .tab-pane > .tab-header-area > .headers-region > .tab,
 .tab-pane > .tab-header-area > .headers-region > .tab:selected {
-    -fx-background-color: tab-color;
+    -fx-background-color: group-color;
 }
 .tab-pane .tab-content-area {
-    -fx-background-color: tab-color;
+    -fx-background-color: group-color;
 }
 
 /* "+" tab is special */
@@ -162,6 +169,7 @@
 .split-pane > .split-pane-divider {  
     -fx-padding: 0 1 0 1;  
     -fx-background-color: darkgray;
+    -fx-fill-color: darkgray;
 } 
 
 /* style box, label, button or path selection */
@@ -204,4 +212,23 @@
 .removeTag {
     -fx-font-weight: bold;
     -fx-font-size: 0.8em;
+}
+
+/* style tag treeview */
+/*.tagsTreeView, 
+.tagsTreeView .tree-cell,
+    -fx-background-color: black;
+    -fx-font-color: white !important;
+    -fx-text-fill: white !important;
+}*/
+/*.tree-cell > .tree-disclosure-node > .arrow {
+    color: white !important;
+    fill: white !important;
+    stroke: white !important;
+}*/
+.tagsTreeView .tree-cell:filled:selected {
+    -fx-font-weight: bold;
+}
+.tagsTreeView .tree-cell:filled:hover {
+    -fx-background-color: cell_hover_color !important;
 }

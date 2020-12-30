@@ -29,6 +29,7 @@ import java.util.Comparator;
 import java.util.Map;
 import javafx.event.EventHandler;
 import javafx.scene.Cursor;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TextField;
@@ -38,21 +39,22 @@ import javafx.scene.input.MouseEvent;
 import javafx.util.Callback;
 import javafx.util.converter.DefaultStringConverter;
 import tf.helper.general.ObjectsHelper;
-import tf.ownnote.ui.general.CellUtils;
+import tf.helper.javafx.CellUtils;
+import tf.helper.javafx.StyleHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.GroupData;
-import tf.ownnote.ui.notes.NoteData;
+import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public class OwnNoteTableColumn {
-    
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor = null;
     
     private TableColumn<Map, String> myTableColumn = null;
+    private String backgroundColor = "white";
     
     // we need to know the tabletype as well...
     private OwnNoteTableView.TableType myTableType = null;
@@ -86,14 +88,13 @@ public class OwnNoteTableColumn {
     
     public void setTableColumnProperties(final double percentage, final String valueName, final boolean linkCursor) {
         setWidthPercentage(percentage);
-        myTableColumn.setCellValueFactory(new MapValueFactory<String>(valueName));
+        myTableColumn.setCellValueFactory(new MapValueFactory<>(valueName));
         myTableColumn.setCellFactory(createObjectCellFactory(linkCursor));
     }
 
-    private Callback<TableColumn<Map, String>, TableCell<Map, String>>
-        createObjectCellFactory(final boolean linkCursor) {
-        assert (this.myEditor != null);
-        return (TableColumn<Map, String> param) -> new ObjectCell(this.myEditor, this, linkCursor, new UniversalMouseEvent(this.myEditor));
+    private Callback<TableColumn<Map, String>, TableCell<Map, String>> createObjectCellFactory(final boolean linkCursor) {
+        assert (myEditor != null);
+        return (TableColumn<Map, String> param) -> new ObjectCell(myEditor, this, linkCursor, new UniversalMouseEvent(myEditor));
     }
 
     public OwnNoteTableView.TableType getTableType() {
@@ -119,8 +120,12 @@ public class OwnNoteTableColumn {
         myTableColumn.setOnEditCommit(value);
     }
     
-    public void setStyle(final String style) {
-        myTableColumn.setStyle(style);
+    public void setBackgroundColor(final String color) {
+        myTableColumn.setStyle(StyleHelper.addAndRemoveStyles(
+                myTableColumn, 
+                StyleHelper.cssString(OwnNoteEditor.GROUP_COLOR_CSS, color), 
+                StyleHelper.cssString(OwnNoteEditor.GROUP_COLOR_CSS, backgroundColor)));
+        backgroundColor = color;
     }
 
     public void setVisible(final boolean b) {
@@ -164,26 +169,26 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
                             
         boolean reInit = false;
         
-        NoteData curNoteData = null;
-        GroupData curGroupData = null;
+        Note curNote = null;
+        NoteGroup curNoteGroup = null;
         switch(clickedCell.getId()) {
             case "noteNameColFXML":
                 //System.out.println("Clicked in noteNameCol");
-                curNoteData =
-                    new NoteData(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
-                //reInit = this.myEditor.editNote(curNoteData);
+                curNote =
+                    ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex()));
+                //reInit = this.myEditor.editNote(curNote);
                 break;
             case "noteDeleteColFXML":
                 //System.out.println("Clicked in noteDeleteCol");
-                curNoteData =
-                    new NoteData(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
-                reInit = this.myEditor.deleteNoteWrapper(curNoteData);
+                curNote =
+                    ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex()));
+                reInit = this.myEditor.deleteNote(curNote);
                 break;
             case "groupDeleteColFXML":
                 //System.out.println("Clicked in groupDeleteCol");
-                curGroupData =
-                    new GroupData(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
-                reInit = this.myEditor.deleteGroupWrapper(curGroupData);
+                curNoteGroup =
+                    new NoteGroup(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
+                reInit = this.myEditor.deleteGroupWrapper(curNoteGroup);
                 break;
             default:
                 //System.out.println("Ignoring click into " + clickedCell.getId() + " for controller " + this.myEditor.toString());
@@ -191,7 +196,7 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
         
         if (reInit) {
             // rescan diretory - also group name counters need to be updated...
-            this.myEditor.initFromDirectory(false);
+            this.myEditor.initFromDirectory(false, false);
         }
     }
 };
@@ -202,17 +207,17 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
     private TextField textField;
     
     // store link back to the controller of the scene for callback
-    private OwnNoteEditor myOwnNoteEditor;
+    private final OwnNoteEditor myEditor;
     
-    private OwnNoteTableColumn myOwnNoteTableColumn;
+    private final OwnNoteTableColumn myTableColumn;
     
-    public ObjectCell(final OwnNoteEditor ownNoteEditor,
-            final OwnNoteTableColumn ownNoteTableColumn, 
+    public ObjectCell(final OwnNoteEditor editor,
+            final OwnNoteTableColumn tableColumn, 
             final boolean linkCursor, 
             final EventHandler<MouseEvent> mouseEvent) {
         super(new DefaultStringConverter());
-        myOwnNoteEditor = ownNoteEditor;
-        myOwnNoteTableColumn = ownNoteTableColumn;
+        myEditor = editor;
+        myTableColumn = tableColumn;
         
         if (linkCursor) {
             this.setCursor(Cursor.HAND);
@@ -223,8 +228,7 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
     
     @Override
     public void startEdit() {
-        if (GroupData.ALL_GROUPS.equals(getText())
-                || GroupData.NOT_GROUPED.equals(getText())) {
+        if (NoteGroup.isSpecialGroup(getText())) {
             return;
         }
         super.startEdit();
@@ -240,7 +244,7 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
                 textField = CellUtils.createTextField(this, getConverter());
                 
                 // TFE, 20191208: check for valid file names!
-                FormatHelper.getInstance().initNameTextField(textField);
+                FormatHelper.getInstance().initNoteGroupNameTextField(textField);
             }
             
             CellUtils.startEdit(this, getConverter(), null, null, textField);
@@ -261,6 +265,15 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
         
         CellUtils.updateItem(this, getConverter(), null, null, textField);
 
+        Label graphic = null;
+        if (item != null && getTableRow().getItem() != null &&
+                "noteNameColFXML".equals(getId()) && 
+                OwnNoteEditorParameters.LookAndFeel.tagTree.equals(myEditor.getCurrentLookAndFeel())) {
+            final Note note = ObjectsHelper.uncheckedCast(getTableRow().getItem());
+            final String groupColor = myEditor.getGroupColor(note.getGroupName());
+            graphic = new Label("    ");
+            graphic.setStyle("-fx-background-color: " + groupColor + ";");
+        }
         if (item != null) {
             // add class to indicate not null content - to be used in css
             this.getStyleClass().add(ObjectCell.valueSet);
@@ -268,6 +281,7 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
             // add class to indicate null content - to be used in css
             this.getStyleClass().removeAll(ObjectCell.valueSet);
         }
+        this.setGraphic(graphic);
 
         setTooltip(null);
     }
