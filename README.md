@@ -163,7 +163,7 @@ Of course, such a project depends on the results of many others! I've tried to a
 
 Explicit dependencies:
 
-* tf.JavaHelper:JavaHelper:1.9 (see my other repros)
+* tf.JavaHelper:JavaHelper:1.9 https://github.com/ThomasDaheim/JavaHelper, not available via maven <- any help appreciated on how to best include as sub/meta/... repository
 * 'org.slf4j:slf4j-api:1.7.12'
 * 'commons-cli:commons-cli:1.4'
 * 'commons-io:commons-io:2.6'
