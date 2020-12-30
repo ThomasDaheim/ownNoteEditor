@@ -99,6 +99,7 @@ public class TaskData {
 
         // html text is the "raw" thing - without htmls tags, they might be temporary from tinyMCE
         myHtmlText = noteText;
+
         // convert all &uml; back to &
         myDescription.setValue(StringEscapeUtils.unescapeHtml4(myHtmlText));
 //        System.out.println("    parseHtmlText completed: " + Instant.now());

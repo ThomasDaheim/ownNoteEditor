@@ -55,11 +55,11 @@ import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.notes.NoteMetaData;
 import tf.ownnote.ui.notes.NoteVersion;
-import tf.ownnote.ui.notes.INoteCRMDS;
 
 /**
  *
@@ -136,7 +136,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         // iterate over all files from directory
         DirectoryStream<Path> stream = null;
         try {
-            stream = Files.newDirectoryStream(Paths.get(this.notesPath), "*.htm");
+            stream = Files.newDirectoryStream(Paths.get(notesPath), "*.htm");
             for (Path path: stream) {
                 final File file = path.toFile();
                 final String filename = file.getName();

@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javafx.collections.ObservableList;
 import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
@@ -89,14 +88,16 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
     }
     
     private Stage myStage;
+    private OwnNoteEditorManager myApp;
     
     @Override
     public void start(Stage stage) throws Exception {
+        System.out.println("running start()");
         myStage = stage;
         
-        OwnNoteEditorManager app = new OwnNoteEditorManager();
+        myApp = new OwnNoteEditorManager();
         // TODO: set command line parameters to avoid tweaking stored values
-        app.start(myStage);
+        myApp.start(myStage);
         
         /* Do not forget to put the GUI in front of windows. Otherwise, the robots may interact with another
         window, the one in front of all the windows... */
@@ -127,8 +128,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
                     OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
 
             currentPath = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, "");
-            // System.out.println("currentPath: " + currentPath);
-            // System.out.println("Using preference for ownCloudDir: " + currentPath);
+//            System.out.println("currentPath: " + currentPath);
 
             lastGroupName = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.LAST_EDITED_GROUP, "");
             lastNoteName = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.LAST_EDITED_NOTE, "");
@@ -137,7 +137,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         }        
 
         // copy test files to directory
-        testpath = Files.createTempDirectory("TestNotes");
+        testpath = Files.createTempDirectory("TestTagTreeLookAndFeel");
         // TFE, 20180930: set read/write/ exec for all to avoid exceptions in monitoring thread
         testpath.toFile().setReadable(true, false);
         testpath.toFile().setWritable(true, false);
@@ -194,6 +194,12 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         /* Close the window. It will be re-opened at the next test. */
         release(new KeyCode[] {});
         release(new MouseButton[] {});
+        
+        try {
+            myApp.closeStage(false);
+        } catch (Exception ex) {
+            Logger.getLogger(TestTagTreeLookAndFeel.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
         // delete temp directory + files
         //FileUtils.deleteDirectory(testpath.toFile());
@@ -597,7 +603,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
     private void testFileSystemChange() {
         System.out.println("running testFileSystemChange()");
 
-        long sleepTime = 1000;
+        long sleepTime = 1200;
         
         // TFE, 20190930: switch to correct tab initially to avoid later chanegs that might trigger hasChanged() calls
         selectTag(allTag);
@@ -680,7 +686,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS) - 1, CheckMode.BOTH);
         
         // create back again
-        assertTrue(myTestdata.createTestFile(testpath, "[Test1] " + newName + ".htm"));
+        assertTrue(myTestdata.createTestFile(testpath, "[Test1] test1.htm"));
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 //        System.out.println("after sleep for: create back again");
 

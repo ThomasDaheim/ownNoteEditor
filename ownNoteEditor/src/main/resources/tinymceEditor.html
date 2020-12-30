@@ -431,13 +431,21 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 var element = findCheckBox(textPos, htmlText);
                 
                 if (element && element.checkbox) {
-                    //console.log('checkbox found');
+                    //console.log('checkbox found: "' + element.checkbox + '", "' + element.checkbox.outerHTML + '", "' + element.checkbox.parentNode.innerHTML + '"');
                     element.checkbox.checked = newStatus;
+                    // see https://stackoverflow.com/questions/6003819/what-is-the-difference-between-properties-and-attributes-in-html
+                    // for the difference between HTML properties and DOM attributes
+                    if (newStatus) {
+                        element.checkbox.setAttribute('checked', "checked");
+                    } else {
+                        element.checkbox.removeAttribute('checked');
+                    }
+                    //console.log('checkbox toggled: "' + element.checkbox + '", "' + element.checkbox.outerHTML + '", "' + element.checkbox.parentNode.innerHTML + '"');
                 }
             }
             
             function findCheckBox(textPos, htmlText) {
-                //console.log('findCheckBox start: ' + textPos + ', ' + htmlText);
+                //console.log('findCheckBox start: ' + textPos + ', "' + htmlText + '"');
                 var checkbox;
                 var content;
                 var checkboxFound = false;
@@ -445,22 +453,31 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 // iterate over checkboxes to find the one with text following
                 // needs to be done the other way around! find text node with content and change previous content result
                 $(tinymce.activeEditor.getBody()).find(':checkbox').each(function() {
+                    //console.log('findCheckBox, checking: ' + this.outerHTML);
+                    checkbox = this;
                     $(this).parent().contents().each(function() {
                         //console.log('findCheckBox, checking: ' + this.innerHTML + ', ' + this.nodeValue);
                         // check text nodes only
                         if (this.nodeType === 3) {
-                            //console.log('  CONTENTS.text: ' + this.nodeValue);
-                            if (this.nodeValue == htmlText) {
+                            //console.log('  CONTENTS.nodeValue: "' + this.nodeValue + '"');
+                            //console.log('  PARENT.textContent: "' + this.parentNode.textContent + '"');
+                            if (this.parentNode.textContent.endsWith(htmlText)) {
                                 //console.log('findCheckBox, foundit!');
                                 checkboxFound = true;
                                 
-                                content = this;
+                                // make sure we highlight the correct thing...
+                                if (this.parentNode.textContent === this.nodeValue) {
+                                    content = this;
+                                } else {
+                                    // this highlights the whole line in case of text before the checkbox...
+                                    // TODO: a good idea to "shrink" this to the correct text
+                                    content = this.parentNode;
+                                }
                                 
                                 // done, end loop prematurely
                                 return false;
                             }
                         }
-                        checkbox = this;
                     });
                     
                     if (checkboxFound) {

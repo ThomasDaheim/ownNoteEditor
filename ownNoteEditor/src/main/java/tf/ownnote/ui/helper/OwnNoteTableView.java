@@ -213,6 +213,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         myTableView.getFocusModel().focus(rownum);
     }
     
+    @Override
     public void selectGroupForNote(final Note note) {
         assert (TableType.groupsTable.equals(myTableType));
 

@@ -26,6 +26,7 @@
 package tf.ownnote.ui.helper;
 
 import javafx.collections.ObservableList;
+import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
 
 /**
@@ -39,6 +40,8 @@ public interface IGroupListContainer {
     public abstract void setGroups(final ObservableList<NoteGroup> groupsList, final boolean updateOnly);
     
     public abstract NoteGroup getCurrentGroup();
+    
+    public abstract void selectGroupForNote(final Note note);
     
     public abstract void setBackgroundColor(final String style);
     

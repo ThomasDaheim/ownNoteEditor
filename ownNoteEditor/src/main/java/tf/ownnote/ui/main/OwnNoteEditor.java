@@ -108,16 +108,15 @@ import tf.ownnote.ui.helper.OwnNoteMetaEditor;
 import tf.ownnote.ui.helper.OwnNoteTabPane;
 import tf.ownnote.ui.helper.OwnNoteTableColumn;
 import tf.ownnote.ui.helper.OwnNoteTableView;
+import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.tags.TagEditor;
-import tf.ownnote.ui.tags.TagInfo;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tags.TagsTreeView;
 import tf.ownnote.ui.tasks.TaskData;
 import tf.ownnote.ui.tasks.TaskList;
 import tf.ownnote.ui.tasks.TaskManager;
-import tf.ownnote.ui.notes.INoteCRMDS;
 
 /**
  *
@@ -323,46 +322,48 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         // defer initEditor since we need to know the value of the prameters...
     }
     
-    public void stop() {
+    public void stop(final boolean productiveRun) {
         OwnNoteFileManager.getInstance().stop();
         
-        // store current percentage of group column width
-        // if increment is passed as parameter, we need to remove it from the current value
-        // otherwise, the percentage grows with each call :-)
-        final String percentWidth = String.valueOf(gridPane.getColumnConstraints().get(NOTE_GROUP_COLUMN).getPercentWidth());
-        // store in the preferences
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_CLASSIC_GROUPWIDTH, percentWidth);
-        } else {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH, percentWidth);
+        if (productiveRun) {
+            // store current percentage of group column width
+            // if increment is passed as parameter, we need to remove it from the current value
+            // otherwise, the percentage grows with each call :-)
+            final String percentWidth = String.valueOf(gridPane.getColumnConstraints().get(NOTE_GROUP_COLUMN).getPercentWidth());
+            // store in the preferences
+            if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_CLASSIC_GROUPWIDTH, percentWidth);
+            } else {
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH, percentWidth);
+            }
+            // TFE, 20201204: store tag tree width only for this look & feel
+            if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TAGTREE_WIDTH, String.valueOf(gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth()));
+            }
+            // TFE, 20201203: taskList can be hidden (and therefore have column has width 0)
+            if (tasklistVisible.get()) {
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH, String.valueOf(gridPane.getColumnConstraints().get(TASKLIST_COLUMN).getPercentWidth()));
+            } else {
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH, String.valueOf(taskListWidth));
+            }
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TASKLIST_VISIBLE, String.valueOf(tasklistVisible.get()));
+
+            // issue #45 store sort order for tables
+            groupsTable.savePreferences(OwnNoteEditorPreferences.getInstance());
+            notesTable.savePreferences(OwnNoteEditorPreferences.getInstance());
+
+            // TFE, 20200903: store groups tabs order as well
+            groupsPane.savePreferences(OwnNoteEditorPreferences.getInstance());
+
+            // TFE, 20201030: store name of last edited note
+            if (noteHTMLEditor.getEditedNote() != null) {
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_NOTE, noteHTMLEditor.getEditedNote().getNoteName());
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_GROUP, noteHTMLEditor.getEditedNote().getGroupName());
+            }
+
+            // TFE, 20201121: tag info is now stored in a separate file
+            TagManager.getInstance().saveTags();
         }
-        // TFE, 20201204: store tag tree width only for this look & feel
-        if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TAGTREE_WIDTH, String.valueOf(gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth()));
-        }
-        // TFE, 20201203: taskList can be hidden (and therefore have column has width 0)
-        if (tasklistVisible.get()) {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH, String.valueOf(gridPane.getColumnConstraints().get(TASKLIST_COLUMN).getPercentWidth()));
-        } else {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH, String.valueOf(taskListWidth));
-        }
-        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TASKLIST_VISIBLE, String.valueOf(tasklistVisible.get()));
-        
-        // issue #45 store sort order for tables
-        groupsTable.savePreferences(OwnNoteEditorPreferences.getInstance());
-        notesTable.savePreferences(OwnNoteEditorPreferences.getInstance());
-        
-        // TFE, 20200903: store groups tabs order as well
-        groupsPane.savePreferences(OwnNoteEditorPreferences.getInstance());
-        
-        // TFE, 20201030: store name of last edited note
-        if (noteHTMLEditor.getEditedNote() != null) {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_NOTE, noteHTMLEditor.getEditedNote().getNoteName());
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_GROUP, noteHTMLEditor.getEditedNote().getGroupName());
-        }
-        
-        // TFE, 20201121: tag info is now stored in a separate file
-        TagManager.getInstance().saveTags();
     }
     
     public void setParameters() {
@@ -1215,11 +1216,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     
     public void selectNoteAndCheckBox(final Note note, final int textPos, final String htmlText) {
         // need to distinguish between views to select group
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-            groupsTable.selectGroupForNote(note);
-        } else {
-            groupsPane.selectGroupForNote(note);
-        }
+        myGroupList.selectGroupForNote(note);
         
         // and now select the note - leads to callback to editNote to fill the htmleditor
         notesTable.selectNote(note);
@@ -1549,15 +1546,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                         // done, selectGroupForNote calls selectFirstOrCurrentNote() internally - BUT NO LOOPS PLEASE
                         firstNoteAccess = false;
                         Platform.runLater(() -> {
-                            switch (currentLookAndFeel) {
-                                case groupTabs:
-                                    groupsPane.selectGroupForNote(curNote);
-                                    break;
-                                case tagTree:
-                                    tagsTreeView.selectGroupForNote(curNote);
-                                    break;
-                                default:
-                                    break;
+                            if (!OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
+                                myGroupList.selectGroupForNote(curNote);
                             }
                         });
                         return;

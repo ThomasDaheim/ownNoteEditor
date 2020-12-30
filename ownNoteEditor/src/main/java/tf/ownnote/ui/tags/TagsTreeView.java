@@ -289,6 +289,7 @@ public class TagsTreeView extends TreeView<TagInfo> implements IGroupListContain
         inPropgateUpwardsAction = false;
     }
     
+    @Override
     public void selectGroupForNote(final Note note) {
         assert note != null;
         

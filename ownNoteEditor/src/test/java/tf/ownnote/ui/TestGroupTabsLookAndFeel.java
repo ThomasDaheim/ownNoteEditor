@@ -74,27 +74,32 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
     private static double SCALING = 0.85;
     
     private Stage myStage;
+    private OwnNoteEditorManager myApp;
     
     @Override
     public void start(Stage stage) throws Exception {
+        System.out.println("running start()");
         myStage = stage;
         
-        OwnNoteEditorManager app = new OwnNoteEditorManager();
+        myApp = new OwnNoteEditorManager();
         // TODO: set command line parameters to avoid tweaking stored values
-        app.start(stage);
+        myApp.start(stage);
         
         /* Do not forget to put the GUI in front of windows. Otherwise, the robots may interact with another
         window, the one in front of all the windows... */
-        stage.toFront();
+        myStage.toFront();
         
         // TF, 20170205: under gradle in netbeans toFront() still leves the window in the background...
-        stage.requestFocus();
+        myStage.requestFocus();
     }
 
     private final TestNoteData myTestdata = new TestNoteData();
   
     private String currentPath;
     private Path testpath;
+    
+    private String lastGroupName;
+    private String lastNoteName;
     
     private OwnNoteEditorParameters.LookAndFeel currentLookAndFeel;
 
@@ -109,14 +114,16 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
                     OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
 
             currentPath = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, "");
-            // System.out.println("currentPath: " + currentPath);
-            // System.out.println("Using preference for ownCloudDir: " + currentPath);
+//            System.out.println("currentPath: " + currentPath);
+
+            lastGroupName = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.LAST_EDITED_GROUP, "");
+            lastNoteName = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.LAST_EDITED_NOTE, "");
         } catch (SecurityException ex) {
             Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
         }        
 
         // copy test files to directory
-        testpath = Files.createTempDirectory("TestNotes");
+        testpath = Files.createTempDirectory("TestGroupTabsLookAndFeel");
         // TFE, 20180930: set read/write/ exec for all to avoid exceptions in monitoring thread
         testpath.toFile().setReadable(true, false);
         testpath.toFile().setWritable(true, false);
@@ -130,6 +137,8 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         // set look & feel and notes path name
         OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.groupTabs.name());
         OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, testpath.toString());
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_GROUP, "");
+        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_NOTE, "");
         //System.out.println("testpath: " + testpath.toString());
     }
 
@@ -186,8 +195,11 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         release(new KeyCode[] {});
         release(new MouseButton[] {});
 
-        // delete temp directory + files
-        //FileUtils.deleteDirectory(testpath.toFile());
+        try {
+            myApp.closeStage(false);
+        } catch (Exception ex) {
+            Logger.getLogger(TestTagTreeLookAndFeel.class.getName()).log(Level.SEVERE, null, ex);
+        }
         
         // set look & feel to old value
         if (currentLookAndFeel != null) {
@@ -199,6 +211,13 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
             OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, currentPath);
         }
         
+        if (lastGroupName != null) {
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_GROUP, lastGroupName);
+        }
+        if (lastNoteName != null) {
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_NOTE, lastNoteName);
+        }
+
         try {
             FileUtils.deleteDirectory(testpath.toFile());
         } catch (IOException ex) {
@@ -252,7 +271,7 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
 
     @Test
     public void runTests() {
-        getNodes();
+        resetForNextTest();
 
         testNodes();
         testInitialSetup();
@@ -592,7 +611,7 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
     private void testFileSystemChange() {
         System.out.println("running testFileSystemChange()");
 
-        long sleepTime = 1000;
+        long sleepTime = 1200;
         
         // TFE, 20190930: switch to correct tab initially to avoid later chanegs that might trigger hasChanged() calls
         selectTab(0);
@@ -675,7 +694,7 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS) - 1);
         
         // create back again
-        assertTrue(myTestdata.createTestFile(testpath, "[Test1] " + newName + ".htm"));
+        assertTrue(myTestdata.createTestFile(testpath, "[Test1] test1.htm"));
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 //        System.out.println("after sleep for: create back again");
 

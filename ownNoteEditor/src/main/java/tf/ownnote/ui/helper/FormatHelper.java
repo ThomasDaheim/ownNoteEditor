@@ -29,13 +29,10 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.function.Predicate;
-import javafx.scene.Node;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.control.Tooltip;
-import tf.helper.javafx.StyleHelper;
 import tf.helper.javafx.TooltipHelper;
-import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
  * Helper for formating and sorting special values in OwnNoteTableColumn

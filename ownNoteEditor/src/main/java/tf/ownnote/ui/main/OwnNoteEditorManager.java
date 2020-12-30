@@ -177,7 +177,7 @@ public class OwnNoteEditorManager extends Application {
         // TF, 20160619: stop() is called on minimize as well - we only want to do closeStage() once
         // also, with Platform.setImplicitExit(false) we need to shut down things ourselves
         myStage.setOnCloseRequest((WindowEvent t) -> {
-            closeStage();
+            closeStage(true);
         });
         
         myStage.show();
@@ -239,7 +239,9 @@ public class OwnNoteEditorManager extends Application {
             // and select the exit option, this will shutdown JavaFX and remove the
             // tray icon (removing the tray icon will also shut down AWT).
             final java.awt.MenuItem exitItem = new java.awt.MenuItem("Exit");
-            exitItem.addActionListener((ActionEvent event) -> Platform.runLater(this::closeStage));
+            exitItem.addActionListener((ActionEvent event) -> Platform.runLater(() -> {
+                this.closeStage(true);
+            }));
 
             // setup the popup menu for the application.
             final java.awt.PopupMenu popup = new java.awt.PopupMenu();
@@ -276,7 +278,7 @@ public class OwnNoteEditorManager extends Application {
         }
     }
 
-    public void closeStage() {
+    public void closeStage(final boolean productiveRun) {
         // TF, 20170421: show before close - otherwise check by "save changed" isn't shown...
         showStage();
 
@@ -286,23 +288,28 @@ public class OwnNoteEditorManager extends Application {
             Logger.getLogger(OwnNoteEditorManager.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        // TF, 20170904: maximized gives wrong values for width & height - surely same with minimized...
-        if (!myStage.isMaximized() && !myStage.isIconified()) {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_WINDOW_WIDTH, String.valueOf(myStage.getScene().getWidth()));
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_WINDOW_HEIGTH, String.valueOf(myStage.getScene().getHeight()));
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_WINDOW_LEFT, String.valueOf(myStage.getX()));
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_WINDOW_TOP, String.valueOf(myStage.getY()));
+        // TFE, 20201230: this is now also cllaed from tests - so we need to be able to distinguish the cases
+        if (productiveRun) {
+            // TF, 20170904: maximized gives wrong values for width & height - surely same with minimized...
+            if (!myStage.isMaximized() && !myStage.isIconified()) {
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_WINDOW_WIDTH, String.valueOf(myStage.getScene().getWidth()));
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_WINDOW_HEIGTH, String.valueOf(myStage.getScene().getHeight()));
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_WINDOW_LEFT, String.valueOf(myStage.getX()));
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_WINDOW_TOP, String.valueOf(myStage.getY()));
+            }
         }
         
         if (controller != null) {
-            controller.stop();
+            controller.stop(productiveRun);
         }
         
         if(tray!= null && trayIcon != null) {
             tray.remove(trayIcon);
         }
-                    
-        Platform.exit();
+
+        if (productiveRun) {
+            Platform.exit();
+        }
     }
     
     private void restoreStagePos() {
