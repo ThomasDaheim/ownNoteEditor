@@ -27,6 +27,7 @@ package tf.ownnote.ui.notes;
 
 import java.util.HashMap;
 import java.util.Objects;
+import tf.ownnote.ui.helper.OwnNoteFileManager;
 
 /**
  *
@@ -94,7 +95,7 @@ public class Note extends HashMap<String, String> {
         return true;
     }
     
-    public static String getNoteName(final int i) {
+    public static String getNoteValueName(final int i) {
         return NoteMapKey.values()[i].name();
     }
     
@@ -140,7 +141,7 @@ public class Note extends HashMap<String, String> {
         
         // set meta data - was done intially but might now have changed during editing
         if (NoteMetaData.hasMetaDataContent(content)) {
-            setMetaData(NoteMetaData.fromHtmlString(content));
+            setMetaData(NoteMetaData.fromHtmlComment(content));
         }
     }
 
@@ -160,5 +161,9 @@ public class Note extends HashMap<String, String> {
         myMetaData = metaData;
         
         myMetaData.setNote(this);
+    }
+    
+    public String getNoteFileName() {
+        return OwnNoteFileManager.getInstance().buildNoteName(this);
     }
 }

@@ -232,3 +232,11 @@
 .tagsTreeView .tree-cell:filled:hover {
     -fx-background-color: cell_hover_color !important;
 }
+
+/* style task data */
+.taskdata:completed > * {
+    -fx-strikethrough: true;
+}
+.taskdata-popup {
+    -fx-font-size: 0.9em;
+}

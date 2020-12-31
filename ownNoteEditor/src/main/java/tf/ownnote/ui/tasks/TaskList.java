@@ -11,9 +11,13 @@ import javafx.collections.ListChangeListener.Change;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
+import javafx.css.PseudoClass;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.CheckBoxListCell;
 import javafx.util.StringConverter;
+import tf.helper.javafx.TooltipHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
@@ -29,6 +33,8 @@ public class TaskList {
     private FilteredList<TaskData> filteredData = null;
     // should only open tasks be shown?
     private boolean myTaskFilterMode = true;
+    
+    private final PseudoClass completed = PseudoClass.getPseudoClass("completed");
     
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor = null;
@@ -61,7 +67,46 @@ public class TaskList {
             }
         };
         
-        myTaskList.setCellFactory(CheckBoxListCell.forListView(TaskData::isCompletedProperty, converter));
+        myTaskList.setCellFactory(lv -> {
+            // TFE, 20201230: change strikethrough based on isCompleted
+            // https://gist.github.com/james-d/846eb9ff72bd66fdd955
+            final ListCell<TaskData> cell = new CheckBoxListCell<>(TaskData::isCompletedProperty, converter) {
+                @Override
+                public void updateItem(TaskData item, boolean empty) {
+                    super.updateItem(item, empty);
+                    
+                    if (item != null && !empty) {
+                        pseudoClassStateChanged(completed, item.isCompleted());
+
+                        final Tooltip tooltip = new Tooltip();
+                        tooltip.getStyleClass().add("taskdata-popup");
+                        final StringBuilder text = new StringBuilder();
+                        text.append(item.getNote().getNoteFileName());
+                        text.append(System.lineSeparator());
+                        text.append("Prio: ");
+                        text.append(item.getTaskPriority().toString());
+                        text.append(", ");
+                        text.append("Status: ");
+                        text.append(item.getTaskStatus().toString());
+                        if (item.getDueDate() != null) {
+                            text.append(", ");
+                            text.append("Due date: ");
+                            text.append(OwnNoteEditor.DATE_TIME_FORMATTER.format(item.getDueDate()));
+                        }
+                        tooltip.setText(text.toString());
+                        TooltipHelper.updateTooltipBehavior(tooltip, 1000, 10000, 0, true);
+                        setTooltip(tooltip);
+                    } else {
+                        pseudoClassStateChanged(completed, false);
+                        setTooltip(null);
+                    }
+                }            
+            };
+            
+            cell.getStyleClass().add("taskdata");
+            
+            return cell ;
+        });
 
         myTaskList.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if (newSelection != null && !newSelection.equals(oldSelection)) {

@@ -60,6 +60,7 @@ import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.notes.NoteMetaData;
 import tf.ownnote.ui.notes.NoteVersion;
+import tf.ownnote.ui.tasks.TaskManager;
 
 /**
  *
@@ -198,7 +199,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                 noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
                 noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
                 // TFE; 20201023: set note metadata from file content
-                noteRow.setMetaData(NoteMetaData.fromHtmlString(getFirstLine(file)));
+                noteRow.setMetaData(NoteMetaData.fromHtmlComment(getFirstLine(file)));
                 // use filename and not notename since duplicate note names can exist in different groups
                 notesList.put(filename, noteRow);
                 //System.out.println("Added note " + noteName + " for group " + groupName + " from filename " + filename);
@@ -391,46 +392,50 @@ public class OwnNoteFileManager implements INoteCRMDS {
         return result;
     }
 
-    public String readNote(final Note curNote) {
+    public Note readNote(final Note curNote, final boolean forceRead) {
         assert curNote != null;
         
-        String result = "";
-        
-        final Path readPath = Paths.get(notesPath, buildNoteName(curNote.getGroupName(), curNote.getNoteName()));
-        if (StandardCharsets.ISO_8859_1.equals(curNote.getMetaData().getCharset())) {
-            try {
-                result = new String(Files.readAllBytes(readPath));
-            } catch (IOException ex) {
-                Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
-                result = "";
-            }
-        } else {
-            try (final BufferedReader reader = 
-                    new BufferedReader(new InputStreamReader(new FileInputStream(readPath.toFile()), StandardCharsets.UTF_8))) {
+        // TFE, 20201231: only read if you really have to
+        if (curNote.getNoteFileContent() == null || forceRead) {
+            String result = "";
 
-                boolean firstLine = true;
-                String str;
-                while ((str = reader.readLine()) != null) {
-                    if (!firstLine) {
-                        // don't use System.lineseparator() to avoid messup with metadata parsing
-                        result += "\n";
-                    }
-                    result += str;
-                    
-                    firstLine = false;
+            final Path readPath = Paths.get(notesPath, buildNoteName(curNote.getGroupName(), curNote.getNoteName()));
+            if (StandardCharsets.ISO_8859_1.equals(curNote.getMetaData().getCharset())) {
+                try {
+                    result = new String(Files.readAllBytes(readPath));
+                } catch (IOException ex) {
+                    Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                    result = "";
                 }
-            } catch (IOException ex) {
-                Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
-                result = "";
+            } else {
+                try (final BufferedReader reader = 
+                        new BufferedReader(new InputStreamReader(new FileInputStream(readPath.toFile()), StandardCharsets.UTF_8))) {
+
+                    boolean firstLine = true;
+                    String str;
+                    while ((str = reader.readLine()) != null) {
+                        if (!firstLine) {
+                            // don't use System.lineseparator() to avoid messup with metadata parsing
+                            result += "\n";
+                        }
+                        result += str;
+
+                        firstLine = false;
+                    }
+                } catch (IOException ex) {
+                    Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                    result = "";
+                }
             }
+
+            // TFE; 20200814: store content in Note
+            curNote.setNoteFileContent(result);
         }
         
-        // TFE; 20200814: store content in Note
-        curNote.setNoteFileContent(result);
-        
-        return result;
+        return curNote;
     }
 
+    @Override
     public boolean saveNote(final Note note) {
         assert note != null;
         
@@ -439,9 +444,10 @@ public class OwnNoteFileManager implements INoteCRMDS {
 
         final String newFileName = buildNoteName(note);
         
-        String content = "";
-        // TODO: set author
-        content = note.getNoteEditorContent();
+        // TFE, 20201230: update task ids
+        TaskManager.getInstance().setTaskDataInNote(note);
+
+        String content = note.getNoteEditorContent();
         if (content == null) {
             content = note.getNoteFileContent();
         }
@@ -449,7 +455,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         note.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), LocalDateTime.now()));
         // TFE, 20201217: from now on you're UTF-8
         note.getMetaData().setCharset(StandardCharsets.UTF_8);
-        final String fullContent = NoteMetaData.toHtmlString(note.getMetaData()) + content;
+        final String fullContent = NoteMetaData.toHtmlComment(note.getMetaData()) + content;
 
         // TFE, 20201217: make sure we write UTF-8...
 //            final Path savePath = Files.write(Paths.get(this.notesPath, newFileName), fullContent.getBytes());
@@ -479,6 +485,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         return result;
     }
     
+    @Override
     public boolean renameNote(final Note note, final String newNoteName) {
         assert note != null;
         

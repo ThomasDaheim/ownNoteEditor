@@ -25,6 +25,7 @@
  */
 package tf.ownnote.ui.notes;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -32,11 +33,17 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.zip.DataFormatException;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
+import org.apache.commons.codec.binary.Base64;
 import tf.ownnote.ui.tags.TagInfo;
 import tf.ownnote.ui.tags.TagManager;
 
@@ -51,18 +58,20 @@ public class NoteMetaData {
     private static final String META_DATA_SEP = "---";
     private static final String META_VALUES_SEP = ":::";
     
+    private enum UpdateTag {
+        LINK,
+        UNLINK
+    }
+    
+    private static final Deflater compresser = new Deflater(Deflater.BEST_COMPRESSION);
+    private static final Inflater decompresser = new Inflater();
+
     private static enum Multiplicity {
         SINGLE,
         MULTIPLE
     }
     
-    private enum UpdateTag {
-        LINK,
-        UNLINK
-    }
-
     // info per available metadata - name & multiplicity
-    // TODO: add values here as well
     private static enum MetaDataInfo {
         VERSIONS("versions", Multiplicity.MULTIPLE),
         TAGS("tags", Multiplicity.MULTIPLE),
@@ -97,7 +106,7 @@ public class NoteMetaData {
 
         // go, tell it to the mountains
         myTags.addListener((SetChangeListener.Change<? extends TagInfo> change) -> {
-            // can happen e.g. when using constructor fromHtmlString()
+            // can happen e.g. when using constructor fromHtmlComment()
             if (myNote == null) {
                 return;
             }
@@ -219,7 +228,7 @@ public class NoteMetaData {
         return result;
     }
     
-    public static NoteMetaData fromHtmlString(final String htmlString) {
+    public static NoteMetaData fromHtmlComment(final String htmlString) {
         final NoteMetaData result = new NoteMetaData();
 
         // parse html string
@@ -227,9 +236,40 @@ public class NoteMetaData {
         // authors="xyz" tags="a:::b:::c"
         
         if (htmlString != null && hasMetaDataContent(htmlString)) {
-            final String contentString = htmlString.split("\n")[0];
+            final String contentString = htmlString.split(META_STRING_SUFFIX)[0] + META_STRING_SUFFIX;
             String [] data = contentString.substring(META_STRING_PREFIX.length(), contentString.length()-META_STRING_SUFFIX.length()).
                     strip().split(META_DATA_SEP);
+            
+            // check for "data" first to decompress if required
+            boolean dataFound = false;
+            String dataString = "";
+            for (String nameValue : data) {
+                if (nameValue.startsWith("data=\"") && nameValue.endsWith("\"")) {
+                    final String[] values = nameValue.substring("data".length()+2, nameValue.length()-1).
+                        strip().split(META_VALUES_SEP);
+
+                    decompresser.reset();
+                    final byte[] decoded = Base64.decodeBase64(values[0]);
+                    decompresser.setInput(decoded, 0, decoded.length);
+
+                    final byte[] temp = new byte[32768];
+                    try {
+                        final int resultLength = decompresser.inflate(temp);
+
+                        final byte[] input = new byte[resultLength];
+                        System.arraycopy(temp, 0, input, 0, resultLength);
+                        
+                        dataString = new String(input, "UTF-8");
+                        
+                        dataFound = true;
+                    } catch (DataFormatException | UnsupportedEncodingException ex) {
+                        Logger.getLogger(NoteMetaData.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+            if (dataFound) {
+                data = dataString.strip().split(META_DATA_SEP);
+            }
 
             // now we have the name - value pairs
             // split further depending on multiplicity
@@ -272,28 +312,59 @@ public class NoteMetaData {
         return result;
     }
     
-    public static String toHtmlString(final NoteMetaData data) {
+    public static String toHtmlComment(final NoteMetaData data) {
         if (data == null) {
             return "";
         }
 
-        String result = "";
+        final StringBuffer result = new StringBuffer();
         
-        result += MetaDataInfo.CHARSET.getDataName() + "=\"" + data.getCharset().name() + "\"";
-        result += META_DATA_SEP;
+        result.append(MetaDataInfo.CHARSET.getDataName());
+        result.append("=\"");
+        result.append(data.getCharset().name());
+        result.append("\"");
         if (data.getVersion() != null) {
-            result += MetaDataInfo.VERSIONS.getDataName() + "=\"" + data.getVersions().stream().map((t) -> {
+            result.append(META_DATA_SEP);
+            result.append(MetaDataInfo.VERSIONS.getDataName());
+            result.append("=\"");
+            result.append(data.getVersions().stream().map((t) -> {
                 return NoteVersion.toHtmlString(t);
-            }).collect(Collectors.joining(META_VALUES_SEP)) + "\"";
+            }).collect(Collectors.joining(META_VALUES_SEP)));
+            result.append("\"");
         }
         if (!data.getTags().isEmpty()) {
-            result += META_DATA_SEP;
-            result += MetaDataInfo.TAGS.getDataName() + "=\"" + data.getTags().stream().map((t) -> {
+            result.append(META_DATA_SEP);
+            result.append(MetaDataInfo.TAGS.getDataName());
+            result.append("=\"");
+            result.append(data.getTags().stream().map((t) -> {
                 return t.getName();
-            }).collect(Collectors.joining(META_VALUES_SEP)) + "\"";
+            }).collect(Collectors.joining(META_VALUES_SEP)));
+            result.append("\"");
         }
-        result = META_STRING_PREFIX + result + META_STRING_SUFFIX + "\n";
         
-        return result;
+        try {
+            compresser.reset();
+            compresser.setInput(result.toString().getBytes("UTF-8"));
+            compresser.finish();
+            
+            final byte[] temp = new byte[32768];
+            final int compressedDataLength = compresser.deflate(temp);
+            final byte[] output = new byte[compressedDataLength];
+            System.arraycopy(temp, 0, output, 0, compressedDataLength);
+            final String encodedResult = Base64.encodeBase64String(output);
+
+            // lets compress - if it is really shorter :-)
+            if (encodedResult.length() < result.length()) {
+                result.delete(0, result.length());
+                result.append("data");
+                result.append("=\"");
+                result.append(encodedResult);
+                result.append("\"");
+            }
+        } catch (UnsupportedEncodingException ex) {
+            Logger.getLogger(NoteMetaData.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        return META_STRING_PREFIX + result.toString() + META_STRING_SUFFIX + "\n";
     }
 }

@@ -344,12 +344,12 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 final TagInfo groupInfo = tagForGroupName(note.getGroupName(), true);
                 if (note.getMetaData().getTags().contains(groupInfo)) {
                     System.out.println("Removing tag " + note.getGroupName() + " from note " + note.getNoteName());
-                    OwnNoteFileManager.getInstance().readNote(note);
+                    OwnNoteFileManager.getInstance().readNote(note, false);
                     note.getMetaData().getTags().remove(groupInfo);
                     OwnNoteFileManager.getInstance().saveNote(note);
                 } else {
                     System.out.println("Adding tag " + note.getGroupName() + " to note " + note.getNoteName());
-                    OwnNoteFileManager.getInstance().readNote(note);
+                    OwnNoteFileManager.getInstance().readNote(note, false);
                     note.getMetaData().getTags().add(groupInfo);
                     OwnNoteFileManager.getInstance().saveNote(note);
                 }
@@ -416,7 +416,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 final boolean inEditor = note.equals(myEditor.getEditedNote());
                 if (!inEditor) {
                     // read note - only if not currently in editor!
-                    OwnNoteFileManager.getInstance().readNote(note);
+                    OwnNoteFileManager.getInstance().readNote(note, false);
                 }
                 
                 note.getMetaData().getTags().remove(oldTag);

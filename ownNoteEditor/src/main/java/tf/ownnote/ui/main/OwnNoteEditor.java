@@ -363,6 +363,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
             // TFE, 20201121: tag info is now stored in a separate file
             TagManager.getInstance().saveTags();
+
+            // TFE, 20201230: task metadata is now stored in a separate file
+            TaskManager.getInstance().saveTaskList();
         }
     }
     
@@ -415,9 +418,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         groupTabsGroupWidth = limit(groupTabsGroupWidth, paneSizes.get(NOTE_GROUP_COLUMN).getLeft(), paneSizes.get(NOTE_GROUP_COLUMN).getRight());
         taskListWidth = limit(taskListWidth, paneSizes.get(TASKLIST_COLUMN).getLeft(), paneSizes.get(TASKLIST_COLUMN).getRight());
         
-        // paint the look
-        initEditor();
-
         // init ownCloudPath to parameter or nothing
         pathLabel.setMinWidth(Region.USE_PREF_SIZE);
         String pathname = "";
@@ -435,6 +435,12 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         }
         // 3. set the value
         ownCloudPath.setText(pathname);
+
+        // paint the look
+        initEditor();
+
+        // scan files in directory
+        initFromDirectory(false, true);
     }
 
     //
@@ -552,12 +558,12 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         rightPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(paneSizes.get(TASKLIST_COLUMN).getRight()/100d));
 
         // set callback, width, value name, cursor type of columns
-        noteNameCol.setTableColumnProperties(0.65, Note.getNoteName(0), OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel));
-        noteModifiedCol.setTableColumnProperties(0.25, Note.getNoteName(1), false);
+        noteNameCol.setTableColumnProperties(0.65, Note.getNoteValueName(0), OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel));
+        noteModifiedCol.setTableColumnProperties(0.25, Note.getNoteValueName(1), false);
         // see issue #42
         noteModifiedCol.setComparator(FormatHelper.getInstance().getFileTimeComparator());
-        noteDeleteCol.setTableColumnProperties(0.10, Note.getNoteName(2), false);
-        noteGroupCol.setTableColumnProperties(0, Note.getNoteName(3), false);
+        noteDeleteCol.setTableColumnProperties(0.10, Note.getNoteValueName(2), false);
+        noteGroupCol.setTableColumnProperties(0, Note.getNoteValueName(3), false);
 
         // only new button visible initially
         hideAndDisableAllCreateControls();
@@ -1078,7 +1084,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             TagManager.getInstance().groupsToTags();
         });
 
-        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v5.0", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v5.1", "https://github.com/ThomasDaheim/ownNoteEditor");
     }
     
     // do everything to show / hide tasklist
@@ -1202,7 +1208,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
         // 2. show content of file in editor
         if (curNote.getNoteFileContent() == null) {
-            curNote.setNoteFileContent(OwnNoteFileManager.getInstance().readNote(curNote));
+            OwnNoteFileManager.getInstance().readNote(curNote, true);
         }
         noteHTMLEditor.editNote(curNote, curNote.getNoteFileContent());
         noteMetaEditor.editNote(curNote);
@@ -1653,7 +1659,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                                     if (StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                                         // re-load into edit for StandardWatchEventKinds.ENTRY_MODIFY
                                         final Note loadNote = noteHTMLEditor.getEditedNote();
-                                        loadNote.setNoteFileContent(OwnNoteFileManager.getInstance().readNote(loadNote));
+                                        OwnNoteFileManager.getInstance().readNote(loadNote, true);
                                         noteHTMLEditor.editNote(loadNote, loadNote.getNoteFileContent());
                                         noteMetaEditor.editNote(loadNote);
                                     }

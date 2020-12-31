@@ -42,7 +42,7 @@ public class TestTaskManager {
     public void testFindAllOccurences() {
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
         
-        final String content = OwnNoteFileManager.getInstance().readNote(note);
+        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         Assert.assertEquals(5, TaskManager.getInstance().tasksFromNote(note, content).size());
     }
 
@@ -50,7 +50,7 @@ public class TestTaskManager {
     public void testGetTaskList() {
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
         
-        final String content = OwnNoteFileManager.getInstance().readNote(note);
+        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         final List<TaskData> taskList = TaskManager.getInstance().getTaskList();
         Assert.assertEquals(5, taskList.size());
         
@@ -67,7 +67,7 @@ public class TestTaskManager {
     public void testChangeContent1() {
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
         
-        final String content = OwnNoteFileManager.getInstance().readNote(note);
+        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         final ObservableList<TaskData> taskList = TaskManager.getInstance().getTaskList();
         Assert.assertEquals(5, taskList.size());
         
@@ -158,7 +158,7 @@ public class TestTaskManager {
     public void testChangeContent2() {
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
         
-        final String content = OwnNoteFileManager.getInstance().readNote(note);
+        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         final ObservableList<TaskData> taskList = TaskManager.getInstance().getTaskList();
         Assert.assertEquals(5, taskList.size());
         
