@@ -5,24 +5,20 @@
  */
 package tf.ownnote.ui.tasks;
 
-import java.io.UnsupportedEncodingException;
+import tf.ownnote.ui.commentdata.CommentDataMapper;
 import java.time.LocalDateTime;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.zip.DataFormatException;
-import java.util.zip.Deflater;
-import java.util.zip.Inflater;
+import java.util.List;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.text.StringEscapeUtils;
+import tf.ownnote.ui.commentdata.ICommentDataHolder;
+import tf.ownnote.ui.commentdata.ICommentDataInfo;
 import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.notes.NoteMetaData;
 
 /**
  * A task in a note.
@@ -31,22 +27,9 @@ import tf.ownnote.ui.notes.NoteMetaData;
  * 
  * @author thomas
  */
-public class TaskData {
-    private static final String META_STRING_PREFIX = "<!-- ";
-    private static final String META_STRING_SUFFIX = " -->";
-    private static final String META_DATA_SEP = "---";
-    private static final String META_VALUES_SEP = ":::";
-
-    private static final Deflater compresser = new Deflater(Deflater.BEST_COMPRESSION);
-    private static final Inflater decompresser = new Inflater();
-
-    private static enum Multiplicity {
-        SINGLE,
-        MULTIPLE
-    }
-    
+public class TaskData implements ICommentDataHolder {
     // info per available metadata - name & multiplicity
-    private static enum MetaDataInfo {
+    public static enum CommentDataInfo implements ICommentDataInfo {
         ID("id", Multiplicity.SINGLE),
         STATUS("status", Multiplicity.SINGLE),
         PRIO("prio", Multiplicity.SINGLE),
@@ -55,15 +38,17 @@ public class TaskData {
         private final String dataName;
         private final Multiplicity dataMulti;
         
-        private MetaDataInfo (final String name, final Multiplicity multi) {
+        private CommentDataInfo (final String name, final Multiplicity multi) {
             dataName = name;
             dataMulti = multi;
         }
         
+        @Override
         public String getDataName() {
             return dataName;
         }
         
+        @Override
         public Multiplicity getDataMultiplicity() {
             return dataMulti;
         }
@@ -250,134 +235,13 @@ public class TaskData {
         // id="xyz"
         
         //System.out.println("parseTaskId for: " + noteContent);
-        if (noteContent.startsWith(META_STRING_PREFIX) || noteContent.contains(META_STRING_SUFFIX)) {
-            final String contentString = noteContent.split(META_STRING_SUFFIX)[0] + META_STRING_SUFFIX;
-            String [] data = contentString.substring(META_STRING_PREFIX.length(), contentString.length()-META_STRING_SUFFIX.length()).
-                    strip().split(META_DATA_SEP);
-            
-            // check for "data" first to decompress if required
-            boolean dataFound = false;
-            String dataString = "";
-            for (String nameValue : data) {
-                if (nameValue.startsWith("data=\"") && nameValue.endsWith("\"")) {
-                    final String[] values = nameValue.substring("data".length()+2, nameValue.length()-1).
-                        strip().split(META_VALUES_SEP);
-
-                    decompresser.reset();
-                    final byte[] decoded = Base64.decodeBase64(values[0]);
-                    decompresser.setInput(decoded, 0, decoded.length);
-
-                    final byte[] temp = new byte[32768];
-                    try {
-                        final int resultLength = decompresser.inflate(temp);
-
-                        final byte[] input = new byte[resultLength];
-                        System.arraycopy(temp, 0, input, 0, resultLength);
-                        
-                        dataString = new String(input, "UTF-8");
-                        
-                        dataFound = true;
-                    } catch (DataFormatException | UnsupportedEncodingException ex) {
-                        Logger.getLogger(NoteMetaData.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
-            if (dataFound) {
-                data = dataString.strip().split(META_DATA_SEP);
-            }
-
-            // now we have the name - value pairs
-            // split further depending on multiplicity
-            for (String nameValue : data) {
-                boolean infoFound = false;
-                for (MetaDataInfo info : MetaDataInfo.values()) {
-                    final String dataName = info.getDataName();
-                    if (nameValue.startsWith(dataName + "=\"") && nameValue.endsWith("\"")) {
-                        // found it! now check & parse for values
-                        final String[] values = nameValue.substring(dataName.length()+2, nameValue.length()-1).
-                            strip().split(META_VALUES_SEP);
-                        
-                        switch (info) {
-                            case ID:
-                                myId = values[0];
-                                infoFound = true;
-                                break;
-                            case STATUS:
-                                myStatus = TaskStatus.valueOf(values[0]);
-                                infoFound = true;
-                                break;
-                            case PRIO:
-                                myPriority = TaskPriority.valueOf(values[0]);
-                                infoFound = true;
-                                break;
-                            case DUE_DATE:
-                                myDueDate = LocalDateTime.parse(values[0], OwnNoteEditor.DATE_TIME_FORMATTER);
-                                infoFound = true;
-                                break;
-                            default:
-                        }
-                    }
-                    if (infoFound) {
-                        // done, lets check next data value
-                        break;
-                    }
-                }
-            }
+        if (CommentDataMapper.containsCommentWithData(noteContent)) {
+            CommentDataMapper.getInstance().fromComment(this, noteContent);
         }
     }
     
     public String toHtmlComment() {
-        final StringBuffer result = new StringBuffer();
-        
-        result.append(MetaDataInfo.ID.getDataName());
-        result.append("=\"");
-        result.append(myId);
-        result.append("\"");
-
-        result.append(META_DATA_SEP);
-        result.append(MetaDataInfo.STATUS.getDataName());
-        result.append("=\"");
-        result.append(myStatus.name());
-        result.append("\"");
-
-        result.append(META_DATA_SEP);
-        result.append(MetaDataInfo.PRIO.getDataName());
-        result.append("=\"");
-        result.append(myPriority.name());
-        result.append("\"");
-        
-        if (myDueDate != null) {
-            result.append(META_DATA_SEP);
-            result.append(MetaDataInfo.DUE_DATE.getDataName());
-            result.append("=\"");
-            result.append(OwnNoteEditor.DATE_TIME_FORMATTER.format(myDueDate));
-            result.append("\"");
-        }
-
-        try {
-            compresser.reset();
-            compresser.setInput(result.toString().getBytes("UTF-8"));
-            compresser.finish();
-            
-            final byte[] temp = new byte[32768];
-            final int compressedDataLength = compresser.deflate(temp);
-            final byte[] output = new byte[compressedDataLength];
-            System.arraycopy(temp, 0, output, 0, compressedDataLength);
-            final String encodedResult = Base64.encodeBase64String(output);
-
-            // lets compress - if it is really shorter :-)
-            if (encodedResult.length() < result.length()) {
-                result.delete(0, result.length());
-                result.append("data");
-                result.append("=\"");
-                result.append(encodedResult);
-                result.append("\"");
-            }
-        } catch (UnsupportedEncodingException ex) {
-            Logger.getLogger(NoteMetaData.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
-        return META_STRING_PREFIX + result.toString() + META_STRING_SUFFIX;
+        return CommentDataMapper.getInstance().toComment(this);
     }
     
     public BooleanProperty isCompletedProperty() {
@@ -466,5 +330,46 @@ public class TaskData {
     @Override
     public String toString() {
         return getDescription();
+    }
+
+    @Override
+    public ICommentDataInfo[] getCommentDataInfo() {
+        return CommentDataInfo.values();
+    }
+
+    @Override
+    public void setFromString(ICommentDataInfo name, String value) {
+        if (CommentDataInfo.ID.equals(name)) {
+            myId = value;
+        } else if (CommentDataInfo.PRIO.equals(name)) {
+            setTaskPriority(TaskPriority.valueOf(value));
+        } else if (CommentDataInfo.STATUS.equals(name)) {
+            setTaskStatus(TaskStatus.valueOf(value));
+        } else if (CommentDataInfo.DUE_DATE.equals(name)) {
+            setDueDate(LocalDateTime.parse(value, OwnNoteEditor.DATE_TIME_FORMATTER));
+        }
+    }
+
+    @Override
+    public void setFromList(ICommentDataInfo name, List<String> values) {
+    }
+
+    @Override
+    public String getAsString(ICommentDataInfo name) {
+        if (CommentDataInfo.ID.equals(name)) {
+            return myId;
+        } else if (CommentDataInfo.PRIO.equals(name)) {
+            return myPriority.name();
+        } else if (CommentDataInfo.STATUS.equals(name)) {
+            return myStatus.name();
+        } else if (CommentDataInfo.DUE_DATE.equals(name)) {
+            return myDueDate != null ? OwnNoteEditor.DATE_TIME_FORMATTER.format(myDueDate) : null;
+        }
+        return null;
+    }
+
+    @Override
+    public List<String> getAsList(ICommentDataInfo name) {
+        return null;
     }
 }

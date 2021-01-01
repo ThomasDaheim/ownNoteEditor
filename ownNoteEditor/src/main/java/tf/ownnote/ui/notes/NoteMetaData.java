@@ -25,7 +25,7 @@
  */
 package tf.ownnote.ui.notes;
 
-import java.io.UnsupportedEncodingException;
+import tf.ownnote.ui.commentdata.CommentDataMapper;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -33,17 +33,13 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import java.util.zip.DataFormatException;
-import java.util.zip.Deflater;
-import java.util.zip.Inflater;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
-import org.apache.commons.codec.binary.Base64;
+import tf.ownnote.ui.commentdata.ICommentDataHolder;
+import tf.ownnote.ui.commentdata.ICommentDataInfo;
 import tf.ownnote.ui.tags.TagInfo;
 import tf.ownnote.ui.tags.TagManager;
 
@@ -52,27 +48,14 @@ import tf.ownnote.ui.tags.TagManager;
  * 
  * @author thomas
  */
-public class NoteMetaData {
-    private static final String META_STRING_PREFIX = "<!-- ";
-    private static final String META_STRING_SUFFIX = " -->";
-    private static final String META_DATA_SEP = "---";
-    private static final String META_VALUES_SEP = ":::";
-    
+public class NoteMetaData implements ICommentDataHolder {
     private enum UpdateTag {
         LINK,
         UNLINK
     }
     
-    private static final Deflater compresser = new Deflater(Deflater.BEST_COMPRESSION);
-    private static final Inflater decompresser = new Inflater();
-
-    private static enum Multiplicity {
-        SINGLE,
-        MULTIPLE
-    }
-    
     // info per available metadata - name & multiplicity
-    private static enum MetaDataInfo {
+    private static enum CommentDataInfo implements ICommentDataInfo {
         VERSIONS("versions", Multiplicity.MULTIPLE),
         TAGS("tags", Multiplicity.MULTIPLE),
         CHARSET("charset", Multiplicity.SINGLE);
@@ -80,15 +63,17 @@ public class NoteMetaData {
         private final String dataName;
         private final Multiplicity dataMulti;
         
-        private MetaDataInfo (final String name, final Multiplicity multi) {
+        private CommentDataInfo (final String name, final Multiplicity multi) {
             dataName = name;
             dataMulti = multi;
         }
         
+        @Override
         public String getDataName() {
             return dataName;
         }
         
+        @Override
         public Multiplicity getDataMultiplicity() {
             return dataMulti;
         }
@@ -207,7 +192,7 @@ public class NoteMetaData {
         }
         
         final String contentString = htmlString.split("\n")[0];
-        return (contentString.startsWith(META_STRING_PREFIX) && contentString.endsWith(META_STRING_SUFFIX));
+        return CommentDataMapper.isCommentWithData(contentString);
     }
     
     public static String removeMetaDataContent(final String htmlString) {
@@ -236,77 +221,7 @@ public class NoteMetaData {
         // authors="xyz" tags="a:::b:::c"
         
         if (htmlString != null && hasMetaDataContent(htmlString)) {
-            final String contentString = htmlString.split(META_STRING_SUFFIX)[0] + META_STRING_SUFFIX;
-            String [] data = contentString.substring(META_STRING_PREFIX.length(), contentString.length()-META_STRING_SUFFIX.length()).
-                    strip().split(META_DATA_SEP);
-            
-            // check for "data" first to decompress if required
-            boolean dataFound = false;
-            String dataString = "";
-            for (String nameValue : data) {
-                if (nameValue.startsWith("data=\"") && nameValue.endsWith("\"")) {
-                    final String[] values = nameValue.substring("data".length()+2, nameValue.length()-1).
-                        strip().split(META_VALUES_SEP);
-
-                    decompresser.reset();
-                    final byte[] decoded = Base64.decodeBase64(values[0]);
-                    decompresser.setInput(decoded, 0, decoded.length);
-
-                    final byte[] temp = new byte[32768];
-                    try {
-                        final int resultLength = decompresser.inflate(temp);
-
-                        final byte[] input = new byte[resultLength];
-                        System.arraycopy(temp, 0, input, 0, resultLength);
-                        
-                        dataString = new String(input, "UTF-8");
-                        
-                        dataFound = true;
-                    } catch (DataFormatException | UnsupportedEncodingException ex) {
-                        Logger.getLogger(NoteMetaData.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
-            if (dataFound) {
-                data = dataString.strip().split(META_DATA_SEP);
-            }
-
-            // now we have the name - value pairs
-            // split further depending on multiplicity
-            for (String nameValue : data) {
-                boolean infoFound = false;
-                for (MetaDataInfo info : MetaDataInfo.values()) {
-                    final String dataName = info.getDataName();
-                    if (nameValue.startsWith(dataName + "=\"") && nameValue.endsWith("\"")) {
-                        // found it! now check & parse for values
-                        final String[] values = nameValue.substring(dataName.length()+2, nameValue.length()-1).
-                            strip().split(META_VALUES_SEP);
-                        
-                        switch (info) {
-                            case VERSIONS:
-                                final List<NoteVersion> versions = new LinkedList<>();
-                                for (String value : values) {
-                                    versions.add(NoteVersion.fromHtmlString(value));
-                                }
-                                result.setVersions(versions);
-                                infoFound = true;
-                                break;
-                            case TAGS:
-                                result.setTags(TagManager.getInstance().tagsForNames(new HashSet<>(Arrays.asList(values)), null, true));
-                                infoFound = true;
-                                break;
-                            case CHARSET:
-                                result.setCharset(Charset.forName(values[0]));
-                                break;
-                            default:
-                        }
-                    }
-                    if (infoFound) {
-                        // done, lets check next data value
-                        break;
-                    }
-                }
-            }
+            CommentDataMapper.getInstance().fromComment(result, htmlString);
         }
 
         return result;
@@ -317,54 +232,57 @@ public class NoteMetaData {
             return "";
         }
 
-        final StringBuffer result = new StringBuffer();
-        
-        result.append(MetaDataInfo.CHARSET.getDataName());
-        result.append("=\"");
-        result.append(data.getCharset().name());
-        result.append("\"");
-        if (data.getVersion() != null) {
-            result.append(META_DATA_SEP);
-            result.append(MetaDataInfo.VERSIONS.getDataName());
-            result.append("=\"");
-            result.append(data.getVersions().stream().map((t) -> {
-                return NoteVersion.toHtmlString(t);
-            }).collect(Collectors.joining(META_VALUES_SEP)));
-            result.append("\"");
-        }
-        if (!data.getTags().isEmpty()) {
-            result.append(META_DATA_SEP);
-            result.append(MetaDataInfo.TAGS.getDataName());
-            result.append("=\"");
-            result.append(data.getTags().stream().map((t) -> {
-                return t.getName();
-            }).collect(Collectors.joining(META_VALUES_SEP)));
-            result.append("\"");
-        }
-        
-        try {
-            compresser.reset();
-            compresser.setInput(result.toString().getBytes("UTF-8"));
-            compresser.finish();
-            
-            final byte[] temp = new byte[32768];
-            final int compressedDataLength = compresser.deflate(temp);
-            final byte[] output = new byte[compressedDataLength];
-            System.arraycopy(temp, 0, output, 0, compressedDataLength);
-            final String encodedResult = Base64.encodeBase64String(output);
+        return CommentDataMapper.getInstance().toComment(data) + "\n";
+    }
+    
+    @Override
+    public ICommentDataInfo[] getCommentDataInfo() {
+        return CommentDataInfo.values();
+    }
 
-            // lets compress - if it is really shorter :-)
-            if (encodedResult.length() < result.length()) {
-                result.delete(0, result.length());
-                result.append("data");
-                result.append("=\"");
-                result.append(encodedResult);
-                result.append("\"");
-            }
-        } catch (UnsupportedEncodingException ex) {
-            Logger.getLogger(NoteMetaData.class.getName()).log(Level.SEVERE, null, ex);
+    @Override
+    public void setFromString(ICommentDataInfo name, String value) {
+        if (CommentDataInfo.CHARSET.equals(name)) {
+            setCharset(Charset.forName(value));
         }
-        
-        return META_STRING_PREFIX + result.toString() + META_STRING_SUFFIX + "\n";
+    }
+
+    @Override
+    public void setFromList(ICommentDataInfo name, List<String> values) {
+        if (CommentDataInfo.VERSIONS.equals(name)) {
+            final List<NoteVersion> versions = new LinkedList<>();
+            for (String value : values) {
+                versions.add(NoteVersion.fromHtmlString(value));
+            }
+            setVersions(versions);
+        } else if (CommentDataInfo.TAGS.equals(name)) {
+            setTags(TagManager.getInstance().tagsForNames(new HashSet<>(values), null, true));
+        }
+    }
+
+    @Override
+    public String getAsString(ICommentDataInfo name) {
+        if (CommentDataInfo.CHARSET.equals(name)) {
+            return myCharset.name();
+        }
+        return null;
+    }
+
+    @Override
+    public List<String> getAsList(ICommentDataInfo name) {
+        if (CommentDataInfo.VERSIONS.equals(name)) {
+            if (!myVersions.isEmpty()) {
+                return myVersions.stream().map((t) -> {
+                    return NoteVersion.toHtmlString(t);
+                }).collect(Collectors.toList());
+            } else {
+                return null;
+            }
+        } else if (CommentDataInfo.TAGS.equals(name)) {
+            return myTags.stream().map((t) -> {
+                return t.getName();
+            }).collect(Collectors.toList());
+        }
+        return null;
     }
 }
