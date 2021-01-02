@@ -139,6 +139,8 @@ public class TagEditor extends AbstractStage {
                 TagManager.getInstance().saveTags();
             } else {
                 myWorkNote.getMetaData().setTags(tagsTreeView.getSelectedLeafItems());
+                // refresh notes list - we might have removed a tag that is used for notes selection
+                myEditor.refilterNotesList();
             }
 
             close();

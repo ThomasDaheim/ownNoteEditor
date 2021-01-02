@@ -92,6 +92,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Window;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AboutMenu;
@@ -104,7 +105,7 @@ import tf.ownnote.ui.helper.OwnNoteEditorParameters;
 import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
-import tf.ownnote.ui.helper.OwnNoteMetaEditor;
+import tf.ownnote.ui.helper.OwnNoteMetaDataEditor;
 import tf.ownnote.ui.helper.OwnNoteTabPane;
 import tf.ownnote.ui.helper.OwnNoteTableColumn;
 import tf.ownnote.ui.helper.OwnNoteTableView;
@@ -112,6 +113,7 @@ import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.tags.TagEditor;
+import tf.ownnote.ui.tags.TagInfo;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tags.TagsTreeView;
 import tf.ownnote.ui.tasks.TaskData;
@@ -305,7 +307,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     private VBox noteEditorFXML;
     @FXML
     private HBox noteMetaEditorFXML;
-    private OwnNoteMetaEditor noteMetaEditor = null;
+    private OwnNoteMetaDataEditor noteMetaEditor = null;
     @FXML
     private RadioMenuItem tagTreeLookAndFeel;
     @FXML
@@ -496,7 +498,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         VBox.setVgrow(noteHTMLEditorFXML, Priority.ALWAYS);
         VBox.setVgrow(noteMetaEditorFXML, Priority.NEVER);
         noteHTMLEditor = new OwnNoteHTMLEditor(noteHTMLEditorFXML, this);
-        noteMetaEditor = new OwnNoteMetaEditor(noteMetaEditorFXML, this);
+        noteMetaEditor = new OwnNoteMetaDataEditor(noteMetaEditorFXML, this);
         
         // hide borders
         borderPane.setBottom(null);
@@ -1174,18 +1176,15 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             // alert.getButtonTypes().setAll(buttonSave, buttonDiscard, buttonCancel);
 
             if (saveChanges.isPresent()) {
+                final Note prevNote = noteHTMLEditor.getEditedNote();
                 if (saveChanges.get().equals(buttonSave)) {
                     // save note
-                    final Note prevNote = noteHTMLEditor.getEditedNote();
                     prevNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
                     if (saveNote(prevNote)) {
                     }
+                } else {
+                    // TODO: undo chnages to metadata as well!
                 }
-                
-                // if (saveChanges.get().equals(buttonCancel)) {
-                //     // stop further processing of new file
-                //     result = false;                    
-                // }
             }
         }
 
@@ -1195,7 +1194,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     public boolean editNote(final Note curNote) {
         boolean result = false;
         
-        if (!checkChangedNote()) {
+        // TFE, 20210102: are we already editing that note? than we're done here...
+        if (curNote.equals(noteHTMLEditor.getEditedNote()) || !checkChangedNote()) {
             return result;
         }
         
@@ -1522,13 +1522,17 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         
         return result;
     }
-
+    
+    public void refilterNotesList() {
+        notesTable.setFilterPredicate();
+    }
+    
     public void setGroupNameFilter(final String groupName) {
         notesTable.setGroupNameFilter(groupName);
     }
     
-    public void setNotesFilter(final Set<Note> notes) {
-        notesTable.setNotesFilter(notes);
+    public void setTagFilter(final TagInfo tag) {
+        notesTable.setTagFilter(tag);
     }
 
     public void setNotesTableBackgroundColor(final String color) {
@@ -1669,22 +1673,25 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                     }
                 }
             
-                // show only notes for selected group
-                final String curGroupName = myGroupList.getCurrentGroup().getGroupName();
+                // TFE, 20210101: only initFromDirectory if anything related to note files has changed!
+                if (filePath.toFile().isFile() && OwnNoteFileManager.NOTE_EXT.equals(FilenameUtils.getExtension(fileName))) {
+                    // show only notes for selected group
+                    final String curGroupName = myGroupList.getCurrentGroup().getGroupName();
 
-                initFromDirectory(true, true);
-                selectFirstOrCurrentNote();
-                
-                // but only if group still exists in the list!
-                final List<String> allGroupNames = new LinkedList<>(realGroupNames);
-                allGroupNames.add(NoteGroup.ALL_GROUPS);
-                allGroupNames.add(NoteGroup.NOT_GROUPED);
-                
-                if (allGroupNames.contains(curGroupName)) {
-                    setGroupNameFilter(curGroupName);
+                    initFromDirectory(true, true);
+                    selectFirstOrCurrentNote();
+
+                    // but only if group still exists in the list!
+                    final List<String> allGroupNames = new LinkedList<>(realGroupNames);
+                    allGroupNames.add(NoteGroup.ALL_GROUPS);
+                    allGroupNames.add(NoteGroup.NOT_GROUPED);
+
+                    if (allGroupNames.contains(curGroupName)) {
+                        setGroupNameFilter(curGroupName);
+                    }
+
+                    filesInProgress.remove(fileName);
                 }
-                
-                filesInProgress.remove(fileName);
             });
         }
         

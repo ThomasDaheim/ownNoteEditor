@@ -141,15 +141,8 @@ public class TaskList {
         });
 
         // items list doesn't receive change events for add & remove - need to attach separate listener to root list
-        TaskManager.getInstance().getTaskList().addListener((Change<? extends TaskData> c) -> {
-            while (c.next()) {
-                if (c.wasAdded()) {
-                    items.setAll(TaskManager.getInstance().getTaskList());
-                }
-                if (c.wasRemoved()) {
-                    items.setAll(TaskManager.getInstance().getTaskList());
-                }
-            }
+        TaskManager.getInstance().getTaskList().addListener((Change<? extends TaskData> change) -> {
+            items.setAll(TaskManager.getInstance().getTaskList());
         });
 
         // wrap the ObservableList in a FilteredList (initially display all data).

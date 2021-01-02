@@ -25,28 +25,47 @@
  */
 package tf.ownnote.ui.helper;
 
+import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import javafx.application.HostServices;
+import javafx.collections.ListChangeListener;
 import javafx.collections.SetChangeListener;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.CustomMenuItem;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.text.TextAlignment;
+import javafx.stage.FileChooser;
+import org.apache.commons.io.FileUtils;
 import tf.helper.javafx.AbstractStage;
+import tf.helper.javafx.ShowAlerts;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.notes.NoteMetaData;
 import tf.ownnote.ui.notes.NoteVersion;
 import tf.ownnote.ui.tags.TagEditor;
 import tf.ownnote.ui.tags.TagInfo;
@@ -63,30 +82,35 @@ import tf.ownnote.ui.tasks.TaskManager;
  * 3) Tasks: show counts (open / closed / total)
  * @author thomas
  */
-public class OwnNoteMetaEditor {
+public class OwnNoteMetaDataEditor {
     private HBox myHBox;
     
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor= null;
+    private HostServices myHostServices = null;
     
     private final ComboBox<String> versions = new ComboBox<>();
+    private final MenuBar attachments = new MenuBar();
+    private final MenuItem addAttachment = new MenuItem("Add attachment");
     private Label taskstxt;
     private final FlowPane tagsBox = new FlowPane();
     
     private Note editorNote;
     private boolean hasChanged = false;
 
-    private OwnNoteMetaEditor() {
+    private OwnNoteMetaDataEditor() {
         super();
     }
     
-    public OwnNoteMetaEditor(final HBox hBox, final OwnNoteEditor editor) {
+    public OwnNoteMetaDataEditor(final HBox hBox, final OwnNoteEditor editor) {
         super();
 
         myEditor = editor;
         
         myHBox = hBox;
         
+        myHostServices = (HostServices) myEditor.getWindow().getProperties().get("hostServices");
+
         initEditor();
     }
     
@@ -112,15 +136,13 @@ public class OwnNoteMetaEditor {
             }
         });
         versions.setVisibleRowCount(4);
-
-        final Region region1 = new Region();
-        HBox.setHgrow(region1, Priority.ALWAYS);
+        versions.setMaxWidth(200.0);
 
         final Label tagsLbl = new Label("Tags:");
         HBox.setMargin(tagsLbl, AbstractStage.INSET_SMALL);
         
         tagsBox.getStyleClass().add("tagsBox");
-        tagsBox.setMinWidth(100.0);
+        tagsBox.setMaxWidth(300.0);
         tagsBox.setAlignment(Pos.CENTER_LEFT);
         tagsBox.setPadding(new Insets(0, 2, 0, 2));
         
@@ -128,6 +150,21 @@ public class OwnNoteMetaEditor {
         tagsButton.setOnAction((t) -> {
             TagEditor.getInstance().editTags(editorNote);
         });
+
+        final Menu attachmentsMenu = new Menu("Attachments");
+        attachmentsMenu.getStyleClass().add("menu-as-list");
+        attachments.getMenus().add(attachmentsMenu);
+        attachments.getStyleClass().add("menu-as-list");
+        
+        addAttachment.setUserData("+");
+        addAttachment.getStyleClass().add("menu-as-list");
+        addAttachment.setOnAction((t) -> {
+            addAttachment();
+        });
+        attachments.getMenus().get(0).getItems().setAll(addAttachment);
+
+        final Region region1 = new Region();
+        HBox.setHgrow(region1, Priority.ALWAYS);
 
         final Label tasksLbl = new Label("Tasks:");
         HBox.setMargin(tasksLbl, AbstractStage.INSET_SMALL);
@@ -137,7 +174,7 @@ public class OwnNoteMetaEditor {
         taskstxt.setTooltip(t);
         HBox.setMargin(taskstxt, new Insets(0, 8, 0, 0));
         
-        myHBox.getChildren().addAll(authorsLbl, versions, tagsLbl, tagsBox, tagsButton, region1, tasksLbl, taskstxt);
+        myHBox.getChildren().addAll(authorsLbl, versions, tagsLbl, tagsBox, tagsButton, attachments, region1, tasksLbl, taskstxt);
     }
     
     public void editNote(final Note note) {
@@ -152,12 +189,12 @@ public class OwnNoteMetaEditor {
         if (editorNote.getMetaData().getVersions().isEmpty()) {
             editorNote.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), LocalDateTime.now()));
         }
-        versions.getItems().addAll(
-            editorNote.getMetaData().getVersions().stream().map((t) -> {
+        final List<String> versionList = editorNote.getMetaData().getVersions().stream().map((t) -> {
                 return NoteVersion.toHtmlString(t);
-            }).collect(Collectors.toList())
-        );
-        versions.getSelectionModel().selectLast();
+            }).collect(Collectors.toList());
+        Collections.reverse(versionList);
+        versions.getItems().setAll(versionList);
+        versions.getSelectionModel().selectFirst();
         
         tagsBox.getChildren().clear();
         final Set<String> tags = editorNote.getMetaData().getTags().stream().map((t) -> {
@@ -168,14 +205,40 @@ public class OwnNoteMetaEditor {
         }
 
         // change listener as well
-        editorNote.getMetaData().getTags().addListener((SetChangeListener.Change<? extends TagInfo> c) -> {
+        editorNote.getMetaData().getTags().addListener((SetChangeListener.Change<? extends TagInfo> change) -> {
             hasChanged = true;
 
-            if (c.wasRemoved()) {
-                removeTagLabel(c.getElementRemoved().getName());
+            if (change.wasRemoved()) {
+                removeTagLabel(change.getElementRemoved().getName());
             }
-            if (c.wasAdded()) {
-                addTagLabel(c.getElementAdded().getName());
+            if (change.wasAdded()) {
+                // TFE, 2021012: don't ask - for some reason we need to remove first to avoid duplicates
+                // might be an issue in which order the listener is called?
+                removeTagLabel(change.getElementAdded().getName());
+                addTagLabel(change.getElementAdded().getName());
+            }
+        });
+        
+        attachments.getMenus().get(0).getItems().setAll(addAttachment);
+        for (String attach : editorNote.getMetaData().getAttachments()) {
+            addAttachMenu(attach);
+        }
+        
+        // change listener as well
+        editorNote.getMetaData().getAttachments().addListener((ListChangeListener.Change<? extends String> change) -> {
+            hasChanged = true;
+
+            while (change.next()) {
+                if (change.wasRemoved()) {
+                    for (String attach : change.getRemoved()) {
+                        removeAttachMenu(attach);
+                    }
+                }
+                if (change.wasAdded()) {
+                    for (String attach : change.getAddedSubList()) {
+                        addAttachMenu(attach);
+                    }
+                }
             }
         });
         
@@ -219,7 +282,7 @@ public class OwnNoteMetaEditor {
         
         // add "remove" "button"
         final Label removeTag = new Label("X");
-        removeTag.getStyleClass().add("removeTag");
+        removeTag.getStyleClass().add("removeButton");
         removeTag.setAlignment(Pos.CENTER);
         removeTag.setTextAlignment(TextAlignment.CENTER);
         removeTag.setContentDisplay(ContentDisplay.CENTER);
@@ -228,10 +291,98 @@ public class OwnNoteMetaEditor {
         removeTag.setOnMouseClicked((t) -> {
             // get rid of this tag in the note and of the node in the pane...
             editorNote.getMetaData().getTags().remove(TagManager.getInstance().tagForName(tag, null, false));
+            // refresh notes list - we might have removed a tag that is used for notes selection
+            myEditor.refilterNotesList();
         });
         
         result.getChildren().addAll(tagLabel, removeTag);
 
         return result;
+    }
+
+    private void addAttachMenu(final String attach) {
+        final CustomMenuItem menu = new CustomMenuItem();
+        menu.getStyleClass().add("menu-as-list");
+        menu.setUserData(attach);
+        
+        final HBox result = new HBox();
+        result.setAlignment(Pos.CENTER_LEFT);
+        result.setPadding(new Insets(0, 2, 0, 2));
+
+        final Label tagLabel = new Label(attach);
+        
+        // add "remove" "button"
+        final Label removeAttach = new Label("X");
+        removeAttach.getStyleClass().add("removeButton");
+        removeAttach.setAlignment(Pos.CENTER);
+        removeAttach.setTextAlignment(TextAlignment.CENTER);
+        removeAttach.setContentDisplay(ContentDisplay.CENTER);
+        HBox.setMargin(removeAttach, new Insets(0, 0, 0, 4));
+        
+        removeAttach.setOnMouseClicked((t) -> {
+            // get rid of this attachment in the note and in the Attachments folder...
+            final String fileName = OwnNoteFileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR + File.separator + attach;
+            final File file = new File(fileName);
+
+            if (FileUtils.deleteQuietly(file)) {
+                editorNote.getMetaData().getAttachments().remove(attach);
+            }
+        });
+        
+        result.getChildren().addAll(tagLabel, removeAttach);
+        
+        menu.setContent(result);
+        menu.setOnAction((t) -> {
+            // open attachment with standard os handler
+            if (myHostServices != null) {
+                myHostServices.showDocument(OwnNoteFileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR + File.separator + attach);
+            }
+        });
+        
+        // last entry is "Add attachment"
+        attachments.getMenus().get(0).getItems().add(attachments.getMenus().get(0).getItems().size() - 1, menu);
+    }
+
+    private void removeAttachMenu(final String attach) {
+        final List<MenuItem> menuList = attachments.getMenus().get(0).getItems().stream().filter((t) -> {
+            return ((String) t.getUserData()).equals(attach);
+        }).collect(Collectors.toList());        
+        attachments.getMenus().get(0).getItems().removeAll(menuList);
+    }
+
+    private void addAttachment() {
+        final FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select attachment");
+        final File selectedFile = fileChooser.showOpenDialog(null);
+
+        if (selectedFile != null) {
+            try {
+                FileUtils.forceMkdir(new File(OwnNoteFileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR));
+            } catch (IOException ex) {
+                Logger.getLogger(OwnNoteMetaDataEditor.class.getName()).log(Level.SEVERE, null, ex);
+                return;
+            }
+            final String fileName = OwnNoteFileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR + File.separator + selectedFile.getName();
+            final File file = new File(fileName);
+            if (file.exists()) {
+                // need to copy file to attachments subdir (if not already there)
+                final ButtonType buttonOK = new ButtonType("OK", ButtonBar.ButtonData.RIGHT);
+                Optional<ButtonType> doAction = 
+                        ShowAlerts.getInstance().showAlert(
+                                Alert.AlertType.WARNING,
+                                "Warning",
+                                "An attachment with same name already exists.",
+                                selectedFile.getPath(),
+                                buttonOK);
+            }
+
+            try {
+                FileUtils.copyFile(selectedFile, file);
+                editorNote.getMetaData().getAttachments().add(file.getName());
+                attachments.getMenus().get(0).show();
+            } catch (IOException ex) {
+                Logger.getLogger(OwnNoteMetaDataEditor.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
     }
 }

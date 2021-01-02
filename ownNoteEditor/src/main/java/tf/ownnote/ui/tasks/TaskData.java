@@ -5,7 +5,6 @@
  */
 package tf.ownnote.ui.tasks;
 
-import tf.ownnote.ui.commentdata.CommentDataMapper;
 import java.time.LocalDateTime;
 import java.util.List;
 import javafx.beans.property.BooleanProperty;
@@ -14,6 +13,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.text.StringEscapeUtils;
+import tf.ownnote.ui.commentdata.CommentDataMapper;
 import tf.ownnote.ui.commentdata.ICommentDataHolder;
 import tf.ownnote.ui.commentdata.ICommentDataInfo;
 import tf.ownnote.ui.helper.OwnNoteHTMLEditor;

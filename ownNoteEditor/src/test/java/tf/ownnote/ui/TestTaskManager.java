@@ -74,15 +74,15 @@ public class TestTaskManager {
         BooleanProperty wasUpdated = new SimpleBooleanProperty(Boolean.FALSE);
         BooleanProperty wasAdded = new SimpleBooleanProperty(Boolean.FALSE);
         BooleanProperty wasRemoved = new SimpleBooleanProperty(Boolean.FALSE);
-        taskList.addListener((ListChangeListener.Change<? extends TaskData> c) -> {
-            while (c.next()) {
-                if (c.wasAdded()) {
+        taskList.addListener((ListChangeListener.Change<? extends TaskData> change) -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
                     wasAdded.setValue(Boolean.TRUE);
                 }
-                if (c.wasRemoved()) {
+                if (change.wasRemoved()) {
                     wasRemoved.setValue(Boolean.TRUE);
                 }
-                if (c.wasUpdated()) {
+                if (change.wasUpdated()) {
                     wasUpdated.setValue(Boolean.TRUE);
                 }
             }

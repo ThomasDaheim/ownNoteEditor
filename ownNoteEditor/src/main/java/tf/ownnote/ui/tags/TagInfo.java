@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.stream.Stream;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -47,7 +46,6 @@ import tf.ownnote.ui.notes.Note;
  * @author thomas
  */
 public class TagInfo {
-    private final BooleanProperty selectedProperty = new SimpleBooleanProperty(false);
     private final StringProperty nameProperty = new SimpleStringProperty("");
     private final ObservableList<TagInfo> children = FXCollections.<TagInfo>observableArrayList();
     private final ObjectProperty<TagInfo> parentProperty = new SimpleObjectProperty<>(null);
@@ -84,11 +82,6 @@ public class TagInfo {
     }
 
     public TagInfo(final String na, final List<TagInfo> childs) {
-        this(false, na, childs);
-    }
-
-    public TagInfo(final boolean sel, final String na, final List<TagInfo> childs) {
-        selectedProperty.setValue(sel);
         nameProperty.set(na);
         
         readResolve();
@@ -138,18 +131,6 @@ public class TagInfo {
         int hash = 7;
         hash = 11 * hash + Objects.hashCode(this.nameProperty.get());
         return hash;
-    }
-
-    public BooleanProperty selectedProperty() {
-        return selectedProperty;
-    }
-
-    public boolean isSelected() {
-        return selectedProperty.get();
-    }
-
-    public void setSelected(final boolean sel) {
-        selectedProperty.set(sel);
     }
 
     public StringProperty nameProperty() {

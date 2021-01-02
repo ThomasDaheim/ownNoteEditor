@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -42,6 +43,7 @@ import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.CacheHint;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
@@ -71,6 +73,7 @@ import tf.helper.javafx.TableViewPreferences;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
+import tf.ownnote.ui.tags.TagInfo;
 
 /**
  *
@@ -93,7 +96,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     private Set<Note> noteSearchNotes;
 
     // TFE, 20201208: tag support to show only notes linked to tags
-    private Set<Note> noteFilterNotes;
+    private TagInfo tagFilter;
     
     private TableType myTableType = null;
     private String backgroundColor = "white";
@@ -525,17 +528,17 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         assert (TableType.notesTable.equals(myTableType));
 
         groupNameFilter = filterValue;
-        noteFilterNotes = null;
+        tagFilter = null;
 
         // force re-run of filtering since refilter() is a private method...
         setFilterPredicate();
     }
     
-    public void setNotesFilter(final Set<Note> notes) {
+    public void setTagFilter(final TagInfo filterValue) {
         assert (TableType.notesTable.equals(myTableType));
 
-        groupNameFilter = "";
-        noteFilterNotes = notes;
+        groupNameFilter = null;
+        tagFilter = filterValue;
 
         // force re-run of filtering since refilter() is a private method...
         setFilterPredicate();
@@ -574,23 +577,26 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         getTableView().setUserData(groupNameFilter);
         
         filteredData.setPredicate((Note note) -> {
-            boolean result = true;
-            
-            // If group filter text is empty, display all notes, also for "All"
-            if (groupNameFilter == null || groupNameFilter.isEmpty() || groupNameFilter.equals(NoteGroup.ALL_GROUPS) ) {
-                // still filter for notes in that case!
-                return filterNote(note);
+            // 1. If group filter text is empty or "All": no need to check
+            if (groupNameFilter != null && !groupNameFilter.isEmpty() && !groupNameFilter.equals(NoteGroup.ALL_GROUPS) ) {
+                // Compare group name to group filter text
+                if (!note.getGroupName().equals(groupNameFilter)) {
+                    return false;
+                }
             }
-            // Compare group name to group filter text
-            if (!note.getGroupName().equals(groupNameFilter)) {
-                return false;
+            
+            // 2. If tag filter text is empty: no need to check
+            if (tagFilter != null) {
+                if (!note.getMetaData().getTags().contains(tagFilter)) {
+                    return false;
+                }
             }
             
             // TFE, 20181028: and now also check for note names
-            return filterNote(note);
+            return filterNotesForSearchText(note);
         });
     }
-    private boolean filterNote(Note note) {
+    private boolean filterNotesForSearchText(Note note) {
         boolean result = true;
         
         if (noteSearchMode) {
@@ -611,11 +617,6 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                 // Compare note name to note filter text
                 result = note.getNoteName().contains(noteSearchText); 
             }
-        }
-        
-        // filter also for noteFilterNotes
-        if (result && noteFilterNotes != null) {
-            result = noteFilterNotes.contains(note);
         }
         
         return result;

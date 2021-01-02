@@ -36,6 +36,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.cell.MapValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
 import javafx.util.Callback;
 import javafx.util.converter.DefaultStringConverter;
 import tf.helper.general.ObjectsHelper;
@@ -204,7 +205,10 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
 class ObjectCell extends TextFieldTableCell<Map, String> {
     private static final String valueSet = "valueSet";
     
-    private TextField textField;
+    private final TextField textField;
+    private final HBox hbox;
+    // store graphic for update & cancelEdit
+    private Label graphic = null;
     
     // store link back to the controller of the scene for callback
     private final OwnNoteEditor myEditor;
@@ -218,6 +222,16 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
         super(new DefaultStringConverter());
         myEditor = editor;
         myTableColumn = tableColumn;
+        
+        // TFE, 20191208: check for valid file names!
+        // https://stackoverflow.com/a/54552791
+        // https://stackoverflow.com/a/49918923
+        // https://stackoverflow.com/a/45201446
+        // to check for illegal chars in note & group names
+        textField = CellUtils.createTextField(this, getConverter());
+        // TFE, 20191208: check for valid file names!
+        FormatHelper.getInstance().initNoteGroupNameTextField(textField);
+        hbox = new HBox();
         
         if (linkCursor) {
             this.setCursor(Cursor.HAND);
@@ -234,19 +248,6 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
         super.startEdit();
         
         if (isEditing()) {
-            if (textField == null) {
-                // TFE, 20191208: check for valid file names!
-                // https://stackoverflow.com/a/54552791
-                // https://stackoverflow.com/a/49918923
-                // https://stackoverflow.com/a/45201446
-                // to check for illegal chars in note & group names
-
-                textField = CellUtils.createTextField(this, getConverter());
-                
-                // TFE, 20191208: check for valid file names!
-                FormatHelper.getInstance().initNoteGroupNameTextField(textField);
-            }
-            
             CellUtils.startEdit(this, getConverter(), null, null, textField);
         }
     }
@@ -256,16 +257,14 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
         super.cancelEdit();
 
         setTooltip(null);
-        CellUtils.cancelEdit(this, getConverter(), null);
+        CellUtils.cancelEdit(this, getConverter(), graphic);
     }
     
     @Override
     public void updateItem(String item, boolean empty) {
         super.updateItem(item, empty);
         
-        CellUtils.updateItem(this, getConverter(), null, null, textField);
-
-        Label graphic = null;
+        graphic = null;
         if (item != null && getTableRow().getItem() != null &&
                 "noteNameColFXML".equals(getId()) && 
                 OwnNoteEditorParameters.LookAndFeel.tagTree.equals(myEditor.getCurrentLookAndFeel())) {
@@ -276,12 +275,14 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
         }
         if (item != null) {
             // add class to indicate not null content - to be used in css
-            this.getStyleClass().add(ObjectCell.valueSet);
+            getStyleClass().add(ObjectCell.valueSet);
         } else {
             // add class to indicate null content - to be used in css
-            this.getStyleClass().removeAll(ObjectCell.valueSet);
+            getStyleClass().removeAll(ObjectCell.valueSet);
         }
-        this.setGraphic(graphic);
+        setGraphic(graphic);
+
+        CellUtils.updateItem(this, getConverter(), hbox, graphic, textField);
 
         setTooltip(null);
     }

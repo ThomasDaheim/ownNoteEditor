@@ -25,10 +25,9 @@
  */
 package tf.ownnote.ui.notes;
 
-import tf.ownnote.ui.commentdata.CommentDataMapper;
+import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -38,6 +37,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
+import tf.ownnote.ui.commentdata.CommentDataMapper;
 import tf.ownnote.ui.commentdata.ICommentDataHolder;
 import tf.ownnote.ui.commentdata.ICommentDataInfo;
 import tf.ownnote.ui.tags.TagInfo;
@@ -49,6 +49,8 @@ import tf.ownnote.ui.tags.TagManager;
  * @author thomas
  */
 public class NoteMetaData implements ICommentDataHolder {
+    public final static String ATTACHMENTS_DIR = File.separator + "Attachments";
+    
     private enum UpdateTag {
         LINK,
         UNLINK
@@ -58,7 +60,8 @@ public class NoteMetaData implements ICommentDataHolder {
     private static enum CommentDataInfo implements ICommentDataInfo {
         VERSIONS("versions", Multiplicity.MULTIPLE),
         TAGS("tags", Multiplicity.MULTIPLE),
-        CHARSET("charset", Multiplicity.SINGLE);
+        CHARSET("charset", Multiplicity.SINGLE),
+        ATTACHMENTS("attachments", Multiplicity.MULTIPLE);
         
         private final String dataName;
         private final Multiplicity dataMulti;
@@ -83,6 +86,8 @@ public class NoteMetaData implements ICommentDataHolder {
     private final ObservableSet<TagInfo> myTags = FXCollections.<TagInfo>observableSet();
     // TFE, 20201217: add charset to metadata - since we switched to UTF-8 on 17.12.2020 we need to be able to handle old notes
     private Charset myCharset = StandardCharsets.ISO_8859_1;
+    // TFE, 20210101: support for note attachments
+    private final ObservableList<String> myAttachments = FXCollections.<String>observableArrayList();
 
     private Note myNote;
     
@@ -186,6 +191,15 @@ public class NoteMetaData implements ICommentDataHolder {
         myCharset = charset;
     }
     
+    public ObservableList<String> getAttachments() {
+        return myAttachments;
+    }
+
+    public void setAttachments(final List<String> attachments) {
+        myAttachments.clear();
+        myAttachments.addAll(attachments);
+    }
+
     public static boolean hasMetaDataContent(final String htmlString) {
         if (htmlString == null) {
             return false;
@@ -257,6 +271,8 @@ public class NoteMetaData implements ICommentDataHolder {
             setVersions(versions);
         } else if (CommentDataInfo.TAGS.equals(name)) {
             setTags(TagManager.getInstance().tagsForNames(new HashSet<>(values), null, true));
+        } else if (CommentDataInfo.ATTACHMENTS.equals(name)) {
+            setAttachments(values);
         }
     }
 
@@ -282,6 +298,8 @@ public class NoteMetaData implements ICommentDataHolder {
             return myTags.stream().map((t) -> {
                 return t.getName();
             }).collect(Collectors.toList());
+        } else if (CommentDataInfo.ATTACHMENTS.equals(name)) {
+            return myAttachments;
         }
         return null;
     }

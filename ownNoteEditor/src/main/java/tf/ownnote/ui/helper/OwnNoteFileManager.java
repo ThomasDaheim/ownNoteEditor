@@ -69,6 +69,9 @@ import tf.ownnote.ui.tasks.TaskManager;
 public class OwnNoteFileManager implements INoteCRMDS {
     private final static OwnNoteFileManager INSTANCE = new OwnNoteFileManager();
     
+    public final static String NOTE_EXT = ".htm";
+    public final static String ALL_NOTES = "*" + NOTE_EXT;
+    
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor;
     
@@ -137,7 +140,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         // iterate over all files from directory
         DirectoryStream<Path> stream = null;
         try {
-            stream = Files.newDirectoryStream(Paths.get(notesPath), "*.htm");
+            stream = Files.newDirectoryStream(Paths.get(notesPath), ALL_NOTES);
             for (Path path: stream) {
                 final File file = path.toFile();
                 final String filename = file.getName();
@@ -174,7 +177,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
             }
 
             // TFE, 20201209: decouple reading of groups from reading of notes - since we want to have group data loaded when we init the tags
-            stream = Files.newDirectoryStream(Paths.get(this.notesPath), "*.htm");
+            stream = Files.newDirectoryStream(Paths.get(this.notesPath), ALL_NOTES);
             for (Path path: stream) {
                 final File file = path.toFile();
                 final String filename = file.getName();
@@ -337,7 +340,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         assert groupName != null;
         assert noteName != null;
         
-        return buildGroupName(groupName) + noteName + ".htm";
+        return buildGroupName(groupName) + noteName + NOTE_EXT;
     }
     
     public String buildNoteName(final Note note) {
@@ -616,7 +619,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         DirectoryStream<Path> notesForGroup = null;
         try {
             // 1. get all note names for group
-            notesForGroup = Files.newDirectoryStream(Paths.get(this.notesPath), escapedNoteNamePrefix + "*.htm");
+            notesForGroup = Files.newDirectoryStream(Paths.get(this.notesPath), escapedNoteNamePrefix + ALL_NOTES);
 
             // TFE, 20191211: here we don't want to be as case insensitive as  the OS is
             // in theory we could have groups that only differ by case: TEST and Test
@@ -647,7 +650,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
             try {
                 // need to re-read since iterator can only be used once - don't ask
                 // https://stackoverflow.com/questions/25089294/java-lang-illegalstateexception-iterator-already-obtained
-                notesForGroup = Files.newDirectoryStream(Paths.get(this.notesPath), escapedNoteNamePrefix + "*.htm");
+                notesForGroup = Files.newDirectoryStream(Paths.get(this.notesPath), escapedNoteNamePrefix + ALL_NOTES);
 
                 for (Path path: notesForGroup) {
                     final File file = path.toFile();

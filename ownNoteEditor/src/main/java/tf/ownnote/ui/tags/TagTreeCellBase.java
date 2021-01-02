@@ -49,35 +49,36 @@ import tf.ownnote.ui.notes.NoteGroup;
  * @author thomas
  */
 public class TagTreeCellBase {
-    public final static StringConverter<TreeItem<TagInfo>> treeItemConverter = new StringConverter<TreeItem<TagInfo>>() {
+    public final static StringConverter<TreeItem<TagInfoWrapper>> treeItemConverter = new StringConverter<TreeItem<TagInfoWrapper>>() {
         @Override
-        public String toString(TreeItem<TagInfo> item) {
-            return item.getValue().getName();
+        public String toString(TreeItem<TagInfoWrapper> item) {
+            return item.getValue().getTagInfo().getName();
         }
 
         @Override
-        public TreeItem<TagInfo> fromString(String string) {
+        public TreeItem<TagInfoWrapper> fromString(String string) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
     };
 
-    public final static StringConverter<TagInfo> tagInfoConverter = new StringConverter<TagInfo>() {
+    public final static StringConverter<TagInfoWrapper> tagInfoConverter = new StringConverter<TagInfoWrapper>() {
         @Override
-        public String toString(TagInfo item) {
-            return item.getName();
+        public String toString(TagInfoWrapper item) {
+            return item.getTagInfo().getName();
         }
 
         @Override
-        public TagInfo fromString(String string) {
+        public TagInfoWrapper fromString(String string) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
     };
     
-    public static void updateItem(ITagTreeCell cell, TagInfo item, boolean empty) {
+    public static void updateItem(ITagTreeCell cell, TagInfoWrapper item, boolean empty) {
         if (item != null && !empty) {
-            final TreeCell<TagInfo> treeCell = cell.getTreeCell();
+            final TreeCell<TagInfoWrapper> treeCell = cell.getTreeCell();
+            final TagInfo tag = item.getTagInfo();
             
-            final String colorName = item.getColorName();
+            final String colorName = tag.getColorName();
             if (colorName != null && !colorName.isEmpty()) {
                 // happy for any hint how this look can be achieved with less effort...
                 final HBox holder = new HBox();
@@ -95,35 +96,35 @@ public class TagTreeCellBase {
 
             final ContextMenu contextMenu = new ContextMenu();
 
-            final String sibling = TagManager.isGroupsChildTag(item) ? NoteGroup.NEW_GROUP : "New sibling";
+            final String sibling = TagManager.isGroupsChildTag(tag) ? NoteGroup.NEW_GROUP : "New sibling";
             final MenuItem newSilblingItem = new MenuItem(sibling);
             newSilblingItem.setOnAction((ActionEvent event) -> {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
-                item.getParent().getChildren().add(TagManager.getInstance().createTag(sibling, TagManager.isGroupsChildTag(item)));
+                tag.getParent().getChildren().add(TagManager.getInstance().createTag(sibling, TagManager.isGroupsChildTag(tag)));
             });
 
             // only if allowed
-            final String child = TagManager.isGroupsTag(item) ? NoteGroup.NEW_GROUP : "New child";
+            final String child = TagManager.isGroupsTag(tag) ? NoteGroup.NEW_GROUP : "New child";
             final MenuItem newChildItem = new MenuItem(child);
             newChildItem.setOnAction((ActionEvent event) -> {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
-                item.getChildren().add(TagManager.getInstance().createTag(child, TagManager.isGroupsTag(item)));
+                tag.getChildren().add(TagManager.getInstance().createTag(child, TagManager.isGroupsTag(tag)));
             });
 
             // only if allowed
             final MenuItem deleteItem = new MenuItem("Delete");
             deleteItem.setOnAction((ActionEvent event) -> {
-                TagManager.getInstance().deleteTag(item);
+                TagManager.getInstance().deleteTag(tag);
             });
 
-            if (item.getParent() != null) {
+            if (tag.getParent() != null) {
                 // no siblings for root
                 contextMenu.getItems().add(newSilblingItem);
             }
-            if (TagManager.childTagsAllowed(item)) {
+            if (TagManager.childTagsAllowed(tag)) {
                 contextMenu.getItems().add(newChildItem);
             }
-            if (!TagManager.isFixedTag(item)) {
+            if (!TagManager.isFixedTag(tag)) {
                 contextMenu.getItems().add(deleteItem);
             }
 
@@ -136,12 +137,12 @@ public class TagTreeCellBase {
             }
             
             // name needs to be unique, so we can also use it as id - makes life easier in 
-            treeCell.setId(item.getName());
+            treeCell.setId(tag.getName());
         }
     }            
 
     public static void startEdit(ITagTreeCell cell) {
-        final TreeCell<TagInfo> treeCell = cell.getTreeCell();
+        final TreeCell<TagInfoWrapper> treeCell = cell.getTreeCell();
 
         if (treeCell.isEditing()) {
             final TextField textField = createTextField(treeCell, cell.getTextConverter());
@@ -159,17 +160,17 @@ public class TagTreeCellBase {
     }
 
     public static void cancelEdit(ITagTreeCell cell) {
-        final TreeCell<TagInfo> treeCell = cell.getTreeCell();
+        final TreeCell<TagInfoWrapper> treeCell = cell.getTreeCell();
 
         CellUtils.cancelEdit(treeCell, cell.getTextConverter(), getTreeItemGraphic(treeCell));
     }
 
-    private static Node getTreeItemGraphic(TreeCell<TagInfo> cell) {
-        TreeItem<TagInfo> treeItem = cell.getTreeItem();
+    private static Node getTreeItemGraphic(TreeCell<TagInfoWrapper> cell) {
+        TreeItem<TagInfoWrapper> treeItem = cell.getTreeItem();
         return treeItem == null ? null : treeItem.getGraphic();
     }
 
-    public static TextField createTextField(final Cell<TagInfo> cell, final StringConverter<TagInfo> converter) {
+    public static TextField createTextField(final Cell<TagInfoWrapper> cell, final StringConverter<TagInfoWrapper> converter) {
         final TextField textField = new TextField(CellUtils.getItemText(cell, converter));
 
         // Use onAction here rather than onKeyReleased (with check for Enter),
@@ -181,7 +182,7 @@ public class TagTreeCellBase {
                                 + "StringConverter is null. Be sure to set a StringConverter "
                                 + "in your cell factory.");
             }
-            cell.getItem().setName(textField.getText());
+            cell.getItem().getTagInfo().setName(textField.getText());
             cell.commitEdit(cell.getItem());
             event.consume();
         });

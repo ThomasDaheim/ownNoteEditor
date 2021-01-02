@@ -35,7 +35,6 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 import org.apache.commons.codec.binary.Base64;
-import tf.ownnote.ui.tasks.TaskData;
 
 /**
  * Helper for the mapping between html comments and data values.

@@ -209,9 +209,13 @@
     -fx-border-width: 1; 
 }
 
-.removeTag {
+.removeButton {
     -fx-font-weight: bold;
     -fx-font-size: 0.8em;
+}
+
+.menu-as-list {
+    -fx-background-color: white;
 }
 
 /* style tag treeview */
