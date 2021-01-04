@@ -355,7 +355,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             notesTable.savePreferences(OwnNoteEditorPreferences.getInstance());
 
             // TFE, 20200903: store groups tabs order as well
-            groupsPane.savePreferences(OwnNoteEditorPreferences.getInstance());
+            if (groupsPane != null) {
+                groupsPane.savePreferences(OwnNoteEditorPreferences.getInstance());
+            }
 
             // TFE, 20201030: store name of last edited note
             if (noteHTMLEditor.getEditedNote() != null) {
@@ -492,9 +494,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         groupsTable = new OwnNoteTableView(groupsTableFXML, this);
         groupsTable.loadPreferences(OwnNoteEditorPreferences.getInstance());
         
-        groupsPane = new OwnNoteTabPane(groupsPaneFXML, this);
-        groupsPane.loadPreferences(OwnNoteEditorPreferences.getInstance());
-        
+        groupsPaneFXML.setDisable(true);
+        groupsPaneFXML.setVisible(false);
+
         VBox.setVgrow(noteHTMLEditorFXML, Priority.ALWAYS);
         VBox.setVgrow(noteMetaEditorFXML, Priority.NEVER);
         noteHTMLEditor = new OwnNoteHTMLEditor(noteHTMLEditorFXML, this);
@@ -593,9 +595,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             
             hideNoteEditor();
             
-            groupsPane.setDisable(true);
-            groupsPane.setVisible(false);
-
             // set callback, width, value name, cursor type of columns
             groupNameCol.setTableColumnProperties(0.65, NoteGroup.getNoteGroupName(0), false);
             groupDeleteCol.setTableColumnProperties(0.15, NoteGroup.getNoteGroupName(1), false);
@@ -801,8 +800,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
         } else {
 
-            myGroupList = groupsPane;
-            
             // groupTabs look and feel
             // 1. no groups table, no button list
             groupsTable.setDisable(true);
@@ -811,13 +808,21 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             buttonBox.setDisable(true);
             buttonBox.setVisible(false);
             
-            // TFE, 20201204: no groupsPane left for tagtree layout
             if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(currentLookAndFeel)) {
+                groupsPane = new OwnNoteTabPane(groupsPaneFXML, this);
+                groupsPane.loadPreferences(OwnNoteEditorPreferences.getInstance());
                 groupsPane.setDisable(false);
                 groupsPane.setVisible(true);
+
+                myGroupList = groupsPane;
             } else {
-                groupsPane.setDisable(true);
-                groupsPane.setVisible(false);
+                // show TagsTreeView (special version without checkboxes & drag/drop of tags)
+                tagsTreeView = new TagsTreeView(this);
+                tagsTreeView.setRenameFunction(TagManager.getInstance()::doRenameTag);
+
+                tagsTreePaneXML.getChildren().add(tagsTreeView);
+
+                myGroupList = tagsTreeView;
             }
             
             // 2. note table is shown left
@@ -865,13 +870,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         
         // TFE, 20201204: new column to the left for tagtree layout
         if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
-            // show TagsTreeView (special version without checkboxes & drag/drop of tags)
-            tagsTreeView = new TagsTreeView(this);
-            tagsTreeView.setRenameFunction(TagManager.getInstance()::doRenameTag);
-            
-            tagsTreePaneXML.getChildren().add(tagsTreeView);
-            
-            myGroupList = tagsTreeView;
         }
         
         // TFE, 20200810: adding third gridpane column for task handling

@@ -25,8 +25,6 @@
  */
 package tf.ownnote.ui.tags;
 
-import java.util.List;
-import java.util.Optional;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;

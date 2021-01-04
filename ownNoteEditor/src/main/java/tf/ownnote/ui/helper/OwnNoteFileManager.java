@@ -400,15 +400,14 @@ public class OwnNoteFileManager implements INoteCRMDS {
         
         // TFE, 20201231: only read if you really have to
         if (curNote.getNoteFileContent() == null || forceRead) {
-            String result = "";
+            final StringBuffer result = new StringBuffer("");
 
             final Path readPath = Paths.get(notesPath, buildNoteName(curNote.getGroupName(), curNote.getNoteName()));
             if (StandardCharsets.ISO_8859_1.equals(curNote.getMetaData().getCharset())) {
                 try {
-                    result = new String(Files.readAllBytes(readPath));
+                    result.append(Files.readAllBytes(readPath));
                 } catch (IOException ex) {
                     Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
-                    result = "";
                 }
             } else {
                 try (final BufferedReader reader = 
@@ -419,20 +418,19 @@ public class OwnNoteFileManager implements INoteCRMDS {
                     while ((str = reader.readLine()) != null) {
                         if (!firstLine) {
                             // don't use System.lineseparator() to avoid messup with metadata parsing
-                            result += "\n";
+                            result.append("\n");
                         }
-                        result += str;
+                        result.append(str);
 
                         firstLine = false;
                     }
                 } catch (IOException ex) {
                     Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
-                    result = "";
                 }
             }
 
             // TFE; 20200814: store content in Note
-            curNote.setNoteFileContent(result);
+            curNote.setNoteFileContent(result.toString());
         }
         
         return curNote;

@@ -79,7 +79,7 @@ import netscape.javascript.JSObject;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.text.StringEscapeUtils;
+import org.unbescape.html.HtmlEscape;
 import tf.helper.general.ImageHelper;
 import tf.helper.javafx.UsefulKeyCodes;
 import tf.ownnote.ui.main.OwnNoteEditor;
@@ -763,7 +763,7 @@ public class OwnNoteHTMLEditor {
             selection = selection.replaceAll("\\</p\\>", "</p>" + System.lineSeparator());
             selection = stripHtmlTags(selection);
             // convert all &uml; back to &
-            selection = StringEscapeUtils.unescapeHtml4(selection);
+            selection = HtmlEscape.unescapeHtml(selection);
         }
 
         final ClipboardContent clipboardContent = new ClipboardContent();
@@ -902,7 +902,7 @@ public class OwnNoteHTMLEditor {
                 result = !newEditorText.isEmpty();
             } else {
                 // TFE, 20201103: unwrapping checkboxes in js can lead to unescaping of text...
-                result = !StringEscapeUtils.unescapeHtml4(editedNote.getNoteFileContent()).equals(StringEscapeUtils.unescapeHtml4(newEditorText));
+                result = !HtmlEscape.unescapeHtml(editedNote.getNoteFileContent()).equals(HtmlEscape.unescapeHtml(newEditorText));
             }
         }
         
@@ -1025,7 +1025,7 @@ public class OwnNoteHTMLEditor {
         }
         
         public void checkBoxChanged(final String htmlBefore, final String htmlAfter) {
-            myself.checkBoxChanged(StringEscapeUtils.unescapeHtml4(htmlBefore), StringEscapeUtils.unescapeHtml4(htmlAfter));
+            myself.checkBoxChanged(HtmlEscape.unescapeHtml(htmlBefore), HtmlEscape.unescapeHtml(htmlAfter));
         }
         
         public void contentChanged(final String newContent) {

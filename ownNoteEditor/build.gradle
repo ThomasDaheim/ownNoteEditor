@@ -93,6 +93,7 @@ dependencies {
     compile group: 'org.apache.commons', name: 'commons-text', version: '1.8'
     compile group: 'commons-codec', name: 'commons-codec', version: '1.15'
     compile group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.14'
+    compile group: 'org.unbescape', name: 'unbescape', version: '1.1.6.RELEASE'
     
     // new look & feel for old code :-)
     // TFE, 20181209: not working with Java9+

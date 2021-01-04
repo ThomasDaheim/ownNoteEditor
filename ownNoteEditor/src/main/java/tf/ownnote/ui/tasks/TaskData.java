@@ -12,7 +12,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.text.StringEscapeUtils;
+import org.unbescape.html.HtmlEscape;
 import tf.ownnote.ui.commentdata.CommentDataMapper;
 import tf.ownnote.ui.commentdata.ICommentDataHolder;
 import tf.ownnote.ui.commentdata.ICommentDataInfo;
@@ -225,7 +225,7 @@ public class TaskData implements ICommentDataHolder {
         myEscapedText = noteText;
 
         // convert all &uml; back to &
-        myDescription.setValue(StringEscapeUtils.unescapeHtml4(myEscapedText));
+        myDescription.setValue(HtmlEscape.unescapeHtml(myEscapedText));
 //        System.out.println("    parseHtmlText completed: " + Instant.now());
     }
     
@@ -285,7 +285,7 @@ public class TaskData implements ICommentDataHolder {
     public void setEscapedText(final String text) {
         myEscapedText = text;
         
-        myDescription.setValue(StringEscapeUtils.unescapeHtml4(myEscapedText));
+        myDescription.setValue(HtmlEscape.unescapeHtml(myEscapedText));
     }
     
     public Note getNote() {
