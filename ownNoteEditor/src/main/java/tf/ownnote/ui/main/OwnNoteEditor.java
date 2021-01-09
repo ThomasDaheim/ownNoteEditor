@@ -116,6 +116,7 @@ import tf.ownnote.ui.tags.TagEditor;
 import tf.ownnote.ui.tags.TagInfo;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tags.TagsTreeView;
+import tf.ownnote.ui.tasks.TaskBoard;
 import tf.ownnote.ui.tasks.TaskData;
 import tf.ownnote.ui.tasks.TaskList;
 import tf.ownnote.ui.tasks.TaskManager;
@@ -130,7 +131,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
     private final static OwnNoteEditorParameters parameters = OwnNoteEditorParameters.getInstance();
     
-    public final static DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.uuuu HH:mm:ss");
+    public final static String DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm:ss";
+    public final static DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
 
     private final static String NEW_NOTENAME = "New Note";
     
@@ -315,6 +317,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     @FXML
     private StackPane tagsTreePaneXML;
     private TagsTreeView tagsTreeView;
+    @FXML
+    private MenuItem menuTaskboard;
 
     public OwnNoteEditor() {
     }
@@ -1075,6 +1079,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         });
         menuShowTasklist.setSelected(tasklistVisible.get());
         tasklistVisible.bindBidirectional(menuShowTasklist.selectedProperty());
+        
+        // TFE, 20210106: our own little KANBAN board...
+        menuTaskboard.setOnAction((t) -> {
+            TaskBoard.getInstance().show();
+        });
 
         // TFE, 20201025: and now we have tag management as well :-)
         menuEditTags.setOnAction((t) -> {

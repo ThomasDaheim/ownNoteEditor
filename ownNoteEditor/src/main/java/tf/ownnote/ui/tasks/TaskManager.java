@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.css.PseudoClass;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
@@ -48,6 +49,8 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
 
     // TFE, 20201216: speed up searching in long notes
     private final static Pattern TASK_PATTERN = Pattern.compile(OwnNoteEditor.ANY_BOXES, Pattern.LITERAL);
+    
+    public static final PseudoClass COMPLETED = PseudoClass.getPseudoClass("completed");
     
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;

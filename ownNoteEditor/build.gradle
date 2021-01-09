@@ -84,7 +84,7 @@ dependencies {
     compile "org.openjfx:javafx-media:$javafx_version:$platform"
     
     // TFE, 20200809: use our own helper library
-    compile 'tf.JavaHelper:JavaHelper:1.9'
+    compile 'tf.JavaHelper:JavaHelper:1.10'
 
     compile 'org.slf4j:slf4j-api:1.7.12'
     compile 'commons-cli:commons-cli:1.4'
@@ -94,11 +94,9 @@ dependencies {
     compile group: 'commons-codec', name: 'commons-codec', version: '1.15'
     compile group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.14'
     compile group: 'org.unbescape', name: 'unbescape', version: '1.1.6.RELEASE'
+    compile group: 'org.jfxtras', name: 'jfxtras-controls', version: '14-r1'
     
     // new look & feel for old code :-)
-    // TFE, 20181209: not working with Java9+
-    // TFE, 20200508: should work now... - needs investigation
-    // TFE, 20201028: trying to only include JMetro css files for better fine tuning
     compile group: 'org.jfxtras', name: 'jmetro', version: '11.6.14'
 
     testCompile "org.testfx:testfx-junit:4.0.+"

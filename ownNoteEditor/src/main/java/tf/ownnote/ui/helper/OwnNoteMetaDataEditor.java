@@ -96,7 +96,7 @@ public class OwnNoteMetaDataEditor {
     private final FlowPane tagsBox = new FlowPane();
     
     private Note editorNote;
-    private boolean hasChanged = false;
+    private boolean noteHasChanged = false;
 
     private OwnNoteMetaDataEditor() {
         super();
@@ -182,7 +182,7 @@ public class OwnNoteMetaDataEditor {
             return;
         }
         editorNote = note;
-        hasChanged = false;
+        noteHasChanged = false;
         
         versions.getItems().clear();
         // set labels & fields with note data
@@ -206,7 +206,7 @@ public class OwnNoteMetaDataEditor {
 
         // change listener as well
         editorNote.getMetaData().getTags().addListener((SetChangeListener.Change<? extends TagInfo> change) -> {
-            hasChanged = true;
+            noteHasChanged = true;
 
             if (change.wasRemoved()) {
                 removeTagLabel(change.getElementRemoved().getName());
@@ -226,7 +226,7 @@ public class OwnNoteMetaDataEditor {
         
         // change listener as well
         editorNote.getMetaData().getAttachments().addListener((ListChangeListener.Change<? extends String> change) -> {
-            hasChanged = true;
+            noteHasChanged = true;
 
             while (change.next()) {
                 if (change.wasRemoved()) {
@@ -261,11 +261,11 @@ public class OwnNoteMetaDataEditor {
     }
     
     public boolean hasChanged() {
-        return hasChanged;
+        return noteHasChanged;
     }
     
     public void hasBeenSaved() {
-        hasChanged = false;
+        noteHasChanged = false;
         
         // re-init since new version...
         editNote(editorNote);

@@ -67,7 +67,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             // https://stackoverrun.com/de/q/9359780#39265109
             var regularPaste = false;
             
-            // TFE, 20201219: don't send a contentChanged on every change - performance nightmare fpr long notes
+            // TFE, 20201219: don't send a contentChanged on every change - performance nightmare for long notes
             // better: mark that a change has occured and check every 10secs...
             var contentChanged = false;
             
@@ -522,7 +522,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             }
 
             // https://javascript.info/settimeout-setinterval
-            var delay = 5000;
+            var delay = 2000;
             var timerId = window.setTimeout(function request() {
                 //console.log('Checking for changed content')
                 checkContentChanged();

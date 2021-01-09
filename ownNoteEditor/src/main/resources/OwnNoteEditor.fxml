@@ -199,6 +199,7 @@
             <Menu mnemonicParsing="false" text="Tasks &amp; Tags">
                <items>
                   <CheckMenuItem fx:id="menuShowTasklist" mnemonicParsing="false" selected="true" text="Show Tasklist" />
+                  <MenuItem fx:id="menuTaskboard" mnemonicParsing="false" text="Taskboard" />
                   <SeparatorMenuItem mnemonicParsing="false" />
                   <MenuItem fx:id="menuEditTags" mnemonicParsing="false" text="Edit Tags" />
                   <MenuItem fx:id="menuGroups2Tags" mnemonicParsing="false" text="Add/remove Group Tags" />

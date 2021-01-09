@@ -8,7 +8,9 @@ package tf.ownnote.ui.tasks;
 import java.time.LocalDateTime;
 import java.util.List;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -33,7 +35,8 @@ public class TaskData implements ICommentDataHolder {
         ID("id", Multiplicity.SINGLE),
         STATUS("status", Multiplicity.SINGLE),
         PRIO("prio", Multiplicity.SINGLE),
-        DUE_DATE("dueDate", Multiplicity.SINGLE);
+        DUE_DATE("dueDate", Multiplicity.SINGLE),
+        COMMENT("comment", Multiplicity.SINGLE);
         
         private final String dataName;
         private final Multiplicity dataMulti;
@@ -69,6 +72,10 @@ public class TaskData implements ICommentDataHolder {
         @Override
         public String toString() {
             return statusName;
+        }
+        
+        public boolean isCompleted() {
+            return DONE.equals(this);
         }
         
         public static TaskStatus maxOpenStatus(final TaskStatus status1, final TaskStatus status2) {
@@ -129,15 +136,18 @@ public class TaskData implements ICommentDataHolder {
     private String myHtmlText;
     private String myEscapedText;
     private int myTextPos;
-    private LocalDateTime myDueDate = null;
-    private TaskStatus myStatus = TaskStatus.OPEN;
-    private TaskPriority myPriority = TaskPriority.LOW;
+    private ObjectProperty<LocalDateTime> myDueDate = new SimpleObjectProperty<>();
+    private String myComment = null;
+    private final ObjectProperty<TaskStatus> myStatus = new SimpleObjectProperty<>(TaskStatus.OPEN);
+    private final ObjectProperty<TaskPriority> myPriority = new SimpleObjectProperty<>(TaskPriority.LOW);
     
     // TFE, 20201230: additional attributes are stored in separate meta-data file - link is the unique ID
     // initialized here to always have a value but can be overwritten from parsed noteContent
     private String myId = RandomStringUtils.random(12, "0123456789abcdef"); 
     
     private Note myNote = null;
+    
+    private boolean inStatusChange = false;
 
     private TaskData() {
     }
@@ -153,12 +163,26 @@ public class TaskData implements ICommentDataHolder {
         // parse htmlText into completed and find description
         parseHtmlText(noteContent);
         
+        // tricky, two properties listening to each other...
         isCompleted.addListener((ov, oldValue, newValue) -> {
-            if (newValue != null && !newValue.equals(oldValue)) {
-                setTaskStatus(isCompleted() ? TaskStatus.DONE : TaskStatus.maxOpenStatus(TaskStatus.OPEN, myStatus));
+            if (newValue != null && !newValue.equals(oldValue) && !inStatusChange) {
+                inStatusChange = true;
+                setTaskStatus(isCompleted() ? TaskStatus.DONE : TaskStatus.maxOpenStatus(TaskStatus.OPEN, myStatus.get()));
+                inStatusChange = false;
             }
         });
-        setTaskStatus(isCompleted() ? TaskStatus.DONE : TaskStatus.maxOpenStatus(TaskStatus.OPEN, myStatus));
+        inStatusChange = true;
+        // init status if no saved value in note text...
+        setTaskStatus(isCompleted() ? TaskStatus.DONE : TaskStatus.maxOpenStatus(TaskStatus.OPEN, myStatus.get()));
+        inStatusChange = false;
+        
+        myStatus.addListener((ov, oldValue, newValue) -> {
+            if (newValue != null && !newValue.equals(oldValue) && !inStatusChange) {
+                inStatusChange = true;
+                setCompleted(newValue.isCompleted());
+                inStatusChange = false;
+            }
+        });
     }
     
     private void parseHtmlText(final String noteContent) {
@@ -303,28 +327,49 @@ public class TaskData implements ICommentDataHolder {
     public String getId() {
         return myId;
     }
-    public LocalDateTime getDueDate() {
+
+    public ObjectProperty<LocalDateTime> dueDateProperty() {
         return myDueDate;
     }
 
-    public void setDueDate(final LocalDateTime dueDate) {
-        myDueDate = dueDate;
+    public LocalDateTime getDueDate() {
+        return myDueDate.get();
     }
 
-    public TaskStatus getTaskStatus() {
+    public void setDueDate(final LocalDateTime dueDate) {
+        myDueDate.set(dueDate);
+    }
+
+    public String getComment() {
+        return myComment;
+    }
+    
+    public void setComment(final String text) {
+        myComment = text;
+    }
+    
+    public ObjectProperty<TaskStatus> taskStatusProperty() {
         return myStatus;
     }
 
-    public void setTaskStatus(final TaskStatus status) {
-        myStatus = status;
+    public TaskStatus getTaskStatus() {
+        return myStatus.get();
     }
 
-    public TaskPriority getTaskPriority() {
+    public void setTaskStatus(final TaskStatus status) {
+        myStatus.set(status);
+    }
+
+    public ObjectProperty<TaskPriority> taskPriorityProperty() {
         return myPriority;
     }
 
+    public TaskPriority getTaskPriority() {
+        return myPriority.get();
+    }
+
     public void setTaskPriority(final TaskPriority prio) {
-        myPriority = prio;
+        myPriority.set(prio);
     }
     
     @Override
@@ -347,6 +392,8 @@ public class TaskData implements ICommentDataHolder {
             setTaskStatus(TaskStatus.valueOf(value));
         } else if (CommentDataInfo.DUE_DATE.equals(name)) {
             setDueDate(LocalDateTime.parse(value, OwnNoteEditor.DATE_TIME_FORMATTER));
+        } else if (CommentDataInfo.COMMENT.equals(name)) {
+            myComment = value;
         }
     }
 
@@ -359,11 +406,13 @@ public class TaskData implements ICommentDataHolder {
         if (CommentDataInfo.ID.equals(name)) {
             return myId;
         } else if (CommentDataInfo.PRIO.equals(name)) {
-            return myPriority.name();
+            return getTaskPriority().name();
         } else if (CommentDataInfo.STATUS.equals(name)) {
-            return myStatus.name();
+            return getTaskStatus().name();
         } else if (CommentDataInfo.DUE_DATE.equals(name)) {
-            return myDueDate != null ? OwnNoteEditor.DATE_TIME_FORMATTER.format(myDueDate) : null;
+            return getDueDate() != null ? OwnNoteEditor.DATE_TIME_FORMATTER.format(getDueDate()) : null;
+        } else if (CommentDataInfo.COMMENT.equals(name)) {
+            return myComment;
         }
         return null;
     }
