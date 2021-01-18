@@ -306,6 +306,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         return getNoteGroup(note.getGroupName());
     }
 
+    @Override
     public boolean deleteNote(final Note note) {
         assert note != null;
         
@@ -365,6 +366,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         return result;
     }
 
+    @Override
     public boolean createNote(final String groupName, final String noteName) {
         assert groupName != null;
         assert noteName != null;
@@ -384,8 +386,16 @@ public class OwnNoteFileManager implements INoteCRMDS {
             final Note noteRow = new Note(groupName, noteName);
             noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
             noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
+            // TFE, 20210113: init data as well - especially charset
+            noteRow.setNoteFileContent("");
+            noteRow.setMetaData(new NoteMetaData());
+            noteRow.getMetaData().setCharset(StandardCharsets.UTF_8);
+
             // use filename and not notename since duplicate note names can exist in diffeent groups
             notesList.put(newFileName, noteRow);
+
+            // save metadata
+            saveNote(noteRow);
         } catch (IOException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = false;
@@ -411,7 +421,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                 }
             } else {
                 try (final BufferedReader reader = 
-                        new BufferedReader(new InputStreamReader(new FileInputStream(readPath.toFile()), StandardCharsets.UTF_8))) {
+                    new BufferedReader(new InputStreamReader(new FileInputStream(readPath.toFile()), StandardCharsets.UTF_8))) {
 
                     boolean firstLine = true;
                     String str;

@@ -38,9 +38,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                alert("Error: " + msg + "\nurl: " + url + "\nline: " + line + extra);
                console.log("Error: " + msg + "\nurl: " + url + "\nline: " + line + extra);
 
-               // TODO: Report this error via ajax so you can keep track
-               //       of what pages have JS issues
-
                var suppressErrorAlert = true;
                // If you return true, then error alerts (like in older versions of 
                // Internet Explorer) will be suppressed.
@@ -329,15 +326,17 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 var mediaString = "<img src='data:" + mediaType + ";base64," + mediaData + "' >";
 
                 tinymce.activeEditor.execCommand("mceInsertContent", false, mediaString);
+                contentChanged = true;
             }
 
             function insertText(content) {
                 //console.log('insertText ' + content);
                 tinymce.activeEditor.execCommand("mceInsertContent", false, content);
+                contentChanged = true;
             }
             
             function unwrapCheckboxes(content) {
-                // TFE, 20201102: TODO remove all text decorations from checkboxs, otherwise checkChanged won't find any tasks
+                // TFE, 20201102: remove all text decorations from checkboxs, otherwise checkChanged won't find any tasks
                 // since decorations can come in any combination, we need to repeat N unwraps N times to make sure to get them all...
                 // https://stackoverflow.com/questions/20132174/reverse-of-jquery-parsehtml
                 return $('<div />').append(
@@ -367,8 +366,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             }
 
             // try getContent() and if fails use tinymce.activeEditor.getBody().innerHTML AND replace img blobs by real base64 data
-            function saveGetContent(unwrap) {
+            function saveGetContent(unwrap = true, checkChanged = true) {
                 //console.log('JavaScript: saveGetContent was called.');
+                // TFE, 20210114: make sure we have done all callbacks before...
+                if (checkChanged) {
+                    checkContentChanged();
+                }
+                
                 var content = "";
                 content = tinymce.activeEditor.getContent();
 
@@ -393,6 +397,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             // similar to saveGetContent() - only for current selection
             function saveGetSelection() {
                 //console.log('JavaScript: saveGetSelection was called. ' + copyFullHTML);
+                // TFE, 20210114: make sure we have done all callbacks before...
+                checkContentChanged();
+
                 var content = "";
                 
                 // TODO: check, if code window is shown
@@ -440,6 +447,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     } else {
                         element.checkbox.removeAttribute('checked');
                     }
+                    
+                    contentChanged = true;
                     //console.log('checkbox toggled: "' + element.checkbox + '", "' + element.checkbox.outerHTML + '", "' + element.checkbox.parentNode.innerHTML + '"');
                 }
             }
@@ -516,7 +525,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             function checkContentChanged() {
                 if (contentChanged) {
                     //console.log('Changed content found!')
-                    editorCallback.contentChanged(saveGetContent(true));
+                    editorCallback.contentChanged(saveGetContent(true, false));
                     contentChanged = false;
                 }
             }
@@ -532,7 +541,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             window.onresize = function() {
                 //console.log('Window was resized! outerWidth: ' + window.outerWidth + " outerHeight " + window.outerHeight);
                 resizeEditor();
-            }
+            };
         </script>
     </head>
 

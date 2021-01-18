@@ -29,13 +29,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javafx.beans.Observable;
-import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.scene.Node;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.Priority;
@@ -60,6 +60,7 @@ public class TaskBoardLane extends VBox {
     private final Label laneHeader = new Label();
     private final VBox taskBox = new VBox();
     
+    private FilteredList<TaskData> filteredData;
     private final Map<TaskData, TaskCard> myCardMap = new HashMap<>();
     
     private TaskBoardLane() {
@@ -89,58 +90,63 @@ public class TaskBoardLane extends VBox {
         taskBox.setPrefWidth(USE_PREF_SIZE);
         taskBox.setPrefHeight(USE_PREF_SIZE);
 
+        laneHeader.prefWidthProperty().bind(widthProperty());
         laneHeader.setText(myStatus.toString() + " (0)");
         taskBox.getChildren().addListener((ListChangeListener.Change<? extends Node> c) -> {
             laneHeader.setText(myStatus.toString() + " (" + taskBox.getChildren().size() + ")");
         });
         
-        // use extractor & filter!!! see TaskList.populateTaskList()
-        final ObservableList<TaskData> items = 
-                FXCollections.<TaskData>observableArrayList(item -> new Observable[] {item.taskStatusProperty()});
-        items.setAll(TaskManager.getInstance().getTaskList());
-        final FilteredList<TaskData> filteredData = new FilteredList<>(items);
-        filteredData.setPredicate((t) -> {
+        // use filter
+        filteredData = TaskManager.getInstance().getTaskList().filtered((t) -> {
             return myStatus.equals(t.getTaskStatus());
         });
-        items.addListener((ListChangeListener.Change<? extends TaskData> c) -> {
-            updateTaskCards(filteredData);
+        filteredData.addListener((ListChangeListener.Change<? extends TaskData> c) -> {
+            updateTaskCards();
         });
-        updateTaskCards(filteredData);
+        updateTaskCards();
         
         getChildren().addAll(laneHeader, scrollPane);
 
         VBox.setVgrow(laneHeader, Priority.NEVER);
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         
-        setOnDragOver((t) -> {
+        if (myStatus.isCompleted()) {
+            final ContextMenu contextMenu = new ContextMenu();
+            final MenuItem menuItem = new MenuItem("Archive completed tasks");
+            menuItem.setOnAction((t) -> {
+                TaskManager.getInstance().archiveCompletedTasks(myCardMap.keySet());
+            });
+            contextMenu.getItems().add(menuItem);
+            laneHeader.setContextMenu(contextMenu);
+        }
+        
+        taskBox.setOnDragOver((t) -> {
             if (AppClipboard.getInstance().hasContent(TaskBoard.DRAG_AND_DROP)) {
                 t.acceptTransferModes(TransferMode.MOVE);
             }
             t.consume();
         });
-        setOnDragDropped((t) -> {
+        taskBox.setOnDragDropped((t) -> {
             boolean success = false;
 
             if (AppClipboard.getInstance().hasContent(TaskBoard.DRAG_AND_DROP)) {
-                final TaskCard taskCard = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(TaskBoard.DRAG_AND_DROP));
-                taskCard.getTaskData().setTaskStatus(myStatus);
-                
-                // TODO read & save note
-                
-                success = true;
+                final TaskData task = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(TaskBoard.DRAG_AND_DROP));
+                // read & save note as required
+                success = TaskManager.getInstance().processTaskStatusChanged(task, myStatus, false);
             }
 
+            AppClipboard.getInstance().clearContent(TaskBoard.DRAG_AND_DROP);
             t.setDropCompleted(success);
             t.consume();
         });
     };
     
-    private void updateTaskCards(final List<TaskData> taskList) {
+    private void updateTaskCards() {
         // and now check against current cards
         // 1. remove obsolete cards
         final List<TaskData> taskToBeRemoved = new ArrayList<>();
         for (Map.Entry<TaskData, TaskCard> entry : myCardMap.entrySet()) {
-            if (!taskList.contains(entry.getKey())) {
+            if (!filteredData.contains(entry.getKey())) {
                 taskBox.getChildren().remove(entry.getValue());
                 taskToBeRemoved.add(entry.getKey());
             }
@@ -150,7 +156,7 @@ public class TaskBoardLane extends VBox {
         }
 
         // 2. add missing cards
-        for (TaskData task : taskList) {
+        for (TaskData task : filteredData) {
             if (!myCardMap.containsKey(task)) {
                 final TaskCard card = new TaskCard(task);
                 card.setPrefWidth(taskBox.getWidth());

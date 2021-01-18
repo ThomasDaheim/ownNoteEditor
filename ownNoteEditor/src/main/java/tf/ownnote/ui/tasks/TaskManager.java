@@ -11,6 +11,7 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -48,7 +49,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     private final static Pattern COMMENT_PATTERN = Pattern.compile("\\<!--.*--\\>");
 
     // TFE, 20201216: speed up searching in long notes
-    private final static Pattern TASK_PATTERN = Pattern.compile(OwnNoteEditor.ANY_BOXES, Pattern.LITERAL);
+    private final static Pattern TASK_PATTERN = Pattern.compile(TaskData.ANY_BOXES, Pattern.LITERAL);
     
     public static final PseudoClass COMPLETED = PseudoClass.getPseudoClass("completed");
     
@@ -77,7 +78,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     
     private void initTaskList() {
         // find all notes containing checkbox and parse to create TaskData for them
-        final Set<Note> taskNotes = OwnNoteFileManager.getInstance().getNotesWithText(OwnNoteEditor.ANY_BOXES);
+        final Set<Note> taskNotes = OwnNoteFileManager.getInstance().getNotesWithText(TaskData.ANY_BOXES);
         
         for (Note note : taskNotes) {
             final String noteContent = OwnNoteFileManager.getInstance().readNote(note, false).getNoteFileContent();
@@ -92,7 +93,8 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         final List<TaskData> result = new ArrayList<>();
 
         // iterate over all matches and create TaskData items
-        for (int textPos : findAllOccurences(noteContent)) {
+        final List<Integer> textPossssss = findAllOccurences(noteContent);
+        for (int textPos : textPossssss) {
 //            System.out.println("  task found: " + Instant.now());
             result.add(new TaskData(note, noteContent, textPos));
 //            System.out.println("  task added: " + Instant.now());
@@ -250,22 +252,22 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             // FFFFUUUUCCCCKKKK innerHtml sends back <input type="checkbox" checked="checked"> instead of <input type="checkbox" checked="checked" />
             // TFE, 20201103: better safe than sorry and check for both variants of valid html
             String oldHtmlText = null;
-            int checkIndex = oldContent.indexOf(OwnNoteEditor.UNCHECKED_BOXES_1);
+            int checkIndex = oldContent.indexOf(TaskData.UNCHECKED_BOXES_1);
             if (checkIndex > -1) {
-                oldHtmlText = oldContent.substring(checkIndex + OwnNoteEditor.UNCHECKED_BOXES_1.length());
+                oldHtmlText = oldContent.substring(checkIndex + TaskData.UNCHECKED_BOXES_1.length());
             } else {
-                checkIndex = oldContent.indexOf(OwnNoteEditor.UNCHECKED_BOXES_2);
+                checkIndex = oldContent.indexOf(TaskData.UNCHECKED_BOXES_2);
                 if (checkIndex > -1) {
-                    oldHtmlText = oldContent.substring(checkIndex + OwnNoteEditor.UNCHECKED_BOXES_2.length());
+                    oldHtmlText = oldContent.substring(checkIndex + TaskData.UNCHECKED_BOXES_2.length());
                 }
             }
-            checkIndex = oldContent.indexOf(OwnNoteEditor.CHECKED_BOXES_1);
+            checkIndex = oldContent.indexOf(TaskData.CHECKED_BOXES_1);
             if (checkIndex > -1) {
-                oldHtmlText = oldContent.substring(checkIndex + OwnNoteEditor.CHECKED_BOXES_1.length());
+                oldHtmlText = oldContent.substring(checkIndex + TaskData.CHECKED_BOXES_1.length());
             } else {
-                checkIndex = oldContent.indexOf(OwnNoteEditor.CHECKED_BOXES_2);
+                checkIndex = oldContent.indexOf(TaskData.CHECKED_BOXES_2);
                 if (checkIndex > -1) {
-                    oldHtmlText = oldContent.substring(checkIndex + OwnNoteEditor.CHECKED_BOXES_2.length());
+                    oldHtmlText = oldContent.substring(checkIndex + TaskData.CHECKED_BOXES_2.length());
                 }
             }
             if (oldHtmlText == null) {
@@ -276,9 +278,9 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             oldHtmlText = OwnNoteHTMLEditor.stripHtmlTags(oldHtmlText);
             
             Boolean newCompleted = null;
-            if (newContent.contains(OwnNoteEditor.UNCHECKED_BOXES_2)) {
+            if (newContent.contains(TaskData.UNCHECKED_BOXES_2)) {
                 newCompleted = false;
-            } else if (newContent.contains(OwnNoteEditor.CHECKED_BOXES_2)) {
+            } else if (newContent.contains(TaskData.CHECKED_BOXES_2)) {
                 newCompleted = true;
             }
             if (newCompleted == null) {
@@ -324,6 +326,115 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         inFileChange = false;
     }
     
+    public boolean processTaskStatusChanged(final TaskData task, final TaskData.TaskStatus newStatus, final boolean selectNote) {
+        boolean result = true;
+
+        // things are more tricky if task completed changes with status...
+        final boolean completedChanged = (task.isCompleted() != newStatus.isCompleted());
+        
+        // if we should select the note OR if its anyways the one shown in the editor
+        if (selectNote || task.getNote().equals(myEditor.getEditedNote())) {
+            if (completedChanged) {
+                myEditor.selectNoteAndToggleCheckBox(task.getNote(), task.getTextPos(), task.getDescription(), newStatus.isCompleted());
+            } else {
+                myEditor.selectNoteAndCheckBox(task.getNote(), task.getTextPos(), task.getDescription());
+            }
+        } else {
+            // handling of read & save note / select note
+            OwnNoteFileManager.getInstance().readNote(task.getNote(), false);
+
+            if (completedChanged) {
+                // tricky, we need to change note text content as well
+                String content = task.getNote().getNoteFileContent();
+                final String noteTaskText = content.substring(task.getTextPos(), task.getTextPos() + task.getRawText().length());
+                String newNoteTaskText;
+                if (task.isCompleted()) {
+                    newNoteTaskText = noteTaskText.replace(TaskData.UNCHECKED_BOXES_1, TaskData.CHECKED_BOXES_2).replace(TaskData.UNCHECKED_BOXES_2, TaskData.CHECKED_BOXES_2);
+                } else {
+                    newNoteTaskText = noteTaskText.replace(TaskData.CHECKED_BOXES_1, TaskData.UNCHECKED_BOXES_2).replace(TaskData.CHECKED_BOXES_2, TaskData.UNCHECKED_BOXES_2);
+                }
+                
+                content = content.substring(0, task.getTextPos()-1) + newNoteTaskText + content.substring(task.getTextPos() + task.getRawText().length());
+                
+                // update all tasks in file since positions will have changed
+                processFileContentChange(FileContentChangeType.CONTENT_CHANGED, task.getNote(), task.getNote().getNoteFileContent(), content);
+
+                // set back content - also to editor content for next editing of note
+                task.getNote().setNoteFileContent(content);
+                if (task.getNote().getNoteEditorContent() != null) {
+                    task.getNote().setNoteEditorContent(content);
+                }
+            } else {
+                task.setTaskStatus(newStatus);
+            }
+
+            result = OwnNoteFileManager.getInstance().saveNote(task.getNote());
+        }
+        
+        return result;
+    }
+    
+    public boolean archiveCompletedTasks(final Set<TaskData> tasks) {
+//        System.out.println("archiveCompletedTasks");
+        boolean result = true;
+        
+        // iterate over notes to avoid multiple saveNote() calls
+        final Set<Note> notes = tasks.stream().map((t) -> {
+            return t.getNote();
+        }). distinct().collect(Collectors.toSet());
+        
+        // replace all checkboxes with \u2611 - as is done in html editor for current node
+        for (Note note : notes) {
+            // sort in reverse textpos order since we're modifying the content
+            final Set<TaskData> noteTasks = tasks.stream().filter((t) -> {
+                return note.equals(t.getNote());
+            }).sorted((o1, o2) -> {
+                return -Integer.compare(o1.getTextPos(), o2.getTextPos());
+            }).collect(Collectors.toCollection(LinkedHashSet::new));
+            
+            if (note.equals(myEditor.getEditedNote())) {
+                // the currently edited note - let htmleditor do the work
+                // this changes all instances without further checking!
+                myEditor.replaceCheckedBoxes();
+            } else {
+                OwnNoteFileManager.getInstance().readNote(note, false);
+                String content = note.getNoteFileContent();
+                
+                
+                // TFE, 20210118: lets changed all like for the edited note
+                // ignore passed list of tasks for the moment
+                // if this feature is ever needed see code below for individual changes
+                content = replaceCheckedBoxes(content);
+
+                // iterate over tasks and change each individually - maybe needed in the future
+//                for (TaskData task: noteTasks) {
+//                    final String noteTaskText = content.substring(task.getTextPos(), task.getTextPos() + task.getRawText().length());
+//                    final String newNoteTaskText = noteTaskText.replace(TaskData.CHECKED_BOXES_1, TaskData.ARCHIVED_BOX).replace(TaskData.CHECKED_BOXES_2, TaskData.ARCHIVED_BOX);
+////                    System.out.println("  noteTaskText: \"" + noteTaskText + "\"");
+////                    System.out.println("  newNoteTaskText: \"" + newNoteTaskText + "\"");
+//
+//                    content = content.substring(0, task.getTextPos()) + newNoteTaskText + content.substring(task.getTextPos() + task.getRawText().length());
+//                }
+                
+                // update all tasks in file since positions will have changed - this also removes the tasks from the list
+                processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, note.getNoteFileContent(), content);
+
+                // set back content - also to editor content for next editing of note
+                note.setNoteFileContent(content);
+                if (note.getNoteEditorContent() != null) {
+                    note.setNoteEditorContent(content);
+                }
+
+                if (!OwnNoteFileManager.getInstance().saveNote(note)) {
+                    result = false;
+                    break;
+                }
+            }
+        }
+        
+        return result;
+    }
+    
     public boolean inFileChange() {
         return inFileChange;
     }
@@ -360,6 +471,8 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     }
     
     public void setTaskDataInNote(final Note note) {
+//        System.out.println("setTaskDataInNote");
+
         String content = "";
         content = note.getNoteEditorContent();
         if (content == null) {
@@ -375,17 +488,24 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         for (TaskData task : tasks) {
             // replace text after checkbox and insert/replace taskid
             final String newHtmlComment = task.toHtmlComment();
-            final int startOfTaskText = content.indexOf(task.getHtmlText(), task.getTextPos());
-            final String noteTaskText = content.substring(startOfTaskText, startOfTaskText + task.getHtmlText().length());
-//            System.out.println("task text: " + newHtmlComment);
-//            System.out.println("note text: " + noteTaskText);
-            
-            if (!noteTaskText.startsWith(newHtmlComment)) {
-                // id not found or id changed!
-                final String newNoteTaskText = newHtmlComment + COMMENT_PATTERN.matcher(noteTaskText).replaceAll("");
-                
-//                System.out.println("new note text: " + newNoteTaskText);
-                content = content.substring(0, startOfTaskText) + newNoteTaskText + content.substring(startOfTaskText + noteTaskText.length());
+            // find text including checkbox - might be empty after the fact...
+            int startOfTaskText = content.indexOf(task.getRawText(), task.getTextPos());
+            if (startOfTaskText > -1) {
+                // now shift to after the checkbox
+                startOfTaskText += (task.getRawText().length() - task.getHtmlText().length());
+                final String noteTaskText = content.substring(startOfTaskText, startOfTaskText + task.getHtmlText().length());
+//                System.out.println("  noteTaskText: \"" + noteTaskText + "\"");
+
+                if (!noteTaskText.startsWith(newHtmlComment)) {
+                    // id not found or id changed!
+                    final String newNoteTaskText = newHtmlComment + COMMENT_PATTERN.matcher(noteTaskText).replaceAll("");
+//                    System.out.println("  newNoteTaskText: \"" + newNoteTaskText + "\"");
+
+    //                System.out.println("new note text: " + newNoteTaskText);
+                    content = content.substring(0, startOfTaskText) + newNoteTaskText + content.substring(startOfTaskText + noteTaskText.length());
+                }
+            } else {
+                System.out.println("Task with text \"" + task.getHtmlText() + "\" starting @" + task.getTextPos() + " no longer found in \"" + content + "\"!");
             }
         }
         
@@ -395,5 +515,13 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         } else {
             note.setNoteFileContent(content);
         }
+    }
+
+    public static String replaceCheckedBoxes(final String content) {
+        return content.replace(TaskData.CHECKED_BOXES_1, TaskData.ARCHIVED_BOX).replace(TaskData.CHECKED_BOXES_2, TaskData.ARCHIVED_BOX);
+    }
+    
+    public static String replaceCheckmarks(final String content) {
+        return content.replace(TaskData.ARCHIVED_BOX, TaskData.CHECKED_BOXES_2);
     }
 }

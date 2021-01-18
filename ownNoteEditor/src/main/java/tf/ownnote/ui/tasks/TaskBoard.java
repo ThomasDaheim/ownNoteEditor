@@ -27,6 +27,7 @@ package tf.ownnote.ui.tasks;
 
 import java.util.ArrayList;
 import java.util.List;
+import javafx.geometry.Rectangle2D;
 import javafx.geometry.VPos;
 import javafx.scene.input.DataFormat;
 import javafx.scene.layout.ColumnConstraints;
@@ -34,10 +35,12 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.RowConstraints;
 import javafx.stage.Modality;
+import javafx.stage.Screen;
 import javafx.stage.StageStyle;
 import jfxtras.styles.jmetro.JMetro;
 import jfxtras.styles.jmetro.Style;
 import tf.helper.javafx.AbstractStage;
+import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 import tf.ownnote.ui.main.OwnNoteEditorManager;
 
 /**
@@ -67,6 +70,37 @@ public class TaskBoard extends AbstractStage {
         setResizable(true);
         setMinWidth(400.0);
         setMinHeight(200.0);
+
+        Double recentWindowWidth = Double.valueOf(
+                OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_WIDTH, "800"));
+        Double recentWindowHeigth = Double.valueOf(
+                OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_HEIGTH, "600"));
+        final Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
+        Double recentWindowLeft = Double.valueOf(
+                OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_LEFT, String.valueOf((primScreenBounds.getWidth() - recentWindowWidth) / 2.0)));
+        Double recentWindowTop = Double.valueOf(
+                OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_TOP, String.valueOf((primScreenBounds.getHeight() - recentWindowHeigth) / 2.0)));
+        // TFE, 20201011: check that not larger than current screens - might happen with multiple monitors
+        if (Screen.getScreensForRectangle(recentWindowLeft, recentWindowTop, recentWindowWidth, recentWindowHeigth).isEmpty()) {
+            recentWindowWidth = 800.0;
+            recentWindowHeigth = 600.0;
+            recentWindowLeft = (primScreenBounds.getWidth() - recentWindowWidth) / 2.0;
+            recentWindowTop = (primScreenBounds.getHeight() - recentWindowHeigth) / 2.0;
+        }
+
+        setWidth(recentWindowWidth);
+        setHeight(recentWindowHeigth);
+        setX(recentWindowLeft);
+        setY(recentWindowTop);
+        
+        setOnCloseRequest((t) -> {
+            if (!isMaximized() && !isIconified()) {
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_WIDTH, String.valueOf(getWidth()));
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_HEIGTH, String.valueOf(getHeight()));
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_LEFT, String.valueOf(getX()));
+                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_TOP, String.valueOf(getY()));
+            }
+        });
         
         getGridPane().getStyleClass().add("task-board");
         getGridPane().getChildren().clear();

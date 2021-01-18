@@ -30,6 +30,15 @@ import tf.ownnote.ui.notes.Note;
  * @author thomas
  */
 public class TaskData implements ICommentDataHolder {
+    // TFE, 20200712: add search of unchecked boxes
+    // TFE, 20201103: actual both variants of html are valid and need to be supported equally
+    public final static String UNCHECKED_BOXES_1 = "<input type=\"checkbox\" />";
+    public final static String CHECKED_BOXES_1 = "<input type=\"checkbox\" checked=\"checked\" />";
+    public final static String UNCHECKED_BOXES_2 = "<input type=\"checkbox\">";
+    public final static String CHECKED_BOXES_2 = "<input type=\"checkbox\" checked=\"checked\">";
+    public final static String ANY_BOXES = "<input type=\"checkbox\"";
+    public final static String ARCHIVED_BOX = "\u2611";
+    
     // info per available metadata - name & multiplicity
     public static enum CommentDataInfo implements ICommentDataInfo {
         ID("id", Multiplicity.SINGLE),
@@ -133,10 +142,11 @@ public class TaskData implements ICommentDataHolder {
 
     private final BooleanProperty isCompleted = new SimpleBooleanProperty();
     private final StringProperty myDescription = new SimpleStringProperty();
+    private String myRawText;
     private String myHtmlText;
     private String myEscapedText;
     private int myTextPos;
-    private ObjectProperty<LocalDateTime> myDueDate = new SimpleObjectProperty<>();
+    private final ObjectProperty<LocalDateTime> myDueDate = new SimpleObjectProperty<>();
     private String myComment = null;
     private final ObjectProperty<TaskStatus> myStatus = new SimpleObjectProperty<>(TaskStatus.OPEN);
     private final ObjectProperty<TaskPriority> myPriority = new SimpleObjectProperty<>(TaskPriority.LOW);
@@ -200,42 +210,49 @@ public class TaskData implements ICommentDataHolder {
         if (newlinePos == -1) {
             newlinePos = noteContent.length();
         }
-//        System.out.println("      newline pos found: " + Instant.now());
+//        System.out.println("      newline pos found: " + newlinePos + " @" + Instant.now());
         
         // we are only interested in text from the starting position til end of line
         String noteText = noteContent.substring(myTextPos, newlinePos);
-//        System.out.println("      cut to newline: " + Instant.now());
+//        System.out.println("      cut to newline: " + noteText + " @"  + Instant.now());
         
-        if (!noteText.startsWith(OwnNoteEditor.ANY_BOXES)) {
+        if (!noteText.startsWith(ANY_BOXES)) {
             throw new IllegalArgumentException("Text not starting with checkbox pattern: " + noteText);
         }
         
         // easy part: completed = checked
-        if (noteText.startsWith(OwnNoteEditor.CHECKED_BOXES_1)) {
+        String checkBoxText = "";
+        if (noteText.startsWith(CHECKED_BOXES_1)) {
             isCompleted.setValue(Boolean.TRUE);
-            noteText = noteText.substring(OwnNoteEditor.CHECKED_BOXES_1.length());
-        } else if (noteText.startsWith(OwnNoteEditor.CHECKED_BOXES_2)) {
+            noteText = noteText.substring(CHECKED_BOXES_1.length());
+            checkBoxText = CHECKED_BOXES_1;
+        } else if (noteText.startsWith(CHECKED_BOXES_2)) {
             isCompleted.setValue(Boolean.TRUE);
-            noteText = noteText.substring(OwnNoteEditor.CHECKED_BOXES_2.length());
-        } else if (noteText.startsWith(OwnNoteEditor.UNCHECKED_BOXES_1)) {
+            noteText = noteText.substring(CHECKED_BOXES_2.length());
+            checkBoxText = CHECKED_BOXES_2;
+        } else if (noteText.startsWith(UNCHECKED_BOXES_1)) {
             isCompleted.setValue(Boolean.FALSE);
-            noteText = noteText.substring(OwnNoteEditor.UNCHECKED_BOXES_1.length());
-        } else if (noteText.startsWith(OwnNoteEditor.UNCHECKED_BOXES_2)) {
+            noteText = noteText.substring(UNCHECKED_BOXES_1.length());
+            checkBoxText = UNCHECKED_BOXES_1;
+        } else if (noteText.startsWith(UNCHECKED_BOXES_2)) {
             isCompleted.setValue(Boolean.FALSE);
-            noteText = noteText.substring(OwnNoteEditor.UNCHECKED_BOXES_2.length());
+            noteText = noteText.substring(UNCHECKED_BOXES_2.length());
+            checkBoxText = UNCHECKED_BOXES_2;
         } else {
             System.err.println("Something is wrong here with text: " + noteText);
         }
-//        System.out.println("      completed parsed: " + Instant.now());
+//        System.out.println("      completed parsed: " + noteText + " @" + Instant.now());
         
         // end of the line is nice - but only if no other checkbox in the line...
-        if (noteText.contains(OwnNoteEditor.ANY_BOXES)) {
-            noteText = noteText.substring(0, noteText.indexOf(OwnNoteEditor.ANY_BOXES));
+        if (noteText.contains(ANY_BOXES)) {
+            noteText = noteText.substring(0, noteText.indexOf(ANY_BOXES));
+//        System.out.println("      cut to checkbox: " + noteText + " @" + Instant.now());
         }
-//        System.out.println("      cut to checkbox: " + Instant.now());
 
         fromHtmlComment(noteText);
         
+        // TFE, 20210118: store rawtext including checkbox tag as well
+        myRawText = checkBoxText + noteText;
         // html text is the "raw" thing - including htmls tags, they might be temporary from tinyMCE
         myHtmlText = noteText;
 
@@ -243,7 +260,7 @@ public class TaskData implements ICommentDataHolder {
 //        System.out.println("noteText before strip: " + noteText);
         noteText = OwnNoteHTMLEditor.stripHtmlTags(noteText);
 //        System.out.println("noteText after strip: " + noteText);
-//        System.out.println("      html tags stripped: " + Instant.now());
+//        System.out.println("      html tags stripped: " + noteText + " @" + Instant.now());
 
         // escaped text is the "raw" thing - without htmls tags, they might be temporary from tinyMCE
         myEscapedText = noteText;
@@ -288,12 +305,16 @@ public class TaskData implements ICommentDataHolder {
         return myDescription.getValue();
     }
     
+    public String getRawText() {
+        return myRawText;
+    }
+    
     public String getHtmlText() {
         return myHtmlText;
     }
     
     public String getFullHtmlText() {
-        return isCompleted() ? OwnNoteEditor.CHECKED_BOXES_2 + myHtmlText : OwnNoteEditor.UNCHECKED_BOXES_2 + myHtmlText;
+        return isCompleted() ? CHECKED_BOXES_2 + myHtmlText : UNCHECKED_BOXES_2 + myHtmlText;
     }
     
     public void setHtmlText(final String text) {

@@ -138,14 +138,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     
     public final static String GROUP_COLOR_CSS = "group-color";
     
-    // TFE, 20200712: add search of unchecked boxes
-    // TFE, 20201103: actual both variants of html are valid and need to be supported equally
-    public final static String UNCHECKED_BOXES_1 = "<input type=\"checkbox\" />";
-    public final static String CHECKED_BOXES_1 = "<input type=\"checkbox\" checked=\"checked\" />";
-    public final static String UNCHECKED_BOXES_2 = "<input type=\"checkbox\">";
-    public final static String CHECKED_BOXES_2 = "<input type=\"checkbox\" checked=\"checked\">";
-    public final static String ANY_BOXES = "<input type=\"checkbox\"";
-    
     private final static int TEXTFIELD_WIDTH = 100;  
     
     private final List<String> realGroupNames = new LinkedList<>();
@@ -1035,11 +1027,13 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         // add changelistener to pathlabel - not that you should actually change its value during runtime...
         ownCloudPath.textProperty().addListener(
             (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
-                // store in the preferences
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, newValue);
+                if (newValue != null && !newValue.equals(oldValue)) {
+                    // store in the preferences
+                    OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, newValue);
 
-                // scan files in new directory
-                initFromDirectory(false, true);
+                    // scan files in new directory
+                    initFromDirectory(false, true);
+                }
             }); 
         // TFE, 20181028: open file chooser also when left clicking on pathBox
         ownCloudPath.setOnMouseClicked((event) -> {
@@ -1190,7 +1184,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                     if (saveNote(prevNote)) {
                     }
                 } else {
-                    // TODO: undo chnages to metadata as well!
+                    // TODO: undo changes to metadata as well!
                 }
             }
         }
@@ -1237,12 +1231,12 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         noteHTMLEditor.scrollToCheckBox(textPos, htmlText);
     }
     
-    public void selectNoteAndToggleCheckBox(final Note note, final int textPos, final String htmlText, final boolean newStatus) {
+    public void selectNoteAndToggleCheckBox(final Note note, final int textPos, final String htmlText, final boolean isChecked) {
         // make sure the note is shown and the cursor is in place
         selectNoteAndCheckBox(note, textPos, htmlText);
         
         // now change the status
-        noteHTMLEditor.toggleCheckBox(textPos, htmlText, newStatus);
+        noteHTMLEditor.toggleCheckBox(textPos, htmlText, isChecked);
     }
 
     private void hideAndDisableAllCreateControls() {
@@ -1498,11 +1492,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
             // update group tags as well
             TagManager.getInstance().moveNote(origNote, newGroupName);
+            
+            refilterNotesList();
         }
         
         return result;
     }
 
+    @Override
     public boolean saveNote(final Note note) {
         boolean result = OwnNoteFileManager.getInstance().saveNote(note);
                 
@@ -1782,5 +1779,15 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     
     public Window getWindow() {
         return borderPane.getScene().getWindow();
+    }
+
+    // not to confuse with the static method in TaskManager - this does the bookkeeping for the current node as well
+    public void replaceCheckedBoxes() {
+        noteHTMLEditor.replaceCheckedBoxes();
+    }
+    
+    // not to confuse with the static method in TaskManager - this does the bookkeeping for the current node as well
+    public void replaceCheckmarks() {
+        noteHTMLEditor.replaceCheckmarks();
     }
 }

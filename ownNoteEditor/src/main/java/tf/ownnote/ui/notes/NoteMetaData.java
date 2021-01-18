@@ -217,7 +217,8 @@ public class NoteMetaData implements ICommentDataHolder {
         String result = htmlString;
         if (hasMetaDataContent(htmlString)) {
             final int endPos = htmlString.indexOf("\n");
-            if (endPos < htmlString.length()) {
+            // TFE, 20210113: special case: only one line with metadata!
+            if (endPos != -1 && endPos < htmlString.length()) {
                 result = htmlString.substring(endPos+1);
             } else {
                 result = "";

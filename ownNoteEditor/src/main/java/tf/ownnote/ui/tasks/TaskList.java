@@ -92,7 +92,7 @@ public class TaskList {
                             text.append(item.getTaskStatus().toString());
                             if (item.getDueDate() != null) {
                                 text.append(", ");
-                                text.append("Due date: ");
+                                text.append("\u23F0 ");
                                 text.append(OwnNoteEditor.DATE_TIME_FORMATTER.format(item.getDueDate()));
                             }
                             tooltip.setText(text.toString());

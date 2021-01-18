@@ -84,6 +84,8 @@ import tf.helper.general.ImageHelper;
 import tf.helper.javafx.UsefulKeyCodes;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.tasks.TaskData;
+import tf.ownnote.ui.tasks.TaskManager;
 
 /**
  *
@@ -107,8 +109,8 @@ public class OwnNoteHTMLEditor {
     private static final List<String> COPY_TEXT_SELECTION = List.of("Copy Text", "Kopieren als Text");
     private static final List<String> SAVE_NOTE = List.of("Save", "Speichern");
     private static final List<String> COMPRESS_IMAGES = List.of("Compress images", "Bilder komprimieren");
-    private static final List<String> REPLACE_CHECKEDBOXES = List.of("Checked box -> \u2611", "Checked Box -> \u2611");
-    private static final List<String> REPLACE_CHECKMARKS = List.of("\u2611 -> Checked box", "\u2611 -> Checked Box");
+    private static final List<String> REPLACE_CHECKEDBOXES = List.of("Checked box -> " + TaskData.ARCHIVED_BOX, "Checked Box -> " + TaskData.ARCHIVED_BOX);
+    private static final List<String> REPLACE_CHECKMARKS = List.of(TaskData.ARCHIVED_BOX + " -> Checked box", TaskData.ARCHIVED_BOX + " -> Checked Box");
     
     private int language;
 
@@ -491,22 +493,15 @@ public class OwnNoteHTMLEditor {
         }
     }
     
-    private void replaceCheckedBoxes() {
-        assert (myEditor != null);
-        
-        String content = getNoteText();
-        content = content.replace(OwnNoteEditor.CHECKED_BOXES_1, "\u2611");
-        content = content.replace(OwnNoteEditor.CHECKED_BOXES_2, "\u2611");
+    public void replaceCheckedBoxes() {
+        final String content = TaskManager.replaceCheckedBoxes(getNoteText());
         
         contentChanged(content);
         editNote(editedNote, content);
     }
     
-    private void replaceCheckmarks() {
-        assert (myEditor != null);
-        
-        String content = getNoteText();
-        content = content.replace("\u2611", OwnNoteEditor.CHECKED_BOXES_2);
+    public void replaceCheckmarks() {
+        final String content = TaskManager.replaceCheckmarks(getNoteText());
         
         contentChanged(content);
         editNote(editedNote, content);
@@ -882,7 +877,7 @@ public class OwnNoteHTMLEditor {
         String newEditorText = "";
 
         if (editorInitialized) {
-            Object dummy = wrapExecuteScript(myWebEngine, "saveGetContent(true);");
+            Object dummy = wrapExecuteScript(myWebEngine, "saveGetContent();");
             
             assert (dummy instanceof String);
             newEditorText = (String) dummy;

@@ -49,6 +49,12 @@ public class OwnNoteEditorPreferences implements IPreferencesStore {
     
     // TFE, 20201204: new layout: tag tree as first column
     public final static String RECENT_TAGTREE_WIDTH = "recentTagTreeWidth";
+    
+    // TFE, 20210111: store location & size of KANBAN window
+    public final static String RECENT_KANBAN_WINDOW_WIDTH = "recentKanbanWindowWidth";
+    public final static String RECENT_KANBAN_WINDOW_HEIGTH = "recentKanbanWindowHeigth";
+    public final static String RECENT_KANBAN_WINDOW_LEFT = "recentKanbanWindowLeft";
+    public final static String RECENT_KANBAN_WINDOW_TOP = "recentKanbanWindowTop";
 
     private OwnNoteEditorPreferences() {
         // Exists only to defeat instantiation.

@@ -127,7 +127,7 @@ public class TaskCard extends GridPane {
         });
         
         setOnDragDetected((t) -> {
-            AppClipboard.getInstance().addContent(TaskBoard.DRAG_AND_DROP, this);
+            AppClipboard.getInstance().addContent(TaskBoard.DRAG_AND_DROP, myTask);
 
             /* allow any transfer mode */
             Dragboard db = startDragAndDrop(TransferMode.MOVE);
@@ -145,9 +145,7 @@ public class TaskCard extends GridPane {
             t.consume();
         });
         setOnDragDone((t) -> {
-            if (AppClipboard.getInstance().hasContent(TaskBoard.DRAG_AND_DROP)) {
-                // TODO: clear app clipboard
-            }
+            AppClipboard.getInstance().clearContent(TaskBoard.DRAG_AND_DROP);
 
             t.consume();
         });

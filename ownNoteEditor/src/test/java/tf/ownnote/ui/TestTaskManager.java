@@ -113,7 +113,7 @@ public class TestTaskManager {
         wasUpdated.setValue(Boolean.FALSE);
         
         // add checkbox in front of content - tasklist should change
-        newContent = OwnNoteEditor.UNCHECKED_BOXES_1 + "TEST" + content;
+        newContent = TaskData.UNCHECKED_BOXES_1 + "TEST" + content;
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, content, newContent);
         Assert.assertFalse(wasUpdated.getValue());
         Assert.assertTrue(wasAdded.getValue());
@@ -136,7 +136,7 @@ public class TestTaskManager {
         wasUpdated.setValue(Boolean.FALSE);
         
         // add checkbox after content - tasklist should change
-        newContent = content + OwnNoteEditor.UNCHECKED_BOXES_1 + "TEST";
+        newContent = content + TaskData.UNCHECKED_BOXES_1 + "TEST";
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, content, newContent);
         Assert.assertFalse(wasUpdated.getValue());
         Assert.assertTrue(wasAdded.getValue());
@@ -179,7 +179,7 @@ public class TestTaskManager {
         // switch between checked / unchecked
         Assert.assertFalse(firstTask.isCompleted());
         textPos = content.indexOf(firstTask.getDescription());
-        newContent = content.substring(0, firstTask.getTextPos()) + OwnNoteEditor.CHECKED_BOXES_1 + content.substring(textPos);
+        newContent = content.substring(0, firstTask.getTextPos()) + TaskData.CHECKED_BOXES_1 + content.substring(textPos);
 
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, content, newContent);
         Assert.assertTrue(firstTask.isCompleted());

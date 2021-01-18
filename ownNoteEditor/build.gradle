@@ -128,18 +128,18 @@ compileJava {
 // see https://github.com/kelemen/netbeans-gradle-project/issues/403 on how to extend gradle tasks
 def newArgs = [ '--add-modules', 'javafx.controls,javafx.graphics,javafx.base,javafx.fxml,javafx.web,javafx.swing,javafx.media',
                 // various exports needed at run time - see https://stackoverflow.com/a/52142071
-                '--add-exports', 'javafx.graphics/com.sun.javafx.util=ALL-UNNAMED',
                 '--add-exports', 'javafx.base/com.sun.javafx.reflect=ALL-UNNAMED',
                 '--add-exports', 'javafx.base/com.sun.javafx.beans=ALL-UNNAMED',
                 '--add-exports', 'javafx.base/com.sun.javafx.logging=ALL-UNNAMED',
+                '--add-exports', 'javafx.base/com.sun.javafx.collections=ALL-UNNAMED',
+                '--add-exports', 'javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED',
                 '--add-exports', 'javafx.graphics/com.sun.prism=ALL-UNNAMED',
                 '--add-exports', 'javafx.graphics/com.sun.javafx.sg.prism=ALL-UNNAMED',
                 '--add-exports', 'javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED',
+                '--add-exports', 'javafx.graphics/com.sun.javafx.util=ALL-UNNAMED',
+                '--add-exports', 'javafx.graphics/com.sun.javafx.tk=ALL-UNNAMED',
                 '--add-exports', 'javafx.media/com.sun.media.jfxmedia=ALL-UNNAMED',
                 '--add-exports', 'javafx.media/com.sun.media.jfxmedia.events=ALL-UNNAMED',
-                '--add-exports', 'javafx.graphics/com.sun.javafx.tk=ALL-UNNAMED',
-                '--add-exports', 'javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED',
-                '--add-exports', 'javafx.base/com.sun.javafx.collections=ALL-UNNAMED',
                 // TFE, 20200803: workaround for "WARNING: Illegal reflective access by com.rits.cloning.Cloner"
                 // https://github.com/x-stream/xstream/issues/101#issuecomment-667734663
                 '--add-opens', 'java.base/java.util=ALL-UNNAMED',
