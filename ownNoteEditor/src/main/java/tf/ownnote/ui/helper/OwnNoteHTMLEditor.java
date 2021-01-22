@@ -859,14 +859,14 @@ public class OwnNoteHTMLEditor {
         return result;
     }
     
-    public void scrollToCheckBox(final int textPos, final String htmlText) {
+    public void scrollToCheckBox(final int textPos, final String htmlText, final String taskId) {
         // call tinymce to set the cursor
-        wrapExecuteScript(myWebEngine, "scrollToCheckBox(" + textPos + ", '" + htmlText + "');");
+        wrapExecuteScript(myWebEngine, "scrollToCheckBox(" + textPos + ", '" + htmlText + "', '" + taskId + "');");
     }
     
-    public void toggleCheckBox(final int textPos, final String htmlText, final boolean newStatus) {
+    public void toggleCheckBox(final int textPos, final String htmlText, final String taskId, final boolean newStatus) {
         // call tinymce to change the checkbox
-        wrapExecuteScript(myWebEngine, "toggleCheckBox(" + textPos + ", '" + htmlText + "', " + newStatus + ");");
+        wrapExecuteScript(myWebEngine, "toggleCheckBox(" + textPos + ", '" + htmlText + "', '" + taskId + "', " + newStatus + ");");
     }
 
     public String getNoteText() {
@@ -1031,7 +1031,7 @@ public class OwnNoteHTMLEditor {
         }
         
         public void checkBoxChanged(final String htmlBefore, final String htmlAfter) {
-            myself.checkBoxChanged(HtmlEscape.unescapeHtml(htmlBefore), HtmlEscape.unescapeHtml(htmlAfter));
+            myself.checkBoxChanged(htmlBefore, htmlAfter);
         }
         
         public void contentChanged(final String newContent) {

@@ -159,7 +159,7 @@ public class TaskData implements ICommentDataHolder {
     
     private boolean inStatusChange = false;
 
-    private TaskData() {
+    protected TaskData() {
     }
     
     public TaskData(final Note note, final String noteContent, final int textPos) {
@@ -307,6 +307,11 @@ public class TaskData implements ICommentDataHolder {
     
     public String getRawText() {
         return myRawText;
+    }
+    
+    public void setRawText(final String text) {
+        // TODO: should somehow also set html text...
+        myRawText = text;
     }
     
     public String getHtmlText() {

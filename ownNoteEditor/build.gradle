@@ -102,6 +102,8 @@ dependencies {
     testCompile "org.testfx:testfx-junit:4.0.+"
     testCompile "org.testfx:testfx-core:4.0.+"
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.6.2'
+    // TFE, 20210121: capture System.err() easily
+    testCompile group: 'com.github.stefanbirkner', name: 'system-lambda', version: '1.2.0'
 }
 
 

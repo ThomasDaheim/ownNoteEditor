@@ -23,6 +23,7 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
+import tf.ownnote.ui.commentdata.CommentDataMapper;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
@@ -208,9 +209,17 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             // 1: same description = only pos & selected might have changed
             // takes care of all changes before & after task
             for (TaskData newTask: new ArrayList<>(newTasks)) {
+                // TFE, 20210120: lets use id if we find it :-)
                 Optional<TaskData> oldnew = oldTasks.stream().filter((t) -> {
-                    return t.getDescription().equals(newTask.getDescription());
+                    return t.getId().equals(newTask.getId());
                 }).findFirst();
+
+                // fallback: find by text
+                if (oldnew.isEmpty()) {
+                    oldnew = oldTasks.stream().filter((t) -> {
+                        return t.getDescription().equals(newTask.getDescription());
+                    }).findFirst();
+                }
                 
                 if (oldnew.isPresent()) {
                     oldnew.get().setTextPos(newTask.getTextPos());
@@ -227,11 +236,13 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             // takes care of all changes inside task
             for (TaskData newTask: new ArrayList<>(newTasks)) {
                 Optional<TaskData> oldnew = oldTasks.stream().filter((t) -> {
-                    return t.getTextPos() == newTask.getTextPos();
+                    return (t.getId().equals(newTask.getId()) || t.getTextPos() == newTask.getTextPos());
                 }).findFirst();
                 
                 if (oldnew.isPresent()) {
                     oldnew.get().setCompleted(newTask.isCompleted());
+                    // TFE, 20210119: we also have raw text now as well!
+                    oldnew.get().setRawText(newTask.getRawText());
                     // set escapedText and description as well
                     oldnew.get().setHtmlText(newTask.getHtmlText());
                     
@@ -246,37 +257,60 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             taskList.removeAll(oldTasks);
             taskList.addAll(newTasks);
         } else {
-            // TRICKY - FileContentChangeType.CONTENT_CHANGED runs before the $(editor.getBody()).on("change", ":checkbox", function(el) is called,
-            // so we still have the old content in a click on checkbox event
             // checkbox might not be start of innerHtml, whereas TaskData description is only the part after checkbox...
             // FFFFUUUUCCCCKKKK innerHtml sends back <input type="checkbox" checked="checked"> instead of <input type="checkbox" checked="checked" />
             // TFE, 20201103: better safe than sorry and check for both variants of valid html
             String oldHtmlText = null;
-            int checkIndex = oldContent.indexOf(TaskData.UNCHECKED_BOXES_1);
+            int checkIndex = oldContent.indexOf(TaskData.UNCHECKED_BOXES_2);
             if (checkIndex > -1) {
-                oldHtmlText = oldContent.substring(checkIndex + TaskData.UNCHECKED_BOXES_1.length());
+                oldHtmlText = oldContent.substring(checkIndex + TaskData.UNCHECKED_BOXES_2.length());
             } else {
-                checkIndex = oldContent.indexOf(TaskData.UNCHECKED_BOXES_2);
+                checkIndex = oldContent.indexOf(TaskData.UNCHECKED_BOXES_1);
                 if (checkIndex > -1) {
-                    oldHtmlText = oldContent.substring(checkIndex + TaskData.UNCHECKED_BOXES_2.length());
+                    oldHtmlText = oldContent.substring(checkIndex + TaskData.UNCHECKED_BOXES_1.length());
                 }
             }
-            checkIndex = oldContent.indexOf(TaskData.CHECKED_BOXES_1);
+            checkIndex = oldContent.indexOf(TaskData.CHECKED_BOXES_2);
             if (checkIndex > -1) {
-                oldHtmlText = oldContent.substring(checkIndex + TaskData.CHECKED_BOXES_1.length());
+                oldHtmlText = oldContent.substring(checkIndex + TaskData.CHECKED_BOXES_2.length());
             } else {
-                checkIndex = oldContent.indexOf(TaskData.CHECKED_BOXES_2);
+                checkIndex = oldContent.indexOf(TaskData.CHECKED_BOXES_1);
                 if (checkIndex > -1) {
-                    oldHtmlText = oldContent.substring(checkIndex + TaskData.CHECKED_BOXES_2.length());
+                    oldHtmlText = oldContent.substring(checkIndex + TaskData.CHECKED_BOXES_1.length());
                 }
             }
             if (oldHtmlText == null) {
                 System.err.println("Something went wrong with task completion change!" + note + ", " + oldContent + ", " + newContent);
                 return true;
             }
-            // TFE, 20201216: this must be done in sync with TaskData changes to make sure text match works
-            oldHtmlText = OwnNoteHTMLEditor.stripHtmlTags(oldHtmlText);
+
+            TaskData changedTask = null;
+            // TFE, 20210120: lets use id if we find it :-)
+            if (CommentDataMapper.containsCommentWithData(oldHtmlText)) {
+                final TaskData oldTask = new TaskData();
+                CommentDataMapper.getInstance().fromComment(oldTask, oldHtmlText);
+                
+                for (TaskData task : taskList) {
+                    if (task.getNote().equals(note) && task.getId().equals(oldTask.getId())) {
+                        changedTask = task;
+                        break;
+                    }
+                }
+            }
             
+            // fallback: find by text
+            if (changedTask == null) {
+                // TFE, 20201216: this must be done in sync with TaskData changes to make sure text match works
+                oldHtmlText = OwnNoteHTMLEditor.stripHtmlTags(oldHtmlText);
+
+                for (TaskData task : taskList) {
+                    if (task.getNote().equals(note) && task.getEscapedText().equals(oldHtmlText)) {
+                        changedTask = task;
+                        break;
+                    }
+                }
+            }
+
             Boolean newCompleted = null;
             if (newContent.contains(TaskData.UNCHECKED_BOXES_2)) {
                 newCompleted = false;
@@ -288,14 +322,6 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 return true;
             }
 
-            TaskData changedTask = null;
-            for (TaskData task : taskList) {
-                if (task.getNote().equals(note) && task.getEscapedText().equals(oldHtmlText)) {
-                    changedTask = task;
-                    break;
-                }
-            }
-
             if (changedTask != null) {
                 // checkbox must have changed
                 if (changedTask.isCompleted() && !newCompleted) {
@@ -303,6 +329,8 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 } else if (!changedTask.isCompleted() && newCompleted) {
                     changedTask.setCompleted(true);
                 }
+                // TFE, 20210119: we also have raw text now as well!
+                changedTask.setRawText(newContent);
             }
         }
             
@@ -321,7 +349,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         inFileChange = true;
 
 //        System.out.println("processTaskCompletedChanged for: " + task);
-        myEditor.selectNoteAndToggleCheckBox(task.getNote(), task.getTextPos(), task.getEscapedText(), task.isCompleted());
+        myEditor.selectNoteAndToggleCheckBox(task.getNote(), task.getTextPos(), task.getDescription(), task.getId(), task.isCompleted());
 
         inFileChange = false;
     }
@@ -335,10 +363,12 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         // if we should select the note OR if its anyways the one shown in the editor
         if (selectNote || task.getNote().equals(myEditor.getEditedNote())) {
             if (completedChanged) {
-                myEditor.selectNoteAndToggleCheckBox(task.getNote(), task.getTextPos(), task.getDescription(), newStatus.isCompleted());
+                // below changes the status implicetly - but wrong :-) e.g. Done -> Open independent of drag position on kanban board
+                myEditor.selectNoteAndToggleCheckBox(task.getNote(), task.getTextPos(), task.getDescription(), task.getId(), newStatus.isCompleted());
             } else {
-                myEditor.selectNoteAndCheckBox(task.getNote(), task.getTextPos(), task.getDescription());
+                myEditor.selectNoteAndCheckBox(task.getNote(), task.getTextPos(), task.getDescription(), task.getId());
             }
+            task.setTaskStatus(newStatus);
         } else {
             // handling of read & save note / select note
             OwnNoteFileManager.getInstance().readNote(task.getNote(), false);
@@ -364,9 +394,8 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 if (task.getNote().getNoteEditorContent() != null) {
                     task.getNote().setNoteEditorContent(content);
                 }
-            } else {
-                task.setTaskStatus(newStatus);
             }
+            task.setTaskStatus(newStatus);
 
             result = OwnNoteFileManager.getInstance().saveNote(task.getNote());
         }
@@ -505,7 +534,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                     content = content.substring(0, startOfTaskText) + newNoteTaskText + content.substring(startOfTaskText + noteTaskText.length());
                 }
             } else {
-                System.out.println("Task with text \"" + task.getHtmlText() + "\" starting @" + task.getTextPos() + " no longer found in \"" + content + "\"!");
+                System.out.println("Task with text \"" + task.getRawText() + "\" starting @" + task.getTextPos() + " no longer found in \"" + content + "\"!");
             }
         }
         

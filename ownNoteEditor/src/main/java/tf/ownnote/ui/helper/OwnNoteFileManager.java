@@ -54,6 +54,9 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
@@ -441,6 +444,17 @@ public class OwnNoteFileManager implements INoteCRMDS {
 
             // TFE; 20200814: store content in Note
             curNote.setNoteFileContent(result.toString());
+            
+            // TFE, 20210121: things get too complicated with metadata - at least check file consistency
+            if (!VerifyNoteContent.getInstance().verifyNoteFileContent(curNote) && myEditor != null) {
+                final ButtonType buttonOK = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+                myEditor.showAlert(
+                        Alert.AlertType.ERROR, 
+                        "Error", 
+                        "File inconsistency found!", 
+                        "File: " + buildNoteName(curNote.getGroupName(), curNote.getNoteName()) + "\nCheck error log for further details.", 
+                        buttonOK);
+            }
         }
         
         return curNote;
@@ -491,6 +505,17 @@ public class OwnNoteFileManager implements INoteCRMDS {
 
         if (result) {
             note.setNoteFileContent(content);
+            
+            // TFE, 20210121: things get too complicated with metadata - at least check file consistency
+            if (!VerifyNoteContent.getInstance().verifyNoteFileContent(note) && myEditor != null) {
+                final ButtonType buttonOK = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+                myEditor.showAlert(
+                        Alert.AlertType.ERROR, 
+                        "Error", 
+                        "File inconsistency found!", 
+                        "File: " + newFileName + "\nCheck error log for further details.", 
+                        buttonOK);
+            }
         }
 
         return result;

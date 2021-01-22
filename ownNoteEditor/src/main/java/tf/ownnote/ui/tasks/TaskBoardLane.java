@@ -29,6 +29,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javafx.beans.Observable;
+import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -60,6 +62,7 @@ public class TaskBoardLane extends VBox {
     private final Label laneHeader = new Label();
     private final VBox taskBox = new VBox();
     
+    private static final ObservableList<TaskData> items = FXCollections.<TaskData>observableArrayList(item -> new Observable[] {item.taskStatusProperty()});
     private FilteredList<TaskData> filteredData;
     private final Map<TaskData, TaskCard> myCardMap = new HashMap<>();
     
@@ -96,8 +99,16 @@ public class TaskBoardLane extends VBox {
             laneHeader.setText(myStatus.toString() + " (" + taskBox.getChildren().size() + ")");
         });
         
+        // change when status changes
+        items.setAll(TaskManager.getInstance().getTaskList());
+        
+        // add listener to items to get notified of any changes to COMPLETED property
+        items.addListener((ListChangeListener.Change<? extends TaskData> c) -> {
+            System.out.println("items changed");
+        });
+
         // use filter
-        filteredData = TaskManager.getInstance().getTaskList().filtered((t) -> {
+        filteredData = items.filtered((t) -> {
             return myStatus.equals(t.getTaskStatus());
         });
         filteredData.addListener((ListChangeListener.Change<? extends TaskData> c) -> {
@@ -115,6 +126,7 @@ public class TaskBoardLane extends VBox {
             final MenuItem menuItem = new MenuItem("Archive completed tasks");
             menuItem.setOnAction((t) -> {
                 TaskManager.getInstance().archiveCompletedTasks(myCardMap.keySet());
+                // TODO: update items & filteredData passiert nicht
             });
             contextMenu.getItems().add(menuItem);
             laneHeader.setContextMenu(contextMenu);
