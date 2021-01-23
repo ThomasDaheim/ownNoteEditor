@@ -1221,22 +1221,25 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         return noteHTMLEditor.getEditedNote();
     }
     
-    public void selectNoteAndCheckBox(final Note note, final int textPos, final String htmlText, final String taskId) {
+    private void selectNote(final Note note) {
         // need to distinguish between views to select group
         myGroupList.selectGroupForNote(note);
         
         // and now select the note - leads to callback to editNote to fill the htmleditor
         notesTable.selectNote(note);
+    }
+    
+    public void selectNoteAndCheckBox(final Note note, final int textPos, final String htmlText, final String taskId) {
+        selectNote(note);
         
         noteHTMLEditor.scrollToCheckBox(textPos, htmlText, taskId);
     }
     
     public void selectNoteAndToggleCheckBox(final Note note, final int textPos, final String htmlText, final String taskId, final boolean isChecked) {
-        // make sure the note is shown and the cursor is in place
-        selectNoteAndCheckBox(note, textPos, htmlText, taskId);
+        selectNote(note);
         
-        // now change the status
-        noteHTMLEditor.toggleCheckBox(textPos, htmlText, taskId, isChecked);
+        // scroll & change the status
+        noteHTMLEditor.scrollToAndToggleCheckBox(textPos, htmlText, taskId, isChecked);
     }
 
     private void hideAndDisableAllCreateControls() {

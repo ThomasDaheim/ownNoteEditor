@@ -864,9 +864,9 @@ public class OwnNoteHTMLEditor {
         wrapExecuteScript(myWebEngine, "scrollToCheckBox(" + textPos + ", '" + htmlText + "', '" + taskId + "');");
     }
     
-    public void toggleCheckBox(final int textPos, final String htmlText, final String taskId, final boolean newStatus) {
+    public void scrollToAndToggleCheckBox(final int textPos, final String htmlText, final String taskId, final boolean newStatus) {
         // call tinymce to change the checkbox
-        wrapExecuteScript(myWebEngine, "toggleCheckBox(" + textPos + ", '" + htmlText + "', '" + taskId + "', " + newStatus + ");");
+        wrapExecuteScript(myWebEngine, "scrollToAndToggleCheckBox(" + textPos + ", '" + htmlText + "', '" + taskId + "', " + newStatus + ");");
     }
 
     public String getNoteText() {

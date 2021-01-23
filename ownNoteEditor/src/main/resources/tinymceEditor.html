@@ -139,30 +139,43 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             // support for check boxes and such...
                             // https://stackoverflow.com/a/38653970
                             $(editor.getBody()).on("change", "[type=checkbox]", function(el){
-                                // tell the world this has changed
-                                var innerHTMLBefore = el.target.parentNode.innerHTML;
-                                //console.log('innerHTMLBefore: ' + innerHTMLBefore);
+                                // TFE, 20210122: use the content change way to send this back
+                                // two complex logic implementations are too much to control & test
+
+                                // see https://stackoverflow.com/questions/6003819/what-is-the-difference-between-properties-and-attributes-in-html
+                                // for the difference between HTML properties and DOM attributes
                                 if(el.target.checked){
                                     $(el.target).attr('checked', 'checked');
                                 }else{
                                     $(el.target).removeAttr('checked');
                                 }
-                                var innerHTMLAfter = el.target.parentNode.innerHTML;
-                                //console.log('innerHTMLAfter:  ' + innerHTMLAfter);
+                                // don't wait for timer in this case to speed up syncing of task list
+                                contentChanged = true;
+                                checkContentChanged();
                                 
-                                // reduce html text to changed checkbox + text
-                                // find any boxes
-                                var innerBoxesBefore = innerHTMLBefore.split(ANY_BOXES);
-                                var innerBoxesAfter = innerHTMLAfter.split(ANY_BOXES);
-                                //console.log('innerBoxesBefore: ' + innerBoxesBefore.toString());
-                                //console.log('innerBoxesAfter:  ' + innerBoxesAfter.toString());
-                                // diff before - after
-                                var boxBefore = ANY_BOXES + innerBoxesBefore.filter(x => innerBoxesAfter.indexOf(x) === -1);
-                                var boxAfter = ANY_BOXES + innerBoxesAfter.filter(x => innerBoxesBefore.indexOf(x) === -1);
+                                // // tell the world this has changed
+                                // var innerHTMLBefore = el.target.parentNode.innerHTML;
+                                // //console.log('innerHTMLBefore: ' + innerHTMLBefore);
+                                // if(el.target.checked){
+                                //     $(el.target).attr('checked', 'checked');
+                                // }else{
+                                //     $(el.target).removeAttr('checked');
+                                // }
+                                // var innerHTMLAfter = el.target.parentNode.innerHTML;
+                                // //console.log('innerHTMLAfter:  ' + innerHTMLAfter);
                                 
-                                //console.log('editorCallback.checkBoxChanged coming up: ' + boxBefore + " --- " + boxAfter);
-                                editorCallback.checkBoxChanged(boxBefore, boxAfter);
-                                
+                                // // reduce html text to changed checkbox + text
+                                // // find any boxes
+                                // var innerBoxesBefore = innerHTMLBefore.split(ANY_BOXES);
+                                // var innerBoxesAfter = innerHTMLAfter.split(ANY_BOXES);
+                                // //console.log('innerBoxesBefore: ' + innerBoxesBefore.toString());
+                                // //console.log('innerBoxesAfter:  ' + innerBoxesAfter.toString());
+                                // // diff before - after
+                                // var boxBefore = ANY_BOXES + innerBoxesBefore.filter(x => innerBoxesAfter.indexOf(x) === -1);
+                                // var boxAfter = ANY_BOXES + innerBoxesAfter.filter(x => innerBoxesBefore.indexOf(x) === -1);
+                                // 
+                                // //console.log('editorCallback.checkBoxChanged coming up: ' + boxBefore + " --- " + boxAfter);
+                                // editorCallback.checkBoxChanged(boxBefore, boxAfter);
                             });
                             // Radiobuttons
                             $(editor.getBody()).on("change", "[type=radio]", function(el){
@@ -430,16 +443,21 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     element.checkbox.scrollIntoView({block: "center", inline: "nearest"});
                     
                     tinymce.activeEditor.selection.select(element.content);
+                    
+                    return element;
+                } else {
+                    return null;
                 }
             }
             
-            function toggleCheckBox(textPos, htmlText, taskId, newStatus) {
-                //console.log('JavaScript: toggleCheckBox start. ' + textPos + ', ' + htmlText + ', ' + taskId + ', ' + newStatus);
-                var element = findCheckBox(textPos, htmlText, taskId);
+            function scrollToAndToggleCheckBox(textPos, htmlText, taskId, newStatus) {
+                //console.log('JavaScript: scrollToAndToggleCheckBox start. ' + textPos + ', ' + htmlText + ', ' + taskId + ', ' + newStatus);
+                var element = scrollToCheckBox(textPos, htmlText, taskId);
                 
-                if (element && element.checkbox) {
-                    //console.log('checkbox found: "' + element.checkbox + '", "' + element.checkbox.outerHTML + '", "' + element.checkbox.parentNode.innerHTML + '"');
+                if (element && element.checkbox && element.checkbox.checked !== newStatus) {
+                    //console.log('  checkbox found: "' + element.checkbox + '", "' + element.checkbox.outerHTML + '", "' + element.checkbox.parentNode.innerHTML + '"');
                     element.checkbox.checked = newStatus;
+                    //console.log('  toggeling!');
                     // see https://stackoverflow.com/questions/6003819/what-is-the-difference-between-properties-and-attributes-in-html
                     // for the difference between HTML properties and DOM attributes
                     if (newStatus) {
@@ -464,10 +482,16 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 $(tinymce.activeEditor.getBody()).find(':checkbox').each(function() {
                     //console.log('  findCheckBox, checking checkbox: ' + this.outerHTML);
                     checkbox = this;
+                    // since we need to check the comment of the checkbox we need to iterate the parents content
                     $(this).parent().contents().each(function() {
-                        //console.log('    findCheckBox, checking content: ' + this.innerHTML + ', ' + this.nodeType + ', ' + this.nodeValue);
+                        //console.log('    findCheckBox, checking comment: ' + $(this).attr('type') + ', ' + + this.innerHTML + ', ' + this.nodeType + ', ' + this.nodeValue);
+                        // we could have more than one checkbox in the parents content... 
+                        if ("checkbox" === $(this).attr('type') && !checkboxFound) {
+                            checkbox = this;
+                        }
+                        
                         // check comments & ids
-                        if (this.nodeType === 8) {
+                        if (this.nodeType === 8 && !checkboxFound) {
                             //console.log('    COMMENT.nodeValue:  "' + this.nodeValue + '"');
                             if (this.nodeValue.includes(checkId)) {
                                 //console.log('    findCheckBox, found comment!');
@@ -501,16 +525,22 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 // go from back to front through the file - since we want to have the very last instance of endsWith(htmlText)
                 // https://stackoverflow.com/a/7843947
                 $($(tinymce.activeEditor.getBody()).find(':checkbox').get().reverse()).each(function() {
-                    //console.log('  findCheckBox, checking checkbox: ' + this.outerHTML);
+                    console.log('  findCheckBox, checking checkbox: ' + this.outerHTML);
                     checkbox = this;
+                    // since we need to check the text of the checkbox we need to iterate the parents content
                     $($(this).parent().contents().get().reverse()).each(function() {
-                        //console.log('    findCheckBox, checking content: ' + this.innerHTML + ', ' + this.nodeType + ', ' + this.nodeValue);
+                        console.log('    findCheckBox, checking content: ' + $(this).attr('type') + ', ' + + this.innerHTML + ', ' + this.nodeType + ', ' + this.nodeValue);
+                        // we could have more than one checkbox in the parents content... 
+                        if ("checkbox" === $(this).attr('type')) {
+                            checkbox = this;
+                        }
+
                         // check text nodes - if text has been set
                         if (this.nodeType === 3) {
-                            //console.log('    CONTENTS.nodeValue: "' + this.nodeValue + '"');
-                            //console.log('    PARENT.textContent: "' + this.parentNode.textContent + '"');
+                            console.log('    CONTENTS.nodeValue: "' + this.nodeValue + '"');
+                            console.log('    PARENT.textContent: "' + this.parentNode.textContent + '"');
                             if (this.nodeValue === htmlText || this.parentNode.textContent.endsWith(htmlText)) {
-                                //console.log('    findCheckBox, found text!');
+                                console.log('    findCheckBox, found text!');
                                 checkboxFound = true;
                                 
                                 // make sure we highlight the correct thing...
@@ -571,7 +601,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             }
 
             // https://javascript.info/settimeout-setinterval
-            var delay = 2000;
+            var delay = 1000;
             var timerId = window.setTimeout(function request() {
                 //console.log('Checking for changed content')
                 checkContentChanged();

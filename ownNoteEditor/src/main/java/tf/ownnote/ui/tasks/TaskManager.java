@@ -257,81 +257,87 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             taskList.removeAll(oldTasks);
             taskList.addAll(newTasks);
         } else {
-            // checkbox might not be start of innerHtml, whereas TaskData description is only the part after checkbox...
-            // FFFFUUUUCCCCKKKK innerHtml sends back <input type="checkbox" checked="checked"> instead of <input type="checkbox" checked="checked" />
-            // TFE, 20201103: better safe than sorry and check for both variants of valid html
-            String oldHtmlText = null;
-            int checkIndex = oldContent.indexOf(TaskData.UNCHECKED_BOXES_2);
-            if (checkIndex > -1) {
-                oldHtmlText = oldContent.substring(checkIndex + TaskData.UNCHECKED_BOXES_2.length());
-            } else {
-                checkIndex = oldContent.indexOf(TaskData.UNCHECKED_BOXES_1);
-                if (checkIndex > -1) {
-                    oldHtmlText = oldContent.substring(checkIndex + TaskData.UNCHECKED_BOXES_1.length());
-                }
-            }
-            checkIndex = oldContent.indexOf(TaskData.CHECKED_BOXES_2);
-            if (checkIndex > -1) {
-                oldHtmlText = oldContent.substring(checkIndex + TaskData.CHECKED_BOXES_2.length());
-            } else {
-                checkIndex = oldContent.indexOf(TaskData.CHECKED_BOXES_1);
-                if (checkIndex > -1) {
-                    oldHtmlText = oldContent.substring(checkIndex + TaskData.CHECKED_BOXES_1.length());
-                }
-            }
-            if (oldHtmlText == null) {
-                System.err.println("Something went wrong with task completion change!" + note + ", " + oldContent + ", " + newContent);
-                return true;
-            }
-
-            TaskData changedTask = null;
-            // TFE, 20210120: lets use id if we find it :-)
-            if (CommentDataMapper.containsCommentWithData(oldHtmlText)) {
-                final TaskData oldTask = new TaskData();
-                CommentDataMapper.getInstance().fromComment(oldTask, oldHtmlText);
-                
-                for (TaskData task : taskList) {
-                    if (task.getNote().equals(note) && task.getId().equals(oldTask.getId())) {
-                        changedTask = task;
-                        break;
-                    }
-                }
-            }
+            // TFE, 20210122: use the content change way to send this back
+            // two complex logic implementations are too much to control & test
             
-            // fallback: find by text
-            if (changedTask == null) {
-                // TFE, 20201216: this must be done in sync with TaskData changes to make sure text match works
-                oldHtmlText = OwnNoteHTMLEditor.stripHtmlTags(oldHtmlText);
-
-                for (TaskData task : taskList) {
-                    if (task.getNote().equals(note) && task.getEscapedText().equals(oldHtmlText)) {
-                        changedTask = task;
-                        break;
-                    }
-                }
-            }
-
-            Boolean newCompleted = null;
-            if (newContent.contains(TaskData.UNCHECKED_BOXES_2)) {
-                newCompleted = false;
-            } else if (newContent.contains(TaskData.CHECKED_BOXES_2)) {
-                newCompleted = true;
-            }
-            if (newCompleted == null) {
-                System.out.println("Something went wrong with task completion change!" + note + ", " + oldContent + ", " + newContent);
-                return true;
-            }
-
-            if (changedTask != null) {
-                // checkbox must have changed
-                if (changedTask.isCompleted() && !newCompleted) {
-                    changedTask.setCompleted(false);
-                } else if (!changedTask.isCompleted() && newCompleted) {
-                    changedTask.setCompleted(true);
-                }
-                // TFE, 20210119: we also have raw text now as well!
-                changedTask.setRawText(newContent);
-            }
+//            // checkbox might not be start of innerHtml, whereas TaskData description is only the part after checkbox...
+//            // FFFFUUUUCCCCKKKK innerHtml sends back <input type="checkbox" checked="checked"> instead of <input type="checkbox" checked="checked" />
+//            // TFE, 20201103: better safe than sorry and check for both variants of valid html
+//            String oldHtmlText = null;
+//            int checkIndex = oldContent.indexOf(TaskData.UNCHECKED_BOXES_2);
+//            if (checkIndex > -1) {
+//                oldHtmlText = oldContent.substring(checkIndex + TaskData.UNCHECKED_BOXES_2.length());
+//            } else {
+//                checkIndex = oldContent.indexOf(TaskData.UNCHECKED_BOXES_1);
+//                if (checkIndex > -1) {
+//                    oldHtmlText = oldContent.substring(checkIndex + TaskData.UNCHECKED_BOXES_1.length());
+//                }
+//            }
+//            if (oldHtmlText == null) {
+//                checkIndex = oldContent.indexOf(TaskData.CHECKED_BOXES_2);
+//                if (checkIndex > -1) {
+//                    oldHtmlText = oldContent.substring(checkIndex + TaskData.CHECKED_BOXES_2.length());
+//                } else {
+//                    checkIndex = oldContent.indexOf(TaskData.CHECKED_BOXES_1);
+//                    if (checkIndex > -1) {
+//                        oldHtmlText = oldContent.substring(checkIndex + TaskData.CHECKED_BOXES_1.length());
+//                    }
+//                }
+//            }
+//            if (oldHtmlText == null) {
+//                System.err.println("Something went wrong with task completion change!" + note + ", " + oldContent + ", " + newContent);
+//                return true;
+//            }
+//
+//            TaskData changedTask = null;
+//            // TFE, 20210120: lets use id if we find it :-)
+//            if (CommentDataMapper.containsCommentWithData(oldHtmlText)) {
+//                final TaskData oldTask = new TaskData();
+//                CommentDataMapper.getInstance().fromComment(oldTask, oldHtmlText);
+//                
+//                for (TaskData task : taskList) {
+//                    if (task.getNote().equals(note) && task.getId().equals(oldTask.getId())) {
+//                        changedTask = task;
+//                        break;
+//                    }
+//                }
+//            }
+//            
+//            // fallback: find by text
+//            if (changedTask == null) {
+//                // TFE, 20201216: this must be done in sync with TaskData changes to make sure text match works
+//                oldHtmlText = OwnNoteHTMLEditor.stripHtmlTags(oldHtmlText);
+//
+//                for (TaskData task : taskList) {
+//                    if (task.getNote().equals(note) && task.getEscapedText().equals(oldHtmlText)) {
+//                        changedTask = task;
+//                        break;
+//                    }
+//                }
+//            }
+//
+//            Boolean newCompleted = null;
+//            if (newContent.contains(TaskData.UNCHECKED_BOXES_2)) {
+//                newCompleted = false;
+//            } else if (newContent.contains(TaskData.CHECKED_BOXES_2)) {
+//                newCompleted = true;
+//            }
+//            if (newCompleted == null) {
+//                System.err.println("Something went wrong with task completion change!" + note + ", " + oldContent + ", " + newContent);
+//                return true;
+//            }
+//
+//            if (changedTask != null) {
+//                // checkbox must have changed
+//                if (changedTask.isCompleted() && !newCompleted) {
+//                    changedTask.setCompleted(false);
+//                } else if (!changedTask.isCompleted() && newCompleted) {
+//                    changedTask.setCompleted(true);
+//                }
+//                // TFE, 20210119: we also have raw text now as well!
+//                changedTask.setRawText(newContent);
+//            }
+            System.err.println("We shouldn't have ended up here! " + note + ", " + oldContent + ", " + newContent);
         }
             
         inFileChange = false;
