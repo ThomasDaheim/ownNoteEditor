@@ -486,8 +486,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     $(this).parent().contents().each(function() {
                         //console.log('    findCheckBox, checking comment: ' + $(this).attr('type') + ', ' + + this.innerHTML + ', ' + this.nodeType + ', ' + this.nodeValue);
                         // we could have more than one checkbox in the parents content... 
-                        if ("checkbox" === $(this).attr('type') && !checkboxFound) {
-                            checkbox = this;
+                        if ("checkbox" === $(this).attr('type')) {
+                            if (!checkboxFound) {
+                                // another checkbox in the parents content - maybe this is the right one
+                                checkbox = this;
+                            } else {
+                                // we have found the checkbox but no text - and now its the next checkbox => lets get out of here
+                                return false;
+                            }
                         }
                         
                         // check comments & ids
