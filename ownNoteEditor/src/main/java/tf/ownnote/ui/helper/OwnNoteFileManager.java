@@ -57,6 +57,7 @@ import javafx.collections.ObservableList;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import org.apache.commons.io.FileUtils;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
@@ -75,6 +76,9 @@ public class OwnNoteFileManager implements INoteCRMDS {
     public final static String NOTE_EXT = ".htm";
     public final static String ALL_NOTES = "*" + NOTE_EXT;
     
+    // TFE: 20210125: and now with backup, too!
+    private final static String BACKUP_DIR = File.separator + "Backup";
+
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor;
     
@@ -462,6 +466,10 @@ public class OwnNoteFileManager implements INoteCRMDS {
 
     @Override
     public boolean saveNote(final Note note) {
+        return saveNote(note, false);
+    }
+        
+    public boolean saveNote(final Note note, final boolean suppressMessages) {
         assert note != null;
         
         boolean result = true;
@@ -470,7 +478,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         final String newFileName = buildNoteName(note);
         
         // TFE, 20201230: update task ids
-        TaskManager.getInstance().setTaskDataInNote(note);
+        TaskManager.getInstance().setTaskDataInNote(note, suppressMessages);
 
         String content = note.getNoteEditorContent();
         if (content == null) {
@@ -549,7 +557,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
             result = false;
         } else {
             try {
-                Files.move(oldFile, newFile, StandardCopyOption.ATOMIC_MOVE);
+                Files.move(oldFile, newFile, StandardCopyOption.COPY_ATTRIBUTES);
 
                 final Note dataRow = notesList.remove(oldFileName);
                 dataRow.setNoteName(newNoteName);
@@ -584,7 +592,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         } else {
             try {
                 // System.out.printf("Time %s: Added files\n", getCurrentTimeStamp());
-                Files.move(oldFile, newFile);
+                Files.move(oldFile, newFile, StandardCopyOption.COPY_ATTRIBUTES);
 
                 final Note dataRow = notesList.remove(oldFileName);
                 dataRow.setGroupName(newGroupName);
@@ -637,7 +645,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         
         final boolean caseSensitiveRename = oldGroupName.toLowerCase().equals(newGroupName.toLowerCase());
 
-        Boolean result = true;
+        boolean result = true;
         initFilesInProgress();
         
         // old and new part of note name
@@ -692,7 +700,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                     final String newFileName = newNoteNamePrefix + filename.substring(oldNoteNamePrefix.length());
 
                     try {
-                        Files.move(Paths.get(this.notesPath, filename), Paths.get(this.notesPath, newFileName), StandardCopyOption.ATOMIC_MOVE);
+                        Files.move(Paths.get(this.notesPath, filename), Paths.get(this.notesPath, newFileName), StandardCopyOption.COPY_ATTRIBUTES);
                         
                         // TF, 20151129
                         // update notelist as well
@@ -801,6 +809,43 @@ public class OwnNoteFileManager implements INoteCRMDS {
                     }
                 } catch (FileNotFoundException ex) {
                     Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }
+        
+        return result;
+    }
+    
+    public boolean backupNote(final Note note, final String suffix) {
+        assert note != null;
+        assert suffix != null;
+        
+        boolean result = true;
+        
+        try {
+            FileUtils.forceMkdir(new File(getNotesPath() + BACKUP_DIR));
+        } catch (IOException ex) {
+            Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+            result = false;
+        }
+
+        if (result) {
+            final String noteName = buildNoteName(note);
+            final Path curFile = Paths.get(this.notesPath, noteName);
+            final String backupName = buildNoteName(note.getGroupName(), note.getNoteName() + suffix);
+            final Path backupFile = Paths.get(this.notesPath + BACKUP_DIR, backupName);
+
+            // TF, 20160815: check existence of the file - not something that should be done by catching the exception...
+            // TFE, 20191211: here we don't want to be as case insensitive as  the OS is
+            if (Files.exists(backupFile)) {
+                result = false;
+            } else {
+                try {
+                    // System.out.printf("Time %s: Added files\n", getCurrentTimeStamp());
+                    Files.copy(curFile, backupFile, StandardCopyOption.COPY_ATTRIBUTES);
+                } catch (IOException ex) {
+                    Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                    result = false;
                 }
             }
         }

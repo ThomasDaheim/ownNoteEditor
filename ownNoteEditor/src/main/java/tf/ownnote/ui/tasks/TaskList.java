@@ -5,6 +5,7 @@
  */
 package tf.ownnote.ui.tasks;
 
+import javafx.application.Platform;
 import javafx.beans.Observable;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
@@ -33,6 +34,10 @@ import tf.ownnote.ui.main.OwnNoteEditor;
 public class TaskList {
     private ListView<TaskData> myTaskList = null;
     
+    // be able to react to changes of isCompleted in tasks
+    // https://stackoverflow.com/a/30915760
+    private final ObservableList<TaskData> items = 
+                FXCollections.<TaskData>observableArrayList(item -> new Observable[] {item.isCompletedProperty(), item.descriptionProperty()});
     private FilteredList<TaskData> filteredData = null;
     // should only open tasks be shown?
     private boolean myTaskFilterMode = true;
@@ -152,12 +157,17 @@ public class TaskList {
     }
     
     public void populateTaskList() {
-        // be able to react to changes of isCompleted in tasks
-        // https://stackoverflow.com/a/30915760
-        final ObservableList<TaskData> items = 
-                FXCollections.<TaskData>observableArrayList(item -> new Observable[] {item.isCompletedProperty(), item.descriptionProperty()});
+        // items list doesn't receive change events for add & remove - need to attach separate listener to root list
+        TaskManager.getInstance().getTaskList().addListener((Change<? extends TaskData> change) -> {
+            // run later - since we might be in TaskManager.initTaskList()
+            Platform.runLater(() -> {
+                items.setAll(TaskManager.getInstance().getTaskList());
+                initListData();
+            });
+        });
         items.setAll(TaskManager.getInstance().getTaskList());
-        
+        initListData();
+
         // add listener to items to get notified of any changes to COMPLETED property
         items.addListener((Change<? extends TaskData> c) -> {
             while (c.next()) {
@@ -168,12 +178,9 @@ public class TaskList {
                 }
             }
         });
-
-        // items list doesn't receive change events for add & remove - need to attach separate listener to root list
-        TaskManager.getInstance().getTaskList().addListener((Change<? extends TaskData> change) -> {
-            items.setAll(TaskManager.getInstance().getTaskList());
-        });
-
+    }
+    
+    private void initListData() {
         // wrap the ObservableList in a FilteredList (initially display all data).
         filteredData = new FilteredList<>(items);
         setFilterPredicate();
@@ -203,6 +210,7 @@ public class TaskList {
         myTaskList.layout();
         myTaskList.setItems(sortedData);
     }
+
     
     private void setFilterPredicate() {
         filteredData.setPredicate((t) -> {

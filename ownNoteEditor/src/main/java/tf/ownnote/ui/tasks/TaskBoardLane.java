@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javafx.application.Platform;
 import javafx.beans.Observable;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -100,11 +101,19 @@ public class TaskBoardLane extends VBox {
         });
         
         // change when status changes
+        TaskManager.getInstance().getTaskList().addListener((ListChangeListener.Change<? extends TaskData> c) -> {
+            Platform.runLater(() -> {
+                // run later - since we might be in TaskManager.initTaskList()
+                items.setAll(TaskManager.getInstance().getTaskList());
+            });
+        });
         items.setAll(TaskManager.getInstance().getTaskList());
         
         // add listener to items to get notified of any changes to COMPLETED property
         items.addListener((ListChangeListener.Change<? extends TaskData> c) -> {
-            System.out.println("items changed");
+            filteredData = items.filtered((t) -> {
+                return myStatus.equals(t.getTaskStatus());
+            });
         });
 
         // use filter
@@ -123,12 +132,17 @@ public class TaskBoardLane extends VBox {
         
         if (myStatus.isCompleted()) {
             final ContextMenu contextMenu = new ContextMenu();
-            final MenuItem menuItem = new MenuItem("Archive completed tasks");
-            menuItem.setOnAction((t) -> {
+
+            final MenuItem archiveItem = new MenuItem("Archive completed tasks");
+            archiveItem.setOnAction((t) -> {
                 TaskManager.getInstance().archiveCompletedTasks(myCardMap.keySet());
-                // TODO: update items & filteredData passiert nicht
             });
-            contextMenu.getItems().add(menuItem);
+            final MenuItem restoreItem = new MenuItem("Restore archived tasks");
+            restoreItem.setOnAction((t) -> {
+                TaskManager.getInstance().restoreArchivedTasks();
+            });
+
+            contextMenu.getItems().addAll(archiveItem, restoreItem);
             laneHeader.setContextMenu(contextMenu);
         }
         

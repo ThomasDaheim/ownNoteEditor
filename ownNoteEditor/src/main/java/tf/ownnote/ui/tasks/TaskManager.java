@@ -9,8 +9,10 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -23,12 +25,10 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
-import tf.ownnote.ui.commentdata.CommentDataMapper;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
-import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 
@@ -53,11 +53,14 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     private final static Pattern TASK_PATTERN = Pattern.compile(TaskData.ANY_BOXES, Pattern.LITERAL);
     
     public static final PseudoClass COMPLETED = PseudoClass.getPseudoClass("completed");
+
+    public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyyMMDD-HHmmss"); 
     
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
     
-    private ObservableList<TaskData> taskList = null;
+    private final ObservableList<TaskData> taskList = FXCollections.<TaskData>observableArrayList();
+    private boolean taskListInitialized = false;
     
     private boolean inFileChange = false;
     
@@ -133,17 +136,19 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     }
     
     public ObservableList<TaskData> getTaskList() {
-        if (taskList == null) {
-            taskList = FXCollections.<TaskData>observableArrayList();
+        if (!taskListInitialized) {
             // lazy loading
             initTaskList();
+            
+            taskListInitialized = true;
         }
         
         return taskList;
     }
     
     public void resetTaskList() {
-        taskList = null;
+        taskList.clear();
+        taskListInitialized = false;
     }
     
     public void saveTaskList() {
@@ -418,8 +423,12 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             return t.getNote();
         }). distinct().collect(Collectors.toSet());
         
+        final String backuSuffix = "_archive_" + DATE_FORMAT.format(new Date());
         // replace all checkboxes with \u2611 - as is done in html editor for current node
         for (Note note : notes) {
+            // do backup in cse of mass-updates
+            OwnNoteFileManager.getInstance().backupNote(note, backuSuffix);
+            
             // sort in reverse textpos order since we're modifying the content
             final Set<TaskData> noteTasks = tasks.stream().filter((t) -> {
                 return note.equals(t.getNote());
@@ -460,7 +469,51 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                     note.setNoteEditorContent(content);
                 }
 
-                if (!OwnNoteFileManager.getInstance().saveNote(note)) {
+                // suppress messages since we won't find all check boxes anymore
+                if (!OwnNoteFileManager.getInstance().saveNote(note, true)) {
+                    result = false;
+                    break;
+                }
+            }
+        }
+        
+        return result;
+    }
+    
+    public boolean restoreArchivedTasks() {
+//        System.out.println("archiveCompletedTasks");
+        boolean result = true;
+        
+        // iterate over notes to avoid multiple saveNote() calls
+        final Set<Note> notes = OwnNoteFileManager.getInstance().getNotesWithText(TaskData.ARCHIVED_BOX);
+        
+        final String backuSuffix = "_restore_" + DATE_FORMAT.format(new Date());
+        // replace all checkboxes with \u2611 - as is done in html editor for current node
+        for (Note note : notes) {
+            // do backup in cse of mass-updates
+            OwnNoteFileManager.getInstance().backupNote(note, backuSuffix);
+            
+            if (note.equals(myEditor.getEditedNote())) {
+                // the currently edited note - let htmleditor do the work
+                // this changes all instances without further checking!
+                myEditor.replaceCheckmarks();
+            } else {
+                OwnNoteFileManager.getInstance().readNote(note, false);
+                String content = note.getNoteFileContent();
+                
+                content = replaceCheckmarks(content);
+
+                // update all tasks in file since positions will have changed - this also removes the tasks from the list
+                processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, note.getNoteFileContent(), content);
+
+                // set back content - also to editor content for next editing of note
+                note.setNoteFileContent(content);
+                if (note.getNoteEditorContent() != null) {
+                    note.setNoteEditorContent(content);
+                }
+
+                // suppress messages since we won't find all check boxes anymore
+                if (!OwnNoteFileManager.getInstance().saveNote(note, true)) {
                     result = false;
                     break;
                 }
@@ -505,7 +558,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         }).collect(Collectors.toList());
     }
     
-    public void setTaskDataInNote(final Note note) {
+    public void setTaskDataInNote(final Note note, final boolean suppressMessages) {
 //        System.out.println("setTaskDataInNote");
 
         String content = "";
@@ -540,7 +593,9 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                     content = content.substring(0, startOfTaskText) + newNoteTaskText + content.substring(startOfTaskText + noteTaskText.length());
                 }
             } else {
-                System.out.println("Task with text \"" + task.getRawText() + "\" starting @" + task.getTextPos() + " no longer found in \"" + content + "\"!");
+                if (!suppressMessages) {
+                    System.err.println("Task with text \"" + task.getRawText() + "\" starting @" + task.getTextPos() + " no longer found in \"" + content + "\"!");
+                }
             }
         }
         
