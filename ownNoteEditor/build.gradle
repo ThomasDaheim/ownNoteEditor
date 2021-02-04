@@ -192,3 +192,14 @@ jar {
         )
     }
 }
+
+sourceSets {
+    main {
+        resources { 
+            // only use minified files
+            exclude { 
+                FileTreeElement elem -> ((elem.name.contains('.js') || elem.name.contains('.css')) && !elem.name.contains('.min.')) 
+            }
+        } 
+    }  
+}
