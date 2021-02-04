@@ -513,6 +513,10 @@ public class OwnNoteFileManager implements INoteCRMDS {
 
         if (result) {
             note.setNoteFileContent(content);
+            if (note.getNoteEditorContent() != null) {
+                note.setNoteEditorContent(content);
+            }
+            note.setUnsavedChanges(false);
             
             // TFE, 20210121: things get too complicated with metadata - at least check file consistency
             if (!VerifyNoteContent.getInstance().verifyNoteFileContent(note) && myEditor != null) {
@@ -557,7 +561,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
             result = false;
         } else {
             try {
-                Files.move(oldFile, newFile, StandardCopyOption.COPY_ATTRIBUTES);
+                Files.move(oldFile, newFile, StandardCopyOption.ATOMIC_MOVE);
 
                 final Note dataRow = notesList.remove(oldFileName);
                 dataRow.setNoteName(newNoteName);
@@ -592,7 +596,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         } else {
             try {
                 // System.out.printf("Time %s: Added files\n", getCurrentTimeStamp());
-                Files.move(oldFile, newFile, StandardCopyOption.COPY_ATTRIBUTES);
+                Files.move(oldFile, newFile, StandardCopyOption.ATOMIC_MOVE);
 
                 final Note dataRow = notesList.remove(oldFileName);
                 dataRow.setGroupName(newGroupName);
@@ -700,7 +704,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                     final String newFileName = newNoteNamePrefix + filename.substring(oldNoteNamePrefix.length());
 
                     try {
-                        Files.move(Paths.get(this.notesPath, filename), Paths.get(this.notesPath, newFileName), StandardCopyOption.COPY_ATTRIBUTES);
+                        Files.move(Paths.get(this.notesPath, filename), Paths.get(this.notesPath, newFileName), StandardCopyOption.ATOMIC_MOVE);
                         
                         // TF, 20151129
                         // update notelist as well

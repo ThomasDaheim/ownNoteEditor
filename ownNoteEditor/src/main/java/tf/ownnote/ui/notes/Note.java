@@ -27,6 +27,11 @@ package tf.ownnote.ui.notes;
 
 import java.util.HashMap;
 import java.util.Objects;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import org.unbescape.html.HtmlEscape;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 
 /**
@@ -49,6 +54,9 @@ public class Note extends HashMap<String, String> {
     
     // TFE, 20201022: store additional metadata, e.g. tags, author, ...
     private NoteMetaData myMetaData;
+    
+    // TFE, 20210201: know you own change status
+    private final BooleanProperty hasUnsavedChanges = new SimpleBooleanProperty(false);
 
     private Note() {
         super();
@@ -151,6 +159,7 @@ public class Note extends HashMap<String, String> {
 
     public void setNoteEditorContent(final String content) {
         put(NoteMapKey.noteEditorContent.name(), content);
+        hasUnsavedChanges.set(!HtmlEscape.unescapeHtml(getNoteFileContent()).equals(HtmlEscape.unescapeHtml(getNoteEditorContent())));
     }
 
     public NoteMetaData getMetaData() {
@@ -165,5 +174,18 @@ public class Note extends HashMap<String, String> {
     
     public String getNoteFileName() {
         return OwnNoteFileManager.getInstance().buildNoteName(this);
+    }
+    
+    public BooleanBinding hasUnsavedChangesProperty() {
+        return Bindings.or(hasUnsavedChanges, myMetaData.hasUnsavedChangesProperty());
+    }
+    
+    public boolean hasUnsavedChanges() {
+        return hasUnsavedChanges.getValue() || myMetaData.hasUnsavedChanges();
+    }
+    
+    public void setUnsavedChanges(final boolean changed) {
+        hasUnsavedChanges.setValue(changed);
+        myMetaData.setUnsavedChanges(changed);
     }
 }

@@ -96,7 +96,6 @@ public class OwnNoteMetaDataEditor {
     private final FlowPane tagsBox = new FlowPane();
     
     private Note editorNote;
-    private boolean noteHasChanged = false;
 
     private OwnNoteMetaDataEditor() {
         super();
@@ -182,7 +181,6 @@ public class OwnNoteMetaDataEditor {
             return;
         }
         editorNote = note;
-        noteHasChanged = false;
         
         versions.getItems().clear();
         // set labels & fields with note data
@@ -206,8 +204,6 @@ public class OwnNoteMetaDataEditor {
 
         // change listener as well
         editorNote.getMetaData().getTags().addListener((SetChangeListener.Change<? extends TagInfo> change) -> {
-            noteHasChanged = true;
-
             if (change.wasRemoved()) {
                 removeTagLabel(change.getElementRemoved().getName());
             }
@@ -226,8 +222,6 @@ public class OwnNoteMetaDataEditor {
         
         // change listener as well
         editorNote.getMetaData().getAttachments().addListener((ListChangeListener.Change<? extends String> change) -> {
-            noteHasChanged = true;
-
             while (change.next()) {
                 if (change.wasRemoved()) {
                     for (String attach : change.getRemoved()) {
@@ -261,12 +255,10 @@ public class OwnNoteMetaDataEditor {
     }
     
     public boolean hasChanged() {
-        return noteHasChanged;
+        return editorNote == null ? false : editorNote.getMetaData().hasUnsavedChanges();
     }
     
     public void hasBeenSaved() {
-        noteHasChanged = false;
-        
         // re-init since new version...
         editNote(editorNote);
     }
@@ -324,6 +316,7 @@ public class OwnNoteMetaDataEditor {
             final String fileName = OwnNoteFileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR + File.separator + attach;
             final File file = new File(fileName);
 
+            // TODO: check if used in some other note
             if (FileUtils.deleteQuietly(file)) {
                 editorNote.getMetaData().getAttachments().remove(attach);
             }

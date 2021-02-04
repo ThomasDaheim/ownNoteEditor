@@ -1181,9 +1181,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                 if (saveChanges.get().equals(buttonSave)) {
                     // save note
                     prevNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
-                    if (saveNote(prevNote)) {
+                    if (!saveNote(prevNote)) {
                     }
                 } else {
+                    prevNote.setNoteEditorContent(prevNote.getNoteFileContent());
                     // TODO: undo changes to metadata as well!
                 }
             }
@@ -1211,7 +1212,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         if (curNote.getNoteFileContent() == null) {
             OwnNoteFileManager.getInstance().readNote(curNote, true);
         }
-        noteHTMLEditor.editNote(curNote, curNote.getNoteFileContent());
+        noteHTMLEditor.editNote(curNote);
         noteMetaEditor.editNote(curNote);
         
         return result;
@@ -1586,7 +1587,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             }
 
             noteHTMLEditor.setDisable(true);
-            noteHTMLEditor.editNote(null, "");
+            noteHTMLEditor.editNote(null);
             noteMetaEditor.editNote(null);
         }
     }
@@ -1671,7 +1672,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                                         // re-load into edit for StandardWatchEventKinds.ENTRY_MODIFY
                                         final Note loadNote = noteHTMLEditor.getEditedNote();
                                         OwnNoteFileManager.getInstance().readNote(loadNote, true);
-                                        noteHTMLEditor.editNote(loadNote, loadNote.getNoteFileContent());
+                                        noteHTMLEditor.editNote(loadNote);
                                         noteMetaEditor.editNote(loadNote);
                                     }
                                 }

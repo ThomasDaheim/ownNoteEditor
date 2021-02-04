@@ -57,6 +57,10 @@
     -fx-background-color: cell_hover_color !important;
 }
 
+.hasUnsavedChanges {
+    -fx-font-style: italic;
+}
+
 /* note name in bold */
 .noteNameCol {
     -fx-alignment: CENTER_LEFT;

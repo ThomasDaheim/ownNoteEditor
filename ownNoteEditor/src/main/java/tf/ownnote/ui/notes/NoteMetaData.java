@@ -33,7 +33,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
@@ -88,6 +91,9 @@ public class NoteMetaData implements ICommentDataHolder {
     private Charset myCharset = StandardCharsets.ISO_8859_1;
     // TFE, 20210101: support for note attachments
     private final ObservableList<String> myAttachments = FXCollections.<String>observableArrayList();
+    
+    // TFE, 20210201: know you own change status
+    private final BooleanProperty hasUnsavedChanges = new SimpleBooleanProperty(false);
 
     private Note myNote;
     
@@ -104,12 +110,31 @@ public class NoteMetaData implements ICommentDataHolder {
             if (change.wasAdded()) {
 //                System.out.println("Linking note " + myNote.getNoteName() + " to tag " + change.getElementAdded().getName());
                 change.getElementAdded().getLinkedNotes().add(myNote);
+                hasUnsavedChanges.set(true);
             }
 
             if (change.wasRemoved()) {
 //                System.out.println("Unlinking note " + myNote.getNoteName() + " from tag " + change.getElementRemoved().getName());
                 change.getElementRemoved().getLinkedNotes().remove(myNote);
+                hasUnsavedChanges.set(true);
             }
+        });
+
+        myVersions.addListener((ListChangeListener.Change<? extends NoteVersion> change) -> {
+            // can happen e.g. when using constructor fromHtmlComment()
+            if (myNote == null) {
+                return;
+            }
+            
+            hasUnsavedChanges.set(true);
+        });
+        myAttachments.addListener((ListChangeListener.Change<? extends String> change) -> {
+            // can happen e.g. when using constructor fromHtmlComment()
+            if (myNote == null) {
+                return;
+            }
+            
+            hasUnsavedChanges.set(true);
         });
     }
     
@@ -189,6 +214,7 @@ public class NoteMetaData implements ICommentDataHolder {
 
     public void setCharset(final Charset charset) {
         myCharset = charset;
+        hasUnsavedChanges.set(true);
     }
     
     public ObservableList<String> getAttachments() {
@@ -237,6 +263,8 @@ public class NoteMetaData implements ICommentDataHolder {
         
         if (htmlString != null && hasMetaDataContent(htmlString)) {
             CommentDataMapper.getInstance().fromComment(result, htmlString);
+            // no changes for "newborn" metadata
+            result.setUnsavedChanges(false);
         }
 
         return result;
@@ -303,5 +331,17 @@ public class NoteMetaData implements ICommentDataHolder {
             return myAttachments;
         }
         return null;
+    }
+    
+    public BooleanProperty hasUnsavedChangesProperty() {
+        return hasUnsavedChanges;
+    }
+    
+    public boolean hasUnsavedChanges() {
+        return hasUnsavedChanges.getValue();
+    }
+    
+    public void setUnsavedChanges(final boolean changed) {
+        hasUnsavedChanges.setValue(changed);
     }
 }

@@ -33,11 +33,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
+import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -79,6 +82,8 @@ import tf.ownnote.ui.tags.TagInfo;
  */
 public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder {
     public static final DataFormat DRAG_AND_DROP = new DataFormat("application/ownnoteeditor-ownnotetableview-dnd");
+
+    private static final PseudoClass HASUNSAVEDCHANGES = PseudoClass.getPseudoClass("hasUnsavedChanges");
 
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor= null;
@@ -265,22 +270,49 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                         protected void updateItem(Map<String, String> item, boolean empty) {
                             super.updateItem(item, empty);
                             
-                            // issue #36 - but only for "groupTabs" look & feel
-                            if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(myEditor.getCurrentLookAndFeel())) {
-                                if (item == null) {
-                                    // reset background to default
-                                    setStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": none");
+                            if (TableType.notesTable.equals(myTableType)) {
+                                if (empty) {
+                                    getStyleClass().removeAll("hasUnsavedChanges");
                                 } else {
-                                    // TF, 20160627: add support for issue #36 using ideas from
-                                    // https://rterp.wordpress.com/2015/04/11/atlas-trader-test/
-
-                                    // get tab color for notes group name
                                     assert (item instanceof Note);
 
-                                    // get the color for the groupname
-                                    final String groupColor = myEditor.getGroupColor(((Note) item).getGroupName());
-                                    setStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": " + groupColor);
-                                    //System.out.println("updateItem - groupName, groupColor: " + groupName + ", " + groupColor);
+                                    if (((Note) item).hasUnsavedChanges()) {
+                                        getStyleClass().add("hasUnsavedChanges");
+                                    } else {
+                                        getStyleClass().removeAll("hasUnsavedChanges");
+                                    }
+                                    
+                                    // we get a booleanbinding and need to listen to its changes...
+                                    final BooleanProperty changeValue = new SimpleBooleanProperty();
+                                    changeValue.bind(((Note) item).hasUnsavedChangesProperty());
+                                    changeValue.addListener((ov, oldValue, newValue) -> {
+                                        if (newValue != null && !newValue.equals(oldValue)) {
+                                            if (newValue) {
+                                                getStyleClass().add("hasUnsavedChanges");
+                                            } else {
+                                                getStyleClass().removeAll("hasUnsavedChanges");
+                                            }
+                                        }
+                                    });
+                                }
+
+                                // issue #36 - but only for "groupTabs" look & feel
+                                if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(myEditor.getCurrentLookAndFeel())) {
+                                    if (empty) {
+                                        // reset background to default
+                                        setStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": none");
+                                    } else {
+                                        // TF, 20160627: add support for issue #36 using ideas from
+                                        // https://rterp.wordpress.com/2015/04/11/atlas-trader-test/
+
+                                        // get tab color for notes group name
+                                        assert (item instanceof Note);
+
+                                        // get the color for the groupname
+                                        final String groupColor = myEditor.getGroupColor(((Note) item).getGroupName());
+                                        setStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": " + groupColor);
+                                        //System.out.println("updateItem - groupName, groupColor: " + groupName + ", " + groupColor);
+                                    }
                                 }
                             }
                         }

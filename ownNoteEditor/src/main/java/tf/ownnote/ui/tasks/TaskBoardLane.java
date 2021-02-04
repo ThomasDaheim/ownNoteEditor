@@ -63,7 +63,7 @@ public class TaskBoardLane extends VBox {
     private final Label laneHeader = new Label();
     private final VBox taskBox = new VBox();
     
-    private static final ObservableList<TaskData> items = FXCollections.<TaskData>observableArrayList(item -> new Observable[] {item.taskStatusProperty()});
+    private final ObservableList<TaskData> items = FXCollections.<TaskData>observableArrayList(item -> new Observable[] {item.taskStatusProperty()});
     private FilteredList<TaskData> filteredData;
     private final Map<TaskData, TaskCard> myCardMap = new HashMap<>();
     
@@ -111,13 +111,13 @@ public class TaskBoardLane extends VBox {
         
         // add listener to items to get notified of any changes to COMPLETED property
         items.addListener((ListChangeListener.Change<? extends TaskData> c) -> {
-            filteredData = items.filtered((t) -> {
+            filteredData = new FilteredList<>(items, (t) -> {
                 return myStatus.equals(t.getTaskStatus());
             });
         });
 
         // use filter
-        filteredData = items.filtered((t) -> {
+        filteredData = new FilteredList<>(items, (t) -> {
             return myStatus.equals(t.getTaskStatus());
         });
         filteredData.addListener((ListChangeListener.Change<? extends TaskData> c) -> {

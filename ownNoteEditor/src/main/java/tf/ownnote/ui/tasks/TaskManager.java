@@ -490,7 +490,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         final String backuSuffix = "_restore_" + DATE_FORMAT.format(new Date());
         // replace all checkboxes with \u2611 - as is done in html editor for current node
         for (Note note : notes) {
-            // do backup in cse of mass-updates
+            // do backup in case of mass-updates
             OwnNoteFileManager.getInstance().backupNote(note, backuSuffix);
             
             if (note.equals(myEditor.getEditedNote())) {

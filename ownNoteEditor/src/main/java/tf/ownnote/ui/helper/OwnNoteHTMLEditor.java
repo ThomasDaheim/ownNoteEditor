@@ -133,7 +133,6 @@ public class OwnNoteHTMLEditor {
     private OwnNoteEditor myEditor= null;
     
     private Note editedNote;
-    private boolean noteHasChanged;
     
     // defy garbage collection of callback functions
     // https://stackoverflow.com/a/41908133
@@ -182,13 +181,10 @@ public class OwnNoteHTMLEditor {
     
     private OwnNoteHTMLEditor() {
         super();
-        this.noteHasChanged = false;
     }
     
     public OwnNoteHTMLEditor(final WebView webView, final OwnNoteEditor editor) {
         super();
-
-        noteHasChanged = false;
 
         myEditor = editor;
 
@@ -488,7 +484,6 @@ public class OwnNoteHTMLEditor {
         if (editedNote != null) {
             editedNote.setNoteEditorContent(getNoteText());
             if (myEditor.saveNote(editedNote)) {
-                noteHasChanged = false;
             }
         }
     }
@@ -831,7 +826,11 @@ public class OwnNoteHTMLEditor {
         }
     }
         
-    public void editNote(final Note note, final String text) {
+    public void editNote(final Note note) {
+        editNote(note, note != null ? note.getNoteFileContent() : "");
+    }
+        
+    private void editNote(final Note note, final String text) {
         setContentDone = false;
         Runnable task = () -> {
             //System.out.println("setEditorText " + text);
@@ -840,11 +839,11 @@ public class OwnNoteHTMLEditor {
         
         startTask(task);
         editedNote = note;
-        noteHasChanged = false;
         if (editedNote != null) {
             editedNote.setNoteEditorContent(text);
         }
     }
+
     private String replaceForEditor(final String text) {
         String result = text;
 
@@ -894,10 +893,6 @@ public class OwnNoteHTMLEditor {
 
     public boolean hasChanged() {
         boolean result = false;
-        // TFE, 20210109: don't use only text compare - with tasks having comment tags things might change during save but editor content isn't in sync anymore
-        if (!noteHasChanged) {
-            return result;
-        }
 
         // only try to read context when we had the callback from last setcontent() javascript call
         if (editorInitialized && setContentDone) {
@@ -907,7 +902,7 @@ public class OwnNoteHTMLEditor {
                 result = !newEditorText.isEmpty();
             } else {
                 // TFE, 20201103: unwrapping checkboxes in js can lead to unescaping of text...
-                result = !HtmlEscape.unescapeHtml(editedNote.getNoteFileContent()).equals(HtmlEscape.unescapeHtml(newEditorText));
+                result = editedNote.hasUnsavedChanges();
             }
         }
         
@@ -973,7 +968,6 @@ public class OwnNoteHTMLEditor {
         }
 
         editedNote.setNoteEditorContent(newContent);
-        noteHasChanged = true;
 
         // send change note to all subscribes
         for (IFileContentChangeSubscriber subscriber : changeSubscribers) {
