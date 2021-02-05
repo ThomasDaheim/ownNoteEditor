@@ -19,6 +19,8 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.CheckBoxListCell;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.util.StringConverter;
 import org.controlsfx.control.PopOver;
 import tf.helper.javafx.TooltipHelper;
@@ -125,6 +127,11 @@ public class TaskList {
             editTask.setOnAction(event -> {
                 popOver.setContentNode(new TaskEditor(cell.getItem()));
                 popOver.show(cell);
+            });
+            popOver.addEventHandler(KeyEvent.KEY_PRESSED, (t) -> {
+                if (KeyCode.ESCAPE.equals(t.getCode())) {
+                    popOver.hide();
+                }
             });
 
             final MenuItem switchTask = new MenuItem("Change task status");

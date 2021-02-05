@@ -34,6 +34,8 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Dragboard;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.ColumnConstraints;
@@ -123,6 +125,12 @@ public class TaskCard extends GridPane {
             }
             if (MouseButton.SECONDARY.equals(t.getButton())) {
                 contextMenu.show(this, t.getScreenX(), t.getScreenY());
+            }
+        });
+
+        popOver.addEventHandler(KeyEvent.KEY_PRESSED, (t) -> {
+            if (KeyCode.ESCAPE.equals(t.getCode())) {
+                popOver.hide();
             }
         });
         

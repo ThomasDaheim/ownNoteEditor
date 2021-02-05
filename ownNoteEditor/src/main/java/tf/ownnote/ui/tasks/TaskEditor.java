@@ -38,6 +38,8 @@ import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
@@ -45,6 +47,7 @@ import jfxtras.scene.control.CalendarTextField;
 import static tf.helper.javafx.AbstractStage.INSET_TOP;
 import static tf.helper.javafx.AbstractStage.INSET_TOP_BOTTOM;
 import tf.helper.javafx.EnumHelper;
+import tf.helper.javafx.UsefulKeyCodes;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
@@ -175,10 +178,13 @@ public class TaskEditor extends GridPane {
         final Button saveButton = new Button("Save");
         saveButton.setOnAction((ActionEvent event) -> {
             saveValues();
+            // give parent node the oportunity to close
+            fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, KeyCode.ESCAPE.toString(), KeyCode.ESCAPE.toString(), KeyCode.ESCAPE, false, false, false, false));
         });
-        //getScene().getAccelerators().put(UsefulKeyCodes.CNTRL_S.getKeyCodeCombination(), () -> {
-        //    saveButton.fire();
-        //});
+        // not working since no scene yet...
+//        getScene().getAccelerators().put(UsefulKeyCodes.CNTRL_S.getKeyCodeCombination(), () -> {
+//            saveButton.fire();
+//        });
         getGridPane().add(saveButton, 0, rowNum, 1, 1);
         GridPane.setHalignment(saveButton, HPos.CENTER);
         GridPane.setMargin(saveButton, INSET_TOP_BOTTOM);
@@ -186,10 +192,13 @@ public class TaskEditor extends GridPane {
         final Button cancelBtn = new Button("Cancel");
         cancelBtn.setOnAction((ActionEvent event) -> {
             initValues();
+            // give parent node the oportunity to close
+            fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, KeyCode.ESCAPE.toString(), KeyCode.ESCAPE.toString(), KeyCode.ESCAPE, false, false, false, false));
         });
-        //getScene().getAccelerators().put(UsefulKeyCodes.ESCAPE.getKeyCodeCombination(), () -> {
-        //    cancelBtn.fire();
-        //});
+        // not working since no scene yet...
+//        getScene().getAccelerators().put(UsefulKeyCodes.ESCAPE.getKeyCodeCombination(), () -> {
+//            cancelBtn.fire();
+//        });
         getGridPane().add(cancelBtn, 1, rowNum, 1, 1);
         GridPane.setHalignment(cancelBtn, HPos.CENTER);
         GridPane.setMargin(cancelBtn, INSET_TOP_BOTTOM);
@@ -230,7 +239,7 @@ public class TaskEditor extends GridPane {
             myTask.setDueDate(null);
         }
         String comment = null;
-        if (!commentArea.getText().isEmpty()) {
+        if (commentArea.getText() != null && !commentArea.getText().isEmpty()) {
             comment = commentArea.getText();
         }
         myTask.setComment(comment);
