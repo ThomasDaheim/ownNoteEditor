@@ -16,7 +16,6 @@ import org.junit.Before;
 import org.junit.Test;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
-import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.tasks.TaskData;
 import tf.ownnote.ui.tasks.TaskManager;

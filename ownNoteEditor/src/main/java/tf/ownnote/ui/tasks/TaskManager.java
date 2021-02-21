@@ -13,7 +13,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -423,19 +422,20 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             return t.getNote();
         }). distinct().collect(Collectors.toSet());
         
-        final String backuSuffix = "_archive_" + DATE_FORMAT.format(new Date());
+        final String backupSuffix = "_archive_" + DATE_FORMAT.format(new Date());
         // replace all checkboxes with \u2611 - as is done in html editor for current node
         for (Note note : notes) {
             // do backup in cse of mass-updates
-            OwnNoteFileManager.getInstance().backupNote(note, backuSuffix);
+            OwnNoteFileManager.getInstance().backupNote(note, backupSuffix);
             
             // sort in reverse textpos order since we're modifying the content
-            final Set<TaskData> noteTasks = tasks.stream().filter((t) -> {
-                return note.equals(t.getNote());
-            }).sorted((o1, o2) -> {
-                return -Integer.compare(o1.getTextPos(), o2.getTextPos());
-            }).collect(Collectors.toCollection(LinkedHashSet::new));
-            
+//            final Set<TaskData> noteTasks = tasks.stream().filter((t) -> {
+//                return note.equals(t.getNote());
+//            }).sorted((o1, o2) -> {
+//                return -Integer.compare(o1.getTextPos(), o2.getTextPos());
+//            }).collect(Collectors.toCollection(LinkedHashSet::new));
+
+            System.out.println("Archiving tasks in note: " + note.getNoteFileName());
             if (note.equals(myEditor.getEditedNote())) {
                 // the currently edited note - let htmleditor do the work
                 // this changes all instances without further checking!
@@ -443,7 +443,6 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             } else {
                 OwnNoteFileManager.getInstance().readNote(note, false);
                 String content = note.getNoteFileContent();
-                
                 
                 // TFE, 20210118: lets changed all like for the edited note
                 // ignore passed list of tasks for the moment
@@ -487,12 +486,13 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         // iterate over notes to avoid multiple saveNote() calls
         final Set<Note> notes = OwnNoteFileManager.getInstance().getNotesWithText(TaskData.ARCHIVED_BOX);
         
-        final String backuSuffix = "_restore_" + DATE_FORMAT.format(new Date());
+        final String backupSuffix = "_restore_" + DATE_FORMAT.format(new Date());
         // replace all checkboxes with \u2611 - as is done in html editor for current node
         for (Note note : notes) {
             // do backup in case of mass-updates
-            OwnNoteFileManager.getInstance().backupNote(note, backuSuffix);
+            OwnNoteFileManager.getInstance().backupNote(note, backupSuffix);
             
+            System.out.println("Restoring tasks in note: " + note.getNoteFileName());
             if (note.equals(myEditor.getEditedNote())) {
                 // the currently edited note - let htmleditor do the work
                 // this changes all instances without further checking!

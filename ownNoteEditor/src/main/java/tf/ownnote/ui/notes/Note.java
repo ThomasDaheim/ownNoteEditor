@@ -56,7 +56,10 @@ public class Note extends HashMap<String, String> {
     private NoteMetaData myMetaData;
     
     // TFE, 20210201: know you own change status
+    private final BooleanProperty hasUnsavedNoteChanges = new SimpleBooleanProperty(false);
+    // TFE, 20210219: be more user friendly
     private final BooleanProperty hasUnsavedChanges = new SimpleBooleanProperty(false);
+    private BooleanBinding bindingHelper;
 
     private Note() {
         super();
@@ -76,6 +79,12 @@ public class Note extends HashMap<String, String> {
         super(note);
         
         myMetaData = note.myMetaData;
+        initNoteHasChanged();
+    }
+    
+    private void initNoteHasChanged() {
+        bindingHelper = Bindings.or(hasUnsavedNoteChanges, myMetaData.hasUnsavedChangesProperty());
+        hasUnsavedChanges.bind(bindingHelper);
     }
 
     @Override
@@ -159,7 +168,7 @@ public class Note extends HashMap<String, String> {
 
     public void setNoteEditorContent(final String content) {
         put(NoteMapKey.noteEditorContent.name(), content);
-        hasUnsavedChanges.set(!HtmlEscape.unescapeHtml(getNoteFileContent()).equals(HtmlEscape.unescapeHtml(getNoteEditorContent())));
+        hasUnsavedNoteChanges.set(!HtmlEscape.unescapeHtml(getNoteFileContent()).equals(HtmlEscape.unescapeHtml(getNoteEditorContent())));
     }
 
     public NoteMetaData getMetaData() {
@@ -170,22 +179,22 @@ public class Note extends HashMap<String, String> {
         myMetaData = metaData;
         
         myMetaData.setNote(this);
+        initNoteHasChanged();
     }
     
     public String getNoteFileName() {
         return OwnNoteFileManager.getInstance().buildNoteName(this);
     }
     
-    public BooleanBinding hasUnsavedChangesProperty() {
-        return Bindings.or(hasUnsavedChanges, myMetaData.hasUnsavedChangesProperty());
+    public BooleanProperty hasUnsavedChangesProperty() {
+        return hasUnsavedChanges;
     }
     
     public boolean hasUnsavedChanges() {
-        return hasUnsavedChanges.getValue() || myMetaData.hasUnsavedChanges();
+        return hasUnsavedChanges.getValue();
     }
-    
     public void setUnsavedChanges(final boolean changed) {
-        hasUnsavedChanges.setValue(changed);
+        hasUnsavedNoteChanges.setValue(changed);
         myMetaData.setUnsavedChanges(changed);
     }
 }

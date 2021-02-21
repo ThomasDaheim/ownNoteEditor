@@ -191,5 +191,8 @@ public class TaskBoardLane extends VBox {
                 myCardMap.put(task, card);
             }
         }
+
+        requestLayout();
     }
+    
 }

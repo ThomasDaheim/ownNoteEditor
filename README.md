@@ -7,6 +7,16 @@ Note on Java 11: After various tweaks to build.gradle this now also runs under J
 
 Note on v5.0: A lot has happened since the initial version of the editor. ownNotes / nextNotes project for NextCloud seems to have died and there is no need anymore to try to mimic their behaviour and notes / groups handling. Therefore, its time for some re-design :-)
 
+V 5.1: KANBAN is here
+
+* Compress task data in note if too long
+* Show completed tasks as strikethrough
+* Taskdata editor
+* KANBAN board for tasks with basic functions (drag & drop, archive / restore)
+* Verification of note content to find any messups from the code
+* Show unsaved changes as italic note name
+* Bugfixes & performance updates
+
 V 5.0: Styling up for Christmas...
 
 * A new look & feel using tags: TagTree! Instead of having groups as tabs above we now have the complete tag tree to the left to select notes based on any tags

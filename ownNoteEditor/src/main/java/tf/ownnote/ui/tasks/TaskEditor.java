@@ -47,7 +47,6 @@ import jfxtras.scene.control.CalendarTextField;
 import static tf.helper.javafx.AbstractStage.INSET_TOP;
 import static tf.helper.javafx.AbstractStage.INSET_TOP_BOTTOM;
 import tf.helper.javafx.EnumHelper;
-import tf.helper.javafx.UsefulKeyCodes;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**

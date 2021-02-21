@@ -1184,8 +1184,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                     if (!saveNote(prevNote)) {
                     }
                 } else {
-                    prevNote.setNoteEditorContent(prevNote.getNoteFileContent());
-                    // TODO: undo changes to metadata as well!
+                    OwnNoteFileManager.getInstance().readNote(prevNote, true);
                 }
             }
         }

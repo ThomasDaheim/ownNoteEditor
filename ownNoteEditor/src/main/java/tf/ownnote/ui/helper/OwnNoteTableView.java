@@ -265,6 +265,8 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                 myTableView.setContextMenu(newMenu);
                 
                 myTableView.setRowFactory((TableView<Map<String, String>> tableView) -> {
+                    final BooleanProperty changeValue = new SimpleBooleanProperty();
+                    
                     final TableRow<Map<String, String>> row = new TableRow<Map<String, String>>() {
                         @Override
                         protected void updateItem(Map<String, String> item, boolean empty) {
@@ -273,6 +275,8 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                             if (TableType.notesTable.equals(myTableType)) {
                                 if (empty) {
                                     getStyleClass().removeAll("hasUnsavedChanges");
+                                    // need to unbind as well to avoid affecting mutliple rows...
+                                    changeValue.unbind();
                                 } else {
                                     assert (item instanceof Note);
 
@@ -283,7 +287,6 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                                     }
                                     
                                     // we get a booleanbinding and need to listen to its changes...
-                                    final BooleanProperty changeValue = new SimpleBooleanProperty();
                                     changeValue.bind(((Note) item).hasUnsavedChangesProperty());
                                     changeValue.addListener((ov, oldValue, newValue) -> {
                                         if (newValue != null && !newValue.equals(oldValue)) {
