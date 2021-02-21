@@ -79,11 +79,13 @@ import netscape.javascript.JSObject;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.text.StringEscapeUtils;
+import org.unbescape.html.HtmlEscape;
 import tf.helper.general.ImageHelper;
 import tf.helper.javafx.UsefulKeyCodes;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.tasks.TaskData;
+import tf.ownnote.ui.tasks.TaskManager;
 
 /**
  *
@@ -107,8 +109,8 @@ public class OwnNoteHTMLEditor {
     private static final List<String> COPY_TEXT_SELECTION = List.of("Copy Text", "Kopieren als Text");
     private static final List<String> SAVE_NOTE = List.of("Save", "Speichern");
     private static final List<String> COMPRESS_IMAGES = List.of("Compress images", "Bilder komprimieren");
-    private static final List<String> REPLACE_CHECKEDBOXES = List.of("Checked box -> \u2611", "Checked Box -> \u2611");
-    private static final List<String> REPLACE_CHECKMARKS = List.of("\u2611 -> Checked box", "\u2611 -> Checked Box");
+    private static final List<String> REPLACE_CHECKEDBOXES = List.of("Checked box -> " + TaskData.ARCHIVED_BOX, "Checked Box -> " + TaskData.ARCHIVED_BOX);
+    private static final List<String> REPLACE_CHECKMARKS = List.of(TaskData.ARCHIVED_BOX + " -> Checked box", TaskData.ARCHIVED_BOX + " -> Checked Box");
     
     private int language;
 
@@ -214,15 +216,6 @@ public class OwnNoteHTMLEditor {
     }
     
     /**
-     * Enables Firebug Lite for debugging a webEngine.
-     * @param engine the webEngine for which debugging is to be enabled.
-     */
-    private static void enableFirebug(final WebEngine engine) {
-        // TFE, 20200722: getfirebug.com not active anymore...
-//        wrapExecuteScript(engine, "if (!document.getElementById('FirebugLite')){E = document['createElement' + 'NS'] && document.documentElement.namespaceURI;E = E ? document['createElement' + 'NS'](E, 'script') : document['createElement']('script');E['setAttribute']('id', 'FirebugLite');E['setAttribute']('src', 'https://getfirebug.com/' + 'firebug-lite.js' + '#startOpened');E['setAttribute']('FirebugLite', '4');(document['getElementsByTagName']('head')[0] || document['getElementsByTagName']('body')[0]).appendChild(E);E = new Image;E['setAttribute']('src', 'https://getfirebug.com/' + '#startOpened');}"); 
-    }
-    
-    /**
      * Add try/catch around any script call.
      * @param engine the webEngine for which debugging is to be enabled.
      * @param script the javascript to execute.
@@ -299,9 +292,6 @@ public class OwnNoteHTMLEditor {
                             }
                         }
                     });
-
-                    // add debugger to webviewer
-                    enableFirebug(myWebEngine);
                 }
             }
         });
@@ -486,22 +476,15 @@ public class OwnNoteHTMLEditor {
         }
     }
     
-    private void replaceCheckedBoxes() {
-        assert (myEditor != null);
-        
-        String content = getNoteText();
-        content = content.replace(OwnNoteEditor.CHECKED_BOXES_1, "\u2611");
-        content = content.replace(OwnNoteEditor.CHECKED_BOXES_2, "\u2611");
+    public void replaceCheckedBoxes() {
+        final String content = TaskManager.replaceCheckedBoxes(getNoteText());
         
         contentChanged(content);
         editNote(editedNote, content);
     }
     
-    private void replaceCheckmarks() {
-        assert (myEditor != null);
-        
-        String content = getNoteText();
-        content = content.replace("\u2611", OwnNoteEditor.CHECKED_BOXES_2);
+    public void replaceCheckmarks() {
+        final String content = TaskManager.replaceCheckmarks(getNoteText());
         
         contentChanged(content);
         editNote(editedNote, content);
@@ -763,7 +746,7 @@ public class OwnNoteHTMLEditor {
             selection = selection.replaceAll("\\</p\\>", "</p>" + System.lineSeparator());
             selection = stripHtmlTags(selection);
             // convert all &uml; back to &
-            selection = StringEscapeUtils.unescapeHtml4(selection);
+            selection = HtmlEscape.unescapeHtml(selection);
         }
 
         final ClipboardContent clipboardContent = new ClipboardContent();
@@ -831,7 +814,11 @@ public class OwnNoteHTMLEditor {
         }
     }
         
-    public void editNote(final Note note, final String text) {
+    public void editNote(final Note note) {
+        editNote(note, note != null ? note.getNoteFileContent() : "");
+    }
+        
+    private void editNote(final Note note, final String text) {
         setContentDone = false;
         Runnable task = () -> {
             //System.out.println("setEditorText " + text);
@@ -844,6 +831,7 @@ public class OwnNoteHTMLEditor {
             editedNote.setNoteEditorContent(text);
         }
     }
+
     private String replaceForEditor(final String text) {
         String result = text;
 
@@ -858,14 +846,14 @@ public class OwnNoteHTMLEditor {
         return result;
     }
     
-    public void scrollToCheckBox(final int textPos, final String htmlText) {
+    public void scrollToCheckBox(final int textPos, final String htmlText, final String taskId) {
         // call tinymce to set the cursor
-        wrapExecuteScript(myWebEngine, "scrollToCheckBox(" + textPos + ", '" + htmlText + "');");
+        wrapExecuteScript(myWebEngine, "scrollToCheckBox(" + textPos + ", '" + htmlText + "', '" + taskId + "');");
     }
     
-    public void toggleCheckBox(final int textPos, final String htmlText, final boolean newStatus) {
+    public void scrollToAndToggleCheckBox(final int textPos, final String htmlText, final String taskId, final boolean newStatus) {
         // call tinymce to change the checkbox
-        wrapExecuteScript(myWebEngine, "toggleCheckBox(" + textPos + ", '" + htmlText + "', " + newStatus + ");");
+        wrapExecuteScript(myWebEngine, "scrollToAndToggleCheckBox(" + textPos + ", '" + htmlText + "', '" + taskId + "', " + newStatus + ");");
     }
 
     public String getNoteText() {
@@ -876,7 +864,7 @@ public class OwnNoteHTMLEditor {
         String newEditorText = "";
 
         if (editorInitialized) {
-            Object dummy = wrapExecuteScript(myWebEngine, "saveGetContent(true);");
+            Object dummy = wrapExecuteScript(myWebEngine, "saveGetContent();");
             
             assert (dummy instanceof String);
             newEditorText = (String) dummy;
@@ -902,7 +890,7 @@ public class OwnNoteHTMLEditor {
                 result = !newEditorText.isEmpty();
             } else {
                 // TFE, 20201103: unwrapping checkboxes in js can lead to unescaping of text...
-                result = !StringEscapeUtils.unescapeHtml4(editedNote.getNoteFileContent()).equals(StringEscapeUtils.unescapeHtml4(newEditorText));
+                result = editedNote.hasUnsavedChanges();
             }
         }
         
@@ -1025,7 +1013,7 @@ public class OwnNoteHTMLEditor {
         }
         
         public void checkBoxChanged(final String htmlBefore, final String htmlAfter) {
-            myself.checkBoxChanged(StringEscapeUtils.unescapeHtml4(htmlBefore), StringEscapeUtils.unescapeHtml4(htmlAfter));
+            myself.checkBoxChanged(htmlBefore, htmlAfter);
         }
         
         public void contentChanged(final String newContent) {

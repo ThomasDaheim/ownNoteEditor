@@ -23,20 +23,21 @@
  *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  *  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package tf.ownnote.ui.tags;
-
-import javafx.scene.control.TreeCell;
-import javafx.util.StringConverter;
-import tf.ownnote.ui.main.OwnNoteEditor;
+package tf.ownnote.ui.commentdata;
 
 /**
- * Interface implemented by all variants of tag treeview cells.
- * Used to provide required info to TagTreeCellBase since we can't extend two classes...
+ * Interface for info to be used in get / set data from / to comment strings.
  * 
  * @author thomas
  */
-public interface ITagTreeCell {
-    public OwnNoteEditor getEditor();
-    public TreeCell<TagInfoWrapper> getTreeCell();
-    public StringConverter<TagInfoWrapper> getTextConverter();
+public interface ICommentDataInfo {
+    public static enum Multiplicity {
+        SINGLE,
+        MULTIPLE
+    }
+    
+    public String getDataName();
+    public Multiplicity getDataMultiplicity();
+    
+    public abstract int ordinal();
 }

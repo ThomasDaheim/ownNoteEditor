@@ -54,12 +54,17 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import org.apache.commons.io.FileUtils;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.notes.NoteMetaData;
 import tf.ownnote.ui.notes.NoteVersion;
+import tf.ownnote.ui.tasks.TaskManager;
 
 /**
  *
@@ -68,6 +73,12 @@ import tf.ownnote.ui.notes.NoteVersion;
 public class OwnNoteFileManager implements INoteCRMDS {
     private final static OwnNoteFileManager INSTANCE = new OwnNoteFileManager();
     
+    public final static String NOTE_EXT = ".htm";
+    public final static String ALL_NOTES = "*" + NOTE_EXT;
+    
+    // TFE: 20210125: and now with backup, too!
+    private final static String BACKUP_DIR = File.separator + "Backup";
+
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor;
     
@@ -136,7 +147,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         // iterate over all files from directory
         DirectoryStream<Path> stream = null;
         try {
-            stream = Files.newDirectoryStream(Paths.get(notesPath), "*.htm");
+            stream = Files.newDirectoryStream(Paths.get(notesPath), ALL_NOTES);
             for (Path path: stream) {
                 final File file = path.toFile();
                 final String filename = file.getName();
@@ -173,7 +184,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
             }
 
             // TFE, 20201209: decouple reading of groups from reading of notes - since we want to have group data loaded when we init the tags
-            stream = Files.newDirectoryStream(Paths.get(this.notesPath), "*.htm");
+            stream = Files.newDirectoryStream(Paths.get(this.notesPath), ALL_NOTES);
             for (Path path: stream) {
                 final File file = path.toFile();
                 final String filename = file.getName();
@@ -198,7 +209,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                 noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
                 noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
                 // TFE; 20201023: set note metadata from file content
-                noteRow.setMetaData(NoteMetaData.fromHtmlString(getFirstLine(file)));
+                noteRow.setMetaData(NoteMetaData.fromHtmlComment(getFirstLine(file)));
                 // use filename and not notename since duplicate note names can exist in different groups
                 notesList.put(filename, noteRow);
                 //System.out.println("Added note " + noteName + " for group " + groupName + " from filename " + filename);
@@ -302,6 +313,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         return getNoteGroup(note.getGroupName());
     }
 
+    @Override
     public boolean deleteNote(final Note note) {
         assert note != null;
         
@@ -336,7 +348,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         assert groupName != null;
         assert noteName != null;
         
-        return buildGroupName(groupName) + noteName + ".htm";
+        return buildGroupName(groupName) + noteName + NOTE_EXT;
     }
     
     public String buildNoteName(final Note note) {
@@ -361,6 +373,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         return result;
     }
 
+    @Override
     public boolean createNote(final String groupName, final String noteName) {
         assert groupName != null;
         assert noteName != null;
@@ -380,8 +393,16 @@ public class OwnNoteFileManager implements INoteCRMDS {
             final Note noteRow = new Note(groupName, noteName);
             noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
             noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
+            // TFE, 20210113: init data as well - especially charset
+            noteRow.setNoteFileContent("");
+            noteRow.setMetaData(new NoteMetaData());
+            noteRow.getMetaData().setCharset(StandardCharsets.UTF_8);
+
             // use filename and not notename since duplicate note names can exist in diffeent groups
             notesList.put(newFileName, noteRow);
+
+            // save metadata
+            saveNote(noteRow);
         } catch (IOException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = false;
@@ -391,47 +412,64 @@ public class OwnNoteFileManager implements INoteCRMDS {
         return result;
     }
 
-    public String readNote(final Note curNote) {
+    public Note readNote(final Note curNote, final boolean forceRead) {
         assert curNote != null;
         
-        String result = "";
-        
-        final Path readPath = Paths.get(notesPath, buildNoteName(curNote.getGroupName(), curNote.getNoteName()));
-        if (StandardCharsets.ISO_8859_1.equals(curNote.getMetaData().getCharset())) {
-            try {
-                result = new String(Files.readAllBytes(readPath));
-            } catch (IOException ex) {
-                Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
-                result = "";
-            }
-        } else {
-            try (final BufferedReader reader = 
+        // TFE, 20201231: only read if you really have to
+        if (curNote.getNoteFileContent() == null || forceRead) {
+            final StringBuffer result = new StringBuffer("");
+
+            final Path readPath = Paths.get(notesPath, buildNoteName(curNote.getGroupName(), curNote.getNoteName()));
+            if (StandardCharsets.ISO_8859_1.equals(curNote.getMetaData().getCharset())) {
+                try {
+                    result.append(Files.readAllBytes(readPath));
+                } catch (IOException ex) {
+                    Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            } else {
+                try (final BufferedReader reader = 
                     new BufferedReader(new InputStreamReader(new FileInputStream(readPath.toFile()), StandardCharsets.UTF_8))) {
 
-                boolean firstLine = true;
-                String str;
-                while ((str = reader.readLine()) != null) {
-                    if (!firstLine) {
-                        // don't use System.lineseparator() to avoid messup with metadata parsing
-                        result += "\n";
+                    boolean firstLine = true;
+                    String str;
+                    while ((str = reader.readLine()) != null) {
+                        if (!firstLine) {
+                            // don't use System.lineseparator() to avoid messup with metadata parsing
+                            result.append("\n");
+                        }
+                        result.append(str);
+
+                        firstLine = false;
                     }
-                    result += str;
-                    
-                    firstLine = false;
+                } catch (IOException ex) {
+                    Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
                 }
-            } catch (IOException ex) {
-                Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
-                result = "";
+            }
+
+            // TFE; 20200814: store content in Note
+            curNote.setNoteFileContent(result.toString());
+            
+            // TFE, 20210121: things get too complicated with metadata - at least check file consistency
+            if (!VerifyNoteContent.getInstance().verifyNoteFileContent(curNote) && myEditor != null) {
+                final ButtonType buttonOK = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+                myEditor.showAlert(
+                        Alert.AlertType.ERROR, 
+                        "Error", 
+                        "File inconsistency found!", 
+                        "File: " + buildNoteName(curNote.getGroupName(), curNote.getNoteName()) + "\nCheck error log for further details.", 
+                        buttonOK);
             }
         }
         
-        // TFE; 20200814: store content in Note
-        curNote.setNoteFileContent(result);
-        
-        return result;
+        return curNote;
     }
 
+    @Override
     public boolean saveNote(final Note note) {
+        return saveNote(note, false);
+    }
+        
+    public boolean saveNote(final Note note, final boolean suppressMessages) {
         assert note != null;
         
         boolean result = true;
@@ -439,9 +477,10 @@ public class OwnNoteFileManager implements INoteCRMDS {
 
         final String newFileName = buildNoteName(note);
         
-        String content = "";
-        // TODO: set author
-        content = note.getNoteEditorContent();
+        // TFE, 20201230: update task ids
+        TaskManager.getInstance().setTaskDataInNote(note, suppressMessages);
+
+        String content = note.getNoteEditorContent();
         if (content == null) {
             content = note.getNoteFileContent();
         }
@@ -449,7 +488,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         note.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), LocalDateTime.now()));
         // TFE, 20201217: from now on you're UTF-8
         note.getMetaData().setCharset(StandardCharsets.UTF_8);
-        final String fullContent = NoteMetaData.toHtmlString(note.getMetaData()) + content;
+        final String fullContent = NoteMetaData.toHtmlComment(note.getMetaData()) + content;
 
         // TFE, 20201217: make sure we write UTF-8...
 //            final Path savePath = Files.write(Paths.get(this.notesPath, newFileName), fullContent.getBytes());
@@ -474,11 +513,27 @@ public class OwnNoteFileManager implements INoteCRMDS {
 
         if (result) {
             note.setNoteFileContent(content);
+            if (note.getNoteEditorContent() != null) {
+                note.setNoteEditorContent(content);
+            }
+            note.setUnsavedChanges(false);
+            
+            // TFE, 20210121: things get too complicated with metadata - at least check file consistency
+            if (!VerifyNoteContent.getInstance().verifyNoteFileContent(note) && myEditor != null) {
+                final ButtonType buttonOK = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+                myEditor.showAlert(
+                        Alert.AlertType.ERROR, 
+                        "Error", 
+                        "File inconsistency found!", 
+                        "File: " + newFileName + "\nCheck error log for further details.", 
+                        buttonOK);
+            }
         }
 
         return result;
     }
     
+    @Override
     public boolean renameNote(final Note note, final String newNoteName) {
         assert note != null;
         
@@ -541,7 +596,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         } else {
             try {
                 // System.out.printf("Time %s: Added files\n", getCurrentTimeStamp());
-                Files.move(oldFile, newFile);
+                Files.move(oldFile, newFile, StandardCopyOption.ATOMIC_MOVE);
 
                 final Note dataRow = notesList.remove(oldFileName);
                 dataRow.setGroupName(newGroupName);
@@ -594,7 +649,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         
         final boolean caseSensitiveRename = oldGroupName.toLowerCase().equals(newGroupName.toLowerCase());
 
-        Boolean result = true;
+        boolean result = true;
         initFilesInProgress();
         
         // old and new part of note name
@@ -609,7 +664,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         DirectoryStream<Path> notesForGroup = null;
         try {
             // 1. get all note names for group
-            notesForGroup = Files.newDirectoryStream(Paths.get(this.notesPath), escapedNoteNamePrefix + "*.htm");
+            notesForGroup = Files.newDirectoryStream(Paths.get(this.notesPath), escapedNoteNamePrefix + ALL_NOTES);
 
             // TFE, 20191211: here we don't want to be as case insensitive as  the OS is
             // in theory we could have groups that only differ by case: TEST and Test
@@ -640,7 +695,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
             try {
                 // need to re-read since iterator can only be used once - don't ask
                 // https://stackoverflow.com/questions/25089294/java-lang-illegalstateexception-iterator-already-obtained
-                notesForGroup = Files.newDirectoryStream(Paths.get(this.notesPath), escapedNoteNamePrefix + "*.htm");
+                notesForGroup = Files.newDirectoryStream(Paths.get(this.notesPath), escapedNoteNamePrefix + ALL_NOTES);
 
                 for (Path path: notesForGroup) {
                     final File file = path.toFile();
@@ -758,6 +813,43 @@ public class OwnNoteFileManager implements INoteCRMDS {
                     }
                 } catch (FileNotFoundException ex) {
                     Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }
+        
+        return result;
+    }
+    
+    public boolean backupNote(final Note note, final String suffix) {
+        assert note != null;
+        assert suffix != null;
+        
+        boolean result = true;
+        
+        try {
+            FileUtils.forceMkdir(new File(getNotesPath() + BACKUP_DIR));
+        } catch (IOException ex) {
+            Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+            result = false;
+        }
+
+        if (result) {
+            final String noteName = buildNoteName(note);
+            final Path curFile = Paths.get(this.notesPath, noteName);
+            final String backupName = buildNoteName(note.getGroupName(), note.getNoteName() + suffix);
+            final Path backupFile = Paths.get(this.notesPath + BACKUP_DIR, backupName);
+
+            // TF, 20160815: check existence of the file - not something that should be done by catching the exception...
+            // TFE, 20191211: here we don't want to be as case insensitive as  the OS is
+            if (Files.exists(backupFile)) {
+                result = false;
+            } else {
+                try {
+                    // System.out.printf("Time %s: Added files\n", getCurrentTimeStamp());
+                    Files.copy(curFile, backupFile, StandardCopyOption.COPY_ATTRIBUTES);
+                } catch (IOException ex) {
+                    Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                    result = false;
                 }
             }
         }

@@ -33,11 +33,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
+import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -71,6 +74,7 @@ import tf.helper.javafx.TableViewPreferences;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
+import tf.ownnote.ui.tags.TagInfo;
 
 /**
  *
@@ -78,6 +82,8 @@ import tf.ownnote.ui.notes.NoteGroup;
  */
 public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder {
     public static final DataFormat DRAG_AND_DROP = new DataFormat("application/ownnoteeditor-ownnotetableview-dnd");
+
+    private static final PseudoClass HASUNSAVEDCHANGES = PseudoClass.getPseudoClass("hasUnsavedChanges");
 
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor= null;
@@ -93,7 +99,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     private Set<Note> noteSearchNotes;
 
     // TFE, 20201208: tag support to show only notes linked to tags
-    private Set<Note> noteFilterNotes;
+    private TagInfo tagFilter;
     
     private TableType myTableType = null;
     private String backgroundColor = "white";
@@ -259,27 +265,57 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                 myTableView.setContextMenu(newMenu);
                 
                 myTableView.setRowFactory((TableView<Map<String, String>> tableView) -> {
+                    final BooleanProperty changeValue = new SimpleBooleanProperty();
+                    
                     final TableRow<Map<String, String>> row = new TableRow<Map<String, String>>() {
                         @Override
                         protected void updateItem(Map<String, String> item, boolean empty) {
                             super.updateItem(item, empty);
                             
-                            // issue #36 - but only for "groupTabs" look & feel
-                            if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(myEditor.getCurrentLookAndFeel())) {
-                                if (item == null) {
-                                    // reset background to default
-                                    setStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": none");
+                            if (TableType.notesTable.equals(myTableType)) {
+                                if (empty) {
+                                    getStyleClass().removeAll("hasUnsavedChanges");
+                                    // need to unbind as well to avoid affecting mutliple rows...
+                                    changeValue.unbind();
                                 } else {
-                                    // TF, 20160627: add support for issue #36 using ideas from
-                                    // https://rterp.wordpress.com/2015/04/11/atlas-trader-test/
-
-                                    // get tab color for notes group name
                                     assert (item instanceof Note);
 
-                                    // get the color for the groupname
-                                    final String groupColor = myEditor.getGroupColor(((Note) item).getGroupName());
-                                    setStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": " + groupColor);
-                                    //System.out.println("updateItem - groupName, groupColor: " + groupName + ", " + groupColor);
+                                    if (((Note) item).hasUnsavedChanges()) {
+                                        getStyleClass().add("hasUnsavedChanges");
+                                    } else {
+                                        getStyleClass().removeAll("hasUnsavedChanges");
+                                    }
+                                    
+                                    // we get a booleanbinding and need to listen to its changes...
+                                    changeValue.bind(((Note) item).hasUnsavedChangesProperty());
+                                    changeValue.addListener((ov, oldValue, newValue) -> {
+                                        if (newValue != null && !newValue.equals(oldValue)) {
+                                            if (newValue) {
+                                                getStyleClass().add("hasUnsavedChanges");
+                                            } else {
+                                                getStyleClass().removeAll("hasUnsavedChanges");
+                                            }
+                                        }
+                                    });
+                                }
+
+                                // issue #36 - but only for "groupTabs" look & feel
+                                if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(myEditor.getCurrentLookAndFeel())) {
+                                    if (empty) {
+                                        // reset background to default
+                                        setStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": none");
+                                    } else {
+                                        // TF, 20160627: add support for issue #36 using ideas from
+                                        // https://rterp.wordpress.com/2015/04/11/atlas-trader-test/
+
+                                        // get tab color for notes group name
+                                        assert (item instanceof Note);
+
+                                        // get the color for the groupname
+                                        final String groupColor = myEditor.getGroupColor(((Note) item).getGroupName());
+                                        setStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": " + groupColor);
+                                        //System.out.println("updateItem - groupName, groupColor: " + groupName + ", " + groupColor);
+                                    }
                                 }
                             }
                         }
@@ -525,17 +561,17 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         assert (TableType.notesTable.equals(myTableType));
 
         groupNameFilter = filterValue;
-        noteFilterNotes = null;
+        tagFilter = null;
 
         // force re-run of filtering since refilter() is a private method...
         setFilterPredicate();
     }
     
-    public void setNotesFilter(final Set<Note> notes) {
+    public void setTagFilter(final TagInfo filterValue) {
         assert (TableType.notesTable.equals(myTableType));
 
-        groupNameFilter = "";
-        noteFilterNotes = notes;
+        groupNameFilter = null;
+        tagFilter = filterValue;
 
         // force re-run of filtering since refilter() is a private method...
         setFilterPredicate();
@@ -574,23 +610,26 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         getTableView().setUserData(groupNameFilter);
         
         filteredData.setPredicate((Note note) -> {
-            boolean result = true;
-            
-            // If group filter text is empty, display all notes, also for "All"
-            if (groupNameFilter == null || groupNameFilter.isEmpty() || groupNameFilter.equals(NoteGroup.ALL_GROUPS) ) {
-                // still filter for notes in that case!
-                return filterNote(note);
+            // 1. If group filter text is empty or "All": no need to check
+            if (groupNameFilter != null && !groupNameFilter.isEmpty() && !groupNameFilter.equals(NoteGroup.ALL_GROUPS) ) {
+                // Compare group name to group filter text
+                if (!note.getGroupName().equals(groupNameFilter)) {
+                    return false;
+                }
             }
-            // Compare group name to group filter text
-            if (!note.getGroupName().equals(groupNameFilter)) {
-                return false;
+            
+            // 2. If tag filter text is empty: no need to check
+            if (tagFilter != null) {
+                if (!note.getMetaData().getTags().contains(tagFilter)) {
+                    return false;
+                }
             }
             
             // TFE, 20181028: and now also check for note names
-            return filterNote(note);
+            return filterNotesForSearchText(note);
         });
     }
-    private boolean filterNote(Note note) {
+    private boolean filterNotesForSearchText(Note note) {
         boolean result = true;
         
         if (noteSearchMode) {
@@ -611,11 +650,6 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                 // Compare note name to note filter text
                 result = note.getNoteName().contains(noteSearchText); 
             }
-        }
-        
-        // filter also for noteFilterNotes
-        if (result && noteFilterNotes != null) {
-            result = noteFilterNotes.contains(note);
         }
         
         return result;

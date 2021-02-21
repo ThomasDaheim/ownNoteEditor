@@ -25,18 +25,24 @@
  */
 package tf.ownnote.ui.notes;
 
+import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
+import tf.ownnote.ui.commentdata.CommentDataMapper;
+import tf.ownnote.ui.commentdata.ICommentDataHolder;
+import tf.ownnote.ui.commentdata.ICommentDataInfo;
 import tf.ownnote.ui.tags.TagInfo;
 import tf.ownnote.ui.tags.TagManager;
 
@@ -45,41 +51,35 @@ import tf.ownnote.ui.tags.TagManager;
  * 
  * @author thomas
  */
-public class NoteMetaData {
-    private static final String META_STRING_PREFIX = "<!-- ";
-    private static final String META_STRING_SUFFIX = " -->";
-    private static final String META_DATA_SEP = "---";
-    private static final String META_VALUES_SEP = ":::";
-    
-    private static enum Multiplicity {
-        SINGLE,
-        MULTIPLE
-    }
+public class NoteMetaData implements ICommentDataHolder {
+    public final static String ATTACHMENTS_DIR = File.separator + "Attachments";
     
     private enum UpdateTag {
         LINK,
         UNLINK
     }
-
+    
     // info per available metadata - name & multiplicity
-    // TODO: add values here as well
-    private static enum MetaDataInfo {
+    private static enum CommentDataInfo implements ICommentDataInfo {
         VERSIONS("versions", Multiplicity.MULTIPLE),
         TAGS("tags", Multiplicity.MULTIPLE),
-        CHARSET("charset", Multiplicity.SINGLE);
+        CHARSET("charset", Multiplicity.SINGLE),
+        ATTACHMENTS("attachments", Multiplicity.MULTIPLE);
         
         private final String dataName;
         private final Multiplicity dataMulti;
         
-        private MetaDataInfo (final String name, final Multiplicity multi) {
+        private CommentDataInfo (final String name, final Multiplicity multi) {
             dataName = name;
             dataMulti = multi;
         }
         
+        @Override
         public String getDataName() {
             return dataName;
         }
         
+        @Override
         public Multiplicity getDataMultiplicity() {
             return dataMulti;
         }
@@ -89,6 +89,11 @@ public class NoteMetaData {
     private final ObservableSet<TagInfo> myTags = FXCollections.<TagInfo>observableSet();
     // TFE, 20201217: add charset to metadata - since we switched to UTF-8 on 17.12.2020 we need to be able to handle old notes
     private Charset myCharset = StandardCharsets.ISO_8859_1;
+    // TFE, 20210101: support for note attachments
+    private final ObservableList<String> myAttachments = FXCollections.<String>observableArrayList();
+    
+    // TFE, 20210201: know you own change status
+    private final BooleanProperty hasUnsavedChanges = new SimpleBooleanProperty(false);
 
     private Note myNote;
     
@@ -97,7 +102,7 @@ public class NoteMetaData {
 
         // go, tell it to the mountains
         myTags.addListener((SetChangeListener.Change<? extends TagInfo> change) -> {
-            // can happen e.g. when using constructor fromHtmlString()
+            // can happen e.g. when using constructor fromHtmlComment()
             if (myNote == null) {
                 return;
             }
@@ -105,12 +110,31 @@ public class NoteMetaData {
             if (change.wasAdded()) {
 //                System.out.println("Linking note " + myNote.getNoteName() + " to tag " + change.getElementAdded().getName());
                 change.getElementAdded().getLinkedNotes().add(myNote);
+                hasUnsavedChanges.set(true);
             }
 
             if (change.wasRemoved()) {
 //                System.out.println("Unlinking note " + myNote.getNoteName() + " from tag " + change.getElementRemoved().getName());
                 change.getElementRemoved().getLinkedNotes().remove(myNote);
+                hasUnsavedChanges.set(true);
             }
+        });
+
+        myVersions.addListener((ListChangeListener.Change<? extends NoteVersion> change) -> {
+            // can happen e.g. when using constructor fromHtmlComment()
+            if (myNote == null) {
+                return;
+            }
+            
+            hasUnsavedChanges.set(true);
+        });
+        myAttachments.addListener((ListChangeListener.Change<? extends String> change) -> {
+            // can happen e.g. when using constructor fromHtmlComment()
+            if (myNote == null) {
+                return;
+            }
+            
+            hasUnsavedChanges.set(true);
         });
     }
     
@@ -190,15 +214,25 @@ public class NoteMetaData {
 
     public void setCharset(final Charset charset) {
         myCharset = charset;
+        hasUnsavedChanges.set(true);
     }
     
+    public ObservableList<String> getAttachments() {
+        return myAttachments;
+    }
+
+    public void setAttachments(final List<String> attachments) {
+        myAttachments.clear();
+        myAttachments.addAll(attachments);
+    }
+
     public static boolean hasMetaDataContent(final String htmlString) {
         if (htmlString == null) {
             return false;
         }
         
         final String contentString = htmlString.split("\n")[0];
-        return (contentString.startsWith(META_STRING_PREFIX) && contentString.endsWith(META_STRING_SUFFIX));
+        return CommentDataMapper.isCommentWithData(contentString);
     }
     
     public static String removeMetaDataContent(final String htmlString) {
@@ -209,7 +243,8 @@ public class NoteMetaData {
         String result = htmlString;
         if (hasMetaDataContent(htmlString)) {
             final int endPos = htmlString.indexOf("\n");
-            if (endPos < htmlString.length()) {
+            // TFE, 20210113: special case: only one line with metadata!
+            if (endPos != -1 && endPos < htmlString.length()) {
                 result = htmlString.substring(endPos+1);
             } else {
                 result = "";
@@ -219,7 +254,7 @@ public class NoteMetaData {
         return result;
     }
     
-    public static NoteMetaData fromHtmlString(final String htmlString) {
+    public static NoteMetaData fromHtmlComment(final String htmlString) {
         final NoteMetaData result = new NoteMetaData();
 
         // parse html string
@@ -227,73 +262,86 @@ public class NoteMetaData {
         // authors="xyz" tags="a:::b:::c"
         
         if (htmlString != null && hasMetaDataContent(htmlString)) {
-            final String contentString = htmlString.split("\n")[0];
-            String [] data = contentString.substring(META_STRING_PREFIX.length(), contentString.length()-META_STRING_SUFFIX.length()).
-                    strip().split(META_DATA_SEP);
-
-            // now we have the name - value pairs
-            // split further depending on multiplicity
-            for (String nameValue : data) {
-                boolean infoFound = false;
-                for (MetaDataInfo info : MetaDataInfo.values()) {
-                    final String dataName = info.getDataName();
-                    if (nameValue.startsWith(dataName + "=\"") && nameValue.endsWith("\"")) {
-                        // found it! now check & parse for values
-                        final String[] values = nameValue.substring(dataName.length()+2, nameValue.length()-1).
-                            strip().split(META_VALUES_SEP);
-                        
-                        switch (info) {
-                            case VERSIONS:
-                                final List<NoteVersion> versions = new LinkedList<>();
-                                for (String value : values) {
-                                    versions.add(NoteVersion.fromHtmlString(value));
-                                }
-                                result.setVersions(versions);
-                                infoFound = true;
-                                break;
-                            case TAGS:
-                                result.setTags(TagManager.getInstance().tagsForNames(new HashSet<>(Arrays.asList(values)), null, true));
-                                infoFound = true;
-                                break;
-                            case CHARSET:
-                                result.setCharset(Charset.forName(values[0]));
-                                break;
-                            default:
-                        }
-                    }
-                    if (infoFound) {
-                        // done, lets check next data value
-                        break;
-                    }
-                }
-            }
+            CommentDataMapper.getInstance().fromComment(result, htmlString);
+            // no changes for "newborn" metadata
+            result.setUnsavedChanges(false);
         }
 
         return result;
     }
     
-    public static String toHtmlString(final NoteMetaData data) {
+    public static String toHtmlComment(final NoteMetaData data) {
         if (data == null) {
             return "";
         }
 
-        String result = "";
-        
-        result += MetaDataInfo.CHARSET.getDataName() + "=\"" + data.getCharset().name() + "\"";
-        result += META_DATA_SEP;
-        if (data.getVersion() != null) {
-            result += MetaDataInfo.VERSIONS.getDataName() + "=\"" + data.getVersions().stream().map((t) -> {
-                return NoteVersion.toHtmlString(t);
-            }).collect(Collectors.joining(META_VALUES_SEP)) + "\"";
+        return CommentDataMapper.getInstance().toComment(data) + "\n";
+    }
+    
+    @Override
+    public ICommentDataInfo[] getCommentDataInfo() {
+        return CommentDataInfo.values();
+    }
+
+    @Override
+    public void setFromString(ICommentDataInfo name, String value) {
+        if (CommentDataInfo.CHARSET.equals(name)) {
+            setCharset(Charset.forName(value));
         }
-        if (!data.getTags().isEmpty()) {
-            result += META_DATA_SEP;
-            result += MetaDataInfo.TAGS.getDataName() + "=\"" + data.getTags().stream().map((t) -> {
+    }
+
+    @Override
+    public void setFromList(ICommentDataInfo name, List<String> values) {
+        if (CommentDataInfo.VERSIONS.equals(name)) {
+            final List<NoteVersion> versions = new LinkedList<>();
+            for (String value : values) {
+                versions.add(NoteVersion.fromHtmlString(value));
+            }
+            setVersions(versions);
+        } else if (CommentDataInfo.TAGS.equals(name)) {
+            setTags(TagManager.getInstance().tagsForNames(new HashSet<>(values), null, true));
+        } else if (CommentDataInfo.ATTACHMENTS.equals(name)) {
+            setAttachments(values);
+        }
+    }
+
+    @Override
+    public String getAsString(ICommentDataInfo name) {
+        if (CommentDataInfo.CHARSET.equals(name)) {
+            return myCharset.name();
+        }
+        return null;
+    }
+
+    @Override
+    public List<String> getAsList(ICommentDataInfo name) {
+        if (CommentDataInfo.VERSIONS.equals(name)) {
+            if (!myVersions.isEmpty()) {
+                return myVersions.stream().map((t) -> {
+                    return NoteVersion.toHtmlString(t);
+                }).collect(Collectors.toList());
+            } else {
+                return null;
+            }
+        } else if (CommentDataInfo.TAGS.equals(name)) {
+            return myTags.stream().map((t) -> {
                 return t.getName();
-            }).collect(Collectors.joining(META_VALUES_SEP)) + "\"";
+            }).collect(Collectors.toList());
+        } else if (CommentDataInfo.ATTACHMENTS.equals(name)) {
+            return myAttachments;
         }
-        result = META_STRING_PREFIX + result + META_STRING_SUFFIX + "\n";
-        
-        return result;
+        return null;
+    }
+    
+    public BooleanProperty hasUnsavedChangesProperty() {
+        return hasUnsavedChanges;
+    }
+    
+    public boolean hasUnsavedChanges() {
+        return hasUnsavedChanges.getValue();
+    }
+    
+    public void setUnsavedChanges(final boolean changed) {
+        hasUnsavedChanges.setValue(changed);
     }
 }

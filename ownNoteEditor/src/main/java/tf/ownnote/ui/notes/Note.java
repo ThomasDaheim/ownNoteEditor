@@ -27,6 +27,12 @@ package tf.ownnote.ui.notes;
 
 import java.util.HashMap;
 import java.util.Objects;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import org.unbescape.html.HtmlEscape;
+import tf.ownnote.ui.helper.OwnNoteFileManager;
 
 /**
  *
@@ -48,6 +54,12 @@ public class Note extends HashMap<String, String> {
     
     // TFE, 20201022: store additional metadata, e.g. tags, author, ...
     private NoteMetaData myMetaData;
+    
+    // TFE, 20210201: know you own change status
+    private final BooleanProperty hasUnsavedNoteChanges = new SimpleBooleanProperty(false);
+    // TFE, 20210219: be more user friendly
+    private final BooleanProperty hasUnsavedChanges = new SimpleBooleanProperty(false);
+    private BooleanBinding bindingHelper;
 
     private Note() {
         super();
@@ -67,6 +79,12 @@ public class Note extends HashMap<String, String> {
         super(note);
         
         myMetaData = note.myMetaData;
+        initNoteHasChanged();
+    }
+    
+    private void initNoteHasChanged() {
+        bindingHelper = Bindings.or(hasUnsavedNoteChanges, myMetaData.hasUnsavedChangesProperty());
+        hasUnsavedChanges.bind(bindingHelper);
     }
 
     @Override
@@ -94,7 +112,7 @@ public class Note extends HashMap<String, String> {
         return true;
     }
     
-    public static String getNoteName(final int i) {
+    public static String getNoteValueName(final int i) {
         return NoteMapKey.values()[i].name();
     }
     
@@ -140,7 +158,7 @@ public class Note extends HashMap<String, String> {
         
         // set meta data - was done intially but might now have changed during editing
         if (NoteMetaData.hasMetaDataContent(content)) {
-            setMetaData(NoteMetaData.fromHtmlString(content));
+            setMetaData(NoteMetaData.fromHtmlComment(content));
         }
     }
 
@@ -150,6 +168,7 @@ public class Note extends HashMap<String, String> {
 
     public void setNoteEditorContent(final String content) {
         put(NoteMapKey.noteEditorContent.name(), content);
+        hasUnsavedNoteChanges.set(!HtmlEscape.unescapeHtml(getNoteFileContent()).equals(HtmlEscape.unescapeHtml(getNoteEditorContent())));
     }
 
     public NoteMetaData getMetaData() {
@@ -160,5 +179,22 @@ public class Note extends HashMap<String, String> {
         myMetaData = metaData;
         
         myMetaData.setNote(this);
+        initNoteHasChanged();
+    }
+    
+    public String getNoteFileName() {
+        return OwnNoteFileManager.getInstance().buildNoteName(this);
+    }
+    
+    public BooleanProperty hasUnsavedChangesProperty() {
+        return hasUnsavedChanges;
+    }
+    
+    public boolean hasUnsavedChanges() {
+        return hasUnsavedChanges.getValue();
+    }
+    public void setUnsavedChanges(final boolean changed) {
+        hasUnsavedNoteChanges.setValue(changed);
+        myMetaData.setUnsavedChanges(changed);
     }
 }

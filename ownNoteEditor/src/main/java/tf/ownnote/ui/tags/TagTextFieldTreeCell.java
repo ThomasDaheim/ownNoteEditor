@@ -40,21 +40,21 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  *
  * @author thomas
  */
-public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfo> implements ITagTreeCell {
+public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfoWrapper> implements ITagTreeCell {
     // callback to OwnNoteEditor
     private final OwnNoteEditor myEditor;
-    private final TreeView<TagInfo> myTreeView;
+    private final TreeView<TagInfoWrapper> myTreeView;
     
     private TagTextFieldTreeCell() {
         myEditor = null;
         myTreeView = null;
     }
 
-    public TagTextFieldTreeCell(final TreeView<TagInfo> treeView, final OwnNoteEditor editor) {
+    public TagTextFieldTreeCell(final TreeView<TagInfoWrapper> treeView, final OwnNoteEditor editor) {
         this(treeView, TagTreeCellBase.tagInfoConverter, editor);
     }
     
-    public TagTextFieldTreeCell(final TreeView<TagInfo> treeView, final StringConverter<TagInfo> sc, final OwnNoteEditor editor) {
+    public TagTextFieldTreeCell(final TreeView<TagInfoWrapper> treeView, final StringConverter<TagInfoWrapper> sc, final OwnNoteEditor editor) {
         super(sc);
         
         myEditor = editor;
@@ -62,7 +62,7 @@ public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfo> implements 
     }
     
     @Override
-    public void updateItem(TagInfo item, boolean empty) {
+    public void updateItem(TagInfoWrapper item, boolean empty) {
         super.updateItem(item, empty);
         TagTreeCellBase.updateItem(this, item, empty);
     }            
@@ -74,8 +74,8 @@ public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfo> implements 
         }
         
         // check if item can be edited
-        final TreeItem<TagInfo> treeItem = getTreeItem();
-        if ((treeItem != null) && TagManager.isEditableTag(treeItem.getValue())) {
+        final TreeItem<TagInfoWrapper> treeItem = getTreeItem();
+        if ((treeItem != null) && TagManager.isEditableTag(treeItem.getValue().getTagInfo())) {
             return;
         }
         
@@ -95,12 +95,12 @@ public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfo> implements 
     }
 
     @Override
-    public StringConverter<TagInfo> getTextConverter() {
+    public StringConverter<TagInfoWrapper> getTextConverter() {
         return getConverter();
     }
 
     @Override
-    public TreeCell<TagInfo> getTreeCell() {
+    public TreeCell<TagInfoWrapper> getTreeCell() {
         return this;
     }
 }

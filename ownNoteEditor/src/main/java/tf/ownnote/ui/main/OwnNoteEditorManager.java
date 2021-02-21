@@ -288,7 +288,7 @@ public class OwnNoteEditorManager extends Application {
             Logger.getLogger(OwnNoteEditorManager.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        // TFE, 20201230: this is now also cllaed from tests - so we need to be able to distinguish the cases
+        // TFE, 20201230: this is now also callad from tests - so we need to be able to distinguish the cases
         if (productiveRun) {
             // TF, 20170904: maximized gives wrong values for width & height - surely same with minimized...
             if (!myStage.isMaximized() && !myStage.isIconified()) {

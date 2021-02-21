@@ -55,7 +55,7 @@ public class TestTaskData {
         exceptionRule.expect(IllegalArgumentException.class);
         
         final Note note = OwnNoteFileManager.getInstance().getNotesList().get(0);
-        final String noteContent = OwnNoteFileManager.getInstance().readNote(note);
+        final String noteContent = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         exceptionRule.expectMessage("Text not starting with checkbox pattern: " + noteContent.split(System.lineSeparator())[0]);
         new TaskData(note, noteContent, 0);
     }
@@ -63,7 +63,7 @@ public class TestTaskData {
     @Test
     public void testTaskDataOpenTask() {
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
-        final String noteContent = OwnNoteFileManager.getInstance().readNote(note);
+        final String noteContent = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         
         TaskData taskData = new TaskData(note, noteContent, 64);
         Assert.assertFalse(taskData.isCompleted());
@@ -73,7 +73,7 @@ public class TestTaskData {
     @Test
     public void testTaskDataCompletedTask() {
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
-        final String noteContent = OwnNoteFileManager.getInstance().readNote(note);
+        final String noteContent = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         
         TaskData taskData = new TaskData(note, noteContent, 371);
         Assert.assertTrue(taskData.isCompleted());

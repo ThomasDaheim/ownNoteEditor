@@ -92,6 +92,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Window;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AboutMenu;
@@ -104,7 +105,7 @@ import tf.ownnote.ui.helper.OwnNoteEditorParameters;
 import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
-import tf.ownnote.ui.helper.OwnNoteMetaEditor;
+import tf.ownnote.ui.helper.OwnNoteMetaDataEditor;
 import tf.ownnote.ui.helper.OwnNoteTabPane;
 import tf.ownnote.ui.helper.OwnNoteTableColumn;
 import tf.ownnote.ui.helper.OwnNoteTableView;
@@ -112,8 +113,10 @@ import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.tags.TagEditor;
+import tf.ownnote.ui.tags.TagInfo;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tags.TagsTreeView;
+import tf.ownnote.ui.tasks.TaskBoard;
 import tf.ownnote.ui.tasks.TaskData;
 import tf.ownnote.ui.tasks.TaskList;
 import tf.ownnote.ui.tasks.TaskManager;
@@ -128,19 +131,12 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
     private final static OwnNoteEditorParameters parameters = OwnNoteEditorParameters.getInstance();
     
-    public final static DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.uuuu HH:mm:ss");
+    public final static String DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm:ss";
+    public final static DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
 
     private final static String NEW_NOTENAME = "New Note";
     
     public final static String GROUP_COLOR_CSS = "group-color";
-    
-    // TFE, 20200712: add search of unchecked boxes
-    // TFE, 20201103: actual both variants of html are valid and need to be supported equally
-    public final static String UNCHECKED_BOXES_1 = "<input type=\"checkbox\" />";
-    public final static String CHECKED_BOXES_1 = "<input type=\"checkbox\" checked=\"checked\" />";
-    public final static String UNCHECKED_BOXES_2 = "<input type=\"checkbox\">";
-    public final static String CHECKED_BOXES_2 = "<input type=\"checkbox\" checked=\"checked\">";
-    public final static String ANY_BOXES = "<input type=\"checkbox\"";
     
     private final static int TEXTFIELD_WIDTH = 100;  
     
@@ -305,7 +301,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     private VBox noteEditorFXML;
     @FXML
     private HBox noteMetaEditorFXML;
-    private OwnNoteMetaEditor noteMetaEditor = null;
+    private OwnNoteMetaDataEditor noteMetaEditor = null;
     @FXML
     private RadioMenuItem tagTreeLookAndFeel;
     @FXML
@@ -313,6 +309,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     @FXML
     private StackPane tagsTreePaneXML;
     private TagsTreeView tagsTreeView;
+    @FXML
+    private MenuItem menuTaskboard;
 
     public OwnNoteEditor() {
     }
@@ -353,7 +351,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             notesTable.savePreferences(OwnNoteEditorPreferences.getInstance());
 
             // TFE, 20200903: store groups tabs order as well
-            groupsPane.savePreferences(OwnNoteEditorPreferences.getInstance());
+            if (groupsPane != null) {
+                groupsPane.savePreferences(OwnNoteEditorPreferences.getInstance());
+            }
 
             // TFE, 20201030: store name of last edited note
             if (noteHTMLEditor.getEditedNote() != null) {
@@ -363,6 +363,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
             // TFE, 20201121: tag info is now stored in a separate file
             TagManager.getInstance().saveTags();
+
+            // TFE, 20201230: task metadata is now stored in a separate file
+            TaskManager.getInstance().saveTaskList();
         }
     }
     
@@ -415,9 +418,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         groupTabsGroupWidth = limit(groupTabsGroupWidth, paneSizes.get(NOTE_GROUP_COLUMN).getLeft(), paneSizes.get(NOTE_GROUP_COLUMN).getRight());
         taskListWidth = limit(taskListWidth, paneSizes.get(TASKLIST_COLUMN).getLeft(), paneSizes.get(TASKLIST_COLUMN).getRight());
         
-        // paint the look
-        initEditor();
-
         // init ownCloudPath to parameter or nothing
         pathLabel.setMinWidth(Region.USE_PREF_SIZE);
         String pathname = "";
@@ -435,6 +435,12 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         }
         // 3. set the value
         ownCloudPath.setText(pathname);
+
+        // paint the look
+        initEditor();
+
+        // scan files in directory
+        initFromDirectory(false, true);
     }
 
     //
@@ -484,13 +490,13 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         groupsTable = new OwnNoteTableView(groupsTableFXML, this);
         groupsTable.loadPreferences(OwnNoteEditorPreferences.getInstance());
         
-        groupsPane = new OwnNoteTabPane(groupsPaneFXML, this);
-        groupsPane.loadPreferences(OwnNoteEditorPreferences.getInstance());
-        
+        groupsPaneFXML.setDisable(true);
+        groupsPaneFXML.setVisible(false);
+
         VBox.setVgrow(noteHTMLEditorFXML, Priority.ALWAYS);
         VBox.setVgrow(noteMetaEditorFXML, Priority.NEVER);
         noteHTMLEditor = new OwnNoteHTMLEditor(noteHTMLEditorFXML, this);
-        noteMetaEditor = new OwnNoteMetaEditor(noteMetaEditorFXML, this);
+        noteMetaEditor = new OwnNoteMetaDataEditor(noteMetaEditorFXML, this);
         
         // hide borders
         borderPane.setBottom(null);
@@ -552,12 +558,12 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         rightPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(paneSizes.get(TASKLIST_COLUMN).getRight()/100d));
 
         // set callback, width, value name, cursor type of columns
-        noteNameCol.setTableColumnProperties(0.65, Note.getNoteName(0), OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel));
-        noteModifiedCol.setTableColumnProperties(0.25, Note.getNoteName(1), false);
+        noteNameCol.setTableColumnProperties(0.65, Note.getNoteValueName(0), OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel));
+        noteModifiedCol.setTableColumnProperties(0.25, Note.getNoteValueName(1), false);
         // see issue #42
         noteModifiedCol.setComparator(FormatHelper.getInstance().getFileTimeComparator());
-        noteDeleteCol.setTableColumnProperties(0.10, Note.getNoteName(2), false);
-        noteGroupCol.setTableColumnProperties(0, Note.getNoteName(3), false);
+        noteDeleteCol.setTableColumnProperties(0.10, Note.getNoteValueName(2), false);
+        noteGroupCol.setTableColumnProperties(0, Note.getNoteValueName(3), false);
 
         // only new button visible initially
         hideAndDisableAllCreateControls();
@@ -585,9 +591,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             
             hideNoteEditor();
             
-            groupsPane.setDisable(true);
-            groupsPane.setVisible(false);
-
             // set callback, width, value name, cursor type of columns
             groupNameCol.setTableColumnProperties(0.65, NoteGroup.getNoteGroupName(0), false);
             groupDeleteCol.setTableColumnProperties(0.15, NoteGroup.getNoteGroupName(1), false);
@@ -793,8 +796,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
         } else {
 
-            myGroupList = groupsPane;
-            
             // groupTabs look and feel
             // 1. no groups table, no button list
             groupsTable.setDisable(true);
@@ -803,13 +804,21 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             buttonBox.setDisable(true);
             buttonBox.setVisible(false);
             
-            // TFE, 20201204: no groupsPane left for tagtree layout
             if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(currentLookAndFeel)) {
+                groupsPane = new OwnNoteTabPane(groupsPaneFXML, this);
+                groupsPane.loadPreferences(OwnNoteEditorPreferences.getInstance());
                 groupsPane.setDisable(false);
                 groupsPane.setVisible(true);
+
+                myGroupList = groupsPane;
             } else {
-                groupsPane.setDisable(true);
-                groupsPane.setVisible(false);
+                // show TagsTreeView (special version without checkboxes & drag/drop of tags)
+                tagsTreeView = new TagsTreeView(this);
+                tagsTreeView.setRenameFunction(TagManager.getInstance()::doRenameTag);
+
+                tagsTreePaneXML.getChildren().add(tagsTreeView);
+
+                myGroupList = tagsTreeView;
             }
             
             // 2. note table is shown left
@@ -857,13 +866,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         
         // TFE, 20201204: new column to the left for tagtree layout
         if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
-            // show TagsTreeView (special version without checkboxes & drag/drop of tags)
-            tagsTreeView = new TagsTreeView(this);
-            tagsTreeView.setRenameFunction(TagManager.getInstance()::doRenameTag);
-            
-            tagsTreePaneXML.getChildren().add(tagsTreeView);
-            
-            myGroupList = tagsTreeView;
         }
         
         // TFE, 20200810: adding third gridpane column for task handling
@@ -1025,11 +1027,13 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         // add changelistener to pathlabel - not that you should actually change its value during runtime...
         ownCloudPath.textProperty().addListener(
             (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
-                // store in the preferences
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, newValue);
+                if (newValue != null && !newValue.equals(oldValue)) {
+                    // store in the preferences
+                    OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, newValue);
 
-                // scan files in new directory
-                initFromDirectory(false, true);
+                    // scan files in new directory
+                    initFromDirectory(false, true);
+                }
             }); 
         // TFE, 20181028: open file chooser also when left clicking on pathBox
         ownCloudPath.setOnMouseClicked((event) -> {
@@ -1069,6 +1073,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         });
         menuShowTasklist.setSelected(tasklistVisible.get());
         tasklistVisible.bindBidirectional(menuShowTasklist.selectedProperty());
+        
+        // TFE, 20210106: our own little KANBAN board...
+        menuTaskboard.setOnAction((t) -> {
+            TaskBoard.getInstance().show();
+        });
 
         // TFE, 20201025: and now we have tag management as well :-)
         menuEditTags.setOnAction((t) -> {
@@ -1078,7 +1087,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             TagManager.getInstance().groupsToTags();
         });
 
-        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v5.0", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v5.1", "https://github.com/ThomasDaheim/ownNoteEditor");
     }
     
     // do everything to show / hide tasklist
@@ -1168,18 +1177,15 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             // alert.getButtonTypes().setAll(buttonSave, buttonDiscard, buttonCancel);
 
             if (saveChanges.isPresent()) {
+                final Note prevNote = noteHTMLEditor.getEditedNote();
                 if (saveChanges.get().equals(buttonSave)) {
                     // save note
-                    final Note prevNote = noteHTMLEditor.getEditedNote();
                     prevNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
-                    if (saveNote(prevNote)) {
+                    if (!saveNote(prevNote)) {
                     }
+                } else {
+                    OwnNoteFileManager.getInstance().readNote(prevNote, true);
                 }
-                
-                // if (saveChanges.get().equals(buttonCancel)) {
-                //     // stop further processing of new file
-                //     result = false;                    
-                // }
             }
         }
 
@@ -1189,7 +1195,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     public boolean editNote(final Note curNote) {
         boolean result = false;
         
-        if (!checkChangedNote()) {
+        // TFE, 20210102: are we already editing that note? than we're done here...
+        if (curNote.equals(noteHTMLEditor.getEditedNote()) || !checkChangedNote()) {
             return result;
         }
         
@@ -1202,9 +1209,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
         // 2. show content of file in editor
         if (curNote.getNoteFileContent() == null) {
-            curNote.setNoteFileContent(OwnNoteFileManager.getInstance().readNote(curNote));
+            OwnNoteFileManager.getInstance().readNote(curNote, true);
         }
-        noteHTMLEditor.editNote(curNote, curNote.getNoteFileContent());
+        noteHTMLEditor.editNote(curNote);
         noteMetaEditor.editNote(curNote);
         
         return result;
@@ -1214,22 +1221,25 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         return noteHTMLEditor.getEditedNote();
     }
     
-    public void selectNoteAndCheckBox(final Note note, final int textPos, final String htmlText) {
+    private void selectNote(final Note note) {
         // need to distinguish between views to select group
         myGroupList.selectGroupForNote(note);
         
         // and now select the note - leads to callback to editNote to fill the htmleditor
         notesTable.selectNote(note);
-        
-        noteHTMLEditor.scrollToCheckBox(textPos, htmlText);
     }
     
-    public void selectNoteAndToggleCheckBox(final Note note, final int textPos, final String htmlText, final boolean newStatus) {
-        // make sure the note is shown and the cursor is in place
-        selectNoteAndCheckBox(note, textPos, htmlText);
+    public void selectNoteAndCheckBox(final Note note, final int textPos, final String htmlText, final String taskId) {
+        selectNote(note);
         
-        // now change the status
-        noteHTMLEditor.toggleCheckBox(textPos, htmlText, newStatus);
+        noteHTMLEditor.scrollToCheckBox(textPos, htmlText, taskId);
+    }
+    
+    public void selectNoteAndToggleCheckBox(final Note note, final int textPos, final String htmlText, final String taskId, final boolean isChecked) {
+        selectNote(note);
+        
+        // scroll & change the status
+        noteHTMLEditor.scrollToAndToggleCheckBox(textPos, htmlText, taskId, isChecked);
     }
 
     private void hideAndDisableAllCreateControls() {
@@ -1485,11 +1495,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
             // update group tags as well
             TagManager.getInstance().moveNote(origNote, newGroupName);
+            
+            refilterNotesList();
         }
         
         return result;
     }
 
+    @Override
     public boolean saveNote(final Note note) {
         boolean result = OwnNoteFileManager.getInstance().saveNote(note);
                 
@@ -1516,13 +1529,17 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         
         return result;
     }
-
+    
+    public void refilterNotesList() {
+        notesTable.setFilterPredicate();
+    }
+    
     public void setGroupNameFilter(final String groupName) {
         notesTable.setGroupNameFilter(groupName);
     }
     
-    public void setNotesFilter(final Set<Note> notes) {
-        notesTable.setNotesFilter(notes);
+    public void setTagFilter(final TagInfo tag) {
+        notesTable.setTagFilter(tag);
     }
 
     public void setNotesTableBackgroundColor(final String color) {
@@ -1569,7 +1586,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             }
 
             noteHTMLEditor.setDisable(true);
-            noteHTMLEditor.editNote(null, "");
+            noteHTMLEditor.editNote(null);
             noteMetaEditor.editNote(null);
         }
     }
@@ -1653,8 +1670,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                                     if (StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                                         // re-load into edit for StandardWatchEventKinds.ENTRY_MODIFY
                                         final Note loadNote = noteHTMLEditor.getEditedNote();
-                                        loadNote.setNoteFileContent(OwnNoteFileManager.getInstance().readNote(loadNote));
-                                        noteHTMLEditor.editNote(loadNote, loadNote.getNoteFileContent());
+                                        OwnNoteFileManager.getInstance().readNote(loadNote, true);
+                                        noteHTMLEditor.editNote(loadNote);
                                         noteMetaEditor.editNote(loadNote);
                                     }
                                 }
@@ -1663,22 +1680,25 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                     }
                 }
             
-                // show only notes for selected group
-                final String curGroupName = myGroupList.getCurrentGroup().getGroupName();
+                // TFE, 20210101: only initFromDirectory if anything related to note files has changed!
+                if (filePath.toFile().isFile() && OwnNoteFileManager.NOTE_EXT.equals(FilenameUtils.getExtension(fileName))) {
+                    // show only notes for selected group
+                    final String curGroupName = myGroupList.getCurrentGroup().getGroupName();
 
-                initFromDirectory(true, true);
-                selectFirstOrCurrentNote();
-                
-                // but only if group still exists in the list!
-                final List<String> allGroupNames = new LinkedList<>(realGroupNames);
-                allGroupNames.add(NoteGroup.ALL_GROUPS);
-                allGroupNames.add(NoteGroup.NOT_GROUPED);
-                
-                if (allGroupNames.contains(curGroupName)) {
-                    setGroupNameFilter(curGroupName);
+                    initFromDirectory(true, true);
+                    selectFirstOrCurrentNote();
+
+                    // but only if group still exists in the list!
+                    final List<String> allGroupNames = new LinkedList<>(realGroupNames);
+                    allGroupNames.add(NoteGroup.ALL_GROUPS);
+                    allGroupNames.add(NoteGroup.NOT_GROUPED);
+
+                    if (allGroupNames.contains(curGroupName)) {
+                        setGroupNameFilter(curGroupName);
+                    }
+
+                    filesInProgress.remove(fileName);
                 }
-                
-                filesInProgress.remove(fileName);
             });
         }
         
@@ -1762,5 +1782,15 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     
     public Window getWindow() {
         return borderPane.getScene().getWindow();
+    }
+
+    // not to confuse with the static method in TaskManager - this does the bookkeeping for the current node as well
+    public void replaceCheckedBoxes() {
+        noteHTMLEditor.replaceCheckedBoxes();
+    }
+    
+    // not to confuse with the static method in TaskManager - this does the bookkeeping for the current node as well
+    public void replaceCheckmarks() {
+        noteHTMLEditor.replaceCheckmarks();
     }
 }

@@ -53,7 +53,7 @@ import tf.ownnote.ui.notes.NoteGroup;
  * 
  * @author thomas
  */
-public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<TagInfo>> {
+public class TagTreeCellFactory implements Callback<TreeView<TagInfoWrapper>, TreeCell<TagInfoWrapper>> {
     public static final DataFormat DRAG_AND_DROP = new DataFormat("application/ownnoteeditor-treetableview-dnd");
     public static final DataFormat COPY_AND_PASTE = new DataFormat("application/ownnoteeditor-treetableview-cnp");
     
@@ -91,7 +91,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
         }
     }
     private DropPosition dropPosition;
-    private TreeCell<TagInfo> dropZone;
+    private TreeCell<TagInfoWrapper> dropZone;
 
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
@@ -114,11 +114,13 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
     }
 
     // see https://stackoverflow.com/a/25444841
-    final Callback<TreeItem<TagInfo>, ObservableValue<Boolean>> getSelectedProperty = ((p) -> { return p.getValue().selectedProperty(); }); 
+    private final Callback<TreeItem<TagInfoWrapper>, ObservableValue<Boolean>> getSelectedProperty = ((p) -> { 
+        return p.getValue().selectedProperty();
+    }); 
 
     @Override
-    public TreeCell<TagInfo> call(TreeView<TagInfo> treeView) {
-        TreeCell<TagInfo> cell;
+    public TreeCell<TagInfoWrapper> call(TreeView<TagInfoWrapper> treeView) {
+        TreeCell<TagInfoWrapper> cell;
         
         if (TreeCellType.CHECKBOX.equals(myType)) {
             cell = new TagCheckBoxTreeCell(treeView, getSelectedProperty, myEditor);
@@ -167,10 +169,14 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
 //        System.out.println("mouseDragReleased");
 //    }
     
-    private void dragDetected(final MouseEvent event, final TreeCell<TagInfo> treeCell, final TreeView<TagInfo> treeView, final boolean allowReorder) {
-        if (treeCell.getItem() == null || TagManager.isFixedTag(treeCell.getItem()) || !allowReorder) return;
+    private void dragDetected(
+            final MouseEvent event, 
+            final TreeCell<TagInfoWrapper> treeCell, 
+            final TreeView<TagInfoWrapper> treeView, 
+            final boolean allowReorder) {
+        if (treeCell.getItem() == null || TagManager.isFixedTag(treeCell.getItem().getTagInfo()) || !allowReorder) return;
         
-        final TreeItem<TagInfo> draggedItem = treeCell.getTreeItem();
+        final TreeItem<TagInfoWrapper> draggedItem = treeCell.getTreeItem();
 
         // root can't be dragged
         if (draggedItem.getParent() == null) return;
@@ -180,7 +186,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
         final ClipboardContent content = new ClipboardContent();
         // store key pressed info in dragboard - no key events during drag & drop!
         // only if child tag is allowed...
-        content.put(DRAG_AND_DROP, String.valueOf(event.isShiftDown() && TagManager.childTagsAllowed(treeCell.getItem())));
+        content.put(DRAG_AND_DROP, String.valueOf(event.isShiftDown() && TagManager.childTagsAllowed(treeCell.getItem().getTagInfo())));
         db.setContent(content);
         db.setDragView(treeCell.snapshot(null, null));
         
@@ -194,16 +200,16 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
         event.consume();
     }
 
-    private void dragOver(final DragEvent event, final TreeCell<TagInfo> treeCell, final TreeView<TagInfo> treeView) {
+    private void dragOver(final DragEvent event, final TreeCell<TagInfoWrapper> treeCell, final TreeView<TagInfoWrapper> treeView) {
         if (treeCell.getItem() == null) return;
         
         if (event.getDragboard().hasContent(DRAG_AND_DROP)) {
-            if (TagManager.isFixedTag(treeCell.getItem())) return;
+            if (TagManager.isFixedTag(treeCell.getItem().getTagInfo())) return;
             
-            final TreeItem<TagInfo> thisItem = treeCell.getTreeItem();
+            final TreeItem<TagInfoWrapper> thisItem = treeCell.getTreeItem();
 
-            final TreeCell<TagInfo> dragCell = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(DRAG_AND_DROP));
-            final TreeItem<TagInfo> draggedItem = dragCell.getTreeItem();
+            final TreeCell<TagInfoWrapper> dragCell = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(DRAG_AND_DROP));
+            final TreeItem<TagInfoWrapper> draggedItem = dragCell.getTreeItem();
             // can't drop on itself
             if (draggedItem == null || thisItem == null || thisItem == draggedItem) return;
             // ignore if this is the root
@@ -231,7 +237,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
             final Note dragNote = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(OwnNoteTableView.DRAG_AND_DROP));
             
             // note is dragged here - only accept if it hasn't this tag / group already
-            final TagInfo thisTag = treeCell.getTreeItem().getValue();
+            final TagInfo thisTag = treeCell.getTreeItem().getValue().getTagInfo();
             boolean dropAllowed = true;
             if (TagManager.isAnyGroupTag(thisTag)) {
                 // you can't drop on your own group, on "Groups" or "All" tags
@@ -254,19 +260,24 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
         }
     }
 
-    private void drop(final DragEvent event, final TreeCell<TagInfo> treeCell, final TreeView<TagInfo> treeView) {
-        if (treeCell.getItem() == null || TagManager.isFixedTag(treeCell.getItem())) return;
+    private void drop(final DragEvent event, final TreeCell<TagInfoWrapper> treeCell, final TreeView<TagInfoWrapper> treeView) {
+        if (treeCell.getItem() == null || TagManager.isFixedTag(treeCell.getItem().getTagInfo())) return;
         
         boolean success = true;
         if (event.getDragboard().hasContent(DRAG_AND_DROP)) {
-            final TreeItem<TagInfo> thisItem = treeCell.getTreeItem();
-            final TreeCell<TagInfo> dragCell = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(DRAG_AND_DROP));
-            final TreeItem<TagInfo> draggedItem = dragCell.getTreeItem();
-            final TreeItem<TagInfo> draggedItemParent = draggedItem.getParent();
+            final TreeItem<TagInfoWrapper> thisItem = treeCell.getTreeItem();
+            final TreeItem<TagInfoWrapper> thisItemParent = thisItem.getParent();
+            final TreeCell<TagInfoWrapper> dragCell = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(DRAG_AND_DROP));
+            final TreeItem<TagInfoWrapper> draggedItem = dragCell.getTreeItem();
+            final TreeItem<TagInfoWrapper> draggedItemParent = draggedItem.getParent();
+            
+            final TagInfo draggedTag = draggedItem.getValue().getTagInfo();
 
-            // remove from previous location
-            // act on tag lists - RecursiveTreeItem will take care of the rest
-            draggedItemParent.getValue().getChildren().remove(draggedItem.getValue());
+            // remove from previous location - but only if not same parent!
+            if (!thisItemParent.equals(draggedItemParent)) {
+                // act on tag lists - RecursiveTreeItem will take care of the rest
+                draggedItemParent.getValue().getTagInfo().getChildren().remove(draggedTag);
+            }
 
             // dropping on parent node makes it the first child
             if (Objects.equals(draggedItemParent, thisItem)) {
@@ -276,9 +287,24 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
                 // add to new location
                 final boolean createChild = Boolean.valueOf(ObjectsHelper.uncheckedCast(event.getDragboard().getContent(DRAG_AND_DROP)));
                 if (!createChild) {
-                    int indexInParent = thisItem.getParent().getChildren().indexOf(thisItem);
+                    final int indexInParent = thisItem.getParent().getChildren().indexOf(thisItem);
+                    int oldInParent = thisItem.getParent().getChildren().indexOf(draggedItem);
                     // act on tag lists - RecursiveTreeItem will take care of the rest
-                    thisItem.getParent().getValue().getChildren().add(indexInParent + 1, draggedItem.getValue());
+                    if (DropPosition.TOP.equals(dropPosition.dropHint)) {
+                        thisItemParent.getValue().getTagInfo().getChildren().add(indexInParent, draggedTag);
+                        if (oldInParent > indexInParent) {
+                            oldInParent++;
+                        }
+                    } else {
+                        thisItemParent.getValue().getTagInfo().getChildren().add(indexInParent + 1, draggedTag);
+                        if (oldInParent > indexInParent+1) {
+                            oldInParent++;
+                        }
+                    }
+                    // now remove old version of dragged tag
+                    if (oldInParent > 0) {
+                        thisItemParent.getValue().getTagInfo().getChildren().remove(oldInParent);
+                    }
                 } else {
                     // add as child to target
                     // act on tag lists - RecursiveTreeItem will take care of the rest
@@ -294,7 +320,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagInfo>, TreeCell<
             assert myEditor != null;
             
             final Note dragNote = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(OwnNoteTableView.DRAG_AND_DROP));
-            final TagInfo thisTag = treeCell.getTreeItem().getValue();
+            final TagInfo thisTag = treeCell.getTreeItem().getValue().getTagInfo();
             if (TagManager.isAnyGroupTag(thisTag)) {
                 // if group was also a tag -> remove & add
                 final TagInfo groupTag = TagManager.getInstance().tagForGroupName(dragNote.getGroupName(), false);

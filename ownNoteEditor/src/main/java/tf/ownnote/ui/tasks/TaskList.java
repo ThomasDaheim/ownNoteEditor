@@ -5,15 +5,25 @@
  */
 package tf.ownnote.ui.tasks;
 
+import javafx.application.Platform;
 import javafx.beans.Observable;
+import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener.Change;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.CheckBoxListCell;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.util.StringConverter;
+import org.controlsfx.control.PopOver;
+import tf.helper.javafx.TooltipHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
@@ -26,6 +36,10 @@ import tf.ownnote.ui.main.OwnNoteEditor;
 public class TaskList {
     private ListView<TaskData> myTaskList = null;
     
+    // be able to react to changes of isCompleted in tasks
+    // https://stackoverflow.com/a/30915760
+    private final ObservableList<TaskData> items = 
+                FXCollections.<TaskData>observableArrayList(item -> new Observable[] {item.isCompletedProperty(), item.descriptionProperty()});
     private FilteredList<TaskData> filteredData = null;
     // should only open tasks be shown?
     private boolean myTaskFilterMode = true;
@@ -61,13 +75,85 @@ public class TaskList {
             }
         };
         
-        myTaskList.setCellFactory(CheckBoxListCell.forListView(TaskData::isCompletedProperty, converter));
+        myTaskList.setCellFactory(lv -> {
+            // TFE, 20201230: change strikethrough based on isCompleted
+            // https://gist.github.com/james-d/846eb9ff72bd66fdd955
+            final ListCell<TaskData> cell = new CheckBoxListCell<>(TaskData::isCompletedProperty, converter) {
+                @Override
+                public void updateItem(TaskData item, boolean empty) {
+                    super.updateItem(item, empty);
+                    
+                    if (item != null && !empty) {
+                        pseudoClassStateChanged(TaskManager.COMPLETED, item.isCompleted());
+
+                        final Tooltip tooltip = new Tooltip();
+                        tooltip.getStyleClass().add("taskdata-popup");
+                        tooltip.setOnShowing((t) -> {
+                            final StringBuilder text = new StringBuilder();
+                            text.append(item.getNote().getNoteFileName());
+                            text.append(System.lineSeparator());
+                            text.append("Prio: ");
+                            text.append(item.getTaskPriority().toString());
+                            text.append(", ");
+                            text.append("Status: ");
+                            text.append(item.getTaskStatus().toString());
+                            if (item.getDueDate() != null) {
+                                text.append(", ");
+                                text.append("\u23F0 ");
+                                text.append(OwnNoteEditor.DATE_TIME_FORMATTER.format(item.getDueDate()));
+                            }
+                            tooltip.setText(text.toString());
+                        });
+                        TooltipHelper.updateTooltipBehavior(tooltip, 1000, 10000, 0, true);
+                        setTooltip(tooltip);
+                    } else {
+                        pseudoClassStateChanged(TaskManager.COMPLETED, false);
+                        setTooltip(null);
+                    }
+                }            
+            };
+            
+            cell.getStyleClass().add("taskdata");
+            
+            final ContextMenu contextMenu = new ContextMenu();
+
+            final MenuItem editTask = new MenuItem("Edit task");
+            final PopOver popOver = new PopOver();
+            popOver.setAutoHide(true);
+            popOver.setAutoFix(true);
+            popOver.setCloseButtonEnabled(true);
+            popOver.setArrowLocation(PopOver.ArrowLocation.TOP_CENTER);
+            popOver.setArrowSize(0);
+            editTask.setOnAction(event -> {
+                popOver.setContentNode(new TaskEditor(cell.getItem()));
+                popOver.show(cell);
+            });
+            popOver.addEventHandler(KeyEvent.KEY_PRESSED, (t) -> {
+                if (KeyCode.ESCAPE.equals(t.getCode())) {
+                    popOver.hide();
+                }
+            });
+
+            final MenuItem switchTask = new MenuItem("Change task status");
+            switchTask.setOnAction(event -> {
+                cell.getItem().setCompleted(!cell.getItem().isCompleted());
+            });
+            
+            contextMenu.getItems().addAll(editTask, switchTask);
+
+            cell.contextMenuProperty().bind(
+                    Bindings.when(cell.emptyProperty())
+                            .then((ContextMenu) null)
+                            .otherwise(contextMenu));
+            
+            return cell ;
+        });
 
         myTaskList.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if (newSelection != null && !newSelection.equals(oldSelection)) {
                 if (!TaskManager.getInstance().inFileChange()) {
                     // select group and note
-                    myEditor.selectNoteAndCheckBox(newSelection.getNote(), newSelection.getTextPos(), newSelection.getDescription());
+                    myEditor.selectNoteAndCheckBox(newSelection.getNote(), newSelection.getTextPos(), newSelection.getDescription(), newSelection.getId());
                 } else {
                     // tricky, we have lost the item in the list because the checkbox was clicked...
                     // we don't want to change the selection to avoid closing of file in tinymce.
@@ -78,13 +164,18 @@ public class TaskList {
     }
     
     public void populateTaskList() {
-        // be able to react to changes of isCompleted in tasks
-        // https://stackoverflow.com/a/30915760
-        final ObservableList<TaskData> items = 
-                FXCollections.<TaskData>observableArrayList(item -> new Observable[] {item.isCompletedProperty(), item.descriptionProperty()});
+        // items list doesn't receive change events for add & remove - need to attach separate listener to root list
+        TaskManager.getInstance().getTaskList().addListener((Change<? extends TaskData> change) -> {
+            // run later - since we might be in TaskManager.initTaskList()
+            Platform.runLater(() -> {
+                items.setAll(TaskManager.getInstance().getTaskList());
+                initListData();
+            });
+        });
         items.setAll(TaskManager.getInstance().getTaskList());
-        
-        // add listener to items to get notified of any changes to completed property
+        initListData();
+
+        // add listener to items to get notified of any changes to COMPLETED property
         items.addListener((Change<? extends TaskData> c) -> {
             while (c.next()) {
                 if (c.wasUpdated()) {
@@ -94,19 +185,9 @@ public class TaskList {
                 }
             }
         });
-
-        // items list doesn't receive change events for add & remove - need to attach separate listener to root list
-        TaskManager.getInstance().getTaskList().addListener((Change<? extends TaskData> c) -> {
-            while (c.next()) {
-                if (c.wasAdded()) {
-                    items.setAll(TaskManager.getInstance().getTaskList());
-                }
-                if (c.wasRemoved()) {
-                    items.setAll(TaskManager.getInstance().getTaskList());
-                }
-            }
-        });
-
+    }
+    
+    private void initListData() {
         // wrap the ObservableList in a FilteredList (initially display all data).
         filteredData = new FilteredList<>(items);
         setFilterPredicate();
@@ -136,6 +217,7 @@ public class TaskList {
         myTaskList.layout();
         myTaskList.setItems(sortedData);
     }
+
     
     private void setFilterPredicate() {
         filteredData.setPredicate((t) -> {

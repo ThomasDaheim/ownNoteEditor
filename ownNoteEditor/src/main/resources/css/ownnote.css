@@ -19,6 +19,7 @@
     
     /* our own variables should be initialized here as well to avoid run-time warnings */
     group-color: white;
+    task-lane-color: white;
     note-selected-background-color: -fx-base;
     note-selected-font-color: black;
 }
@@ -54,6 +55,10 @@
 .table-view > .virtual-flow > .clipped-container > .sheet > .table-row-cell .table-cell:hover:filled,
 .table-view > .virtual-flow > .clipped-container > .sheet > .table-row-cell:hover:filled .table-cell{
     -fx-background-color: cell_hover_color !important;
+}
+
+.hasUnsavedChanges {
+    -fx-font-style: italic;
 }
 
 /* note name in bold */
@@ -209,9 +214,13 @@
     -fx-border-width: 1; 
 }
 
-.removeTag {
+.removeButton {
     -fx-font-weight: bold;
     -fx-font-size: 0.8em;
+}
+
+.menu-as-list {
+    -fx-background-color: white;
 }
 
 /* style tag treeview */
@@ -231,4 +240,40 @@
 }
 .tagsTreeView .tree-cell:filled:hover {
     -fx-background-color: cell_hover_color !important;
+}
+
+/* style task data */
+.taskdata:completed > * {
+    -fx-strikethrough: true;
+}
+.taskdata-popup {
+    -fx-font-size: 0.9em;
+}
+
+/* styling the KANBAN board */
+.task-board-lane-taskbox,
+.task-board-lane-scrollpane {
+    -fx-background-color: lightgray;
+}
+.task-board-lane,
+.task-board-lane-header {
+    -fx-background-color: task-lane-color;
+}
+.task-board-lane,
+.task-board-lane-taskbox {
+    -fx-alignment: TOP_CENTER;
+}
+.task-card {
+    -fx-margin: 2 2 0 2;
+    -fx-border-radius: 2;
+    -fx-border-style: solid;
+    -fx-border-color: darkgray;
+    -fx-background-color: white;
+}
+.task-board-lane-header {
+    -fx-text-fill: white;
+    -fx-alignment: CENTER;
+    -fx-text-alignment: CENTER;
+    -fx-padding: 10 0 10 0;
+    -fx-font-weight: bold;
 }
