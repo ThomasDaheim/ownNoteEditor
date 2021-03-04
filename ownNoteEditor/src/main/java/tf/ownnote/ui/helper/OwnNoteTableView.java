@@ -74,7 +74,7 @@ import tf.helper.javafx.TableViewPreferences;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
-import tf.ownnote.ui.tags.TagInfo;
+import tf.ownnote.ui.tags.TagData;
 
 /**
  *
@@ -82,8 +82,6 @@ import tf.ownnote.ui.tags.TagInfo;
  */
 public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder {
     public static final DataFormat DRAG_AND_DROP = new DataFormat("application/ownnoteeditor-ownnotetableview-dnd");
-
-    private static final PseudoClass HASUNSAVEDCHANGES = PseudoClass.getPseudoClass("hasUnsavedChanges");
 
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor= null;
@@ -99,7 +97,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     private Set<Note> noteSearchNotes;
 
     // TFE, 20201208: tag support to show only notes linked to tags
-    private TagInfo tagFilter;
+    private TagData tagFilter;
     
     private TableType myTableType = null;
     private String backgroundColor = "white";
@@ -206,7 +204,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         return new NoteGroup(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
     }
     
-    public TableView<Map<String, String>> getTableView() {
+    private TableView<Map<String, String>> getTableView() {
         return myTableView;
     }
     
@@ -567,7 +565,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         setFilterPredicate();
     }
     
-    public void setTagFilter(final TagInfo filterValue) {
+    public void setTagFilter(final TagData filterValue) {
         assert (TableType.notesTable.equals(myTableType));
 
         groupNameFilter = null;

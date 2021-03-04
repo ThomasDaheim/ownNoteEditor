@@ -40,21 +40,21 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  *
  * @author thomas
  */
-public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfoWrapper> implements ITagTreeCell {
+public class TagTextFieldTreeCell extends TextFieldTreeCell<TagDataWrapper> implements ITagTreeCell {
     // callback to OwnNoteEditor
     private final OwnNoteEditor myEditor;
-    private final TreeView<TagInfoWrapper> myTreeView;
+    private final TreeView<TagDataWrapper> myTreeView;
     
     private TagTextFieldTreeCell() {
         myEditor = null;
         myTreeView = null;
     }
 
-    public TagTextFieldTreeCell(final TreeView<TagInfoWrapper> treeView, final OwnNoteEditor editor) {
+    public TagTextFieldTreeCell(final TreeView<TagDataWrapper> treeView, final OwnNoteEditor editor) {
         this(treeView, TagTreeCellBase.tagInfoConverter, editor);
     }
     
-    public TagTextFieldTreeCell(final TreeView<TagInfoWrapper> treeView, final StringConverter<TagInfoWrapper> sc, final OwnNoteEditor editor) {
+    public TagTextFieldTreeCell(final TreeView<TagDataWrapper> treeView, final StringConverter<TagDataWrapper> sc, final OwnNoteEditor editor) {
         super(sc);
         
         myEditor = editor;
@@ -62,7 +62,7 @@ public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfoWrapper> impl
     }
     
     @Override
-    public void updateItem(TagInfoWrapper item, boolean empty) {
+    public void updateItem(TagDataWrapper item, boolean empty) {
         super.updateItem(item, empty);
         TagTreeCellBase.updateItem(this, item, empty);
     }            
@@ -74,7 +74,7 @@ public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfoWrapper> impl
         }
         
         // check if item can be edited
-        final TreeItem<TagInfoWrapper> treeItem = getTreeItem();
+        final TreeItem<TagDataWrapper> treeItem = getTreeItem();
         if ((treeItem != null) && TagManager.isEditableTag(treeItem.getValue().getTagInfo())) {
             return;
         }
@@ -95,12 +95,12 @@ public class TagTextFieldTreeCell extends TextFieldTreeCell<TagInfoWrapper> impl
     }
 
     @Override
-    public StringConverter<TagInfoWrapper> getTextConverter() {
+    public StringConverter<TagDataWrapper> getTextConverter() {
         return getConverter();
     }
 
     @Override
-    public TreeCell<TagInfoWrapper> getTreeCell() {
+    public TreeCell<TagDataWrapper> getTreeCell() {
         return this;
     }
 }

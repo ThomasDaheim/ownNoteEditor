@@ -23,8 +23,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package tf.ownnote.ui;
+package tf.ownnote.ui.main;
 
+import tf.ownnote.ui.notes.TestNoteData;
 import java.awt.MouseInfo;
 import java.awt.Point;
 import java.io.IOException;
@@ -58,11 +59,9 @@ import org.testfx.api.FxRobot;
 import org.testfx.framework.junit.ApplicationTest;
 import tf.ownnote.ui.helper.OwnNoteEditorParameters;
 import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
-import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.main.OwnNoteEditorManager;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
-import tf.ownnote.ui.tags.TagInfo;
+import tf.ownnote.ui.tags.TagData;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tags.TagTextFieldTreeCell;
 
@@ -158,7 +157,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 
     private Label ownCloudPath;
     private TableView<Map<String, String>> notesTableFXML;
-    private TreeView<TagInfo> tagsTreeView;
+    private TreeView<TagData> tagsTreeView;
     private TagTextFieldTreeCell allTag;
     private TagTextFieldTreeCell test1Tag;
     private TagTextFieldTreeCell test2Tag;
@@ -176,7 +175,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         System.out.println("running getNodes()");
 
         notesTableFXML = (TableView<Map<String, String>>) find(".notesTable");
-        tagsTreeView = (TreeView<TagInfo>) find(".tagsTreeView");
+        tagsTreeView = (TreeView<TagData>) find(".tagsTreeView");
         
         allTag = (TagTextFieldTreeCell) find("#" + NoteGroup.ALL_GROUPS);
         test1Tag = (TagTextFieldTreeCell) find("#Test1");

@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package tf.ownnote.ui;
+package tf.ownnote.ui.tasks;
 
 import java.util.List;
 import javafx.beans.property.BooleanProperty;
@@ -17,8 +17,6 @@ import org.junit.Test;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.tasks.TaskData;
-import tf.ownnote.ui.tasks.TaskManager;
 
 /**
  *

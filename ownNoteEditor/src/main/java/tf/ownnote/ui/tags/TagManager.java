@@ -90,11 +90,11 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     private final static Set<String> reservedTagNames = new HashSet<>(EnumUtils.getEnumList(ReservedTagNames.class).stream().map((t) -> {
         return t.name();
     }).collect(Collectors.toSet()));
-    private final static Set<TagInfo> reservedTags = new HashSet<>();
+    private final static Set<TagData> reservedTags = new HashSet<>();
     
     private final static String ROOT_TAG_NAME = "Tags";
     // root of all tags - not saved or loaded
-    private final static TagInfo ROOT_TAG = new TagInfo(ROOT_TAG_NAME);
+    private final static TagData ROOT_TAG = new TagData(ROOT_TAG_NAME);
     
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
@@ -118,7 +118,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         myEditor.getNoteEditor().subscribe(INSTANCE);
     }
     
-    public TagInfo getRootTag() {
+    public TagData getRootTag() {
         if (!tagsLoaded) {
             // lazy loading
             loadTags();
@@ -142,7 +142,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             xstream.setMode(XStream.XPATH_RELATIVE_REFERENCES);
             XStream.setupDefaultSecurity(xstream);
             final Class<?>[] classes = new Class[] { 
-                TagInfo.class, 
+                TagData.class, 
                 ObservableListWrapper.class, 
                 ObservableSetWrapper.class, 
                 SimpleBooleanProperty.class, 
@@ -152,21 +152,21 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
 
             FXConverters.configure(xstream);
 
-            xstream.alias("taginfo", TagInfo.class);
+            xstream.alias("taginfo", TagData.class);
             xstream.alias("listProperty", ObservableListWrapper.class);
             xstream.alias("setProperty", ObservableSetWrapper.class);
             xstream.alias("booleanProperty", SimpleBooleanProperty.class);
             xstream.alias("stringProperty", SimpleStringProperty.class);
             xstream.alias("objectProperty", SimpleObjectProperty.class);
 
-            xstream.aliasField("name", TagInfo.class, "nameProperty");
-            xstream.aliasField("iconName", TagInfo.class, "iconNameProperty");
-            xstream.aliasField("colorName", TagInfo.class, "colorNameProperty");
+            xstream.aliasField("name", TagData.class, "nameProperty");
+            xstream.aliasField("iconName", TagData.class, "iconNameProperty");
+            xstream.aliasField("colorName", TagData.class, "colorNameProperty");
             
-            xstream.omitField(TagInfo.class, "linkedNotes");
-            xstream.omitField(TagInfo.class, "parentProperty");
+            xstream.omitField(TagData.class, "linkedNotes");
+            xstream.omitField(TagData.class, "parentProperty");
             // TFE, 20201220: we had that in for a while
-            xstream.omitField(TagInfo.class, "fixedProperty");
+            xstream.omitField(TagData.class, "fixedProperty");
 
             try (
                 BufferedInputStream stdin = new BufferedInputStream(new FileInputStream(fileName));
@@ -185,9 +185,9 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         
         // ensure reserved names are fixed
         for (String tagName : reservedTagNames) {
-            TagInfo tag = tagForName(tagName, ROOT_TAG, false);
+            TagData tag = tagForName(tagName, ROOT_TAG, false);
             if (tag == null) {
-                tag = new TagInfo(tagName);
+                tag = new TagData(tagName);
                 ROOT_TAG.getChildren().add(tag);
                 
                 System.out.println("No tag for reserved name " + tagName + " found. Initializing...");
@@ -208,7 +208,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 }
                 
                 // color my children
-                for (TagInfo tagChild : tag.getChildren()) {
+                for (TagData tagChild : tag.getChildren()) {
                     final String tagChildName = tagChild.getName();
                     
                     initGroupTag(tagChild);
@@ -224,7 +224,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 if (!hasAllGroups) {
                     // all groups is always the first entry
                     System.out.println("No tag for group " + NoteGroup.ALL_GROUPS + " found. Adding...");
-                    final TagInfo allGroups = new TagInfo(NoteGroup.ALL_GROUPS);
+                    final TagData allGroups = new TagData(NoteGroup.ALL_GROUPS);
                     allGroups.setColorName(OwnNoteEditor.getGroupColor(NoteGroup.ALL_GROUPS));
                     
                     tag.getChildren().add(0, allGroups);
@@ -232,14 +232,14 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 if (!hasNotGrouped) {
                     // all groups is always the second entry
                     System.out.println("No tag for group " + NoteGroup.NOT_GROUPED + " found. Adding...");
-                    final TagInfo notGrouped = new TagInfo(NoteGroup.NOT_GROUPED);
+                    final TagData notGrouped = new TagData(NoteGroup.NOT_GROUPED);
                     notGrouped.setColorName(OwnNoteEditor.getGroupColor(NoteGroup.NOT_GROUPED));
                     
                     tag.getChildren().add(1, notGrouped);
                 }
 
                 // link notes to group tags - notes might not have the tags explicitly...
-                for (TagInfo tagChild : tag.getChildren()) {
+                for (TagData tagChild : tag.getChildren()) {
                     tagChild.getLinkedNotes().addAll(OwnNoteFileManager.getInstance().getNotesForGroup(tagChild.getName()));
                 }
 
@@ -249,12 +249,12 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
 
         // backlink all parents
-        final Set<TagInfo> flatTags = getRootTag().getChildren().stream().map((t) -> {
+        final Set<TagData> flatTags = getRootTag().getChildren().stream().map((t) -> {
             return t.flattened();
         }).flatMap(Function.identity()).collect(Collectors.toSet());
 
-        for (TagInfo tag: flatTags) {
-            for (TagInfo childTag : tag.getChildren()) {
+        for (TagData tag: flatTags) {
+            for (TagData childTag : tag.getChildren()) {
                 childTag.setParent(tag);
             }
         }
@@ -283,7 +283,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         xstream.setMode(XStream.XPATH_RELATIVE_REFERENCES);
         XStream.setupDefaultSecurity(xstream);
         final Class<?>[] classes = new Class[] { 
-            TagInfo.class, 
+            TagData.class, 
             ObservableListWrapper.class, 
             ObservableSetWrapper.class, 
             SimpleBooleanProperty.class, 
@@ -293,19 +293,19 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
 
         FXConverters.configure(xstream);
 
-        xstream.alias("taginfo", TagInfo.class);
+        xstream.alias("taginfo", TagData.class);
         xstream.alias("listProperty", ObservableListWrapper.class);
         xstream.alias("setProperty", ObservableSetWrapper.class);
         xstream.alias("booleanProperty", SimpleBooleanProperty.class);
         xstream.alias("stringProperty", SimpleStringProperty.class);
         xstream.alias("objectProperty", SimpleObjectProperty.class);
 
-        xstream.aliasField("name", TagInfo.class, "nameProperty");
-        xstream.aliasField("iconName", TagInfo.class, "iconNameProperty");
-        xstream.aliasField("colorName", TagInfo.class, "colorNameProperty");
+        xstream.aliasField("name", TagData.class, "nameProperty");
+        xstream.aliasField("iconName", TagData.class, "iconNameProperty");
+        xstream.aliasField("colorName", TagData.class, "colorNameProperty");
         
-        xstream.omitField(TagInfo.class, "linkedNotes");
-        xstream.omitField(TagInfo.class, "parentProperty");
+        xstream.omitField(TagData.class, "linkedNotes");
+        xstream.omitField(TagData.class, "parentProperty");
 
         try (
             BufferedOutputStream stdout = new BufferedOutputStream(new FileOutputStream(fileName));
@@ -341,7 +341,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         for (Note note : OwnNoteFileManager.getInstance().getNotesList()) {
             // lets not store a "Not grouped" tag...
             if (!NoteGroup.isNotGrouped(note.getGroupName())) {
-                final TagInfo groupInfo = tagForGroupName(note.getGroupName(), true);
+                final TagData groupInfo = tagForGroupName(note.getGroupName(), true);
                 if (note.getMetaData().getTags().contains(groupInfo)) {
                     System.out.println("Removing tag " + note.getGroupName() + " from note " + note.getNoteName());
                     OwnNoteFileManager.getInstance().readNote(note, false);
@@ -357,12 +357,12 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
     }
     
-    public TagInfo tagForGroupName(final String groupName, final boolean createIfNotFound) {
+    public TagData tagForGroupName(final String groupName, final boolean createIfNotFound) {
         return tagForName(groupName.isEmpty() ? NoteGroup.NOT_GROUPED : groupName, getRootTag(), createIfNotFound);
     }
 
-    public TagInfo tagForName(final String tagName, final TagInfo startTag, final boolean createIfNotFound) {
-        final Set<TagInfo> tags = tagsForNames(new HashSet<>(Arrays.asList(tagName)), startTag, createIfNotFound);
+    public TagData tagForName(final String tagName, final TagData startTag, final boolean createIfNotFound) {
+        final Set<TagData> tags = tagsForNames(new HashSet<>(Arrays.asList(tagName)), startTag, createIfNotFound);
         
         if (tags.isEmpty()) {
             return null;
@@ -371,20 +371,20 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
     }
 
-    public Set<TagInfo> tagsForNames(final Set<String> tagNames, final TagInfo startTag, final boolean createIfNotFound) {
-        final Set<TagInfo> result = new HashSet<>();
+    public Set<TagData> tagsForNames(final Set<String> tagNames, final TagData startTag, final boolean createIfNotFound) {
+        final Set<TagData> result = new HashSet<>();
         
-        final TagInfo realStartTag = (startTag != null) ? startTag : getRootTag();
+        final TagData realStartTag = (startTag != null) ? startTag : getRootTag();
 
         // flatten tagslist to set
         // http://squirrel.pl/blog/2015/03/04/walking-recursive-data-structures-using-java-8-streams/
         // https://stackoverflow.com/a/31992391
-        final Set<TagInfo> flatTags = realStartTag.getChildren().stream().map((t) -> {
+        final Set<TagData> flatTags = realStartTag.getChildren().stream().map((t) -> {
             return t.flattened();
         }).flatMap(Function.identity()).collect(Collectors.toSet());
 
         for (String tagName : tagNames) {
-            final Optional<TagInfo> tag = flatTags.stream().filter((t) -> {
+            final Optional<TagData> tag = flatTags.stream().filter((t) -> {
                 return t.getName().equals(tagName);
             }).findFirst();
             
@@ -393,7 +393,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             } else {
                 // we didn't run into that one before...
                 if (createIfNotFound) {
-                    final TagInfo newTag = new TagInfo(tagName);
+                    final TagData newTag = new TagData(tagName);
                     realStartTag.getChildren().add(newTag);
                     result.add(newTag);
                 }
@@ -406,7 +406,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     public void doRenameTag(final String oldName, final String newName) {
         assert oldName != null;
         
-        final TagInfo oldTag = tagForName(oldName, getRootTag(), false);
+        final TagData oldTag = tagForName(oldName, getRootTag(), false);
         if (oldTag == null) return;
         final boolean groupTag = isGroupsChildTag(oldTag);
         
@@ -437,15 +437,15 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
     }
     
-    public TagInfo createTag(final String name, final boolean isGroup) {
-        final TagInfo result = new TagInfo(name);
+    public TagData createTag(final String name, final boolean isGroup) {
+        final TagData result = new TagData(name);
         if (isGroup) {
             TagManager.initGroupTag(result);
         }
         return result;
     }
     
-    public void deleteTag(final TagInfo tag) {
+    public void deleteTag(final TagData tag) {
         // remove group as well - if it exists (= has notes)
         boolean doDelete = true;
         if (TagManager.isGroupsChildTag(tag) && OwnNoteFileManager.getInstance().getNoteGroup(tag.getName()) != null) {
@@ -462,38 +462,38 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
     }
     
-    public static void initGroupTag(final TagInfo tag) {
+    public static void initGroupTag(final TagData tag) {
         tag.setColorName(OwnNoteEditor.getGroupColor(tag.getName()));
     }
     
-    public static boolean isAnyGroupTag(final TagInfo tag) {
+    public static boolean isAnyGroupTag(final TagData tag) {
         // a group tag is the "Groups" itself and everything below it
         return (isGroupsTag(tag) || isGroupsChildTag(tag));
     }
     
-    public static boolean isGroupsTag(final TagInfo tag) {
+    public static boolean isGroupsTag(final TagData tag) {
         // a group tag is the "Groups" itself and everything below it
         return TagManager.ReservedTagNames.Groups.name().equals(tag.getName());
     }
     
-    public static boolean isGroupsChildTag(final TagInfo tag) {
+    public static boolean isGroupsChildTag(final TagData tag) {
         // a group tag is the "Groups" itself and everything below it
         return (tag.getParent() != null) && TagManager.ReservedTagNames.Groups.name().equals(tag.getParent().getName());
     }
     
-    public static boolean isEditableTag(final TagInfo tag) {
+    public static boolean isEditableTag(final TagData tag) {
         // editable: currently same as fixed
         return isFixedTag(tag);
     }
 
-    public static boolean isFixedTag(final TagInfo tag) {
+    public static boolean isFixedTag(final TagData tag) {
         // fixed: "Groups", "All", "Not grouped" tags
         return reservedTags.contains(tag) ||
                 NoteGroup.ALL_GROUPS.equals(tag.getName()) ||
                 NoteGroup.NOT_GROUPED.equals(tag.getName());
     }
     
-    public static boolean childTagsAllowed(final TagInfo tag) {
+    public static boolean childTagsAllowed(final TagData tag) {
         // no child tags: anything below "Groups" tag
         return !isGroupsChildTag(tag);
     }
@@ -518,8 +518,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         final Note movedNote = OwnNoteFileManager.getInstance().getNote(newGroupName, curNote.getNoteName());
 
         // TFE, 20201227: allign tags and their note links as well...
-        final TagInfo oldGroupTag = TagManager.getInstance().tagForGroupName(curNote.getGroupName(), false);
-        final TagInfo newGroupTag = TagManager.getInstance().tagForGroupName(newGroupName, false);
+        final TagData oldGroupTag = TagManager.getInstance().tagForGroupName(curNote.getGroupName(), false);
+        final TagData newGroupTag = TagManager.getInstance().tagForGroupName(newGroupName, false);
         if (movedNote.getMetaData().getTags().contains(oldGroupTag)) {
             movedNote.getMetaData().getTags().remove(oldGroupTag);
             movedNote.getMetaData().getTags().add(newGroupTag);

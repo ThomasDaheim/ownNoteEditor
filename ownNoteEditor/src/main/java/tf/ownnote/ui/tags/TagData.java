@@ -44,10 +44,10 @@ import tf.ownnote.ui.notes.Note;
  * 
  * @author thomas
  */
-public class TagInfo {
+public class TagData {
     private final StringProperty nameProperty = new SimpleStringProperty("");
-    private final ObservableList<TagInfo> children = FXCollections.<TagInfo>observableArrayList();
-    private final ObjectProperty<TagInfo> parentProperty = new SimpleObjectProperty<>(null);
+    private final ObservableList<TagData> children = FXCollections.<TagData>observableArrayList();
+    private final ObjectProperty<TagData> parentProperty = new SimpleObjectProperty<>(null);
     private final StringProperty iconNameProperty = new SimpleStringProperty("");
     private final StringProperty colorNameProperty = new SimpleStringProperty("");
     
@@ -72,35 +72,35 @@ public class TagInfo {
 //        }        
 //    });
 
-    public TagInfo() {
+    public TagData() {
         this("");
     }
 
-    public TagInfo(final String na) {
+    public TagData(final String na) {
         this(na, new ArrayList<>());
     }
 
-    public TagInfo(final String na, final List<TagInfo> childs) {
+    public TagData(final String na, final List<TagData> childs) {
         nameProperty.set(na);
         
         readResolve();
         
-        children.setAll(FXCollections.<TagInfo>observableArrayList(childs));
+        children.setAll(FXCollections.<TagData>observableArrayList(childs));
     }
     
     // required for deserialization by xstream
     private Object readResolve() {
-        children.addListener((ListChangeListener.Change<? extends TagInfo> change) -> {
+        children.addListener((ListChangeListener.Change<? extends TagData> change) -> {
             while (change.next()) {
                 if (change.wasAdded()) {
-                    for (TagInfo tag: change.getAddedSubList()) {
+                    for (TagData tag: change.getAddedSubList()) {
 //                        System.out.println("Setting tag parent: " + this.getName() + " for tag: " + tag.getName() + ", " + tag);
                         tag.setParent(this);
                     }
                 }
 
                 if (change.wasRemoved()) {
-                    for (TagInfo tag: change.getRemoved()) {
+                    for (TagData tag: change.getRemoved()) {
                         // might already have been added to other tag...
                         if (this.equals(tag.getParent())) {
 //                            System.out.println("Removing tag parent: " + this.getName() + " for tag: " + tag.getName() + ", " + tag);
@@ -118,9 +118,9 @@ public class TagInfo {
     public boolean equals(Object o) {
         if (o == this)
             return true;
-        if (!(o instanceof TagInfo))
+        if (!(o instanceof TagData))
             return false;
-        TagInfo other = (TagInfo)o;
+        TagData other = (TagData)o;
         // we can't have two tags with same nameProperty...
         return this.nameProperty.get().equals(other.nameProperty.get());
     }
@@ -177,30 +177,30 @@ public class TagInfo {
         linkedNotes.addAll(notes);
     }
     
-    public ObservableList<TagInfo> getChildren() {
+    public ObservableList<TagData> getChildren() {
         return children;
     }
 
-    public void setChildren(final List<TagInfo> childs) {
+    public void setChildren(final List<TagData> childs) {
         children.setAll(childs);
     }
     
-    public ObjectProperty<TagInfo> parentProperty() {
+    public ObjectProperty<TagData> parentProperty() {
         return parentProperty;
     }
     
-    public TagInfo getParent() {
+    public TagData getParent() {
         return parentProperty.get();
     }
 
-    public void setParent(final TagInfo parent) {
+    public void setParent(final TagData parent) {
         parentProperty.set(parent);
     }
     
     // method to get flat stream of taginfo + all its child tags
     // http://squirrel.pl/blog/2015/03/04/walking-recursive-data-structures-using-java-8-streams/
-    public Stream<TagInfo> flattened() {
+    public Stream<TagData> flattened() {
         return Stream.concat(Stream.of(this),
-                children.stream().flatMap(TagInfo::flattened));
+                children.stream().flatMap(TagData::flattened));
     }
 }

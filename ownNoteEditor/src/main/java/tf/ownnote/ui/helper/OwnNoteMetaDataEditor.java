@@ -68,7 +68,7 @@ import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteMetaData;
 import tf.ownnote.ui.notes.NoteVersion;
 import tf.ownnote.ui.tags.TagEditor;
-import tf.ownnote.ui.tags.TagInfo;
+import tf.ownnote.ui.tags.TagData;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tasks.TaskCount;
 import tf.ownnote.ui.tasks.TaskManager;
@@ -151,8 +151,10 @@ public class OwnNoteMetaDataEditor {
         });
 
         final Menu attachmentsMenu = new Menu("Attachments");
+        attachmentsMenu.getStyleClass().add("attachment-menu");
         attachmentsMenu.getStyleClass().add("menu-as-list");
         attachments.getMenus().add(attachmentsMenu);
+        attachments.getStyleClass().add("attachment-menu");
         attachments.getStyleClass().add("menu-as-list");
         
         addAttachment.setUserData("+");
@@ -161,6 +163,7 @@ public class OwnNoteMetaDataEditor {
             addAttachment();
         });
         attachments.getMenus().get(0).getItems().setAll(addAttachment);
+        HBox.setMargin(attachments, AbstractStage.INSET_SMALL);
 
         final Region region1 = new Region();
         HBox.setHgrow(region1, Priority.ALWAYS);
@@ -203,7 +206,7 @@ public class OwnNoteMetaDataEditor {
         }
 
         // change listener as well
-        editorNote.getMetaData().getTags().addListener((SetChangeListener.Change<? extends TagInfo> change) -> {
+        editorNote.getMetaData().getTags().addListener((SetChangeListener.Change<? extends TagData> change) -> {
             if (change.wasRemoved()) {
                 removeTagLabel(change.getElementRemoved().getName());
             }
@@ -355,7 +358,7 @@ public class OwnNoteMetaDataEditor {
                 Logger.getLogger(OwnNoteMetaDataEditor.class.getName()).log(Level.SEVERE, null, ex);
                 return;
             }
-            final String fileName = OwnNoteFileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR + File.separator + selectedFile.getName();
+            final String fileName = NoteMetaData.getAttachmentPath() + selectedFile.getName();
             final File file = new File(fileName);
             if (file.exists()) {
                 // need to copy file to attachments subdir (if not already there)

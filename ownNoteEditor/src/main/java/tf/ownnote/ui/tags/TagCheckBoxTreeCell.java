@@ -42,25 +42,25 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  *
  * @author thomas
  */
-public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagInfoWrapper> implements ITagTreeCell {
+public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagDataWrapper> implements ITagTreeCell {
     // callback to OwnNoteEditor
     private final OwnNoteEditor myEditor;
-    private final TreeView<TagInfoWrapper> myTreeView;
+    private final TreeView<TagDataWrapper> myTreeView;
 
     private TagCheckBoxTreeCell() {
         myEditor = null;
         myTreeView = null;
     }
 
-    public TagCheckBoxTreeCell(final TreeView<TagInfoWrapper> treeView, final OwnNoteEditor editor) {
+    public TagCheckBoxTreeCell(final TreeView<TagDataWrapper> treeView, final OwnNoteEditor editor) {
         this(treeView, null, TagTreeCellBase.treeItemConverter, editor);
     }
     
-    public TagCheckBoxTreeCell(final TreeView<TagInfoWrapper> treeView, final Callback<TreeItem<TagInfoWrapper>, ObservableValue<Boolean>> clbck, final OwnNoteEditor editor) {
+    public TagCheckBoxTreeCell(final TreeView<TagDataWrapper> treeView, final Callback<TreeItem<TagDataWrapper>, ObservableValue<Boolean>> clbck, final OwnNoteEditor editor) {
         this(treeView, clbck, TagTreeCellBase.treeItemConverter, editor);
     }
 
-    public TagCheckBoxTreeCell(final TreeView<TagInfoWrapper> treeView, final Callback<TreeItem<TagInfoWrapper>, ObservableValue<Boolean>> clbck, final StringConverter<TreeItem<TagInfoWrapper>> sc, final OwnNoteEditor editor) {
+    public TagCheckBoxTreeCell(final TreeView<TagDataWrapper> treeView, final Callback<TreeItem<TagDataWrapper>, ObservableValue<Boolean>> clbck, final StringConverter<TreeItem<TagDataWrapper>> sc, final OwnNoteEditor editor) {
         super(clbck, sc);
         
         myEditor = editor;
@@ -68,7 +68,7 @@ public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagInfoWrapper> implem
     }
     
     @Override
-    public void updateItem(TagInfoWrapper item, boolean empty) {
+    public void updateItem(TagDataWrapper item, boolean empty) {
         super.updateItem(item, empty);
         TagTreeCellBase.updateItem(this, item, empty);
     }            
@@ -80,7 +80,7 @@ public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagInfoWrapper> implem
         }
         
         // check if item can be edited
-        final TreeItem<TagInfoWrapper> treeItem = getTreeItem();
+        final TreeItem<TagDataWrapper> treeItem = getTreeItem();
         if ((treeItem != null) && TagManager.isEditableTag(treeItem.getValue().getTagInfo())) {
             return;
         }
@@ -101,12 +101,12 @@ public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagInfoWrapper> implem
     }
 
     @Override
-    public StringConverter<TagInfoWrapper> getTextConverter() {
+    public StringConverter<TagDataWrapper> getTextConverter() {
         return TagTreeCellBase.tagInfoConverter;
     }
 
     @Override
-    public TreeCell<TagInfoWrapper> getTreeCell() {
+    public TreeCell<TagDataWrapper> getTreeCell() {
         return this;
     }
 }

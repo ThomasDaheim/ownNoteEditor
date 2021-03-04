@@ -13,6 +13,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -84,16 +85,22 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         final Set<Note> taskNotes = OwnNoteFileManager.getInstance().getNotesWithText(TaskData.ANY_BOXES);
         
         for (Note note : taskNotes) {
-            final String noteContent = OwnNoteFileManager.getInstance().readNote(note, false).getNoteFileContent();
-
-            taskList.addAll(tasksFromNote(note, noteContent));
+            initNoteTasks(note);
         }
     }
     
+    private void initNoteTasks(final Note note) {
+        final String noteContent = OwnNoteFileManager.getInstance().readNote(note, false).getNoteFileContent();
+
+        final Set<TaskData> tasks = tasksFromNote(note, noteContent);
+        note.getMetaData().setTasks(tasks);
+        taskList.addAll(tasks);
+    }
+    
     // noteContent as separate parm since it could be called from change within the editor before save
-    public List<TaskData> tasksFromNote(final Note note, final String noteContent) {
+    protected Set<TaskData> tasksFromNote(final Note note, final String noteContent) {
 //        System.out.println("tasksFromNote started: " + Instant.now());
-        final List<TaskData> result = new ArrayList<>();
+        final Set<TaskData> result = new HashSet<>();
 
         // iterate over all matches and create TaskData items
         final List<Integer> textPossssss = findAllOccurences(noteContent);
@@ -178,8 +185,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 final Note note = OwnNoteFileManager.getInstance().getNote(filePath.getFileName().toString());
                 // TFE, 20201027: make sure we don't try to work on temp files which have been deleted in the meantime...
                 if (note != null) {
-                    final String noteContent = OwnNoteFileManager.getInstance().readNote(note, false).getNoteFileContent();
-                    taskList.addAll(tasksFromNote(note, noteContent));
+                    initNoteTasks(note);
                 }
             }
             // modify is delete + add :-)
@@ -192,7 +198,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
 
     @Override
     public boolean processFileContentChange(final FileContentChangeType changeType, final Note note, final String oldContent, final String newContent) {
-//        System.out.println("processFileContentChange: " + changeType + ", " + note.getNoteValueName() + ", " + oldContent + ", " + newContent + ".");
+//        System.out.println("processFileContentChange: " + changeType + ", " + note.getNoteName()+ ", \n\"" + oldContent + "\n\", \n\"" + newContent + "\".");
         if (inFileChange) {
             return true;
         }
@@ -202,11 +208,9 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         inFileChange = true;
         if (FileContentChangeType.CONTENT_CHANGED.equals(changeType)) {
             // rescan text for tasks and update tasklist accordingly
-            final List<TaskData> newTasks = tasksFromNote(note, newContent);
+            final Set<TaskData> newTasks = tasksFromNote(note, newContent);
 //            System.out.println(" newTasks found: " + Instant.now());
-            final List<TaskData> oldTasks = taskList.stream().filter((t) -> {
-                return t.getNote().equals(note);
-            }).collect(Collectors.toList());
+            final Set<TaskData> oldTasks = tasksForNote(note);
 //            System.out.println(" oldTasks found: " + Instant.now());
             
             // compare old a new to minimize change impact on observable list
@@ -228,6 +232,10 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 if (oldnew.isPresent()) {
                     oldnew.get().setTextPos(newTask.getTextPos());
                     oldnew.get().setCompleted(newTask.isCompleted());
+                    // TFE, 20210119: we also have raw text now as well!
+                    oldnew.get().setRawText(newTask.getRawText());
+                    // set escapedText and description as well
+                    oldnew.get().setHtmlText(newTask.getHtmlText());
                     
                     // nothing more to be done here
                     newTasks.remove(newTask);
@@ -258,6 +266,8 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
 //            System.out.println(" same position checked: " + Instant.now());
             
             // 3. what is left? add & delete of tasks
+            note.getMetaData().getTasks().removeAll(oldTasks);
+            note.getMetaData().getTasks().addAll(newTasks);
             taskList.removeAll(oldTasks);
             taskList.addAll(newTasks);
         } else {
@@ -552,14 +562,14 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         }
     }
     
-    public List<TaskData> tasksForNote(final Note note) {
+    public Set<TaskData> tasksForNote(final Note note) {
         return getTaskList().stream().filter((t) -> {
             return t.getNote().equals(note);
-        }).collect(Collectors.toList());
+        }).collect(Collectors.toSet());
     }
     
     public void setTaskDataInNote(final Note note, final boolean suppressMessages) {
-//        System.out.println("setTaskDataInNote");
+//        System.out.println("setTaskDataInNote: " + note.getNoteName());
 
         String content = "";
         content = note.getNoteEditorContent();

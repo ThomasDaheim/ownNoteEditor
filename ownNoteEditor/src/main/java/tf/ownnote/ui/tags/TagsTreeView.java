@@ -59,7 +59,7 @@ import tf.ownnote.ui.notes.NoteGroup;
 
 * @author thomas
  */
-public class TagsTreeView extends TreeView<TagInfoWrapper> implements IGroupListContainer {
+public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupListContainer {
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
 
@@ -77,9 +77,9 @@ public class TagsTreeView extends TreeView<TagInfoWrapper> implements IGroupList
     
     private BiConsumer<String, String> renameFunction;
     
-    private final ObservableSet<TagInfo> selectedItems = FXCollections.<TagInfo>observableSet(new HashSet<>());
+    private final ObservableSet<TagData> selectedItems = FXCollections.<TagData>observableSet(new HashSet<>());
     
-    private final Set<TagInfo> initialTags = new HashSet<>();
+    private final Set<TagData> initialTags = new HashSet<>();
     
     private NoteGroup currentGroup;
     
@@ -114,13 +114,13 @@ public class TagsTreeView extends TreeView<TagInfoWrapper> implements IGroupList
             }
         });
         
-        getSelectionModel().getSelectedItems().addListener((ListChangeListener.Change<? extends TreeItem<TagInfoWrapper>> change) -> {
+        getSelectionModel().getSelectedItems().addListener((ListChangeListener.Change<? extends TreeItem<TagDataWrapper>> change) -> {
             // getSelectionModel().getSelectedItem() can be null even if getSelectionModel().getSelectedItems() isn't empty
             // list is updated first before property? and therefore ListChangeListener runs before selected item gets set?
             if (!getSelectionModel().getSelectedItems().isEmpty() && WorkMode.LIST_MODE.equals(myWorkMode)) {
-                final TreeItem<TagInfoWrapper> item = getSelectionModel().getSelectedItems().get(0);
+                final TreeItem<TagDataWrapper> item = getSelectionModel().getSelectedItems().get(0);
                 if (item != null) {
-                    final TagInfo tag = item.getValue().getTagInfo();
+                    final TagData tag = item.getValue().getTagInfo();
                     
                     if (TagManager.isGroupsTag(tag)) {
                         // "Groups" selected => similar to "All" in tabs
@@ -177,11 +177,11 @@ public class TagsTreeView extends TreeView<TagInfoWrapper> implements IGroupList
         return allowReorder;
     }
     
-    public ObservableSet<TagInfo> getSelectedItems() {
+    public ObservableSet<TagData> getSelectedItems() {
         return selectedItems;
     }
     
-    public Set<TagInfo> getSelectedLeafItems() {
+    public Set<TagData> getSelectedLeafItems() {
         return selectedItems.stream().filter((t) -> {
             return t.getChildren().isEmpty();
         }).collect(Collectors.toSet());
@@ -192,7 +192,7 @@ public class TagsTreeView extends TreeView<TagInfoWrapper> implements IGroupList
         renameFunction = funct;
     }
     
-    public void fillTreeView(final WorkMode workMode, final Set<TagInfo> tags) {
+    public void fillTreeView(final WorkMode workMode, final Set<TagData> tags) {
         assert myEditor != null;
         
         myWorkMode = workMode;
@@ -215,7 +215,7 @@ public class TagsTreeView extends TreeView<TagInfoWrapper> implements IGroupList
 
         inInitTreeView = true;
         // for SELECT_MODE we don't show Groups - since its handled implicitly & is connected to the group name of the notes file
-        setRoot(new RecursiveTreeItem<>(new TagInfoWrapper(TagManager.getInstance().getRootTag()), this::newItemConsumer, (item) -> null, TagInfoWrapper::getChildren, true, (item) -> {
+        setRoot(new RecursiveTreeItem<>(new TagDataWrapper(TagManager.getInstance().getRootTag()), this::newItemConsumer, (item) -> null, TagDataWrapper::getChildren, true, (item) -> {
             return !(WorkMode.SELECT_MODE.equals(myWorkMode) && TagManager.isGroupsTag(item.getTagInfo()));
         }));
         inInitTreeView = false;
@@ -224,7 +224,7 @@ public class TagsTreeView extends TreeView<TagInfoWrapper> implements IGroupList
         initWorkMode();
     }
     
-    private void newItemConsumer(final TreeItem<TagInfoWrapper> newItem) {
+    private void newItemConsumer(final TreeItem<TagDataWrapper> newItem) {
         assert myEditor != null;
 
         newItem.getValue().selectedProperty().addListener((obs, oldValue, newValue) -> {
@@ -235,7 +235,7 @@ public class TagsTreeView extends TreeView<TagInfoWrapper> implements IGroupList
             refresh();
         });
 
-        final TagInfoWrapper tag = newItem.getValue();
+        final TagDataWrapper tag = newItem.getValue();
         if (tag != null) {
             if (initialTags.contains(tag.getTagInfo())) {
                 tag.setSelected(true);
@@ -247,7 +247,7 @@ public class TagsTreeView extends TreeView<TagInfoWrapper> implements IGroupList
         }
     }
     
-    private void changeAction(final TreeItem<TagInfoWrapper> item, final Boolean oldValue, final Boolean newValue) {
+    private void changeAction(final TreeItem<TagDataWrapper> item, final Boolean oldValue, final Boolean newValue) {
         if (newValue != null && !newValue.equals(oldValue)) {
             if (!inPropgateUpwardsAction && !inInitTreeView) {
                 item.getValue().getChildren().forEach(child -> child.setSelected(newValue));
@@ -267,7 +267,7 @@ public class TagsTreeView extends TreeView<TagInfoWrapper> implements IGroupList
         }
     }
     
-    private void propagateUpwards(final TreeItem<TagInfoWrapper> item, final boolean newValue) {
+    private void propagateUpwards(final TreeItem<TagDataWrapper> item, final boolean newValue) {
         if (!item.isLeaf()) {
             // root is artificial
             return;
@@ -278,10 +278,10 @@ public class TagsTreeView extends TreeView<TagInfoWrapper> implements IGroupList
         // see bulk vs. single in TagsTable
         inPropgateUpwardsAction = true;
         
-        final TreeItem<TagInfoWrapper> parent = item.getParent();
+        final TreeItem<TagDataWrapper> parent = item.getParent();
         
         boolean unSelectedFlag = false;
-        for (TreeItem<TagInfoWrapper> child : parent.getChildren()) {
+        for (TreeItem<TagDataWrapper> child : parent.getChildren()) {
             if (!child.getValue().isSelected()) {
                 unSelectedFlag = true;
                 break;
@@ -296,7 +296,7 @@ public class TagsTreeView extends TreeView<TagInfoWrapper> implements IGroupList
     public void selectGroupForNote(final Note note) {
         assert note != null;
         
-        final TreeItem<TagInfoWrapper> groupItem = getTreeViewItem(getRoot(), note.getGroupName());
+        final TreeItem<TagDataWrapper> groupItem = getTreeViewItem(getRoot(), note.getGroupName());
         if (groupItem != null) {
             getSelectionModel().select(groupItem);
         }
@@ -306,13 +306,13 @@ public class TagsTreeView extends TreeView<TagInfoWrapper> implements IGroupList
         return isTagNameElsewhereInTreeView(tag, null);
     }
 
-    public boolean isTagNameElsewhereInTreeView(final String tag, final TreeItem<TagInfoWrapper> thisItem) {
-        final TreeItem<TagInfoWrapper> otherItem = getTreeViewItem(getRoot(), tag);
+    public boolean isTagNameElsewhereInTreeView(final String tag, final TreeItem<TagDataWrapper> thisItem) {
+        final TreeItem<TagDataWrapper> otherItem = getTreeViewItem(getRoot(), tag);
         return (otherItem != null && !otherItem.equals(thisItem));
     }
 
     // TODO make a generic helper method out of it with TreeItem<T>, Function<TreeItem<T>, S> and S value
-    public static TreeItem<TagInfoWrapper> getTreeViewItem(TreeItem<TagInfoWrapper> item , String value) {
+    public static TreeItem<TagDataWrapper> getTreeViewItem(TreeItem<TagDataWrapper> item , String value) {
         if (item != null) {
             if (item.getValue().getTagInfo().getName().equals(value)) {
                 // found it!
@@ -320,8 +320,8 @@ public class TagsTreeView extends TreeView<TagInfoWrapper> implements IGroupList
             }
 
             // check children and below
-            for (TreeItem<TagInfoWrapper> child : item.getChildren()){
-                TreeItem<TagInfoWrapper> s = getTreeViewItem(child, value);
+            for (TreeItem<TagDataWrapper> child : item.getChildren()){
+                TreeItem<TagDataWrapper> s = getTreeViewItem(child, value);
                 if (s != null) {
                     return s;
                 }

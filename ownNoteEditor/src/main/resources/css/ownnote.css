@@ -223,6 +223,58 @@
     -fx-background-color: white;
 }
 
+.attachment-menu {
+    button_background_color: #cccccc;
+    background_pressed_color: #999999;
+
+    border_hover_color: #7a7a7a;
+
+    text_color: #111;
+    default_button_text_color: white;
+
+    focus_ring_border_color: white;
+
+    border_hover_default_color: derive(#0078d7, -40%);
+
+    -shrink-animate-on-press: true;
+
+    -fx-border-color: transparent;
+    -fx-border-width: 2;
+
+    -fx-background-radius: 0;
+    -fx-background-insets: 0;
+    -fx-background-color: button_background_color;
+
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 1em; /* 12 */
+    -fx-text-fill: text_color;
+}
+
+.attachment-menu:hover {
+    -fx-border-color: border_hover_color;
+}
+
+.attachment-menu:pressed {
+    -fx-border-color: background_pressed_color;
+    -fx-background-color: background_pressed_color;
+}
+
+.attachment-menu:focused {
+    -fx-border-color: transparent, focus_ring_border_color;
+    -fx-border-width: 1, 1;
+    /*noinspection CssInvalidFunction*/
+    -fx-border-style: solid, segments(1, 2);
+    -fx-border-radius: 0, 0;
+    -fx-border-insets: 1 1 1 1, 0;
+}
+
+.attachment-menu:disabled,
+.attachment-menu:default:disabled {
+    -fx-opacity: 0.4;
+    -fx-background-color: button_background_color;
+    -fx-text-fill: text_color;
+}
+
 /* style tag treeview */
 /*.tagsTreeView, 
 .tagsTreeView .tree-cell,
@@ -245,6 +297,9 @@
 /* style task data */
 .taskdata:completed > * {
     -fx-strikethrough: true;
+}
+.taskdata:noteSelected > * {
+    -fx-font-weight: bold;
 }
 .taskdata-popup {
     -fx-font-size: 0.9em;

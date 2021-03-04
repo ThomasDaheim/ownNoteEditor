@@ -23,8 +23,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package tf.ownnote.ui;
+package tf.ownnote.ui.main;
 
+import tf.ownnote.ui.notes.TestNoteData;
 import java.awt.MouseInfo;
 import java.awt.Point;
 import java.io.IOException;
@@ -61,8 +62,6 @@ import org.testfx.framework.junit.ApplicationTest;
 import tf.ownnote.ui.helper.OwnNoteEditorParameters;
 import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 import tf.ownnote.ui.helper.OwnNoteTab;
-import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.main.OwnNoteEditorManager;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
 

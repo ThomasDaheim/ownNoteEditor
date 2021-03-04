@@ -23,7 +23,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package tf.ownnote.ui;
+package tf.ownnote.ui.notes;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,8 +39,6 @@ import java.util.Map;
 import org.apache.commons.io.FilenameUtils;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
-import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  *

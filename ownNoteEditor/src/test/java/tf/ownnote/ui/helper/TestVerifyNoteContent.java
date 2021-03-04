@@ -23,7 +23,7 @@
  *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  *  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package tf.ownnote.ui;
+package tf.ownnote.ui.helper;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.*;
 import org.junit.After;

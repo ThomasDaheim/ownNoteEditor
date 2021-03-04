@@ -13,6 +13,7 @@ import javafx.collections.ListChangeListener.Change;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
+import javafx.css.PseudoClass;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -25,6 +26,7 @@ import javafx.util.StringConverter;
 import org.controlsfx.control.PopOver;
 import tf.helper.javafx.TooltipHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.notes.Note;
 
 /**
  * UI control for Tasks.
@@ -36,6 +38,8 @@ import tf.ownnote.ui.main.OwnNoteEditor;
 public class TaskList {
     private ListView<TaskData> myTaskList = null;
     
+    private static final PseudoClass NOTE_SELECTED = PseudoClass.getPseudoClass("noteSelected");
+
     // be able to react to changes of isCompleted in tasks
     // https://stackoverflow.com/a/30915760
     private final ObservableList<TaskData> items = 
@@ -59,9 +63,8 @@ public class TaskList {
     }
     
     private void initTaskList() {
-        // TODO: switch to treeview with tasks per file
-        // https://github.com/james-d/heterogeneous-tree-example
-        
+        myTaskList.getStyleClass().add("task-list");
+
         final StringConverter<TaskData> converter = new StringConverter<TaskData>() {
             @Override
             public String toString(TaskData task) {
@@ -85,6 +88,13 @@ public class TaskList {
                     
                     if (item != null && !empty) {
                         pseudoClassStateChanged(TaskManager.COMPLETED, item.isCompleted());
+                        
+                        final Note currentNote = myEditor.currentNoteProperty().get();
+                        if (currentNote != null && currentNote.equals(item.getNote())) {
+                            pseudoClassStateChanged(NOTE_SELECTED, true);
+                        } else {
+                            pseudoClassStateChanged(NOTE_SELECTED, false);
+                        }
 
                         final Tooltip tooltip = new Tooltip();
                         tooltip.getStyleClass().add("taskdata-popup");
@@ -108,6 +118,7 @@ public class TaskList {
                         setTooltip(tooltip);
                     } else {
                         pseudoClassStateChanged(TaskManager.COMPLETED, false);
+                        pseudoClassStateChanged(NOTE_SELECTED, false);
                         setTooltip(null);
                     }
                 }            
@@ -160,7 +171,13 @@ public class TaskList {
                     myTaskList.getSelectionModel().select(-1);
                 }
             }
-        });       
+        });
+        
+        // TFE, 20210301: highlight tasks for current note
+        myEditor.currentNoteProperty().addListener((ov, oldNote, newNote) -> {
+            // set styles accordingly
+            myTaskList.refresh();
+        });
     }
     
     public void populateTaskList() {
