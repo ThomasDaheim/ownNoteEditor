@@ -158,7 +158,7 @@ public class TaskBoardLane extends VBox {
             if (AppClipboard.getInstance().hasContent(TaskBoard.DRAG_AND_DROP)) {
                 final TaskData task = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(TaskBoard.DRAG_AND_DROP));
                 // read & save note as required
-                success = TaskManager.getInstance().processTaskStatusChanged(task, myStatus, false);
+                success = TaskManager.getInstance().processTaskStatusChanged(task, myStatus, false, true);
             }
 
             AppClipboard.getInstance().clearContent(TaskBoard.DRAG_AND_DROP);
@@ -178,7 +178,10 @@ public class TaskBoardLane extends VBox {
             }
         }
         for (TaskData task : taskToBeRemoved) {
-            myCardMap.remove(task);
+            final TaskCard oldTaskCard = myCardMap.remove(task);
+            if (oldTaskCard != null) {
+                oldTaskCard.dettachFromTask();
+            }
         }
 
         // 2. add missing cards

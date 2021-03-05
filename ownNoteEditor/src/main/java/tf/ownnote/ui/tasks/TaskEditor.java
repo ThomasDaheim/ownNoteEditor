@@ -229,7 +229,10 @@ public class TaskEditor extends GridPane {
     }
     
     public void saveValues() {
-        myTask.setTaskStatus(EnumHelper.getInstance().selectedEnumChoiceBox(TaskData.TaskStatus.class, statusBox));
+        // don't set directly but let taskmanager do the work - since we want to update the rest of the world as well
+//        myTask.setTaskStatus(EnumHelper.getInstance().selectedEnumChoiceBox(TaskData.TaskStatus.class, statusBox));
+        // TODO: replace update process in taskmanager with a listener to task status...
+        TaskManager.getInstance().processTaskStatusChanged(myTask, EnumHelper.getInstance().selectedEnumChoiceBox(TaskData.TaskStatus.class, statusBox), false, true);
         myTask.setTaskPriority(EnumHelper.getInstance().selectedEnumChoiceBox(TaskData.TaskPriority.class, prioBox));
         if (!duedateTimeTxt.getText().isEmpty()) {
             final Date date = duedateTimeTxt.getCalendar().getTime();

@@ -87,7 +87,7 @@ public class TaskList {
                     super.updateItem(item, empty);
                     
                     if (item != null && !empty) {
-                        pseudoClassStateChanged(TaskManager.COMPLETED, item.isCompleted());
+                        pseudoClassStateChanged(TaskManager.TASK_COMPLETED, item.isCompleted());
                         
                         final Note currentNote = myEditor.currentNoteProperty().get();
                         if (currentNote != null && currentNote.equals(item.getNote())) {
@@ -117,7 +117,7 @@ public class TaskList {
                         TooltipHelper.updateTooltipBehavior(tooltip, 1000, 10000, 0, true);
                         setTooltip(tooltip);
                     } else {
-                        pseudoClassStateChanged(TaskManager.COMPLETED, false);
+                        pseudoClassStateChanged(TaskManager.TASK_COMPLETED, false);
                         pseudoClassStateChanged(NOTE_SELECTED, false);
                         setTooltip(null);
                     }
@@ -162,7 +162,7 @@ public class TaskList {
 
         myTaskList.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if (newSelection != null && !newSelection.equals(oldSelection)) {
-                if (!TaskManager.getInstance().inFileChange()) {
+                if (!TaskManager.getInstance().isProcessing()) {
                     // select group and note
                     myEditor.selectNoteAndCheckBox(newSelection.getNote(), newSelection.getTextPos(), newSelection.getDescription(), newSelection.getId());
                 } else {
@@ -192,7 +192,7 @@ public class TaskList {
         items.setAll(TaskManager.getInstance().getTaskList());
         initListData();
 
-        // add listener to items to get notified of any changes to COMPLETED property
+        // add listener to items to get notified of any changes to TASK_COMPLETED property
         items.addListener((Change<? extends TaskData> c) -> {
             while (c.next()) {
                 if (c.wasUpdated()) {

@@ -295,6 +295,10 @@
 }
 
 /* style task data */
+.taskdata > * {
+    -fx-strikethrough: false;
+    -fx-font-weight: normal;
+}
 .taskdata:completed > * {
     -fx-strikethrough: true;
 }
@@ -331,4 +335,12 @@
     -fx-text-alignment: CENTER;
     -fx-padding: 10 0 10 0;
     -fx-font-weight: bold;
+}
+
+/* no scrollbars in webview, please */
+.noteHTMLEditor {
+    -fx-hbar-policy: never;
+    -fx-vbar-policy: never;    
+    -fx-margin: 0;
+    -fx-padding: 0;
 }

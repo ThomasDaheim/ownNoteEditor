@@ -497,6 +497,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         groupsPaneFXML.setVisible(false);
 
         VBox.setVgrow(noteHTMLEditorFXML, Priority.ALWAYS);
+        noteHTMLEditorFXML.getStyleClass().add("noteHTMLEditor");
         VBox.setVgrow(noteMetaEditorFXML, Priority.NEVER);
         noteHTMLEditor = new OwnNoteHTMLEditor(noteHTMLEditorFXML, this);
         noteMetaEditor = new OwnNoteMetaDataEditor(noteMetaEditorFXML, this);
