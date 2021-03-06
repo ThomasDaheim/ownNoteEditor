@@ -338,6 +338,7 @@
 }
 
 /* no scrollbars in webview, please */
+.noteEditor, 
 .noteHTMLEditor {
     -fx-hbar-policy: never;
     -fx-vbar-policy: never;    

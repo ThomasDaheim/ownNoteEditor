@@ -497,6 +497,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         groupsPaneFXML.setVisible(false);
 
         VBox.setVgrow(noteHTMLEditorFXML, Priority.ALWAYS);
+        // error when trying this in the fxml: "java.lang.IllegalArgumentException: Unable to coerce noteHTMLEditor to interface java.util.Collection."
         noteHTMLEditorFXML.getStyleClass().add("noteHTMLEditor");
         VBox.setVgrow(noteMetaEditorFXML, Priority.NEVER);
         noteHTMLEditor = new OwnNoteHTMLEditor(noteHTMLEditorFXML, this);

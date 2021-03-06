@@ -97,6 +97,10 @@ public class OwnNoteMetaDataEditor {
     
     private Note editorNote;
 
+    // TFE, 20210305: make sure we only attach listener once and it can be removed afterwards
+    private SetChangeListener<TagData> tagListener;
+    private ListChangeListener<String> attachListener;
+
     private OwnNoteMetaDataEditor() {
         super();
     }
@@ -109,6 +113,40 @@ public class OwnNoteMetaDataEditor {
         myHBox = hBox;
         
         myHostServices = (HostServices) myEditor.getWindow().getProperties().get("hostServices");
+        
+        tagListener = new SetChangeListener<>() {
+            @Override
+            public void onChanged(SetChangeListener.Change<? extends TagData> change) {
+                if (change.wasRemoved()) {
+                    removeTagLabel(change.getElementRemoved().getName());
+                }
+                if (change.wasAdded()) {
+                    // TFE, 2021012: don't ask - for some reason we need to remove first to avoid duplicates
+                    // might be an issue in which order the listener is called?
+                    removeTagLabel(change.getElementAdded().getName());
+                    addTagLabel(change.getElementAdded().getName());
+                }
+            }
+        };
+        
+        // change listener as well
+        attachListener = new ListChangeListener<>() {
+            @Override
+            public void onChanged(ListChangeListener.Change<? extends String> change) {
+                while (change.next()) {
+                    if (change.wasRemoved()) {
+                        for (String attach : change.getRemoved()) {
+                            removeAttachMenu(attach);
+                        }
+                    }
+                    if (change.wasAdded()) {
+                        for (String attach : change.getAddedSubList()) {
+                            addAttachMenu(attach);
+                        }
+                    }
+                }
+            }
+        };
 
         initEditor();
     }
@@ -183,6 +221,12 @@ public class OwnNoteMetaDataEditor {
         if (note == null) {
             return;
         }
+        
+        if (editorNote != null) {
+            // remove listeners from old note
+            editorNote.getMetaData().getTags().removeListener(tagListener);
+            editorNote.getMetaData().getAttachments().removeListener(attachListener);
+        }
         editorNote = note;
         
         versions.getItems().clear();
@@ -206,17 +250,7 @@ public class OwnNoteMetaDataEditor {
         }
 
         // change listener as well
-        editorNote.getMetaData().getTags().addListener((SetChangeListener.Change<? extends TagData> change) -> {
-            if (change.wasRemoved()) {
-                removeTagLabel(change.getElementRemoved().getName());
-            }
-            if (change.wasAdded()) {
-                // TFE, 2021012: don't ask - for some reason we need to remove first to avoid duplicates
-                // might be an issue in which order the listener is called?
-                removeTagLabel(change.getElementAdded().getName());
-                addTagLabel(change.getElementAdded().getName());
-            }
-        });
+        editorNote.getMetaData().getTags().addListener(tagListener);
         
         attachments.getMenus().get(0).getItems().setAll(addAttachment);
         for (String attach : editorNote.getMetaData().getAttachments()) {
@@ -224,20 +258,7 @@ public class OwnNoteMetaDataEditor {
         }
         
         // change listener as well
-        editorNote.getMetaData().getAttachments().addListener((ListChangeListener.Change<? extends String> change) -> {
-            while (change.next()) {
-                if (change.wasRemoved()) {
-                    for (String attach : change.getRemoved()) {
-                        removeAttachMenu(attach);
-                    }
-                }
-                if (change.wasAdded()) {
-                    for (String attach : change.getAddedSubList()) {
-                        addAttachMenu(attach);
-                    }
-                }
-            }
-        });
+        editorNote.getMetaData().getAttachments().addListener(attachListener);
         
         final TaskCount taskCount = TaskManager.getInstance().getTaskCount(note);
         taskstxt.setText(taskCount.getCount(TaskCount.TaskType.OPEN) + " / " + taskCount.getCount(TaskCount.TaskType.CLOSED) + " / " + taskCount.getCount(TaskCount.TaskType.TOTAL));

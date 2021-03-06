@@ -45,7 +45,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             };
         </script>
 
-        <link rel="stylesheet" type="text/css" href="editor.css">
+        <link rel="stylesheet" type="text/css" href="./editor.min.css">
         <script src='./tinymce/jquery-3.5.1.slim.min.js'></script>
         <script src='./tinymce/tinymce.min.js'></script>
         <script>
@@ -71,7 +71,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             function initEditor() {
                 tinymce.init({
                     selector: '#mytextarea',
-                    width: '100%',
+                    width: '99.8%',
                     autoresize_min_height: 10,
                     autoresize_max_height: 10,
                     autoresize_bottom_margin: 0,
@@ -379,8 +379,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             }
 
             // try getContent() and if fails use tinymce.activeEditor.getBody().innerHTML AND replace img blobs by real base64 data
-            function saveGetContent(unwrap = true, checkChanged = true) {
-                //console.log('JavaScript: saveGetContent was called.');
+            function saveGetContent(unwrap, checkChanged) {
+                //console.log('JavaScript: saveGetContent was called: ' + unwrap + ', ' + checkChanged);
                 // TFE, 20210114: make sure we have done all callbacks before...
                 if (checkChanged) {
                     checkContentChanged();

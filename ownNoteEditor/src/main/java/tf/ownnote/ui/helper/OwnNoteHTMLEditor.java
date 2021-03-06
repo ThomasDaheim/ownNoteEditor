@@ -303,8 +303,9 @@ public class OwnNoteHTMLEditor {
                 }
             }
         });
+        myWebEngine.setUserStyleSheetLocation(OwnNoteHTMLEditor.class.getResource("/editor.min.css").toString());
 
-        final String editor_script = OwnNoteHTMLEditor.class.getResource("/tinymceEditor.html").toExternalForm();
+        final String editor_script = OwnNoteHTMLEditor.class.getResource("/tinymceEditor.min.html").toExternalForm();
         myWebView.getEngine().load(editor_script);
     }
     
@@ -895,7 +896,7 @@ public class OwnNoteHTMLEditor {
         String newEditorText = "";
 
         if (editorInitialized) {
-            Object dummy = wrapExecuteScript(myWebEngine, "saveGetContent();");
+            Object dummy = wrapExecuteScript(myWebEngine, "saveGetContent(" + true + ", " + true + ");");
             
             assert (dummy instanceof String);
             newEditorText = (String) dummy;

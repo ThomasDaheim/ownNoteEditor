@@ -31,7 +31,4 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 body {
     margin: 0 !important;
     padding: 0 !important;
-    overflow-x: hidden !important;
-    overflow-y: hidden !important;
-    /*border: 1px solid red;*/ 
 }
