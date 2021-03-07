@@ -114,7 +114,7 @@ public class TagEditor extends AbstractStage {
                 applyBulkActionBtn.setDisable(true);
             }
         });
-        tagsTreeView.getSelectedItems().addListener((SetChangeListener.Change<? extends TagInfo> c) -> {
+        tagsTreeView.getSelectedItems().addListener((SetChangeListener.Change<? extends TagData> c) -> {
             applyBulkActionBtn.setDisable(
                     BulkAction.None.equals(bulkActionChoiceBox.getSelectionModel().getSelectedItem()) || 
                     tagsTreeView.getSelectedItems().isEmpty());

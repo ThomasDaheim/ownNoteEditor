@@ -478,7 +478,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         final String newFileName = buildNoteName(note);
         
         // TFE, 20201230: update task ids
-        TaskManager.getInstance().setTaskDataInNote(note, suppressMessages);
+        TaskManager.getInstance().replaceTaskDataInNote(note, suppressMessages);
 
         String content = note.getNoteEditorContent();
         if (content == null) {

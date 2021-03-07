@@ -13,6 +13,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -51,7 +52,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     // TFE, 20201216: speed up searching in long notes
     private final static Pattern TASK_PATTERN = Pattern.compile(TaskData.ANY_BOXES, Pattern.LITERAL);
     
-    public static final PseudoClass COMPLETED = PseudoClass.getPseudoClass("completed");
+    public static final PseudoClass TASK_COMPLETED = PseudoClass.getPseudoClass("completed");
 
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyyMMDD-HHmmss"); 
     
@@ -62,6 +63,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     private boolean taskListInitialized = false;
     
     private boolean inFileChange = false;
+    private boolean inStatusChange = false;
     
     private TaskManager() {
         super();
@@ -84,16 +86,22 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         final Set<Note> taskNotes = OwnNoteFileManager.getInstance().getNotesWithText(TaskData.ANY_BOXES);
         
         for (Note note : taskNotes) {
-            final String noteContent = OwnNoteFileManager.getInstance().readNote(note, false).getNoteFileContent();
-
-            taskList.addAll(tasksFromNote(note, noteContent));
+            initNoteTasks(note);
         }
     }
     
+    private void initNoteTasks(final Note note) {
+        final String noteContent = OwnNoteFileManager.getInstance().readNote(note, false).getNoteFileContent();
+
+        final Set<TaskData> tasks = tasksFromNote(note, noteContent);
+        note.getMetaData().setTasks(tasks);
+        taskList.addAll(tasks);
+    }
+    
     // noteContent as separate parm since it could be called from change within the editor before save
-    public List<TaskData> tasksFromNote(final Note note, final String noteContent) {
+    protected Set<TaskData> tasksFromNote(final Note note, final String noteContent) {
 //        System.out.println("tasksFromNote started: " + Instant.now());
-        final List<TaskData> result = new ArrayList<>();
+        final Set<TaskData> result = new HashSet<>();
 
         // iterate over all matches and create TaskData items
         final List<Integer> textPossssss = findAllOccurences(noteContent);
@@ -178,8 +186,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 final Note note = OwnNoteFileManager.getInstance().getNote(filePath.getFileName().toString());
                 // TFE, 20201027: make sure we don't try to work on temp files which have been deleted in the meantime...
                 if (note != null) {
-                    final String noteContent = OwnNoteFileManager.getInstance().readNote(note, false).getNoteFileContent();
-                    taskList.addAll(tasksFromNote(note, noteContent));
+                    initNoteTasks(note);
                 }
             }
             // modify is delete + add :-)
@@ -192,7 +199,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
 
     @Override
     public boolean processFileContentChange(final FileContentChangeType changeType, final Note note, final String oldContent, final String newContent) {
-//        System.out.println("processFileContentChange: " + changeType + ", " + note.getNoteValueName() + ", " + oldContent + ", " + newContent + ".");
+//        System.out.println("processFileContentChange: " + changeType + ", " + note.getNoteName()+ ", \n\"" + oldContent + "\n\", \n\"" + newContent + "\".");
         if (inFileChange) {
             return true;
         }
@@ -202,11 +209,9 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         inFileChange = true;
         if (FileContentChangeType.CONTENT_CHANGED.equals(changeType)) {
             // rescan text for tasks and update tasklist accordingly
-            final List<TaskData> newTasks = tasksFromNote(note, newContent);
+            final Set<TaskData> newTasks = tasksFromNote(note, newContent);
 //            System.out.println(" newTasks found: " + Instant.now());
-            final List<TaskData> oldTasks = taskList.stream().filter((t) -> {
-                return t.getNote().equals(note);
-            }).collect(Collectors.toList());
+            final Set<TaskData> oldTasks = tasksForNote(note);
 //            System.out.println(" oldTasks found: " + Instant.now());
             
             // compare old a new to minimize change impact on observable list
@@ -228,6 +233,10 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 if (oldnew.isPresent()) {
                     oldnew.get().setTextPos(newTask.getTextPos());
                     oldnew.get().setCompleted(newTask.isCompleted());
+                    // TFE, 20210119: we also have raw text now as well!
+                    oldnew.get().setRawText(newTask.getRawText());
+                    // set escapedText and description as well
+                    oldnew.get().setHtmlText(newTask.getHtmlText());
                     
                     // nothing more to be done here
                     newTasks.remove(newTask);
@@ -258,6 +267,8 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
 //            System.out.println(" same position checked: " + Instant.now());
             
             // 3. what is left? add & delete of tasks
+            note.getMetaData().getTasks().removeAll(oldTasks);
+            note.getMetaData().getTasks().addAll(newTasks);
             taskList.removeAll(oldTasks);
             taskList.addAll(newTasks);
         } else {
@@ -352,21 +363,30 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     }
     
     public void processTaskCompletedChanged(final TaskData task) {
-        if (inFileChange) {
+        if (isProcessing()) {
             return;
         }
         
-        inFileChange = true;
+        inStatusChange = true;
 
 //        System.out.println("processTaskCompletedChanged for: " + task);
         myEditor.selectNoteAndToggleCheckBox(task.getNote(), task.getTextPos(), task.getDescription(), task.getId(), task.isCompleted());
 
-        inFileChange = false;
+        inStatusChange = false;
     }
     
-    public boolean processTaskStatusChanged(final TaskData task, final TaskData.TaskStatus newStatus, final boolean selectNote) {
+    public boolean processTaskStatusChanged(final TaskData task, final TaskData.TaskStatus newStatus, final boolean selectNote, final boolean suppressMessages) {
+        if (isProcessing()) {
+            return true;
+        }
+        if (task.getTaskStatus().equals(newStatus)) {
+            // nothing to do...
+            return true;
+        }
+
         boolean result = true;
 
+        inStatusChange = true;
         // things are more tricky if task completed changes with status...
         final boolean completedChanged = (task.isCompleted() != newStatus.isCompleted());
         
@@ -383,32 +403,39 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             // handling of read & save note / select note
             OwnNoteFileManager.getInstance().readNote(task.getNote(), false);
 
-            if (completedChanged) {
-                // tricky, we need to change note text content as well
-                String content = task.getNote().getNoteFileContent();
-                final String noteTaskText = content.substring(task.getTextPos(), task.getTextPos() + task.getRawText().length());
-                String newNoteTaskText;
-                if (task.isCompleted()) {
-                    newNoteTaskText = noteTaskText.replace(TaskData.UNCHECKED_BOXES_1, TaskData.CHECKED_BOXES_2).replace(TaskData.UNCHECKED_BOXES_2, TaskData.CHECKED_BOXES_2);
-                } else {
-                    newNoteTaskText = noteTaskText.replace(TaskData.CHECKED_BOXES_1, TaskData.UNCHECKED_BOXES_2).replace(TaskData.CHECKED_BOXES_2, TaskData.UNCHECKED_BOXES_2);
-                }
-                
-                content = content.substring(0, task.getTextPos()-1) + newNoteTaskText + content.substring(task.getTextPos() + task.getRawText().length());
-                
-                // update all tasks in file since positions will have changed
-                processFileContentChange(FileContentChangeType.CONTENT_CHANGED, task.getNote(), task.getNote().getNoteFileContent(), content);
+            // tricky, we need to change note text content as well
+            String content = task.getNote().getNoteFileContent();
+            final String noteTaskText = content.substring(task.getTextPos(), task.getTextPos() + task.getRawText().length());
+            final int noteTaskLength = task.getRawText().length();
+            final String noteHtmlComment = task.toHtmlComment();
 
-                // set back content - also to editor content for next editing of note
-                task.getNote().setNoteFileContent(content);
-                if (task.getNote().getNoteEditorContent() != null) {
-                    task.getNote().setNoteEditorContent(content);
+            task.setTaskStatus(newStatus);
+            String newNoteTaskText = noteTaskText;
+            if (completedChanged) {
+                // replace with current checkbox
+                if (task.isCompleted()) {
+                    newNoteTaskText = newNoteTaskText.replace(TaskData.UNCHECKED_BOXES_1, TaskData.CHECKED_BOXES_2).replace(TaskData.UNCHECKED_BOXES_2, TaskData.CHECKED_BOXES_2);
+                } else {
+                    newNoteTaskText = newNoteTaskText.replace(TaskData.CHECKED_BOXES_1, TaskData.UNCHECKED_BOXES_2).replace(TaskData.CHECKED_BOXES_2, TaskData.UNCHECKED_BOXES_2);
                 }
             }
-            task.setTaskStatus(newStatus);
+            // html comment has changed
+            newNoteTaskText = newNoteTaskText.replace(noteHtmlComment, task.toHtmlComment());
 
-            result = OwnNoteFileManager.getInstance().saveNote(task.getNote());
+            content = content.substring(0, task.getTextPos()) + newNoteTaskText + content.substring(task.getTextPos() + noteTaskLength);
+
+            // update all tasks in file since positions will have changed
+            processFileContentChange(FileContentChangeType.CONTENT_CHANGED, task.getNote(), task.getNote().getNoteFileContent(), content);
+
+            // set back content - also to editor content for next editing of note
+            task.getNote().setNoteFileContent(content);
+            if (task.getNote().getNoteEditorContent() != null) {
+                task.getNote().setNoteEditorContent(content);
+            }
+
+            result = OwnNoteFileManager.getInstance().saveNote(task.getNote(), suppressMessages);
         }
+        inStatusChange = false;
         
         return result;
     }
@@ -523,8 +550,8 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         return result;
     }
     
-    public boolean inFileChange() {
-        return inFileChange;
+    public boolean isProcessing() {
+        return inFileChange || inStatusChange;
     }
     
     public TaskCount getTaskCount(final Note note) {
@@ -552,14 +579,14 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         }
     }
     
-    public List<TaskData> tasksForNote(final Note note) {
+    public Set<TaskData> tasksForNote(final Note note) {
         return getTaskList().stream().filter((t) -> {
             return t.getNote().equals(note);
-        }).collect(Collectors.toList());
+        }).collect(Collectors.toSet());
     }
     
-    public void setTaskDataInNote(final Note note, final boolean suppressMessages) {
-//        System.out.println("setTaskDataInNote");
+    public void replaceTaskDataInNote(final Note note, final boolean suppressMessages) {
+//        System.out.println("replaceTaskDataInNote: " + note.getNoteName());
 
         String content = "";
         content = note.getNoteEditorContent();
@@ -577,7 +604,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             // replace text after checkbox and insert/replace taskid
             final String newHtmlComment = task.toHtmlComment();
             // find text including checkbox - might be empty after the fact...
-            int startOfTaskText = content.indexOf(task.getRawText(), task.getTextPos());
+            int startOfTaskText = content.indexOf(task.getRawText());//content.indexOf(task.getRawText(), task.getTextPos());
             if (startOfTaskText > -1) {
                 // now shift to after the checkbox
                 startOfTaskText += (task.getRawText().length() - task.getHtmlText().length());

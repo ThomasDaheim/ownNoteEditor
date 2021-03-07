@@ -151,8 +151,7 @@ public class TaskData implements ICommentDataHolder {
     private final ObjectProperty<TaskStatus> myStatus = new SimpleObjectProperty<>(TaskStatus.OPEN);
     private final ObjectProperty<TaskPriority> myPriority = new SimpleObjectProperty<>(TaskPriority.LOW);
     
-    // TFE, 20201230: additional attributes are stored in separate meta-data file - link is the unique ID
-    // initialized here to always have a value but can be overwritten from parsed noteContent
+    // TFE, 20201230: initialized here to always have a value but can be overwritten from parsed noteContent
     private String myId = RandomStringUtils.random(12, "0123456789abcdef"); 
     
     private Note myNote = null;

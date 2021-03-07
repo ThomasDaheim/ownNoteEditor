@@ -41,6 +41,7 @@ import javafx.scene.layout.HBox;
 import javafx.util.StringConverter;
 import tf.helper.javafx.CellUtils;
 import tf.ownnote.ui.helper.FormatHelper;
+import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.notes.NoteGroup;
 
 /**
@@ -49,34 +50,34 @@ import tf.ownnote.ui.notes.NoteGroup;
  * @author thomas
  */
 public class TagTreeCellBase {
-    public final static StringConverter<TreeItem<TagInfoWrapper>> treeItemConverter = new StringConverter<TreeItem<TagInfoWrapper>>() {
+    public final static StringConverter<TreeItem<TagDataWrapper>> treeItemConverter = new StringConverter<TreeItem<TagDataWrapper>>() {
         @Override
-        public String toString(TreeItem<TagInfoWrapper> item) {
+        public String toString(TreeItem<TagDataWrapper> item) {
             return item.getValue().getTagInfo().getName();
         }
 
         @Override
-        public TreeItem<TagInfoWrapper> fromString(String string) {
+        public TreeItem<TagDataWrapper> fromString(String string) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
     };
 
-    public final static StringConverter<TagInfoWrapper> tagInfoConverter = new StringConverter<TagInfoWrapper>() {
+    public final static StringConverter<TagDataWrapper> tagInfoConverter = new StringConverter<TagDataWrapper>() {
         @Override
-        public String toString(TagInfoWrapper item) {
+        public String toString(TagDataWrapper item) {
             return item.getTagInfo().getName();
         }
 
         @Override
-        public TagInfoWrapper fromString(String string) {
+        public TagDataWrapper fromString(String string) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
     };
     
-    public static void updateItem(ITagTreeCell cell, TagInfoWrapper item, boolean empty) {
+    public static void updateItem(ITagTreeCell cell, TagDataWrapper item, boolean empty) {
         if (item != null && !empty) {
-            final TreeCell<TagInfoWrapper> treeCell = cell.getTreeCell();
-            final TagInfo tag = item.getTagInfo();
+            final TreeCell<TagDataWrapper> treeCell = cell.getTreeCell();
+            final TagData tag = item.getTagInfo();
             
             final String colorName = tag.getColorName();
             if (colorName != null && !colorName.isEmpty()) {
@@ -100,7 +101,8 @@ public class TagTreeCellBase {
             final MenuItem newSilblingItem = new MenuItem(sibling);
             newSilblingItem.setOnAction((ActionEvent event) -> {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
-                tag.getParent().getChildren().add(TagManager.getInstance().createTag(sibling, TagManager.isGroupsChildTag(tag)));
+                final String tagName = sibling + " " + tag.getParent().getChildren().size();
+                tag.getParent().getChildren().add(TagManager.getInstance().createTag(tagName, TagManager.isGroupsChildTag(tag)));
             });
 
             // only if allowed
@@ -108,7 +110,8 @@ public class TagTreeCellBase {
             final MenuItem newChildItem = new MenuItem(child);
             newChildItem.setOnAction((ActionEvent event) -> {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
-                tag.getChildren().add(TagManager.getInstance().createTag(child, TagManager.isGroupsTag(tag)));
+                final String tagName = child + " " + tag.getChildren().size();
+                tag.getChildren().add(TagManager.getInstance().createTag(tagName, TagManager.isGroupsTag(tag)));
             });
 
             // only if allowed
@@ -142,7 +145,7 @@ public class TagTreeCellBase {
     }            
 
     public static void startEdit(ITagTreeCell cell) {
-        final TreeCell<TagInfoWrapper> treeCell = cell.getTreeCell();
+        final TreeCell<TagDataWrapper> treeCell = cell.getTreeCell();
 
         if (treeCell.isEditing()) {
             final TextField textField = createTextField(treeCell, cell.getTextConverter());
@@ -160,17 +163,17 @@ public class TagTreeCellBase {
     }
 
     public static void cancelEdit(ITagTreeCell cell) {
-        final TreeCell<TagInfoWrapper> treeCell = cell.getTreeCell();
+        final TreeCell<TagDataWrapper> treeCell = cell.getTreeCell();
 
         CellUtils.cancelEdit(treeCell, cell.getTextConverter(), getTreeItemGraphic(treeCell));
     }
 
-    private static Node getTreeItemGraphic(TreeCell<TagInfoWrapper> cell) {
-        TreeItem<TagInfoWrapper> treeItem = cell.getTreeItem();
+    private static Node getTreeItemGraphic(TreeCell<TagDataWrapper> cell) {
+        TreeItem<TagDataWrapper> treeItem = cell.getTreeItem();
         return treeItem == null ? null : treeItem.getGraphic();
     }
 
-    public static TextField createTextField(final Cell<TagInfoWrapper> cell, final StringConverter<TagInfoWrapper> converter) {
+    public static TextField createTextField(final Cell<TagDataWrapper> cell, final StringConverter<TagDataWrapper> converter) {
         final TextField textField = new TextField(CellUtils.getItemText(cell, converter));
 
         // Use onAction here rather than onKeyReleased (with check for Enter),

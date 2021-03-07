@@ -25,7 +25,10 @@
  */
 package tf.ownnote.ui.tasks;
 
+import java.time.LocalDateTime;
 import javafx.beans.binding.Bindings;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
@@ -65,15 +68,44 @@ public class TaskCard extends GridPane {
     private final static String PRIO_TEXT = "Prio: ";
     private final Label prioLbl = new Label(); 
     
+    // TFE, 20210305: make sure we only attach listener once and it can be removed afterwards
+    private boolean inFirstInit = true;
+    private final ChangeListener<Boolean> completeListener;
+    private final ChangeListener<LocalDateTime> dateListener;
+    
     private TaskCard() {
         this(null);
     }
     
     public TaskCard(final TaskData task) {
         myTask = task;
+
+        completeListener = new ChangeListener<>() {
+            @Override
+            public void changed(ObservableValue<? extends Boolean> ov, Boolean oldValue, Boolean newValue) {
+                if (newValue != null && !newValue.equals(oldValue)) {
+                    setPseudoClass();
+                }
+            }
+        };
+        dateListener = new ChangeListener<>() {
+            @Override
+            public void changed(ObservableValue<? extends LocalDateTime> ov, LocalDateTime oldValue, LocalDateTime newValue) {
+                if (newValue != null && !newValue.equals(oldValue)) {
+                    setPseudoClass();
+                }
+            }
+        };
         
         initCard();
         initValues();
+    }
+    
+    // should be called explicitly since task cards are created during any change to task status
+    // to avoid to have multiple listeners to same task (since unused taskcards might not get garbage collected...)
+    public void dettachFromTask() {
+        myTask.isCompletedProperty().removeListener(completeListener);
+        myTask.dueDateProperty().removeListener(dateListener);
     }
     
     private void initCard() {
@@ -163,22 +195,22 @@ public class TaskCard extends GridPane {
         Tooltip t = new Tooltip(myTask.getDescription());
         descLbl.setTooltip(t);
         descLbl.textProperty().bind(myTask.descriptionProperty()); 
-        myTask.taskStatusProperty().addListener((ov, oldValue, newValue) -> {
-            setPseudoClass();
-            layout();
-        });
+        if (inFirstInit) {
+            myTask.isCompletedProperty().addListener(completeListener);
+        }
         setPseudoClass();
 
         prioLbl.textProperty().bind(Bindings.concat(PRIO_TEXT, myTask.taskPriorityProperty()));
-        myTask.dueDateProperty().addListener((ov, oldValue, newValue) -> {
-            setDueDateLabel();
-            layout();
-        });
+        if (inFirstInit) {
+            myTask.dueDateProperty().addListener(dateListener);
+        }
         setDueDateLabel();
+        
+        inFirstInit = false;
     }
     
     private void setPseudoClass() {
-        descLbl.pseudoClassStateChanged(TaskManager.COMPLETED, myTask.isCompleted());
+        descLbl.pseudoClassStateChanged(TaskManager.TASK_COMPLETED, myTask.isCompleted());
     }
     
     private void setDueDateLabel() {

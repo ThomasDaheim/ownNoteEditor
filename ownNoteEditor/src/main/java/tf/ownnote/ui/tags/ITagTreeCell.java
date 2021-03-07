@@ -37,6 +37,6 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  */
 public interface ITagTreeCell {
     public OwnNoteEditor getEditor();
-    public TreeCell<TagInfoWrapper> getTreeCell();
-    public StringConverter<TagInfoWrapper> getTextConverter();
+    public TreeCell<TagDataWrapper> getTreeCell();
+    public StringConverter<TagDataWrapper> getTextConverter();
 }

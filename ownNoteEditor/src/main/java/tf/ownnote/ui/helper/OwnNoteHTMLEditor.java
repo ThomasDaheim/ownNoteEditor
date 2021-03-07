@@ -58,6 +58,7 @@ import javafx.print.PrinterJob;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
@@ -84,6 +85,7 @@ import tf.helper.general.ImageHelper;
 import tf.helper.javafx.UsefulKeyCodes;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.notes.NoteMetaData;
 import tf.ownnote.ui.tasks.TaskData;
 import tf.ownnote.ui.tasks.TaskManager;
 
@@ -108,6 +110,8 @@ public class OwnNoteHTMLEditor {
     private static final List<String> COPY_SELECTION = List.of("Copy", "Kopieren");
     private static final List<String> COPY_TEXT_SELECTION = List.of("Copy Text", "Kopieren als Text");
     private static final List<String> SAVE_NOTE = List.of("Save", "Speichern");
+    // TFE, 20210304: add context menu to insert attachment link into note
+    private static final List<String> ATTACHMENT_LINK = List.of("Insert attachment link", "Anhang-Link einf\\u00fcgen");
     private static final List<String> COMPRESS_IMAGES = List.of("Compress images", "Bilder komprimieren");
     private static final List<String> REPLACE_CHECKEDBOXES = List.of("Checked box -> " + TaskData.ARCHIVED_BOX, "Checked Box -> " + TaskData.ARCHIVED_BOX);
     private static final List<String> REPLACE_CHECKMARKS = List.of(TaskData.ARCHIVED_BOX + " -> Checked box", TaskData.ARCHIVED_BOX + " -> Checked Box");
@@ -265,7 +269,7 @@ public class OwnNoteHTMLEditor {
                     // add a context menu for saving
                     // http://stackoverflow.com/questions/27047447/customized-context-menu-on-javafx-webview-webengine/27047819#27047819
                     myWebView.setOnContextMenuRequested((ContextMenuEvent e) -> {
-                        getPopupWindow();
+                        initPopupWindow();
                     });
                     
                     // support for drag & drop
@@ -279,24 +283,29 @@ public class OwnNoteHTMLEditor {
                         public void handle(KeyEvent event) {
                             if (UsefulKeyCodes.CNTRL_C.match(event)) {
                                 copyToClipboard(true, true);
+                                event.consume();
                             }
                             if (UsefulKeyCodes.SHIFT_DEL.match(event)) {
                                 copyToClipboard(false, true);
 //                                wrapExecuteScript(myWebEngine, "tinymce.activeEditor.execCommand(\"Cut\");");
+                                event.consume();
                             }
                             if (UsefulKeyCodes.CNTRL_X.match(event)) {
                                 copyToClipboard(true, true);
+                                event.consume();
                             }
                             if (UsefulKeyCodes.CNTRL_S.match(event)) {
                                 saveNote();
+                                event.consume();
                             }
                         }
                     });
                 }
             }
         });
+        myWebEngine.setUserStyleSheetLocation(OwnNoteHTMLEditor.class.getResource("/editor.min.css").toString());
 
-        final String editor_script = OwnNoteHTMLEditor.class.getResource("/tinymceEditor.html").toExternalForm();
+        final String editor_script = OwnNoteHTMLEditor.class.getResource("/tinymceEditor.min.html").toExternalForm();
         myWebView.getEngine().load(editor_script);
     }
     
@@ -472,6 +481,8 @@ public class OwnNoteHTMLEditor {
         if (editedNote != null) {
             editedNote.setNoteEditorContent(getNoteText());
             if (myEditor.saveNote(editedNote)) {
+                // TFE, 20210224: update editor content since task metadata might have changed!
+                editNote(editedNote, editedNote.getNoteEditorContent());
             }
         }
     }
@@ -613,7 +624,7 @@ public class OwnNoteHTMLEditor {
         editNote(editedNote, content);
     }
     
-    private PopupWindow getPopupWindow() {
+    private void initPopupWindow() {
         final ObservableList<Window> windows = Window.getWindows();
 
         for (Window window : windows) {
@@ -677,6 +688,10 @@ public class OwnNoteHTMLEditor {
                             // work is done in myWebView.addEventHandler(KeyEvent.KEY_PRESSED...
                             saveMenu.setAccelerator(UsefulKeyCodes.CNTRL_S.getKeyCodeCombination());
                             
+                            // add attachment links - fill menu items for each edited note individually
+                            final Menu attachMenu = new Menu(ATTACHMENT_LINK.get(language));
+                            populateAttachMenu(attachMenu);
+                            
                             // checkbox -> symbol
                             final MenuItem replaceCheckedBoxesMenu = new MenuItem(REPLACE_CHECKEDBOXES.get(language));
                             replaceCheckedBoxesMenu.setOnAction((ActionEvent event) -> {
@@ -697,19 +712,18 @@ public class OwnNoteHTMLEditor {
 
                             // add new items:
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(saveMenu));
+                            // TODO: menuitems not showing
+//                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(attachMenu));
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(compressImagesMenu));
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(replaceCheckedBoxesMenu));
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(replaceCheckmarksMenu));
-
-                            return (PopupWindow)window;
                         }
                     }
                 }
-                return null;
             }
         }
-        return null;
-    }  
+    } 
+    
     private boolean removeMenu(final String menuname) {
         boolean result = false;
         
@@ -724,6 +738,7 @@ public class OwnNoteHTMLEditor {
         
         return result;
     }
+    
     private void copyToClipboard(final boolean runLater, final boolean copyFullHTML) {
         // tricky... in some cases we want to let tinymce do its work before in others we don't
         if (runLater) {
@@ -792,6 +807,23 @@ public class OwnNoteHTMLEditor {
         }
 
         return result;
+    }
+    
+    private void populateAttachMenu(final Menu attachMenu) {
+        if (attachMenu == null) {
+            return;
+        }
+        attachMenu.getItems().clear();
+        if (editedNote != null) {
+            for (String attachment : editedNote.getMetaData().getAttachments()) {
+                final MenuItem attachItem = new MenuItem(attachment);
+                attachItem.setOnAction((ActionEvent event) -> {
+                    final String fileName = NoteMetaData.getAttachmentPath() + attachment;
+                    System.out.println("Inserting link to " + fileName);
+                });
+                attachMenu.getItems().add(attachItem);
+            }
+        }
     }
     
     private void openLinkInDefaultBrowser(final String url) {
@@ -864,7 +896,7 @@ public class OwnNoteHTMLEditor {
         String newEditorText = "";
 
         if (editorInitialized) {
-            Object dummy = wrapExecuteScript(myWebEngine, "saveGetContent();");
+            Object dummy = wrapExecuteScript(myWebEngine, "saveGetContent(" + true + ", " + true + ");");
             
             assert (dummy instanceof String);
             newEditorText = (String) dummy;

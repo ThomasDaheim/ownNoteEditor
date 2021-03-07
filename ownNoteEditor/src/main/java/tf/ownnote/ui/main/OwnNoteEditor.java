@@ -44,7 +44,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -113,7 +115,7 @@ import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.tags.TagEditor;
-import tf.ownnote.ui.tags.TagInfo;
+import tf.ownnote.ui.tags.TagData;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tags.TagsTreeView;
 import tf.ownnote.ui.tasks.TaskBoard;
@@ -159,7 +161,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     
     private BooleanProperty tasklistVisible = new SimpleBooleanProperty(true);
     
-    private Note curNote;
+    // TFE, 20210301: make this a property so that rest of the world can listen to changes...
+    private final ObjectProperty<Note> currentNoteProperty = new SimpleObjectProperty<>(null);
     
     // Indicates that the divider is currently dragged by the mouse
     // see https://stackoverflow.com/a/40707931
@@ -494,6 +497,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         groupsPaneFXML.setVisible(false);
 
         VBox.setVgrow(noteHTMLEditorFXML, Priority.ALWAYS);
+        // error when trying this in the fxml: "java.lang.IllegalArgumentException: Unable to coerce noteHTMLEditor to interface java.util.Collection."
+        noteHTMLEditorFXML.getStyleClass().add("noteHTMLEditor");
         VBox.setVgrow(noteMetaEditorFXML, Priority.NEVER);
         noteHTMLEditor = new OwnNoteHTMLEditor(noteHTMLEditorFXML, this);
         noteMetaEditor = new OwnNoteMetaDataEditor(noteMetaEditorFXML, this);
@@ -1087,7 +1092,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             TagManager.getInstance().groupsToTags();
         });
 
-        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v5.1", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v5.2", "https://github.com/ThomasDaheim/ownNoteEditor");
     }
     
     // do everything to show / hide tasklist
@@ -1213,6 +1218,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         }
         noteHTMLEditor.editNote(curNote);
         noteMetaEditor.editNote(curNote);
+        currentNoteProperty.set(curNote);
         
         return result;
     }
@@ -1538,7 +1544,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         notesTable.setGroupNameFilter(groupName);
     }
     
-    public void setTagFilter(final TagInfo tag) {
+    public void setTagFilter(final TagData tag) {
         notesTable.setTagFilter(tag);
     }
 
@@ -1550,21 +1556,21 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         // select first or current note - if any
         if (!notesTable.getItems().isEmpty()) {
             // check if current edit is ongoing AND note in the select tab (can happen with drag & drop!)
-            curNote = noteHTMLEditor.getEditedNote();
+            currentNoteProperty.set(noteHTMLEditor.getEditedNote());
 
             // TFE, 20201030: support re-load of last edited note
-            if (curNote == null) {
+            if (currentNoteProperty.get() == null) {
                 final String lastGroupName = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.LAST_EDITED_GROUP, "");
                 final String lastNoteName = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.LAST_EDITED_NOTE, "");
                 if (OwnNoteFileManager.getInstance().noteExists(lastGroupName, lastNoteName)) {
-                    curNote = OwnNoteFileManager.getInstance().getNote(lastGroupName, lastNoteName);
+                    currentNoteProperty.set(OwnNoteFileManager.getInstance().getNote(lastGroupName, lastNoteName));
                     
                     if (firstNoteAccess) {
                         // done, selectGroupForNote calls selectFirstOrCurrentNote() internally - BUT NO LOOPS PLEASE
                         firstNoteAccess = false;
                         Platform.runLater(() -> {
                             if (!OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-                                myGroupList.selectGroupForNote(curNote);
+                                myGroupList.selectGroupForNote(currentNoteProperty.get());
                             }
                         });
                         return;
@@ -1573,8 +1579,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             }
             
             int selectIndex = 0;
-            if (curNote != null && notesTable.getItems().contains(curNote)) {
-                selectIndex = notesTable.getItems().indexOf(curNote);
+            if (currentNoteProperty.get() != null && notesTable.getItems().contains(currentNoteProperty.get())) {
+                selectIndex = notesTable.getItems().indexOf(currentNoteProperty.get());
             }
 
             // TFE, 20201030: this also starts editing of the note
@@ -1741,6 +1747,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                 }
 //                System.out.println("Found group: " + groupName + " as number: " + groupIndex + " color: " + groupColor);
             }
+        } else {
+            // TFE, 20210307: new group that isn't yet in the list...
+            final int groupIndex = OwnNoteFileManager.getInstance().getGroupsList().size();
+            groupColor = groupColors[groupIndex % groupColors.length];
         }
         return groupColor;
     }
@@ -1792,5 +1802,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     // not to confuse with the static method in TaskManager - this does the bookkeeping for the current node as well
     public void replaceCheckmarks() {
         noteHTMLEditor.replaceCheckmarks();
+    }
+    
+    // and now everyone can listen to note selection changes...
+    public ObjectProperty<Note> currentNoteProperty() {
+        return currentNoteProperty;
     }
 }

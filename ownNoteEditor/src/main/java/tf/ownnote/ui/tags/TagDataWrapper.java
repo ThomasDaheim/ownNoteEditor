@@ -32,24 +32,24 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 
 /**
- * Wrapper for TagInfo tha adds selected property as is required in TagsTreeView.
+ * Wrapper for TagData that adds selected property as is required in TagsTreeView.
  * 
  * @author thomas
  */
-public class TagInfoWrapper {
+public class TagDataWrapper {
     private final BooleanProperty selectedProperty = new SimpleBooleanProperty(false);
-    private final TagInfo myTag;
-    private final ObservableList<TagInfoWrapper> children = FXCollections.<TagInfoWrapper>observableArrayList();
+    private final TagData myTag;
+    private final ObservableList<TagDataWrapper> children = FXCollections.<TagDataWrapper>observableArrayList();
     
-    private TagInfoWrapper() {
+    private TagDataWrapper() {
         this(null);
     }
 
-    public TagInfoWrapper(final TagInfo tag) {
+    public TagDataWrapper(final TagData tag) {
         this(tag, false);
     }
 
-    public TagInfoWrapper(final TagInfo tag, final boolean sel) {
+    public TagDataWrapper(final TagData tag, final boolean sel) {
         myTag = tag;
         selectedProperty.setValue(sel);
         
@@ -62,19 +62,19 @@ public class TagInfoWrapper {
         }
 
         // and now we need to keep track of changes to the wrapped list
-        myTag.getChildren().addListener((ListChangeListener.Change<? extends TagInfo> change) -> {
+        myTag.getChildren().addListener((ListChangeListener.Change<? extends TagData> change) -> {
             createChildren();
         });
     }
     
     private void createChildren() {
         children.clear();
-        for (TagInfo child : myTag.getChildren()) {
-            children.add(new TagInfoWrapper(child));
+        for (TagData child : myTag.getChildren()) {
+            children.add(new TagDataWrapper(child));
         }
     }
     
-    public TagInfo getTagInfo() {
+    public TagData getTagInfo() {
         return myTag;
     }
     
@@ -90,7 +90,7 @@ public class TagInfoWrapper {
         selectedProperty.set(sel);
     }
 
-    public ObservableList<TagInfoWrapper> getChildren() {
+    public ObservableList<TagDataWrapper> getChildren() {
         return children;
     }
 }

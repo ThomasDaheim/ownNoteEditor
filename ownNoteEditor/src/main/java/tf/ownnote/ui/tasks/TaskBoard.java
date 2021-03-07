@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javafx.geometry.Rectangle2D;
 import javafx.geometry.VPos;
+import javafx.scene.image.Image;
 import javafx.scene.input.DataFormat;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -65,6 +66,8 @@ public class TaskBoard extends AbstractStage {
     
     private void initViewer() {
         setTitle("Task Board");
+        getIcons().clear();
+        getIcons().add(new Image(TaskBoard.class.getResourceAsStream("/OwnNoteEditorManager.png")));
         initModality(Modality.NONE); 
         initStyle(StageStyle.DECORATED);
         setResizable(true);

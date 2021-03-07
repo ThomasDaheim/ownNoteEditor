@@ -68,7 +68,7 @@ import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteMetaData;
 import tf.ownnote.ui.notes.NoteVersion;
 import tf.ownnote.ui.tags.TagEditor;
-import tf.ownnote.ui.tags.TagInfo;
+import tf.ownnote.ui.tags.TagData;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tasks.TaskCount;
 import tf.ownnote.ui.tasks.TaskManager;
@@ -97,6 +97,10 @@ public class OwnNoteMetaDataEditor {
     
     private Note editorNote;
 
+    // TFE, 20210305: make sure we only attach listener once and it can be removed afterwards
+    private SetChangeListener<TagData> tagListener;
+    private ListChangeListener<String> attachListener;
+
     private OwnNoteMetaDataEditor() {
         super();
     }
@@ -109,6 +113,40 @@ public class OwnNoteMetaDataEditor {
         myHBox = hBox;
         
         myHostServices = (HostServices) myEditor.getWindow().getProperties().get("hostServices");
+        
+        tagListener = new SetChangeListener<>() {
+            @Override
+            public void onChanged(SetChangeListener.Change<? extends TagData> change) {
+                if (change.wasRemoved()) {
+                    removeTagLabel(change.getElementRemoved().getName());
+                }
+                if (change.wasAdded()) {
+                    // TFE, 2021012: don't ask - for some reason we need to remove first to avoid duplicates
+                    // might be an issue in which order the listener is called?
+                    removeTagLabel(change.getElementAdded().getName());
+                    addTagLabel(change.getElementAdded().getName());
+                }
+            }
+        };
+        
+        // change listener as well
+        attachListener = new ListChangeListener<>() {
+            @Override
+            public void onChanged(ListChangeListener.Change<? extends String> change) {
+                while (change.next()) {
+                    if (change.wasRemoved()) {
+                        for (String attach : change.getRemoved()) {
+                            removeAttachMenu(attach);
+                        }
+                    }
+                    if (change.wasAdded()) {
+                        for (String attach : change.getAddedSubList()) {
+                            addAttachMenu(attach);
+                        }
+                    }
+                }
+            }
+        };
 
         initEditor();
     }
@@ -151,8 +189,10 @@ public class OwnNoteMetaDataEditor {
         });
 
         final Menu attachmentsMenu = new Menu("Attachments");
+        attachmentsMenu.getStyleClass().add("attachment-menu");
         attachmentsMenu.getStyleClass().add("menu-as-list");
         attachments.getMenus().add(attachmentsMenu);
+        attachments.getStyleClass().add("attachment-menu");
         attachments.getStyleClass().add("menu-as-list");
         
         addAttachment.setUserData("+");
@@ -161,6 +201,7 @@ public class OwnNoteMetaDataEditor {
             addAttachment();
         });
         attachments.getMenus().get(0).getItems().setAll(addAttachment);
+        HBox.setMargin(attachments, AbstractStage.INSET_SMALL);
 
         final Region region1 = new Region();
         HBox.setHgrow(region1, Priority.ALWAYS);
@@ -179,6 +220,12 @@ public class OwnNoteMetaDataEditor {
     public void editNote(final Note note) {
         if (note == null) {
             return;
+        }
+        
+        if (editorNote != null) {
+            // remove listeners from old note
+            editorNote.getMetaData().getTags().removeListener(tagListener);
+            editorNote.getMetaData().getAttachments().removeListener(attachListener);
         }
         editorNote = note;
         
@@ -203,17 +250,7 @@ public class OwnNoteMetaDataEditor {
         }
 
         // change listener as well
-        editorNote.getMetaData().getTags().addListener((SetChangeListener.Change<? extends TagInfo> change) -> {
-            if (change.wasRemoved()) {
-                removeTagLabel(change.getElementRemoved().getName());
-            }
-            if (change.wasAdded()) {
-                // TFE, 2021012: don't ask - for some reason we need to remove first to avoid duplicates
-                // might be an issue in which order the listener is called?
-                removeTagLabel(change.getElementAdded().getName());
-                addTagLabel(change.getElementAdded().getName());
-            }
-        });
+        editorNote.getMetaData().getTags().addListener(tagListener);
         
         attachments.getMenus().get(0).getItems().setAll(addAttachment);
         for (String attach : editorNote.getMetaData().getAttachments()) {
@@ -221,20 +258,7 @@ public class OwnNoteMetaDataEditor {
         }
         
         // change listener as well
-        editorNote.getMetaData().getAttachments().addListener((ListChangeListener.Change<? extends String> change) -> {
-            while (change.next()) {
-                if (change.wasRemoved()) {
-                    for (String attach : change.getRemoved()) {
-                        removeAttachMenu(attach);
-                    }
-                }
-                if (change.wasAdded()) {
-                    for (String attach : change.getAddedSubList()) {
-                        addAttachMenu(attach);
-                    }
-                }
-            }
-        });
+        editorNote.getMetaData().getAttachments().addListener(attachListener);
         
         final TaskCount taskCount = TaskManager.getInstance().getTaskCount(note);
         taskstxt.setText(taskCount.getCount(TaskCount.TaskType.OPEN) + " / " + taskCount.getCount(TaskCount.TaskType.CLOSED) + " / " + taskCount.getCount(TaskCount.TaskType.TOTAL));
@@ -355,7 +379,7 @@ public class OwnNoteMetaDataEditor {
                 Logger.getLogger(OwnNoteMetaDataEditor.class.getName()).log(Level.SEVERE, null, ex);
                 return;
             }
-            final String fileName = OwnNoteFileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR + File.separator + selectedFile.getName();
+            final String fileName = NoteMetaData.getAttachmentPath() + selectedFile.getName();
             final File file = new File(fileName);
             if (file.exists()) {
                 // need to copy file to attachments subdir (if not already there)

@@ -43,8 +43,10 @@ import javafx.collections.SetChangeListener;
 import tf.ownnote.ui.commentdata.CommentDataMapper;
 import tf.ownnote.ui.commentdata.ICommentDataHolder;
 import tf.ownnote.ui.commentdata.ICommentDataInfo;
-import tf.ownnote.ui.tags.TagInfo;
+import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.tags.TagData;
 import tf.ownnote.ui.tags.TagManager;
+import tf.ownnote.ui.tasks.TaskData;
 
 /**
  * Store for note metadata, e.g. author, last modified, tags, ...
@@ -86,7 +88,9 @@ public class NoteMetaData implements ICommentDataHolder {
     }
 
     private final ObservableList<NoteVersion> myVersions = FXCollections.<NoteVersion>observableArrayList();
-    private final ObservableSet<TagInfo> myTags = FXCollections.<TagInfo>observableSet();
+    private final ObservableSet<TagData> myTags = FXCollections.<TagData>observableSet();
+    // TFE, 20210228: know thy taskas as well
+    private final ObservableSet<TaskData> myTasks = FXCollections.<TaskData>observableSet();
     // TFE, 20201217: add charset to metadata - since we switched to UTF-8 on 17.12.2020 we need to be able to handle old notes
     private Charset myCharset = StandardCharsets.ISO_8859_1;
     // TFE, 20210101: support for note attachments
@@ -101,7 +105,7 @@ public class NoteMetaData implements ICommentDataHolder {
         super();
 
         // go, tell it to the mountains
-        myTags.addListener((SetChangeListener.Change<? extends TagInfo> change) -> {
+        myTags.addListener((SetChangeListener.Change<? extends TagData> change) -> {
             // can happen e.g. when using constructor fromHtmlComment()
             if (myNote == null) {
                 return;
@@ -171,11 +175,11 @@ public class NoteMetaData implements ICommentDataHolder {
         }
     }
 
-    public ObservableSet<TagInfo> getTags() {
+    public ObservableSet<TagData> getTags() {
         return myTags;
     }
 
-    public void setTags(final Set<TagInfo> tags) {
+    public void setTags(final Set<TagData> tags) {
         myTags.clear();
         myTags.addAll(tags);
     }
@@ -183,7 +187,7 @@ public class NoteMetaData implements ICommentDataHolder {
     private void updateTags(final UpdateTag updateTag) {
         if (myNote == null) return;
         
-        for (TagInfo tag : myTags) {
+        for (TagData tag : myTags) {
             switch (updateTag) {
                 case LINK:
 //                    System.out.println("Linking note " + myNote.getNoteName() + " to tag " + tag.getName());
@@ -196,6 +200,15 @@ public class NoteMetaData implements ICommentDataHolder {
                     break;
             }
         }
+    }
+    
+    public ObservableSet<TaskData> getTasks() {
+        return myTasks;
+    }
+
+    public void setTasks(final Set<TaskData> tasks) {
+        myTasks.clear();
+        myTasks.addAll(tasks);
     }
     
     public Note getNote() {
@@ -343,5 +356,9 @@ public class NoteMetaData implements ICommentDataHolder {
     
     public void setUnsavedChanges(final boolean changed) {
         hasUnsavedChanges.setValue(changed);
+    }
+    
+    public static String getAttachmentPath() {
+        return OwnNoteFileManager.getInstance().getNotesPath() + ATTACHMENTS_DIR + File.separator;
     }
 }
