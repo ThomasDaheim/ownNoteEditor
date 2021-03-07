@@ -159,6 +159,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             xstream.alias("stringProperty", SimpleStringProperty.class);
             xstream.alias("objectProperty", SimpleObjectProperty.class);
 
+            xstream.aliasField("id", TagData.class, "myId");
             xstream.aliasField("name", TagData.class, "nameProperty");
             xstream.aliasField("iconName", TagData.class, "iconNameProperty");
             xstream.aliasField("colorName", TagData.class, "colorNameProperty");
@@ -300,6 +301,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         xstream.alias("stringProperty", SimpleStringProperty.class);
         xstream.alias("objectProperty", SimpleObjectProperty.class);
 
+        xstream.aliasField("id", TagData.class, "myId");
         xstream.aliasField("name", TagData.class, "nameProperty");
         xstream.aliasField("iconName", TagData.class, "iconNameProperty");
         xstream.aliasField("colorName", TagData.class, "colorNameProperty");
@@ -441,6 +443,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         final TagData result = new TagData(name);
         if (isGroup) {
             TagManager.initGroupTag(result);
+            // TFE, 20210307: add it to the list as well - dummy
+            OwnNoteFileManager.getInstance().createGroup(name);
         }
         return result;
     }

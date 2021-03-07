@@ -37,6 +37,7 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import org.apache.commons.lang3.RandomStringUtils;
 import tf.ownnote.ui.notes.Note;
 
 /**
@@ -72,6 +73,9 @@ public class TagData {
 //        }        
 //    });
 
+    // TFE, 20201230: initialized here to always have a value but can be overwritten from parsed noteContent
+    private String myId = RandomStringUtils.random(12, "0123456789abcdef"); 
+    
     public TagData() {
         this("");
     }
@@ -130,6 +134,10 @@ public class TagData {
         int hash = 7;
         hash = 11 * hash + Objects.hashCode(this.nameProperty.get());
         return hash;
+    }
+
+    public String getId() {
+        return myId;
     }
 
     public StringProperty nameProperty() {

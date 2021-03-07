@@ -1747,6 +1747,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                 }
 //                System.out.println("Found group: " + groupName + " as number: " + groupIndex + " color: " + groupColor);
             }
+        } else {
+            // TFE, 20210307: new group that isn't yet in the list...
+            final int groupIndex = OwnNoteFileManager.getInstance().getGroupsList().size();
+            groupColor = groupColors[groupIndex % groupColors.length];
         }
         return groupColor;
     }

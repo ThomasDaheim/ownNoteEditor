@@ -41,6 +41,7 @@ import javafx.scene.layout.HBox;
 import javafx.util.StringConverter;
 import tf.helper.javafx.CellUtils;
 import tf.ownnote.ui.helper.FormatHelper;
+import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.notes.NoteGroup;
 
 /**
@@ -100,7 +101,8 @@ public class TagTreeCellBase {
             final MenuItem newSilblingItem = new MenuItem(sibling);
             newSilblingItem.setOnAction((ActionEvent event) -> {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
-                tag.getParent().getChildren().add(TagManager.getInstance().createTag(sibling, TagManager.isGroupsChildTag(tag)));
+                final String tagName = sibling + " " + tag.getParent().getChildren().size();
+                tag.getParent().getChildren().add(TagManager.getInstance().createTag(tagName, TagManager.isGroupsChildTag(tag)));
             });
 
             // only if allowed
@@ -108,7 +110,8 @@ public class TagTreeCellBase {
             final MenuItem newChildItem = new MenuItem(child);
             newChildItem.setOnAction((ActionEvent event) -> {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
-                tag.getChildren().add(TagManager.getInstance().createTag(child, TagManager.isGroupsTag(tag)));
+                final String tagName = child + " " + tag.getChildren().size();
+                tag.getChildren().add(TagManager.getInstance().createTag(tagName, TagManager.isGroupsTag(tag)));
             });
 
             // only if allowed
