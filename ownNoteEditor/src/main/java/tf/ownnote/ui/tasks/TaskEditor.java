@@ -88,6 +88,8 @@ public class TaskEditor extends GridPane {
         // needs to be done in case it becomes a stage...
         // (new JMetro(Style.LIGHT)).setScene(getScene());
         // getScene().getStylesheets().add(EditGPXWaypoint.class.getResource("/GPXEditor.css").toExternalForm());
+        
+        getStyleClass().add("taskEditor");
 
         final ColumnConstraints col1 = new ColumnConstraints();
         final ColumnConstraints col2 = new ColumnConstraints();

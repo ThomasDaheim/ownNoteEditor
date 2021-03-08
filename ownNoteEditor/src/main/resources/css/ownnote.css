@@ -308,6 +308,10 @@
 .taskdata-popup {
     -fx-font-size: 0.9em;
 }
+.taskEditor > * {
+    -fx-strikethrough: false !important;
+    -fx-font-weight: normal !important;
+}
 
 /* styling the KANBAN board */
 .task-board-lane-taskbox,
