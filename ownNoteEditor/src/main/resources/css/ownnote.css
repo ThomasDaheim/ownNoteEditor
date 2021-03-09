@@ -333,6 +333,9 @@
     -fx-border-color: darkgray;
     -fx-background-color: white;
 }
+.task-card:focused {
+    -fx-background-color: #97caf0;
+}
 .task-board-lane-header {
     -fx-text-fill: white;
     -fx-alignment: CENTER;

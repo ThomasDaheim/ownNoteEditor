@@ -185,7 +185,7 @@ public class OwnNoteMetaDataEditor {
         
         final Button tagsButton = new Button("+");
         tagsButton.setOnAction((t) -> {
-            TagEditor.getInstance().editTags(editorNote);
+            TagEditor.getInstance().editTags(editorNote.getMetaData());
         });
 
         final Menu attachmentsMenu = new Menu("Attachments");

@@ -22,6 +22,7 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.CheckBoxListCell;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.util.StringConverter;
 import org.controlsfx.control.PopOver;
 import tf.helper.javafx.TooltipHelper;
@@ -126,15 +127,34 @@ public class TaskList {
             
             cell.getStyleClass().add("taskdata");
             
-            final ContextMenu contextMenu = new ContextMenu();
-
-            final MenuItem editTask = new MenuItem("Edit task");
             final PopOver popOver = new PopOver();
-            popOver.setAutoHide(true);
+            popOver.setAutoHide(false);
             popOver.setAutoFix(true);
             popOver.setCloseButtonEnabled(true);
             popOver.setArrowLocation(PopOver.ArrowLocation.TOP_CENTER);
             popOver.setArrowSize(0);
+            
+            cell.focusedProperty().addListener((ov, oldValue, newValue) -> {
+                if (newValue != null && !newValue.equals(oldValue) && !newValue) {
+                    popOver.hide();
+                }
+            });
+            myTaskList.focusedProperty().addListener((ov, oldValue, newValue) -> {
+                if (newValue != null && !newValue.equals(oldValue) && !newValue) {
+                    popOver.hide();
+                }
+            });
+
+            cell.setOnMouseClicked((t) -> {
+                if (!cell.isEmpty() && t.getClickCount() == 2) {
+                    popOver.setContentNode(new TaskEditor(cell.getItem()));
+                    popOver.show(cell);
+                }
+            });
+            
+            final ContextMenu contextMenu = new ContextMenu();
+
+            final MenuItem editTask = new MenuItem("Edit task");
             editTask.setOnAction(event -> {
                 popOver.setContentNode(new TaskEditor(cell.getItem()));
                 popOver.show(cell);

@@ -135,12 +135,18 @@ public class TaskCard extends GridPane {
 
         // support for editing the task on this card
         final PopOver popOver = new PopOver();
-        popOver.setAutoHide(true);
+        popOver.setAutoHide(false);
         popOver.setAutoFix(true);
         popOver.setCloseButtonEnabled(true);
         popOver.setArrowLocation(PopOver.ArrowLocation.TOP_CENTER);
         popOver.setArrowSize(0);
         popOver.setContentNode(new TaskEditor(myTask));
+
+        focusedProperty().addListener((ov, oldValue, newValue) -> {
+            if (newValue != null && !newValue.equals(oldValue) && !newValue) {
+                popOver.hide();
+            }
+        });
 
         final ContextMenu contextMenu = new ContextMenu();
         final MenuItem editTask = new MenuItem("Edit task");
@@ -151,6 +157,7 @@ public class TaskCard extends GridPane {
         contextMenu.getItems().addAll(editTask);
         
         setOnMouseClicked((t) -> {
+            requestFocus();
             if (t.getClickCount() == 2) {
                 popOver.show(this);
                 initValues();
@@ -167,6 +174,7 @@ public class TaskCard extends GridPane {
         });
         
         setOnDragDetected((t) -> {
+            setFocused(true);
             AppClipboard.getInstance().addContent(TaskBoard.DRAG_AND_DROP, myTask);
 
             /* allow any transfer mode */

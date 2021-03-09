@@ -6,13 +6,19 @@
 package tf.ownnote.ui.tasks;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableSet;
+import javafx.collections.SetChangeListener;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.unbescape.html.HtmlEscape;
 import tf.ownnote.ui.commentdata.CommentDataMapper;
@@ -21,6 +27,9 @@ import tf.ownnote.ui.commentdata.ICommentDataInfo;
 import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.tags.ITagHolder;
+import tf.ownnote.ui.tags.TagData;
+import tf.ownnote.ui.tags.TagManager;
 
 /**
  * A task in a note.
@@ -29,7 +38,7 @@ import tf.ownnote.ui.notes.Note;
  * 
  * @author thomas
  */
-public class TaskData implements ICommentDataHolder {
+public class TaskData implements ICommentDataHolder, ITagHolder {
     // TFE, 20200712: add search of unchecked boxes
     // TFE, 20201103: actual both variants of html are valid and need to be supported equally
     public final static String UNCHECKED_BOXES_1 = "<input type=\"checkbox\" />";
@@ -45,7 +54,8 @@ public class TaskData implements ICommentDataHolder {
         STATUS("status", Multiplicity.SINGLE),
         PRIO("prio", Multiplicity.SINGLE),
         DUE_DATE("dueDate", Multiplicity.SINGLE),
-        COMMENT("comment", Multiplicity.SINGLE);
+        COMMENT("comment", Multiplicity.SINGLE),
+        TAGS("tags", Multiplicity.MULTIPLE);
         
         private final String dataName;
         private final Multiplicity dataMulti;
@@ -153,6 +163,9 @@ public class TaskData implements ICommentDataHolder {
     
     // TFE, 20201230: initialized here to always have a value but can be overwritten from parsed noteContent
     private String myId = RandomStringUtils.random(12, "0123456789abcdef"); 
+
+    // TFE, 20210308: tasks can have their own tags!
+    private final ObservableSet<TagData> myTags = FXCollections.<TagData>observableSet();
     
     private Note myNote = null;
     
@@ -177,6 +190,7 @@ public class TaskData implements ICommentDataHolder {
             if (newValue != null && !newValue.equals(oldValue) && !inStatusChange) {
                 inStatusChange = true;
                 setTaskStatus(isCompleted() ? TaskStatus.DONE : TaskStatus.maxOpenStatus(TaskStatus.OPEN, myStatus.get()));
+                myNote.setUnsavedChanges(true);
                 inStatusChange = false;
             }
         });
@@ -189,7 +203,28 @@ public class TaskData implements ICommentDataHolder {
             if (newValue != null && !newValue.equals(oldValue) && !inStatusChange) {
                 inStatusChange = true;
                 setCompleted(newValue.isCompleted());
+                myNote.setUnsavedChanges(true);
                 inStatusChange = false;
+            }
+        });
+
+        // go, tell it to the mountains
+        myTags.addListener((SetChangeListener.Change<? extends TagData> change) -> {
+            // can happen e.g. when using constructor fromHtmlComment()
+            if (myNote == null) {
+                return;
+            }
+            
+            if (change.wasAdded()) {
+//                System.out.println("Linking note " + myNote.getNoteName() + " to tag " + change.getElementAdded().getName());
+                change.getElementAdded().getLinkedNotes().add(myNote);
+                myNote.setUnsavedChanges(true);
+            }
+
+            if (change.wasRemoved()) {
+//                System.out.println("Unlinking note " + myNote.getNoteName() + " from tag " + change.getElementRemoved().getName());
+                change.getElementRemoved().getLinkedNotes().remove(myNote);
+                myNote.setUnsavedChanges(true);
             }
         });
     }
@@ -398,6 +433,17 @@ public class TaskData implements ICommentDataHolder {
     }
     
     @Override
+    public ObservableSet<TagData> getTags() {
+        return myTags;
+    }
+
+    @Override
+    public void setTags(final Set<TagData> tags) {
+        myTags.clear();
+        myTags.addAll(tags);
+    }
+    
+    @Override
     public String toString() {
         return getDescription();
     }
@@ -424,6 +470,9 @@ public class TaskData implements ICommentDataHolder {
 
     @Override
     public void setFromList(ICommentDataInfo name, List<String> values) {
+        if (CommentDataInfo.TAGS.equals(name)) {
+            setTags(TagManager.getInstance().tagsForNames(new HashSet<>(values), null, true));
+        }
     }
 
     @Override
@@ -444,6 +493,11 @@ public class TaskData implements ICommentDataHolder {
 
     @Override
     public List<String> getAsList(ICommentDataInfo name) {
+        if (CommentDataInfo.TAGS.equals(name)) {
+            return myTags.stream().map((t) -> {
+                return t.getName();
+            }).collect(Collectors.toList());
+        }
         return null;
     }
 }

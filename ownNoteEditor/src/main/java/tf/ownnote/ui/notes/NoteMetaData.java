@@ -44,6 +44,7 @@ import tf.ownnote.ui.commentdata.CommentDataMapper;
 import tf.ownnote.ui.commentdata.ICommentDataHolder;
 import tf.ownnote.ui.commentdata.ICommentDataInfo;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.tags.ITagHolder;
 import tf.ownnote.ui.tags.TagData;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tasks.TaskData;
@@ -53,7 +54,7 @@ import tf.ownnote.ui.tasks.TaskData;
  * 
  * @author thomas
  */
-public class NoteMetaData implements ICommentDataHolder {
+public class NoteMetaData implements ICommentDataHolder, ITagHolder {
     public final static String ATTACHMENTS_DIR = File.separator + "Attachments";
     
     private enum UpdateTag {
@@ -175,10 +176,12 @@ public class NoteMetaData implements ICommentDataHolder {
         }
     }
 
+    @Override
     public ObservableSet<TagData> getTags() {
         return myTags;
     }
 
+    @Override
     public void setTags(final Set<TagData> tags) {
         myTags.clear();
         myTags.addAll(tags);

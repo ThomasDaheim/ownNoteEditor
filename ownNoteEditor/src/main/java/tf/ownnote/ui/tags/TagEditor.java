@@ -56,7 +56,7 @@ public class TagEditor extends AbstractStage {
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
     
-    private Note myWorkNote;
+    private ITagHolder myTagHolder;
     
     public enum BulkAction {
         None,
@@ -135,10 +135,10 @@ public class TagEditor extends AbstractStage {
         
         saveBtn.setOnAction((ActionEvent arg0) -> {
             // save tags to file
-            if (myWorkNote == null) {
+            if (myTagHolder == null) {
                 TagManager.getInstance().saveTags();
             } else {
-                myWorkNote.getMetaData().setTags(tagsTreeView.getSelectedLeafItems());
+                myTagHolder.setTags(tagsTreeView.getSelectedLeafItems());
                 // refresh notes list - we might have removed a tag that is used for notes selection
                 myEditor.refilterNotesList();
             }
@@ -164,10 +164,10 @@ public class TagEditor extends AbstractStage {
         VBox.setMargin(buttonBox, INSET_TOP_BOTTOM);
     }
     
-    public boolean editTags(final Note workNote) {
+    public boolean editTags(final ITagHolder tagHolder) {
         assert myEditor != null;
         
-        myWorkNote = workNote;
+        myTagHolder = tagHolder;
         
         initTags();
         
@@ -180,7 +180,7 @@ public class TagEditor extends AbstractStage {
         bulkActionChoiceBox.getSelectionModel().select(BulkAction.None);
         applyBulkActionBtn.setDisable(true);
 
-        if (myWorkNote == null) {
+        if (myTagHolder == null) {
             bulkActionChoiceBox.setManaged(true);
             bulkActionChoiceBox.setDisable(false);
             applyBulkActionBtn.setManaged(true);
@@ -191,7 +191,7 @@ public class TagEditor extends AbstractStage {
             bulkActionChoiceBox.setDisable(true);
             applyBulkActionBtn.setManaged(false);
             saveBtn.setText("Set");
-            tagsTreeView.fillTreeView(TagsTreeView.WorkMode.SELECT_MODE, myWorkNote.getMetaData().getTags());
+            tagsTreeView.fillTreeView(TagsTreeView.WorkMode.SELECT_MODE, myTagHolder.getTags());
         }
     }
     
