@@ -1,7 +1,7 @@
 # ownNoteEditor
 JavaFX editor for the ownNote files locally stored in ownCloud/nextCloud folder.
 
-Aim was to mimic the behaviour of the former ownNote web client using JavaFX and working directly on the owNote files in a local directory. This code does NOT update any of the SQL tables used by owNote - but so far this doesn't seem to impact anything.
+Aim was to mimic the behaviour of the former ownNote web client using JavaFX and working directly on the ownNote files in a local directory. This code does NOT update any of the SQL tables used by owNote - but so far this doesn't seem to impact anything.
 
 Note on v5.0: A lot has happened since the initial version of the editor. ownNotes / nextNotes project for NextCloud seems to have died and there is no need anymore to try to mimic their behaviour and notes / groups handling. Therefore, its time for some re-design :-)
 
