@@ -1,11 +1,11 @@
 # ownNoteEditor
-JavaFX editor for the ownNote files locally stored in ownCloud folder
+JavaFX editor for the ownNote files locally stored in ownCloud/nextCloud folder.
 
-Aim was to mimic the behaviour of the ownNote web client using JavaFX and working directly on the owNote files in a local ownCloud directory. This code does NOT update any of the SQL tables used by owNote - but so far this doesn't seem to impact anything.
-
-Note on Java 11: After various tweaks to build.gradle this now also runs under Java 11. See e.g. https://github.com/kelemen/netbeans-gradle-project/issues/403 an some of the discussion that where required to get there... Unfortunately, there is one isseu with the TestFX framework when trying to drag & drop notes. Since I wasn't able to fix this I had to disable the "testDragNote()" test step.
+Aim was to mimic the behaviour of the former ownNote web client using JavaFX and working directly on the owNote files in a local directory. This code does NOT update any of the SQL tables used by owNote - but so far this doesn't seem to impact anything.
 
 Note on v5.0: A lot has happened since the initial version of the editor. ownNotes / nextNotes project for NextCloud seems to have died and there is no need anymore to try to mimic their behaviour and notes / groups handling. Therefore, its time for some re-design :-)
+
+Note on Java 11: After various tweaks to build.gradle this now also runs under Java 11. See e.g. https://github.com/kelemen/netbeans-gradle-project/issues/403 an some of the discussion that where required to get there... Unfortunately, there is one issue with the TestFX framework when trying to drag & drop notes. Since I wasn't able to fix this I had to disable the "testDragNote()" test step.
 
 V 5.2: Fixes
 
