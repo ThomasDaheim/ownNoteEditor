@@ -25,10 +25,14 @@
  */
 package tf.ownnote.ui.tags;
 
+import de.jensd.fx.glyphs.GlyphsDude;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -37,6 +41,10 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.scene.Node;
+import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.Label;
+import javafx.scene.text.Text;
 import org.apache.commons.lang3.RandomStringUtils;
 import tf.ownnote.ui.notes.Note;
 
@@ -49,7 +57,7 @@ public class TagData {
     private final StringProperty nameProperty = new SimpleStringProperty("");
     private final ObservableList<TagData> children = FXCollections.<TagData>observableArrayList();
     private final ObjectProperty<TagData> parentProperty = new SimpleObjectProperty<>(null);
-    private final StringProperty iconNameProperty = new SimpleStringProperty("");
+    private final StringProperty iconNameProperty = new SimpleStringProperty();
     private final StringProperty colorNameProperty = new SimpleStringProperty("");
     
     // link to notes with this tag - transient, will be re-created on startup
@@ -162,6 +170,18 @@ public class TagData {
 
     public void setIconName(final String na) {
         iconNameProperty.set(na);
+    }
+    
+    public Label getIcon() {
+        Label result; 
+        try {
+            // TFE, 20210316: can't use GlyphsDude.createIcon since styling of text color isn't working
+            result = GlyphsDude.createIconLabel(FontAwesomeIcon.valueOf(iconNameProperty.get()), "", "1.166667em", "1.166667em", ContentDisplay.CENTER);
+        } catch (IllegalArgumentException ex) {
+            Logger.getLogger(TagData.class.getName()).log(Level.SEVERE, null, ex);
+            result = GlyphsDude.createIconLabel(FontAwesomeIcon.BUG, "", "1.166667em", "1.166667em", ContentDisplay.CENTER);
+        }
+        return result;
     }
 
     public StringProperty colorNameProperty() {

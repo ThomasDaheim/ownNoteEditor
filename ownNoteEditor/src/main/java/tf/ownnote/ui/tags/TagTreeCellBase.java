@@ -41,7 +41,6 @@ import javafx.scene.layout.HBox;
 import javafx.util.StringConverter;
 import tf.helper.javafx.CellUtils;
 import tf.ownnote.ui.helper.FormatHelper;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.notes.NoteGroup;
 
 /**
@@ -78,9 +77,11 @@ public class TagTreeCellBase {
         if (item != null && !empty) {
             final TreeCell<TagDataWrapper> treeCell = cell.getTreeCell();
             final TagData tag = item.getTagInfo();
-            
+
+            // TFE, 20210310: we might have icons now, too
+            final String iconName = tag.getIconName();
             final String colorName = tag.getColorName();
-            if (colorName != null && !colorName.isEmpty()) {
+            if ((iconName != null && !iconName.isEmpty()) || (colorName != null && !colorName.isEmpty())) {
                 // happy for any hint how this look can be achieved with less effort...
                 final HBox holder = new HBox();
                 holder.setAlignment(Pos.CENTER);
@@ -88,8 +89,19 @@ public class TagTreeCellBase {
                 final Label spacer = new Label("");
                 spacer.setGraphic(treeCell.getGraphic());
 
-                final Label graphic = new Label("   ");
-                graphic.setStyle("-fx-background-color: " + colorName + ";");
+                Label graphic;
+                if (iconName != null && !iconName.isEmpty()) {
+                    graphic = tag.getIcon();
+                    graphic.getStyleClass().add("tag-icon");
+                    if (colorName != null && !colorName.isEmpty()) {
+                        graphic.setStyle("icon-color: " + colorName + ";");
+                    }
+                } else {
+                    graphic = new Label("   ");
+                    if (colorName != null && !colorName.isEmpty()) {
+                        graphic.setStyle("-fx-background-color: " + colorName + ";");
+                    }
+                }
                 
                 holder.getChildren().addAll(spacer, graphic);
                 treeCell.setGraphic(holder);

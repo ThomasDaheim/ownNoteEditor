@@ -31,6 +31,7 @@ import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.converters.reflection.PureJavaReflectionProvider;
 import com.thoughtworks.xstream.io.xml.DomDriver;
 import com.thoughtworks.xstream.io.xml.PrettyPrintWriter;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -226,7 +227,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                     // all groups is always the first entry
                     System.out.println("No tag for group " + NoteGroup.ALL_GROUPS + " found. Adding...");
                     final TagData allGroups = new TagData(NoteGroup.ALL_GROUPS);
-                    allGroups.setColorName(OwnNoteEditor.getGroupColor(NoteGroup.ALL_GROUPS));
+                    allGroups.setColorName(myEditor.getGroupColor(NoteGroup.ALL_GROUPS));
                     
                     tag.getChildren().add(0, allGroups);
                 }
@@ -234,7 +235,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                     // all groups is always the second entry
                     System.out.println("No tag for group " + NoteGroup.NOT_GROUPED + " found. Adding...");
                     final TagData notGrouped = new TagData(NoteGroup.NOT_GROUPED);
-                    notGrouped.setColorName(OwnNoteEditor.getGroupColor(NoteGroup.NOT_GROUPED));
+                    notGrouped.setColorName(myEditor.getGroupColor(NoteGroup.NOT_GROUPED));
                     
                     tag.getChildren().add(1, notGrouped);
                 }
@@ -442,7 +443,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     public TagData createTag(final String name, final boolean isGroup) {
         final TagData result = new TagData(name);
         if (isGroup) {
-            TagManager.initGroupTag(result);
+            initGroupTag(result);
             // TFE, 20210307: add it to the list as well - dummy
             OwnNoteFileManager.getInstance().createGroup(name);
         }
@@ -466,8 +467,10 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
     }
     
-    public static void initGroupTag(final TagData tag) {
-        tag.setColorName(OwnNoteEditor.getGroupColor(tag.getName()));
+    public void initGroupTag(final TagData tag) {
+        if (tag.getColorName() == null || tag.getColorName().isEmpty()) {
+            tag.setColorName(myEditor.getGroupColor(tag.getName()));
+        }
     }
     
     public static boolean isAnyGroupTag(final TagData tag) {

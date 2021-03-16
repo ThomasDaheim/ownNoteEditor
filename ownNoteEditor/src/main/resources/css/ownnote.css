@@ -22,6 +22,7 @@
     task-lane-color: white;
     note-selected-background-color: -fx-base;
     note-selected-font-color: black;
+    icon-color: black;
 }
 
 .nametooltip {
@@ -292,6 +293,9 @@
 }
 .tagsTreeView .tree-cell:filled:hover {
     -fx-background-color: cell_hover_color !important;
+}
+.tag-icon > .glyph-icon {
+    -fx-fill: icon-color;
 }
 
 /* style task data */

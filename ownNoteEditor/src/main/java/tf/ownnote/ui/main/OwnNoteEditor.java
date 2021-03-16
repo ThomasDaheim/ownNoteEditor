@@ -173,8 +173,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     // available colors for tabs to rotate through
     // issue #36 - have "All" without color
     // TF, 20170122: use colors similar to OneNote - a bit less bright
-    //private static final String[] groupColors = { "lightgrey", "darkseagreen", "cornflowerblue", "lightsalmon", "gold", "orchid", "cadetblue", "goldenrod", "darkorange", "MediumVioletRed" };
-    private static final String[] groupColors = { "#F3D275", "#F4A6A6", "#99D0DF", "#F1B87F", "#F2A8D1", "#9FB2E1", "#B4AFDF", "#D4B298", "#C6DA82", "#A2D07F", "#F1B5B5" };
+    //private static final String[] groupColors = { "darkseagreen", "cornflowerblue", "lightsalmon", "gold", "orchid", "cadetblue", "goldenrod", "darkorange", "MediumVioletRed", "lightpink", "skyblue" };
+    private static final String[] groupColors = { "#F4A6A6", "#99D0DF", "#F1B87F", "#F2A8D1", "#9FB2E1", "#B4AFDF", "#D4B298", "#C6DA82", "#A2D07F", "#F1B5B5", "#ffb6c1", "#87ceeb" };
     
     // TFE, 20201203: some constants for the different columns of our gridpane
     private static final int TAGTREE_COLUMN = 0;
@@ -1722,36 +1722,41 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
     // TF, 20160703: to support coloring of notes table view for individual notes
     // TF, 20170528: determine color from groupname for new colors
-    public static String getGroupColor(String groupName) {
-        final FilteredList<NoteGroup> filteredGroups = OwnNoteFileManager.getInstance().getGroupsList().filtered((NoteGroup group) -> {
-            // Compare group name to filter text.
-            return group.getGroupName().equals(groupName); 
-        });
-        
-        String groupColor = "darkgrey";
-        if (!filteredGroups.isEmpty()) {
-            final NoteGroup group = (NoteGroup) filteredGroups.get(0);
+    public String getGroupColor(String groupName) {
+        String groupColor = "";
+
+        final NoteGroup group = OwnNoteFileManager.getInstance().getNoteGroup(groupName);
+        final TagData groupTag = TagManager.getInstance().tagForName(groupName, null, false);
+        if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(getCurrentLookAndFeel()) && groupTag != null) {
+            // for tagTree the color comes from the tag color - if any
+            groupColor = groupTag.getColorName();
+        } else if (group != null) {
+            // otherwise it comes from the group color - if any
             groupColor = group.getGroupColor();
-
-            if (groupColor == null) {
-                final int groupIndex = OwnNoteFileManager.getInstance().getGroupsList().indexOf(group);
-
-                // TF, 20170122: "All" & "Not grouped" have their own colors ("darkgrey", "lightgrey"), rest uses list of colors
-                switch (groupIndex) {
-                    case 0: groupColor = "darkgrey";
-                            break;
-                    case 1: groupColor = "lightgrey";
-                            break;
-                    default: groupColor = groupColors[groupIndex % groupColors.length];
-                            break;
-                }
-//                System.out.println("Found group: " + groupName + " as number: " + groupIndex + " color: " + groupColor);
-            }
-        } else {
-            // TFE, 20210307: new group that isn't yet in the list...
-            final int groupIndex = OwnNoteFileManager.getInstance().getGroupsList().size();
-            groupColor = groupColors[groupIndex % groupColors.length];
         }
+        
+        if (groupColor == null || groupColor.isEmpty()) {
+            final int groupIndex = OwnNoteFileManager.getInstance().getGroupsList().indexOf(group);
+
+            // TF, 20170122: "All" & "Not grouped" have their own colors ("darkgrey", "lightgrey"), rest uses list of colors
+            switch (groupIndex) {
+                case 0: 
+                    groupColor = "darkgrey";
+                    break;
+                case 1: 
+                    groupColor = "lightgrey";
+                    break;
+                case -1:
+                    // no color found via tag or group - must be new
+                    groupColor = groupColors[OwnNoteFileManager.getInstance().getGroupsList().size() % groupColors.length];
+                    break;
+                default: 
+                    groupColor = groupColors[groupIndex % groupColors.length];
+                    break;
+            }
+//                System.out.println("Found group: " + groupName + " as number: " + groupIndex + " color: " + groupColor);
+        }
+        
         return groupColor;
     }
     

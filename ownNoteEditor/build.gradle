@@ -98,6 +98,7 @@ dependencies {
     
     // new look & feel for old code :-)
     compile group: 'org.jfxtras', name: 'jmetro', version: '11.6.14'
+    compile 'de.jensd:fontawesomefx:8.9'
 
     testCompile "org.testfx:testfx-junit:4.0.+"
     testCompile "org.testfx:testfx-core:4.0.+"
