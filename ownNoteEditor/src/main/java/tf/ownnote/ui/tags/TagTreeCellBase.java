@@ -37,10 +37,13 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.util.StringConverter;
+import org.controlsfx.control.PopOver;
 import tf.helper.javafx.CellUtils;
 import tf.ownnote.ui.helper.FormatHelper;
+import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.NoteGroup;
 
 /**
@@ -73,7 +76,7 @@ public class TagTreeCellBase {
         }
     };
     
-    public static void updateItem(ITagTreeCell cell, TagDataWrapper item, boolean empty) {
+    public static void updateItem(ITagTreeCell cell, TagDataWrapper item, boolean empty, final OwnNoteEditor editor) {
         if (item != null && !empty) {
             final TreeCell<TagDataWrapper> treeCell = cell.getTreeCell();
             final TagData tag = item.getTagInfo();
@@ -107,8 +110,6 @@ public class TagTreeCellBase {
                 treeCell.setGraphic(holder);
             }
 
-            final ContextMenu contextMenu = new ContextMenu();
-
             final String sibling = TagManager.isGroupsChildTag(tag) ? NoteGroup.NEW_GROUP : "New sibling";
             final MenuItem newSilblingItem = new MenuItem(sibling);
             newSilblingItem.setOnAction((ActionEvent event) -> {
@@ -126,6 +127,39 @@ public class TagTreeCellBase {
                 tag.getChildren().add(TagManager.getInstance().createTag(tagName, TagManager.isGroupsTag(tag)));
             });
 
+            // TFE, 20210317: add now we have an edit dialoge for tags...
+            final MenuItem editItem = new MenuItem("Edit");
+            editItem.setOnAction((ActionEvent event) -> {
+                // support for editing the task on this card
+                final PopOver popOver = new PopOver();
+                popOver.setAutoHide(false);
+                popOver.setAutoFix(true);
+                popOver.setCloseButtonEnabled(true);
+                popOver.setArrowLocation(PopOver.ArrowLocation.TOP_CENTER);
+                popOver.setArrowSize(0);
+                popOver.setContentNode(TagDataEditor.getInstance().editTag(tag, editor));
+
+                popOver.addEventHandler(KeyEvent.KEY_PRESSED, (t) -> {
+                    if (TagDataEditor.isCompleteCode(t.getCode())) {
+                        popOver.hide();
+                        cell.updateContent();
+                    } else if (TagDataEditor.isCancelCode(t.getCode())) {
+                        popOver.hide();
+                    }
+                });
+
+                treeCell.focusedProperty().addListener((ov, oldValue, newValue) -> {
+                    if (newValue != null && !newValue.equals(oldValue) && !newValue) {
+                        popOver.hide();
+                    }
+                });
+
+                popOver.show(treeCell);
+            });
+            
+            final ContextMenu contextMenuFull = new ContextMenu();
+            final ContextMenu contextMenuEdit = new ContextMenu();
+
             // only if allowed
             final MenuItem deleteItem = new MenuItem("Delete");
             deleteItem.setOnAction((ActionEvent event) -> {
@@ -134,21 +168,23 @@ public class TagTreeCellBase {
 
             if (tag.getParent() != null) {
                 // no siblings for root
-                contextMenu.getItems().add(newSilblingItem);
+                contextMenuFull.getItems().add(newSilblingItem);
             }
             if (TagManager.childTagsAllowed(tag)) {
-                contextMenu.getItems().add(newChildItem);
+                contextMenuFull.getItems().add(newChildItem);
             }
+            contextMenuFull.getItems().add(editItem);
+            contextMenuEdit.getItems().add(editItem);
             if (!TagManager.isFixedTag(tag)) {
-                contextMenu.getItems().add(deleteItem);
+                contextMenuFull.getItems().add(deleteItem);
             }
 
             if (treeCell.getTreeView() instanceof TagsTreeView) {
                 treeCell.contextMenuProperty().bind(
                         Bindings.when(((TagsTreeView) treeCell.getTreeView()).allowReorderProperty()).
-                                then(contextMenu).otherwise((ContextMenu)null));
+                                then(contextMenuFull).otherwise(contextMenuEdit));
             } else {
-                treeCell.setContextMenu(contextMenu);
+                treeCell.setContextMenu(contextMenuFull);
             }
             
             // name needs to be unique, so we can also use it as id - makes life easier in 

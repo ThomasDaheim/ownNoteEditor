@@ -140,7 +140,7 @@ public class TaskCard extends GridPane {
         popOver.setCloseButtonEnabled(true);
         popOver.setArrowLocation(PopOver.ArrowLocation.TOP_CENTER);
         popOver.setArrowSize(0);
-        popOver.setContentNode(new TaskEditor(myTask));
+        popOver.setContentNode(new TaskDataEditor(myTask));
 
         focusedProperty().addListener((ov, oldValue, newValue) -> {
             if (newValue != null && !newValue.equals(oldValue) && !newValue) {
@@ -168,7 +168,7 @@ public class TaskCard extends GridPane {
         });
 
         popOver.addEventHandler(KeyEvent.KEY_PRESSED, (t) -> {
-            if (KeyCode.ESCAPE.equals(t.getCode())) {
+            if (TaskDataEditor.isCompleteCode(t.getCode())) {
                 popOver.hide();
             }
         });

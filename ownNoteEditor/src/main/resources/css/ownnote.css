@@ -312,7 +312,8 @@
 .taskdata-popup {
     -fx-font-size: 0.9em;
 }
-.taskEditor > * {
+.taskEditor > *,
+.tagEditor > * {
     -fx-strikethrough: false !important;
     -fx-font-weight: normal !important;
 }

@@ -22,7 +22,6 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.CheckBoxListCell;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseButton;
 import javafx.util.StringConverter;
 import org.controlsfx.control.PopOver;
 import tf.helper.javafx.TooltipHelper;
@@ -147,7 +146,7 @@ public class TaskList {
 
             cell.setOnMouseClicked((t) -> {
                 if (!cell.isEmpty() && t.getClickCount() == 2) {
-                    popOver.setContentNode(new TaskEditor(cell.getItem()));
+                    popOver.setContentNode(new TaskDataEditor(cell.getItem()));
                     popOver.show(cell);
                 }
             });
@@ -156,11 +155,11 @@ public class TaskList {
 
             final MenuItem editTask = new MenuItem("Edit task");
             editTask.setOnAction(event -> {
-                popOver.setContentNode(new TaskEditor(cell.getItem()));
+                popOver.setContentNode(new TaskDataEditor(cell.getItem()));
                 popOver.show(cell);
             });
             popOver.addEventHandler(KeyEvent.KEY_PRESSED, (t) -> {
-                if (KeyCode.ESCAPE.equals(t.getCode())) {
+                if (TaskDataEditor.isCompleteCode(t.getCode())) {
                     popOver.hide();
                 }
             });

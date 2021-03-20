@@ -73,7 +73,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
-import javafx.stage.PopupWindow;
 import javafx.stage.Window;
 import javax.imageio.ImageIO;
 import netscape.javascript.JSObject;

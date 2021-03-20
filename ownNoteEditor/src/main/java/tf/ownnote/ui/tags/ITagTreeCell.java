@@ -39,4 +39,5 @@ public interface ITagTreeCell {
     public OwnNoteEditor getEditor();
     public TreeCell<TagDataWrapper> getTreeCell();
     public StringConverter<TagDataWrapper> getTextConverter();
+    public void updateContent();
 }

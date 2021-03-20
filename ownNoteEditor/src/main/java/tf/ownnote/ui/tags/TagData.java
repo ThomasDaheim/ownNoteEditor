@@ -25,14 +25,10 @@
  */
 package tf.ownnote.ui.tags;
 
-import de.jensd.fx.glyphs.GlyphsDude;
-import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Stream;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -41,11 +37,10 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.scene.Node;
-import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
-import javafx.scene.text.Text;
+import javafx.scene.paint.Color;
 import org.apache.commons.lang3.RandomStringUtils;
+import tf.helper.javafx.ColorConverter;
 import tf.ownnote.ui.notes.Note;
 
 /**
@@ -54,6 +49,8 @@ import tf.ownnote.ui.notes.Note;
  * @author thomas
  */
 public class TagData {
+    private final static String DEFAULT_COLOR = ColorConverter.JavaFXtoCSS(Color.BLACK);
+    
     private final StringProperty nameProperty = new SimpleStringProperty("");
     private final ObservableList<TagData> children = FXCollections.<TagData>observableArrayList();
     private final ObjectProperty<TagData> parentProperty = new SimpleObjectProperty<>(null);
@@ -173,15 +170,7 @@ public class TagData {
     }
     
     public Label getIcon() {
-        Label result; 
-        try {
-            // TFE, 20210316: can't use GlyphsDude.createIcon since styling of text color isn't working
-            result = GlyphsDude.createIconLabel(FontAwesomeIcon.valueOf(iconNameProperty.get()), "", "1.166667em", "1.166667em", ContentDisplay.CENTER);
-        } catch (IllegalArgumentException ex) {
-            Logger.getLogger(TagData.class.getName()).log(Level.SEVERE, null, ex);
-            result = GlyphsDude.createIconLabel(FontAwesomeIcon.BUG, "", "1.166667em", "1.166667em", ContentDisplay.CENTER);
-        }
-        return result;
+        return TagManager.getIconForName(iconNameProperty.get(), TagManager.IconSize.NORMAL);
     }
 
     public StringProperty colorNameProperty() {
@@ -189,11 +178,17 @@ public class TagData {
     }
 
     public String getColorName() {
-        return colorNameProperty.get();
+        if (!colorNameProperty.get().isEmpty()) {
+            return colorNameProperty.get();
+        } else {
+            return DEFAULT_COLOR;
+        }
     }
 
     public void setColorName(final String col) {
-        colorNameProperty.set(col);
+        if (!DEFAULT_COLOR.equals(col)) {
+            colorNameProperty.set(col);
+        }
     }
 
     public ObservableList<Note> getLinkedNotes() {

@@ -53,7 +53,6 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 import jfxtras.scene.control.CalendarTextField;
 import static tf.helper.javafx.AbstractStage.INSET_TOP;
@@ -76,7 +75,7 @@ import tf.ownnote.ui.tags.TagManager;
  * 
  * @author thomas
  */
-public class TaskEditor extends GridPane {
+public class TaskDataEditor extends GridPane {
     private final TaskData myTask;
     
     private final Label idLbl = new Label(); 
@@ -91,11 +90,11 @@ public class TaskEditor extends GridPane {
     private final FlowPane tagsBox = new FlowPane();
     private SetChangeListener<TagData> tagListener;
     
-    private TaskEditor() {
+    private TaskDataEditor() {
         this(null);
     }
     
-    public TaskEditor(final TaskData task) {
+    public TaskDataEditor(final TaskData task) {
         myTask = task;
         
         tagListener = new SetChangeListener<>() {
@@ -133,7 +132,7 @@ public class TaskEditor extends GridPane {
 
         int rowNum = 0;
         // description
-        Tooltip t = new Tooltip("Task descrioption from note text");
+        Tooltip t = new Tooltip("Task description from note text");
         final Label lbldesc = new Label("Description:");
         lbldesc.setTooltip(t);
         getGridPane().add(lbldesc, 0, rowNum, 1, 1);
@@ -236,7 +235,7 @@ public class TaskEditor extends GridPane {
         saveButton.setOnAction((ActionEvent event) -> {
             saveValues();
             // give parent node the oportunity to close
-            fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, KeyCode.ESCAPE.toString(), KeyCode.ESCAPE.toString(), KeyCode.ESCAPE, false, false, false, false));
+            fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, KeyCode.ACCEPT.toString(), KeyCode.ACCEPT.toString(), KeyCode.ACCEPT, false, false, false, false));
         });
         // not working since no scene yet...
 //        getScene().getAccelerators().put(UsefulKeyCodes.CNTRL_S.getKeyCodeCombination(), () -> {
@@ -363,4 +362,15 @@ public class TaskEditor extends GridPane {
         return this;
     }
     
+    public static boolean isCompleteCode(final KeyCode code) {
+        return isSaveCode(code) || isCancelCode(code);
+    }
+
+    public static boolean isSaveCode(final KeyCode code) {
+        return KeyCode.ACCEPT.equals(code);
+    }
+
+    public static boolean isCancelCode(final KeyCode code) {
+        return KeyCode.ESCAPE.equals(code);
+    }
 }

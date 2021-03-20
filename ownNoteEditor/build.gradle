@@ -147,6 +147,7 @@ def newArgs = [ '--add-modules', 'javafx.controls,javafx.graphics,javafx.base,ja
                 // https://github.com/x-stream/xstream/issues/101#issuecomment-667734663
                 '--add-opens', 'java.base/java.util=ALL-UNNAMED',
                 '--add-opens', 'javafx.base/com.sun.javafx.collections=ALL-UNNAMED',
+                '--add-opens', 'javafx.graphics/javafx.scene.layout=ALL-UNNAMED',
     ]
     
 // extend Netbeans Gradle "Run" task

@@ -31,6 +31,7 @@ import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.converters.reflection.PureJavaReflectionProvider;
 import com.thoughtworks.xstream.io.xml.DomDriver;
 import com.thoughtworks.xstream.io.xml.PrettyPrintWriter;
+import de.jensd.fx.glyphs.GlyphsDude;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -58,6 +59,8 @@ import java.util.stream.Collectors;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.Label;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.EnumUtils;
 import tf.helper.general.ObjectsHelper;
@@ -86,6 +89,21 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     // reserved names for tags - can't be moved or edited
     public enum ReservedTagNames {
         Groups
+    }
+    
+    public enum IconSize {
+        NORMAL("1.166667em"),
+        LARGE("28px");
+        
+        private final String iconSize;
+        
+        private IconSize(final String size) {
+            iconSize = size;
+        }
+        
+        public final String getSize() {
+            return iconSize;
+        }
     }
     
     private final static Set<String> reservedTagNames = new HashSet<>(EnumUtils.getEnumList(ReservedTagNames.class).stream().map((t) -> {
@@ -551,5 +569,17 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     @Override
     public boolean saveNote(Note note) {
         return true;
+    }
+    
+    public static Label getIconForName(final String iconName, final IconSize size) {
+        Label result; 
+        try {
+            // TFE, 20210316: can't use GlyphsDude.createIcon since styling of text color isn't working
+            result = GlyphsDude.createIconLabel(FontAwesomeIcon.valueOf(iconName), "", size.getSize(), "0px", ContentDisplay.CENTER);
+        } catch (IllegalArgumentException ex) {
+            Logger.getLogger(TagData.class.getName()).log(Level.SEVERE, null, ex);
+            result = GlyphsDude.createIconLabel(FontAwesomeIcon.BUG, "", size.getSize(), "0px", ContentDisplay.CENTER);
+        }
+        return result;
     }
 }

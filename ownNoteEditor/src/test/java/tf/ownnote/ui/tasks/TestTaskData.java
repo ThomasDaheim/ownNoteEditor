@@ -13,7 +13,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.tasks.TaskData;
 
 /**
  *

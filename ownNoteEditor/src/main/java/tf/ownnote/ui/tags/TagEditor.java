@@ -43,7 +43,6 @@ import static tf.helper.javafx.AbstractStage.INSET_TOP_BOTTOM;
 import tf.helper.javafx.EnumHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.main.OwnNoteEditorManager;
-import tf.ownnote.ui.notes.Note;
 
 /**
  * Edit tags & tag structure in a treeview.
