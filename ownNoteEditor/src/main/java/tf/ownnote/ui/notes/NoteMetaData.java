@@ -133,6 +133,7 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
             
             hasUnsavedChanges.set(true);
         });
+        
         myAttachments.addListener((ListChangeListener.Change<? extends String> change) -> {
             // can happen e.g. when using constructor fromHtmlComment()
             if (myNote == null) {

@@ -60,7 +60,7 @@ import static tf.helper.javafx.AbstractStage.INSET_TOP_BOTTOM;
 import tf.helper.javafx.EnumHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.tags.TagData;
-import tf.ownnote.ui.tags.TagEditor;
+import tf.ownnote.ui.tags.TagsEditor;
 import tf.ownnote.ui.tags.TagManager;
 
 /**
@@ -211,7 +211,7 @@ public class TaskDataEditor extends GridPane {
         final Button tagsButton = new Button("+");
         tagsButton.setOnAction((e) -> {
             e.consume();
-            TagEditor.getInstance().editTags(myTask);
+            TagsEditor.getInstance().editTags(myTask);
         });
         hbox.getChildren().addAll(tagsBox, tagsButton);
         getGridPane().add(hbox, 1, rowNum, 1, 1);

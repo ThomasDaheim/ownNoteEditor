@@ -106,15 +106,15 @@ import tf.ownnote.ui.helper.OwnNoteEditorParameters;
 import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
-import tf.ownnote.ui.helper.OwnNoteMetaDataEditor;
 import tf.ownnote.ui.helper.OwnNoteTabPane;
 import tf.ownnote.ui.helper.OwnNoteTableColumn;
 import tf.ownnote.ui.helper.OwnNoteTableView;
 import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
+import tf.ownnote.ui.notes.NoteMetaDataEditor;
 import tf.ownnote.ui.tags.TagData;
-import tf.ownnote.ui.tags.TagEditor;
+import tf.ownnote.ui.tags.TagsEditor;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tags.TagsTreeView;
 import tf.ownnote.ui.tasks.TaskBoard;
@@ -303,7 +303,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     private VBox noteEditorFXML;
     @FXML
     private HBox noteMetaEditorFXML;
-    private OwnNoteMetaDataEditor noteMetaEditor = null;
+    private NoteMetaDataEditor noteMetaEditor = null;
     @FXML
     private RadioMenuItem tagTreeLookAndFeel;
     @FXML
@@ -499,8 +499,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         // error when trying this in the fxml: "java.lang.IllegalArgumentException: Unable to coerce noteHTMLEditor to interface java.util.Collection."
         noteHTMLEditorFXML.getStyleClass().add("noteHTMLEditor");
         VBox.setVgrow(noteMetaEditorFXML, Priority.NEVER);
+        noteMetaEditorFXML.getStyleClass().add("noteMetaEditor");
         noteHTMLEditor = new OwnNoteHTMLEditor(noteHTMLEditorFXML, this);
-        noteMetaEditor = new OwnNoteMetaDataEditor(noteMetaEditorFXML, this);
+        noteMetaEditor = new NoteMetaDataEditor(noteMetaEditorFXML, this);
         
         // hide borders
         borderPane.setBottom(null);
@@ -818,7 +819,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             } else {
                 // show TagsTreeView (special version without checkboxes & drag/drop of tags)
                 tagsTreeView = new TagsTreeView(this);
-                tagsTreeView.setRenameFunction(TagManager.getInstance()::doRenameTag);
 
                 tagsTreePaneXML.getChildren().add(tagsTreeView);
 
@@ -886,7 +886,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         // all setup, lets spread the news
         OwnNoteFileManager.getInstance().setCallback(this);
         TaskManager.getInstance().setCallback(this);
-        TagEditor.getInstance().setCallback(this);
+        TagsEditor.getInstance().setCallback(this);
         TagManager.getInstance().setCallback(this);
         
         // run layout to have everything set up
@@ -1085,7 +1085,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
         // TFE, 20201025: and now we have tag management as well :-)
         menuEditTags.setOnAction((t) -> {
-            TagEditor.getInstance().editTags(null);
+            TagsEditor.getInstance().editTags(null);
         });
         menuGroups2Tags.setOnAction((t) -> {
             TagManager.getInstance().groupsToTags();

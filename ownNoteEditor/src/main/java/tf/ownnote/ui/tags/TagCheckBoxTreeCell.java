@@ -25,7 +25,6 @@
  */
 package tf.ownnote.ui.tags;
 
-import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
@@ -71,7 +70,7 @@ public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagDataWrapper> implem
     @Override
     public void updateItem(TagDataWrapper item, boolean empty) {
         super.updateItem(item, empty);
-        TagTreeCellBase.updateItem(this, item, empty, myEditor);
+        TagTreeCellBase.getInstance().updateItem(this, item, empty, myEditor);
     }            
 
     @Override
@@ -87,13 +86,13 @@ public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagDataWrapper> implem
         }
         
         super.startEdit();
-        TagTreeCellBase.startEdit(this);
+        TagTreeCellBase.getInstance().startEdit(this);
     }
 
     @Override
     public void cancelEdit() {
         super.cancelEdit();
-        TagTreeCellBase.cancelEdit(this);
+        TagTreeCellBase.getInstance().cancelEdit(this);
     }
 
     @Override
@@ -109,11 +108,5 @@ public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagDataWrapper> implem
     @Override
     public TreeCell<TagDataWrapper> getTreeCell() {
         return this;
-    }
-
-    @Override
-    public void updateContent() {
-        updateItem(getItem(), isEmpty());
-        requestLayout();
     }
 }

@@ -47,6 +47,7 @@ import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -56,9 +57,13 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import javafx.beans.Observable;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import org.apache.commons.io.FileUtils;
@@ -115,6 +120,13 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     // root of all tags - not saved or loaded
     private final static TagData ROOT_TAG = new TagData(ROOT_TAG_NAME);
     
+    // TFE, 20210330: also hold a flat set of tags with an extractor - to be able to listen to changes of tag content
+    private final ObservableList<TagData> flatTags = 
+            FXCollections.observableArrayList(p -> new Observable[]{p.nameProperty(), p.iconNameProperty(), p.colorNameProperty(), p.parentProperty(), p.getChildren()});
+    // but then we need to keep track of changes in the tag tree to update the flattened tag list....
+    private final ListChangeListener<TagData> tagChildrenListener;
+
+    
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
     
@@ -123,6 +135,27 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     private TagManager() {
         super();
         // Exists only to defeat instantiation.
+        
+        tagChildrenListener = new ListChangeListener<>() {
+            @Override
+            public void onChanged(ListChangeListener.Change<? extends TagData> change) {
+                boolean doFlatten = false;
+                while (change.next() && !doFlatten) {
+                    if (change.wasRemoved()) {
+                        doFlatten = true;
+                    }
+                    if (change.wasAdded()) {
+                        doFlatten = true;
+                    }
+                }
+                
+                if (doFlatten) {
+                    removeTagChildrenListener();
+                    flattenTags();
+                    attachTagChildrenListener();
+                }
+            }
+        };
     }
 
     public static TagManager getInstance() {
@@ -145,6 +178,11 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         
         // you can use but not change
         return ROOT_TAG;
+    }
+    
+    public ObservableList<TagData> getFlatTagsList() {
+        // not to be changed - only to be listened to
+        return flatTags;
     }
     
     public void resetTagList() {
@@ -269,14 +307,35 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
 
         // backlink all parents
-        final Set<TagData> flatTags = getRootTag().getChildren().stream().map((t) -> {
-            return t.flattened();
-        }).flatMap(Function.identity()).collect(Collectors.toSet());
+        flattenTags();
 
         for (TagData tag: flatTags) {
             for (TagData childTag : tag.getChildren()) {
                 childTag.setParent(tag);
             }
+        }
+
+        attachTagChildrenListener();
+    }
+    
+    private void flattenTags() {
+        // create a flat list of all tags
+        flatTags.setAll(getRootTag().getChildren().stream().map((t) -> {
+            return t.flattened();
+        }).flatMap(Function.identity()).collect(Collectors.toList()));
+    }
+    
+    private void attachTagChildrenListener() {
+        getRootTag().getChildren().addListener(tagChildrenListener);
+        for (TagData tag: flatTags) {
+            tag.getChildren().addListener(tagChildrenListener);
+        }
+    }
+    
+    private void removeTagChildrenListener() {
+        getRootTag().getChildren().removeListener(tagChildrenListener);
+        for (TagData tag: flatTags) {
+            tag.getChildren().removeListener(tagChildrenListener);
         }
     }
 
@@ -424,31 +483,46 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         return result;
     }
     
-    public void doRenameTag(final String oldName, final String newName) {
-        assert oldName != null;
+    public void renameTag(final TagData tag, final String newName) {
+        assert tag != null;
         
-        final TagData oldTag = tagForName(oldName, getRootTag(), false);
-        if (oldTag == null) return;
-        final boolean groupTag = isGroupsChildTag(oldTag);
+        if (tag.getName().equals(newName)) {
+            // nothing to do
+            return;
+        }
+        final String oldName = tag.getName();
+
+        final boolean groupTag = isGroupsChildTag(tag);
         
         final List<Note> notesList = OwnNoteFileManager.getInstance().getNotesList();
+        final List<Note> changedNotes = new ArrayList<>();
         for (Note note : notesList) {
-            if (note.getMetaData().getTags().contains(oldTag)) {
-                final boolean inEditor = note.equals(myEditor.getEditedNote());
-                if (!inEditor) {
+            if (note.getMetaData().getTags().contains(tag)) {
+                if (!note.equals(myEditor.getEditedNote())) {
                     // read note - only if not currently in editor!
                     OwnNoteFileManager.getInstance().readNote(note, false);
                 }
-                
-                note.getMetaData().getTags().remove(oldTag);
-                if (newName != null) {
-                    note.getMetaData().getTags().add(tagForName(newName, oldTag.getParent(), true));
-                }
-
-                if (!inEditor) {
-                    // save new metadata - only if not currently in editor!
-                    OwnNoteFileManager.getInstance().saveNote(note);
-                }
+                changedNotes.add(note);
+            }
+        }
+        
+        // now we have loaded all notes, time to rename/remove the tag...
+        if (newName == null) {
+            for (Note note : changedNotes) {
+                note.getMetaData().getTags().remove(tag);
+            }
+            doDeleteTag(tag);
+        } else {
+            tag.setName(newName);
+        }
+        // save the notes (except for the one currently in the editor
+        for (Note note : changedNotes) {
+            if (!note.equals(myEditor.getEditedNote())) {
+                OwnNoteFileManager.getInstance().saveNote(note);
+            } else {
+                // tell the world, the note metadata has changed (implicitly)
+                // so that any interesting party can listen to the change
+                note.getMetaData().setUnsavedChanges(true);
             }
         }
         
@@ -468,7 +542,14 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         return result;
     }
     
-    public void deleteTag(final TagData tag) {
+    public  void deleteTag(final TagData tag) {
+        assert tag != null;
+        
+        // reuse existing rename method
+        renameTag(tag, null);
+    }
+    
+    private void doDeleteTag(final TagData tag) {
         // remove group as well - if it exists (= has notes)
         boolean doDelete = true;
         if (TagManager.isGroupsChildTag(tag) && OwnNoteFileManager.getInstance().getNoteGroup(tag.getName()) != null) {

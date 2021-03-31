@@ -320,13 +320,8 @@ public class TagDataEditor extends GridPane {
     }
 
     public void saveValues() {
-        if (!myTag.getName().equals(tagName.getText())) {
-            if (myEditor.renameGroupWrapper(myTag.getName(), tagName.getText())) {
-                myTag.setName(tagName.getText());
-            } else {
-                tagName.setText(myTag.getName());
-            }
-        }
+        // in case of group name change we need to inform the rest of the world
+        TagManager.getInstance().renameTag(myTag, tagName.getText());
         
         myTag.setIconName(tagIcon.getValue());
         myTag.setColorName(ColorConverter.JavaFXtoCSS(tagColor.getValue()));

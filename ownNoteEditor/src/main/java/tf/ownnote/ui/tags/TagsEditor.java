@@ -49,8 +49,8 @@ import tf.ownnote.ui.main.OwnNoteEditorManager;
  * 
  * @author thomas
  */
-public class TagEditor extends AbstractStage {
-    private final static TagEditor INSTANCE = new TagEditor();
+public class TagsEditor extends AbstractStage {
+    private final static TagsEditor INSTANCE = new TagsEditor();
     
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
@@ -73,14 +73,14 @@ public class TagEditor extends AbstractStage {
     private final TagsTreeView tagsTreeView = new TagsTreeView();
     private final Button saveBtn = new Button("Save");
 
-    private TagEditor() {
+    private TagsEditor() {
         super();
         // Exists only to defeat instantiation.
         
         initViewer();
     }
 
-    public static TagEditor getInstance() {
+    public static TagsEditor getInstance() {
         return INSTANCE;
     }
 
@@ -124,7 +124,6 @@ public class TagEditor extends AbstractStage {
         
         rowNum++;
         // table to hold tags
-        tagsTreeView.setRenameFunction(TagManager.getInstance()::doRenameTag);
         getGridPane().add(tagsTreeView, 0, rowNum, 2, 1);
         GridPane.setMargin(tagsTreeView, INSET_TOP);
         GridPane.setVgrow(tagsTreeView, Priority.ALWAYS);
@@ -198,8 +197,7 @@ public class TagEditor extends AbstractStage {
         tagsTreeView.getSelectedItems().stream().forEach((t) -> {
             switch (action) {
                 case Delete:
-                    TagManager.getInstance().doRenameTag(t.getName(), null);
-                    TagManager.getInstance().deleteTag(t);
+                    TagManager.getInstance().renameTag(t, null);
                     break;
             }
         });

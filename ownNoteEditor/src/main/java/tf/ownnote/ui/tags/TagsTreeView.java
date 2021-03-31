@@ -28,7 +28,6 @@ package tf.ownnote.ui.tags;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -52,7 +51,7 @@ import tf.ownnote.ui.notes.NoteGroup;
  * It supports checking / unchecking items for e.g. bulk actions done in the TagManager.
  * But since it should be working with RecursiveTreeItem to support a hierarchy of tags it 
  * can't be a using CheckboxTreeItem - you can't have a generic class for the whole TreeItem hierarchy...
- * Also, we wan't to be able to edit the Tag name.
+ * Also, we want to be able to edit the Tag name.
  * 
  * So we need to merge the functionality of CheckBoxTreeCell with TextFieldTreeCell :-)
  * And we need to do something similar to CheckTreeView from controlsfx that keeps track of the selected items.
@@ -75,13 +74,13 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
     
     private WorkMode myWorkMode = WorkMode.EDIT_MODE;
     
-    private BiConsumer<String, String> renameFunction;
-    
     private final ObservableSet<TagData> selectedItems = FXCollections.<TagData>observableSet(new HashSet<>());
     
     private final Set<TagData> initialTags = new HashSet<>();
     
     private NoteGroup currentGroup;
+
+    private ListChangeListener<TagData> tagListener;
     
     public TagsTreeView() {
         initTreeView();
@@ -106,11 +105,10 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
         setShowRoot(false);
         
         setOnEditCommit((t) -> {
+            // TODO: verify that this works!
             if (!t.getNewValue().getTagInfo().getName().equals(t.getOldValue().getTagInfo().getName())) {
-                assert renameFunction != null;
-                renameFunction.accept(t.getOldValue().getTagInfo().getName(), t.getNewValue().getTagInfo().getName());
-                
-                t.getOldValue().getTagInfo().setName(t.getNewValue().getTagInfo().getName());
+                TagManager.getInstance().renameTag(t.getOldValue().getTagInfo(), t.getNewValue().getTagInfo().getName());
+                t.getNewValue().getTagInfo().setName(t.getNewValue().getTagInfo().getName());
             }
         });
         
@@ -143,6 +141,26 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
                 }
             }
         });
+        
+        // TFE, 20210331: listener to react to changes to any tags properties
+        tagListener = new ListChangeListener<>() {
+            @Override
+            public void onChanged(ListChangeListener.Change<? extends TagData> change) {
+                while (change.next()) {
+                    if (change.wasRemoved()) {
+                        // nothing to do - handled by recursivetreeitem
+                    }
+                    if (change.wasAdded()) {
+                        // nothing to do - handled by recursivetreeitem
+                    }
+                    if (change.wasUpdated()) {
+                        // refresh / rebuild the list
+                        refresh();
+                    }
+                }
+            }
+        };
+        
     }
     
     private void initWorkMode() {
@@ -187,11 +205,6 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
         }).collect(Collectors.toSet());
     }
     
-    // callback to do the work
-    public void setRenameFunction(final BiConsumer<String, String> funct) {
-        renameFunction = funct;
-    }
-    
     public void fillTreeView(final WorkMode workMode, final Set<TagData> tags) {
         assert myEditor != null;
         
@@ -222,6 +235,10 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
         
         // set property after filling list :-)
         initWorkMode();
+        
+        // add listener to flat tags list to get notified on case of 
+        TagManager.getInstance().getFlatTagsList().removeListener(tagListener);
+        TagManager.getInstance().getFlatTagsList().addListener(tagListener);
     }
     
     private void newItemConsumer(final TreeItem<TagDataWrapper> newItem) {

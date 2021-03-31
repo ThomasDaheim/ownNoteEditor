@@ -52,10 +52,19 @@ import tf.ownnote.ui.notes.NoteGroup;
  * @author thomas
  */
 public class TagTreeCellBase {
+    private final static TagTreeCellBase INSTANCE = new TagTreeCellBase();
+
+    private TagTreeCellBase() {
+    }
+
+    public static TagTreeCellBase getInstance() {
+        return INSTANCE;
+    }
+    
     public final static StringConverter<TreeItem<TagDataWrapper>> treeItemConverter = new StringConverter<TreeItem<TagDataWrapper>>() {
         @Override
         public String toString(TreeItem<TagDataWrapper> item) {
-            return item.getValue().getTagInfo().getName();
+            return tagInfoConverter.toString(item.getValue());
         }
 
         @Override
@@ -76,11 +85,11 @@ public class TagTreeCellBase {
         }
     };
     
-    public static void updateItem(ITagTreeCell cell, TagDataWrapper item, boolean empty, final OwnNoteEditor editor) {
+    public void updateItem(ITagTreeCell cell, TagDataWrapper item, boolean empty, final OwnNoteEditor editor) {
         if (item != null && !empty) {
             final TreeCell<TagDataWrapper> treeCell = cell.getTreeCell();
             final TagData tag = item.getTagInfo();
-
+            
             // TFE, 20210310: we might have icons now, too
             final String iconName = tag.getIconName();
             final String colorName = tag.getColorName();
@@ -128,8 +137,8 @@ public class TagTreeCellBase {
             });
 
             // TFE, 20210317: add now we have an edit dialoge for tags...
-            final MenuItem editItem = new MenuItem("Edit");
-            editItem.setOnAction((ActionEvent event) -> {
+            final MenuItem editItem1 = new MenuItem("Edit");
+            editItem1.setOnAction((ActionEvent event) -> {
                 // support for editing the task on this card
                 final PopOver popOver = new PopOver();
                 popOver.setAutoHide(false);
@@ -142,9 +151,6 @@ public class TagTreeCellBase {
                 popOver.addEventHandler(KeyEvent.KEY_PRESSED, (t) -> {
                     if (TagDataEditor.isCompleteCode(t.getCode())) {
                         popOver.hide();
-                        cell.updateContent();
-                    } else if (TagDataEditor.isCancelCode(t.getCode())) {
-                        popOver.hide();
                     }
                 });
 
@@ -155,6 +161,11 @@ public class TagTreeCellBase {
                 });
 
                 popOver.show(treeCell);
+            });
+            // can't use same MenuItem in two menus...
+            final MenuItem editItem2 = new MenuItem("Edit");
+            editItem2.setOnAction((ActionEvent event) -> {
+                editItem1.fire();
             });
             
             final ContextMenu contextMenuFull = new ContextMenu();
@@ -173,8 +184,8 @@ public class TagTreeCellBase {
             if (TagManager.childTagsAllowed(tag)) {
                 contextMenuFull.getItems().add(newChildItem);
             }
-            contextMenuFull.getItems().add(editItem);
-            contextMenuEdit.getItems().add(editItem);
+            contextMenuFull.getItems().add(editItem1);
+            contextMenuEdit.getItems().add(editItem2);
             if (!TagManager.isFixedTag(tag)) {
                 contextMenuFull.getItems().add(deleteItem);
             }
@@ -192,7 +203,7 @@ public class TagTreeCellBase {
         }
     }            
 
-    public static void startEdit(ITagTreeCell cell) {
+    public void startEdit(ITagTreeCell cell) {
         final TreeCell<TagDataWrapper> treeCell = cell.getTreeCell();
 
         if (treeCell.isEditing()) {
@@ -210,18 +221,18 @@ public class TagTreeCellBase {
         }
     }
 
-    public static void cancelEdit(ITagTreeCell cell) {
+    public void cancelEdit(ITagTreeCell cell) {
         final TreeCell<TagDataWrapper> treeCell = cell.getTreeCell();
 
         CellUtils.cancelEdit(treeCell, cell.getTextConverter(), getTreeItemGraphic(treeCell));
     }
 
-    private static Node getTreeItemGraphic(TreeCell<TagDataWrapper> cell) {
+    private Node getTreeItemGraphic(TreeCell<TagDataWrapper> cell) {
         TreeItem<TagDataWrapper> treeItem = cell.getTreeItem();
         return treeItem == null ? null : treeItem.getGraphic();
     }
 
-    public static TextField createTextField(final Cell<TagDataWrapper> cell, final StringConverter<TagDataWrapper> converter) {
+    public TextField createTextField(final Cell<TagDataWrapper> cell, final StringConverter<TagDataWrapper> converter) {
         final TextField textField = new TextField(CellUtils.getItemText(cell, converter));
 
         // Use onAction here rather than onKeyReleased (with check for Enter),
