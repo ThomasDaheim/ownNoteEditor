@@ -47,6 +47,7 @@ public class OwnNoteEditorParameters {
                 OwnNoteEditorParameters.CmdOps.lookAndFeel.toString(), 
                 OwnNoteEditorParameters.CmdOps.lookAndFeel.toString(), 
                 true, 
+                "Layout to use - <arg> can be \"groupTabs\" or \"tagTree\"");
         options.addOption(
                 OwnNoteEditorParameters.CmdOps.ownCloudDir.toString(), 
                 OwnNoteEditorParameters.CmdOps.ownCloudDir.toString(), 
