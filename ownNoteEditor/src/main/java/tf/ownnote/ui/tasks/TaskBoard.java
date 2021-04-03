@@ -74,15 +74,17 @@ public class TaskBoard extends AbstractStage {
         setMinWidth(400.0);
         setMinHeight(200.0);
 
-        Double recentWindowWidth = Double.valueOf(
-                OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_WIDTH, "800"));
-        Double recentWindowHeigth = Double.valueOf(
-                OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_HEIGTH, "600"));
+        Double recentWindowWidth = OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_WIDTH.getAsType();
+        Double recentWindowHeigth = OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_HEIGTH.getAsType();
         final Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
-        Double recentWindowLeft = Double.valueOf(
-                OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_LEFT, String.valueOf((primScreenBounds.getWidth() - recentWindowWidth) / 2.0)));
-        Double recentWindowTop = Double.valueOf(
-                OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_TOP, String.valueOf((primScreenBounds.getHeight() - recentWindowHeigth) / 2.0)));
+        Double recentWindowLeft = OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_LEFT.getAsType();
+        if (Double.isNaN(recentWindowLeft)) {
+            recentWindowLeft = (primScreenBounds.getWidth() - recentWindowWidth) / 2.0;
+        }
+        Double recentWindowTop = OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_TOP.getAsType();
+        if (Double.isNaN(recentWindowTop)) {
+            recentWindowTop = (primScreenBounds.getHeight() - recentWindowHeigth) / 2.0;
+        }
         // TFE, 20201011: check that not larger than current screens - might happen with multiple monitors
         if (Screen.getScreensForRectangle(recentWindowLeft, recentWindowTop, recentWindowWidth, recentWindowHeigth).isEmpty()) {
             recentWindowWidth = 800.0;
@@ -98,10 +100,10 @@ public class TaskBoard extends AbstractStage {
         
         setOnCloseRequest((t) -> {
             if (!isMaximized() && !isIconified()) {
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_WIDTH, String.valueOf(getWidth()));
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_HEIGTH, String.valueOf(getHeight()));
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_LEFT, String.valueOf(getX()));
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_TOP, String.valueOf(getY()));
+                OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_WIDTH.put(getWidth());
+                OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_HEIGTH.put(getHeight());
+                OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_LEFT.put(getX());
+                OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_TOP.put(getY());
             }
         });
         

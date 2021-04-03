@@ -148,7 +148,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     private OwnNoteEditorParameters.LookAndFeel currentLookAndFeel;
 
     private Double tagTreeWidth;
-    private Double classicGroupWidth;
     private Double groupTabsGroupWidth;
     private Double taskListWidth;
     
@@ -282,33 +281,32 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             // store current percentage of group column width
             // if increment is passed as parameter, we need to remove it from the current value
             // otherwise, the percentage grows with each call :-)
-            final String percentWidth = String.valueOf(gridPane.getColumnConstraints().get(NOTE_GROUP_COLUMN).getPercentWidth());
             // store in the preferences
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH, percentWidth);
+            OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH.put(gridPane.getColumnConstraints().get(NOTE_GROUP_COLUMN).getPercentWidth());
             // TFE, 20201204: store tag tree width only for this look & feel
             if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TAGTREE_WIDTH, String.valueOf(gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth()));
+                OwnNoteEditorPreferences.RECENT_TAGTREE_WIDTH.put(gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth());
             }
             // TFE, 20201203: taskList can be hidden (and therefore have column has width 0)
             if (tasklistVisible.get()) {
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH, String.valueOf(gridPane.getColumnConstraints().get(TASKLIST_COLUMN).getPercentWidth()));
+                OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH.put(gridPane.getColumnConstraints().get(TASKLIST_COLUMN).getPercentWidth());
             } else {
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH, String.valueOf(taskListWidth));
+                OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH.put(taskListWidth);
             }
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TASKLIST_VISIBLE, String.valueOf(tasklistVisible.get()));
+            OwnNoteEditorPreferences.RECENT_TASKLIST_VISIBLE.put(tasklistVisible.get());
 
             // issue #45 store sort order for tables
-            notesTable.savePreferences(OwnNoteEditorPreferences.getInstance());
+            notesTable.savePreferences(OwnNoteEditorPreferences.INSTANCE);
 
             // TFE, 20200903: store groups tabs order as well
             if (groupsPane != null) {
-                groupsPane.savePreferences(OwnNoteEditorPreferences.getInstance());
+                groupsPane.savePreferences(OwnNoteEditorPreferences.INSTANCE);
             }
 
             // TFE, 20201030: store name of last edited note
             if (noteHTMLEditor.getEditedNote() != null) {
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_NOTE, noteHTMLEditor.getEditedNote().getNoteName());
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_GROUP, noteHTMLEditor.getEditedNote().getGroupName());
+                OwnNoteEditorPreferences.LAST_EDITED_NOTE.put(noteHTMLEditor.getEditedNote().getNoteName());
+                OwnNoteEditorPreferences.LAST_EDITED_GROUP.put(noteHTMLEditor.getEditedNote().getGroupName());
             }
 
             // TFE, 20201121: tag info is now stored in a separate file
@@ -325,15 +323,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         if (OwnNoteEditor.parameters.getLookAndFeel().isPresent()) {
             currentLookAndFeel = OwnNoteEditor.parameters.getLookAndFeel().get();
         } else {
-            // fix for issue #20
-            // 2. try the preference settings - what was used last time?
             try {
-                currentLookAndFeel = EnumHelper.getInstance().enumFromPreferenceWithDefault(
-                        OwnNoteEditorPreferences.getInstance(),
-                        OwnNoteEditorPreferences.RECENT_LOOKANDFEEL,
-                        OwnNoteEditorParameters.LookAndFeel.class,
-                        OwnNoteEditorParameters.LookAndFeel.groupTabs.name());
-                // System.out.println("Using preference for currentLookAndFeel: " + currentLookAndFeel);
+                currentLookAndFeel = OwnNoteEditorPreferences.RECENT_LOOKANDFEEL.getAsType();
             } catch (SecurityException ex) {
                 Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
                 currentLookAndFeel = OwnNoteEditorParameters.LookAndFeel.groupTabs;
@@ -343,20 +334,13 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         // issue #30: get percentages for group column width for classic and onenote look & feel
         // issue #45 store sort order for tables
         try {
-            tagTreeWidth = Double.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_TAGTREE_WIDTH, "18.3333333"));
-            classicGroupWidth = Double.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_CLASSIC_GROUPWIDTH, "18.3333333"));
-            groupTabsGroupWidth = Double.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH, "30.0"));
-            taskListWidth = Double.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH, "15.0"));
-            tasklistVisible.set(Boolean.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_TASKLIST_VISIBLE, "true")));
+            tagTreeWidth = OwnNoteEditorPreferences.RECENT_TAGTREE_WIDTH.getAsType();
+            groupTabsGroupWidth = OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH.getAsType();
+            taskListWidth = OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH.getAsType();
+            tasklistVisible.set(OwnNoteEditorPreferences.RECENT_TASKLIST_VISIBLE.getAsType());
         } catch (SecurityException ex) {
             Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
             tagTreeWidth = 18.3333333;
-            classicGroupWidth = 18.3333333;
             groupTabsGroupWidth = 33.3333333;
             taskListWidth = 15.0;
             tasklistVisible.set(true);
@@ -364,7 +348,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         
         // TFE, 20201205: limit values to allowed ones
         tagTreeWidth = limit(tagTreeWidth, paneSizes.get(TAGTREE_COLUMN).getLeft(), paneSizes.get(TAGTREE_COLUMN).getRight());
-        classicGroupWidth = limit(classicGroupWidth, paneSizes.get(NOTE_GROUP_COLUMN).getLeft(), paneSizes.get(NOTE_GROUP_COLUMN).getRight());
         groupTabsGroupWidth = limit(groupTabsGroupWidth, paneSizes.get(NOTE_GROUP_COLUMN).getLeft(), paneSizes.get(NOTE_GROUP_COLUMN).getRight());
         taskListWidth = limit(taskListWidth, paneSizes.get(TASKLIST_COLUMN).getLeft(), paneSizes.get(TASKLIST_COLUMN).getRight());
         
@@ -377,7 +360,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         } else {
             // 2. try the preferences setting - most recent file that was opened
             try {
-                pathname = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, "");
+                pathname = OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH.getAsType();
                 // System.out.println("Using preference for ownCloudDir: " + pathname);
             } catch (SecurityException ex) {
                 Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
@@ -423,7 +406,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         noteNameColFXML.setUserData(TableMenuUtils.NO_HIDE_COLUMN);
         noteModifiedCol = new OwnNoteTableColumn(noteModifiedColFXML, this);
         notesTable = new OwnNoteTableView(notesTableFXML, this);
-        notesTable.loadPreferences(OwnNoteEditorPreferences.getInstance());
+        notesTable.loadPreferences(OwnNoteEditorPreferences.INSTANCE);
 
         groupsPaneFXML.setDisable(true);
         groupsPaneFXML.setVisible(false);
@@ -517,7 +500,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         // groupTabs look and feel
         if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(currentLookAndFeel)) {
             groupsPane = new OwnNoteTabPane(groupsPaneFXML, this);
-            groupsPane.loadPreferences(OwnNoteEditorPreferences.getInstance());
+            groupsPane.loadPreferences(OwnNoteEditorPreferences.INSTANCE);
             groupsPane.setDisable(false);
             groupsPane.setVisible(true);
 
@@ -704,9 +687,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                     // store in the preferences - don't overwrite local variable!
                     final RadioMenuItem radioArg = ((RadioMenuItem) arg2);
                     if (radioArg.equals(groupTabsLookAndFeel)) {
-                        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.groupTabs.name());
+                        OwnNoteEditorPreferences.RECENT_LOOKANDFEEL.put(OwnNoteEditorParameters.LookAndFeel.groupTabs);
                     } else if (radioArg.equals(tagTreeLookAndFeel)) {
-                        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.tagTree.name());
+                        OwnNoteEditorPreferences.RECENT_LOOKANDFEEL.put(OwnNoteEditorParameters.LookAndFeel.tagTree);
                     }
                 }
             });
@@ -716,7 +699,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
                 if (newValue != null && !newValue.equals(oldValue)) {
                     // store in the preferences
-                    OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, newValue);
+                    OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH.put(newValue);
 
                     // scan files in new directory
                     initFromDirectory(false, true);
@@ -1117,8 +1100,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
             // TFE, 20201030: support re-load of last edited note
             if (currentNoteProperty.get() == null) {
-                final String lastGroupName = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.LAST_EDITED_GROUP, "");
-                final String lastNoteName = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.LAST_EDITED_NOTE, "");
+                final String lastGroupName = OwnNoteEditorPreferences.LAST_EDITED_GROUP.getAsType();
+                final String lastNoteName = OwnNoteEditorPreferences.LAST_EDITED_NOTE.getAsType();
                 if (OwnNoteFileManager.getInstance().noteExists(lastGroupName, lastNoteName)) {
                     currentNoteProperty.set(OwnNoteFileManager.getInstance().getNote(lastGroupName, lastNoteName));
                     

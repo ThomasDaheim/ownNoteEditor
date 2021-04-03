@@ -120,14 +120,14 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     @Override
     public void loadPreferences(final IPreferencesStore store) {
 //            setSortOrder(TableSortHelper.fromString(store.get(OwnNoteEditorPreferences.RECENT_NOTESTABLE_SORTORDER, "")));
-        TableViewPreferences.loadTableViewPreferences(myTableView, OwnNoteEditorPreferences.RECENT_NOTESTABLE_SETTINGS, store);
+        TableViewPreferences.loadTableViewPreferences(myTableView, OwnNoteEditorPreferences.RECENT_NOTESTABLE_SETTINGS.getAsType(), store);
         setSortOrder();
     }
     
     @Override
     public void savePreferences(final IPreferencesStore store) {
 //            store.put(OwnNoteEditorPreferences.RECENT_NOTESTABLE_SORTORDER, TableSortHelper.toString(getSortOrder()));
-        TableViewPreferences.saveTableViewPreferences(myTableView, OwnNoteEditorPreferences.RECENT_NOTESTABLE_SETTINGS, store);
+        TableViewPreferences.saveTableViewPreferences(myTableView, OwnNoteEditorPreferences.RECENT_NOTESTABLE_SETTINGS.getAsType(), store);
     }
 
     @Override

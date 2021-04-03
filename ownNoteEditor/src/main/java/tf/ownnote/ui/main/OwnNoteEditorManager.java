@@ -108,16 +108,18 @@ public class OwnNoteEditorManager extends Application {
         FXMLLoader fxmlLoader = null;
         try {
             // issue #30: store width and height of window as well - but here so that the scene can be created accordingly
-            Double recentWindowWidth = Double.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_WINDOW_WIDTH, "1200"));
-            Double recentWindowHeigth = Double.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_WINDOW_HEIGTH, "600"));
+            Double recentWindowWidth = OwnNoteEditorPreferences.RECENT_WINDOW_WIDTH.getAsType();
+            Double recentWindowHeigth = OwnNoteEditorPreferences.RECENT_WINDOW_HEIGTH.getAsType();
             // TFE, 20201020: store left & top as well
             final Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
-            Double recentWindowLeft = Double.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_WINDOW_LEFT, String.valueOf((primScreenBounds.getWidth() - recentWindowWidth) / 2.0)));
-            Double recentWindowTop = Double.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_WINDOW_TOP, String.valueOf((primScreenBounds.getHeight() - recentWindowHeigth) / 2.0)));
+            Double recentWindowLeft = OwnNoteEditorPreferences.RECENT_WINDOW_LEFT.getAsType();
+            if (Double.isNaN(recentWindowLeft)) {
+                recentWindowLeft = (primScreenBounds.getWidth() - recentWindowWidth) / 2.0;
+            }
+            Double recentWindowTop = OwnNoteEditorPreferences.RECENT_WINDOW_TOP.getAsType();
+            if (Double.isNaN(recentWindowTop)) {
+                recentWindowTop = (primScreenBounds.getHeight() - recentWindowHeigth) / 2.0;
+            }
             // TFE, 20201011: check that not larger than current screens - might happen with multiple monitors
             if (Screen.getScreensForRectangle(recentWindowLeft, recentWindowTop, recentWindowWidth, recentWindowHeigth).isEmpty()) {
                 recentWindowWidth = 1200.0;
@@ -292,10 +294,10 @@ public class OwnNoteEditorManager extends Application {
         if (productiveRun) {
             // TF, 20170904: maximized gives wrong values for width & height - surely same with minimized...
             if (!myStage.isMaximized() && !myStage.isIconified()) {
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_WINDOW_WIDTH, String.valueOf(myStage.getScene().getWidth()));
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_WINDOW_HEIGTH, String.valueOf(myStage.getScene().getHeight()));
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_WINDOW_LEFT, String.valueOf(myStage.getX()));
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_WINDOW_TOP, String.valueOf(myStage.getY()));
+                OwnNoteEditorPreferences.RECENT_WINDOW_WIDTH.put(myStage.getScene().getWidth());
+                OwnNoteEditorPreferences.RECENT_WINDOW_HEIGTH.put(myStage.getScene().getHeight());
+                OwnNoteEditorPreferences.RECENT_WINDOW_LEFT.put(myStage.getX());
+                OwnNoteEditorPreferences.RECENT_WINDOW_TOP.put(myStage.getY());
             }
         }
         
