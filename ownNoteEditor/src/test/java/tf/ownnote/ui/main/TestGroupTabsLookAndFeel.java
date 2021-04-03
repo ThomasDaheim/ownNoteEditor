@@ -110,7 +110,7 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         // get current look & feel and notes path
         try {
             currentLookAndFeel = OwnNoteEditorParameters.LookAndFeel.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
+                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.groupTabs.name()));
 
             currentPath = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, "");
 //            System.out.println("currentPath: " + currentPath);

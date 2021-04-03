@@ -52,7 +52,6 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
@@ -60,9 +59,7 @@ import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.CheckMenuItem;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
-import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.Menu;
@@ -78,8 +75,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
@@ -114,8 +109,8 @@ import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.notes.NoteMetaDataEditor;
 import tf.ownnote.ui.tags.TagData;
-import tf.ownnote.ui.tags.TagsEditor;
 import tf.ownnote.ui.tags.TagManager;
+import tf.ownnote.ui.tags.TagsEditor;
 import tf.ownnote.ui.tags.TagsTreeView;
 import tf.ownnote.ui.tasks.TaskBoard;
 import tf.ownnote.ui.tasks.TaskData;
@@ -148,7 +143,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     private final BooleanProperty inEditMode = new SimpleBooleanProperty();
     private boolean firstNoteAccess = true;
     
-    private boolean handleQuickSave = false;
     // should we show standard ownNote face or groupTabs?
     // TF, 20160630: refactored from "classicLook" to show its real meeaning
     private OwnNoteEditorParameters.LookAndFeel currentLookAndFeel;
@@ -158,14 +152,12 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     private Double groupTabsGroupWidth;
     private Double taskListWidth;
     
-    private BooleanProperty tasklistVisible = new SimpleBooleanProperty(true);
+    private final BooleanProperty tasklistVisible = new SimpleBooleanProperty(true);
     
     // TFE, 20210301: make this a property so that rest of the world can listen to changes...
     private final ObjectProperty<Note> currentNoteProperty = new SimpleObjectProperty<>(null);
-    
-    // Indicates that the divider is currently dragged by the mouse
-    // see https://stackoverflow.com/a/40707931
-    private boolean mouseDragOnDivider = false;    
+    // TFE, 20210401: have current group tag as property as well, e.g. to listen to changes of color & icon
+    private final ObjectProperty<TagData> currentGroupTagProperty = new SimpleObjectProperty<>(null);
     
     private IGroupListContainer myGroupList = null;
     
@@ -210,9 +202,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     private TableView<Map<String, String>> notesTableFXML;
     private OwnNoteTableView notesTable = null;
     @FXML
-    private TableView<Map<String, String>> groupsTableFXML;
-    private OwnNoteTableView groupsTable = null;
-    @FXML
     private Label ownCloudPath;
     @FXML
     private Button setOwnCloudPath;
@@ -223,54 +212,18 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     private TableColumn<Map, String> noteModifiedColFXML;
     private OwnNoteTableColumn noteModifiedCol = null;
     @FXML
-    private TableColumn<Map, String> noteDeleteColFXML;
-    private OwnNoteTableColumn noteDeleteCol = null;
-    @FXML
-    private TableColumn<Map, String> groupNameColFXML;
-    private OwnNoteTableColumn groupNameCol = null;
-    @FXML
-    private TableColumn<Map, String> groupDeleteColFXML;
-    private OwnNoteTableColumn groupDeleteCol = null;
-    @FXML
-    private TableColumn<Map, String> groupCountColFXML;
-    private OwnNoteTableColumn groupCountCol = null;
-    @FXML
-    private TableColumn<Map, String> noteGroupColFXML;
-    private OwnNoteTableColumn noteGroupCol = null;
-    @FXML
-    private Button newButton;
-    @FXML
-    private ComboBox<String> groupNameBox;
-    @FXML
-    private TextField groupNameText;
-    @FXML
-    private Button createButton;
-    @FXML
-    private Button cancelButton;
-    @FXML
-    private TextField noteNameText;
-    @FXML
     private WebView noteHTMLEditorFXML;
     private OwnNoteHTMLEditor noteHTMLEditor = null;
-    @FXML
-    private Button quickSaveButton;
-    @FXML
-    private Button saveButton;
-    @FXML
-    private HBox buttonBox;
     @FXML
     private TabPane groupsPaneFXML;
     @FXML
     private MenuBar menuBar;
-    @FXML
-    private RadioMenuItem classicLookAndFeel;
     @FXML
     private RadioMenuItem groupTabsLookAndFeel;
     @FXML
     private ToggleGroup LookAndFeel;
     @FXML
     private Menu menuLookAndFeel;
-    private StackPane noteEditorPaneFXML;
     @FXML
     private Label pathLabel;
     @FXML
@@ -331,11 +284,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             // otherwise, the percentage grows with each call :-)
             final String percentWidth = String.valueOf(gridPane.getColumnConstraints().get(NOTE_GROUP_COLUMN).getPercentWidth());
             // store in the preferences
-            if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_CLASSIC_GROUPWIDTH, percentWidth);
-            } else {
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH, percentWidth);
-            }
+            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH, percentWidth);
             // TFE, 20201204: store tag tree width only for this look & feel
             if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
                 OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TAGTREE_WIDTH, String.valueOf(gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth()));
@@ -349,7 +298,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_TASKLIST_VISIBLE, String.valueOf(tasklistVisible.get()));
 
             // issue #45 store sort order for tables
-            groupsTable.savePreferences(OwnNoteEditorPreferences.getInstance());
             notesTable.savePreferences(OwnNoteEditorPreferences.getInstance());
 
             // TFE, 20200903: store groups tabs order as well
@@ -384,7 +332,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                         OwnNoteEditorPreferences.getInstance(),
                         OwnNoteEditorPreferences.RECENT_LOOKANDFEEL,
                         OwnNoteEditorParameters.LookAndFeel.class,
-                        OwnNoteEditorParameters.LookAndFeel.classic.name());
+                        OwnNoteEditorParameters.LookAndFeel.groupTabs.name());
                 // System.out.println("Using preference for currentLookAndFeel: " + currentLookAndFeel);
             } catch (SecurityException ex) {
                 Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
@@ -474,24 +422,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         noteNameCol = new OwnNoteTableColumn(noteNameColFXML, this);
         noteNameColFXML.setUserData(TableMenuUtils.NO_HIDE_COLUMN);
         noteModifiedCol = new OwnNoteTableColumn(noteModifiedColFXML, this);
-        noteDeleteCol = new OwnNoteTableColumn(noteDeleteColFXML, this);
-        noteDeleteColFXML.setUserData(TableMenuUtils.NO_HIDE_COLUMN);
-        noteGroupCol = new OwnNoteTableColumn(noteGroupColFXML, this);
-        noteGroupColFXML.setVisible(false);
-        noteGroupColFXML.setMinWidth(0d);
-        noteGroupColFXML.setMaxWidth(0d);
-        noteGroupColFXML.setUserData(TableMenuUtils.NO_LIST_COLUMN);
         notesTable = new OwnNoteTableView(notesTableFXML, this);
         notesTable.loadPreferences(OwnNoteEditorPreferences.getInstance());
 
-        groupNameCol = new OwnNoteTableColumn(groupNameColFXML, this);
-        groupNameColFXML.setUserData(TableMenuUtils.NO_HIDE_COLUMN);
-        groupDeleteCol = new OwnNoteTableColumn(groupDeleteColFXML, this);
-        groupDeleteColFXML.setUserData(TableMenuUtils.NO_HIDE_COLUMN);
-        groupCountCol = new OwnNoteTableColumn(groupCountColFXML, this);
-        groupsTable = new OwnNoteTableView(groupsTableFXML, this);
-        groupsTable.loadPreferences(OwnNoteEditorPreferences.getInstance());
-        
         groupsPaneFXML.setDisable(true);
         groupsPaneFXML.setVisible(false);
 
@@ -527,11 +460,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
         // 2nd column: groups table or notes table
         ColumnConstraints column2 = new ColumnConstraints();
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-            column2.setPercentWidth(classicGroupWidth);
-        } else {
-            column2.setPercentWidth(groupTabsGroupWidth);
-        }
+        column2.setPercentWidth(groupTabsGroupWidth);
         column2.setHgrow(Priority.ALWAYS);
 
         // 3rd column: notes editor
@@ -563,17 +492,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         rightPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(paneSizes.get(TASKLIST_COLUMN).getRight()/100d));
 
         // set callback, width, value name, cursor type of columns
-        noteNameCol.setTableColumnProperties(0.65, Note.getNoteValueName(0), OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel));
+        noteNameCol.setTableColumnProperties(0.65, Note.getNoteValueName(0), false);
         noteModifiedCol.setTableColumnProperties(0.25, Note.getNoteValueName(1), false);
         // see issue #42
         noteModifiedCol.setComparator(FormatHelper.getInstance().getFileTimeComparator());
-        noteDeleteCol.setTableColumnProperties(0.10, Note.getNoteValueName(2), false);
-        noteGroupCol.setTableColumnProperties(0, Note.getNoteValueName(3), false);
 
-        // only new button visible initially
-        hideAndDisableAllCreateControls();
-        hideAndDisableAllEditControls();
-        
         // issue #59: support filtering of note names
         // https://code.makery.ch/blog/javafx-8-tableview-sorting-filtering/
         noteFilterText.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -591,283 +514,58 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         noteFilterMode.setGraphic(noteFilterCheck);
         noteFilterMode.setContentDisplay(ContentDisplay.RIGHT);
 
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-            myGroupList = groupsTable;
-            
-            hideNoteEditor();
-            
-            // set callback, width, value name, cursor type of columns
-            groupNameCol.setTableColumnProperties(0.65, NoteGroup.getNoteGroupName(0), false);
-            groupDeleteCol.setTableColumnProperties(0.15, NoteGroup.getNoteGroupName(1), false);
-            groupCountCol.setTableColumnProperties(0.20, NoteGroup.getNoteGroupName(2), false);
+        // groupTabs look and feel
+        if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(currentLookAndFeel)) {
+            groupsPane = new OwnNoteTabPane(groupsPaneFXML, this);
+            groupsPane.loadPreferences(OwnNoteEditorPreferences.getInstance());
+            groupsPane.setDisable(false);
+            groupsPane.setVisible(true);
 
-            // name can be changed - but not for all entries!
-            groupsTable.setEditable(true);
-            groupNameCol.setEditable(true);
-
-            // in case the group name changes notes neeed to be renamed
-            groupNameCol.setOnEditCommit((CellEditEvent<Map, String> t) -> {
-                final NoteGroup curEntry =
-                        new NoteGroup(ObjectsHelper.uncheckedCast(t.getTableView().getItems().get(t.getTablePosition().getRow())));
-
-                if (!t.getNewValue().equals(t.getOldValue())) {
-                    // rename all notes of the group
-                    if (!renameGroupWrapper(t.getOldValue(), t.getNewValue())) {
-                        // TODO: revert changes to group name on UI
-                        curEntry.setGroupName(t.getOldValue());
-
-                        // workaround til TODO above resolved :-)
-                        initFromDirectory(false, false);
-                    } else {
-                        // update group name in table
-                        curEntry.setGroupName(t.getNewValue());
-                    }
-                }
-            });
-            
-            // buttons and stuff should only impact layout when visible
-            // https://stackoverflow.com/questions/12200195/javafx-hbox-hide-item
-            for(Node child: buttonBox.getChildren()){
-                child.managedProperty().bind(child.visibleProperty());
-            }
-
-            // keep track of the visibility of the editor
-            inEditMode.bind(noteHTMLEditor.visibleProperty());
-
-            // add listener for note name
-            noteNameText.textProperty().addListener(
-                (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
-                    if (newValue != null && !newValue.equals(oldValue)) {
-                        if (this.inEditMode.get() && this.handleQuickSave) {
-                            hideAndDisableControl(quickSaveButton);
-                        }
-                    }
-                });
-
-            // add listener for group name
-            groupNameText.textProperty().addListener(
-                (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
-                    if (newValue != null && !newValue.equals(oldValue)) {
-                        if (this.inEditMode.get() && this.handleQuickSave) {
-                            hideAndDisableControl(quickSaveButton);
-                        }
-                    }
-                });
-
-            // add listener for group combobox - but before changing values :-)
-            groupNameBox.valueProperty().addListener(
-                (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
-                    if (newValue != null && !newValue.equals(oldValue)) {
-                        // only in case of "new group" selected we show the field to enter an new group name
-                        if (newValue.equals(NoteGroup.NEW_GROUP)) {
-                            showAndEnableControl(groupNameText);
-                            groupNameText.setPromptText("group title");
-                            groupNameText.clear();
-                        } else {
-                            hideAndDisableControl(groupNameText);
-                        }
-                        if (this.inEditMode.get() && this.handleQuickSave) {
-                            hideAndDisableControl(quickSaveButton);
-                        }
-                    }
-                });
-
-            // add action to the button - show initial create controls and populate combo box
-            newButton.setOnAction((ActionEvent event) -> {
-                // 1. enable initial create controls
-                showAndEnableInitialCreateControls();
-
-                // 2. fill combo box
-                initGroupNameBox();
-                groupNameBox.setValue(NoteGroup.NOT_GROUPED);
-                groupNameBox.requestFocus();
-            });
-            // issue #41
-            newButton.getScene().getAccelerators().put(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN), () -> {
-                newButton.fire();
-            });
-
-            // cancel button simply hides all create controls
-            cancelButton.setOnAction((ActionEvent event) -> {
-                if (!inEditMode.get()) {
-                    hideAndDisableAllCreateControls();
-                } else {
-                    hideAndDisableAllEditControls();
-                    hideNoteEditor();
-                }
-            });
-
-            // create button creates empty note if text fields filled
-            createButton.setOnAction((ActionEvent event) -> {
-                // check if name fields are filled correctly
-                Boolean doCreate = true;
-
-                String newNoteName = noteNameText.getText();
-                if (newNoteName.isEmpty()) {
-                    // no note name entered...
-                    doCreate = false;
-
-                    showAlert(AlertType.ERROR, "Error Dialog", "No note title given.", null);
-                }
-                String newGroupName = "";
-                if (groupNameBox.getValue().equals(NoteGroup.NEW_GROUP)) {
-                    newGroupName = groupNameText.getText();
-
-                    if (newGroupName.isEmpty()) {
-                        // "new group" selected and no group name entered...
-                        doCreate = false;
-
-                        showAlert(AlertType.ERROR, "Error Dialog", "No group title given.", null);
-                    }
-                } else {
-                    newGroupName = groupNameBox.getValue();
-                }
-
-                if (doCreate) {
-                    if (createNote(newGroupName, newNoteName)) {
-                        hideAndDisableAllCreateControls();
-                        initFromDirectory(false, false);
-                    }
-                }
-            });
-
-            // quicksave button saves note but stays in editor
-            quickSaveButton.setOnAction((ActionEvent event) -> {
-                // quicksave = no changes to note name and group name allowed!
-                final Note curNote = noteHTMLEditor.getEditedNote();
-                curNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
-                
-                if (OwnNoteFileManager.getInstance().saveNote(curNote)) {
-                } else {
-                    // error message - most likely note in "Not grouped" with same name already exists
-                    showAlert(AlertType.ERROR, "Error Dialog", "Note couldn't be saved.", null);
-                }
-            });
-
-            // save button saves note but stays in editor
-            saveButton.setOnAction((ActionEvent event) -> {
-                // save = you might have changed note name & group name
-                // check if name fields are filled correctly
-                Boolean doSave = true;
-
-                String newNoteName = noteNameText.getText();
-                if (newNoteName.isEmpty()) {
-                    // no note name entered...
-                    doSave = false;
-
-                    showAlert(AlertType.ERROR, "Error Dialog", "No note title given.", null);
-                }
-                String newGroupName = "";
-                if (groupNameBox.getValue().equals(NoteGroup.NEW_GROUP)) {
-                    newGroupName = groupNameText.getText();
-
-                    if (newGroupName.isEmpty()) {
-                        // "new group" selected and no group name entered...
-                        doSave = false;
-
-                        showAlert(AlertType.ERROR, "Error Dialog", "No group title given.", null);
-                    }
-                } else {
-                    newGroupName = groupNameBox.getValue();
-                }
-
-                if (doSave) {
-                    // check against previous note and group name - might have changed!
-                    final Note curNote = noteHTMLEditor.getEditedNote();
-                    final String curNoteName = curNote.getNoteName();
-                    final String curGroupName = curNote.getGroupName();
-
-                    if (!curNoteName.equals(newNoteName) || !curGroupName.equals(newGroupName)) {
-                        // a bit of save transactions: first create new then delete old...
-                        if (!createNote(newGroupName, newNoteName)) {
-                            doSave = false;
-                        } else {
-                            if (!deleteNote(curNote)) {
-                                doSave = false;
-                                // clean up: delete new empty note - ignore return values
-                                OwnNoteFileManager.getInstance().deleteNote(newGroupName, newNoteName);
-                            }
-                        }
-                    }
-                }
-
-                if (doSave) {
-                    final Note newNote = new Note(newGroupName, newNoteName);
-                    newNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
-                    if (saveNote(newNote)) {
-                    }
-                }
-            });
-
+            myGroupList = groupsPane;
         } else {
+            // show TagsTreeView (special version without checkboxes & drag/drop of tags)
+            tagsTreeView = new TagsTreeView(this);
 
-            // groupTabs look and feel
-            // 1. no groups table, no button list
-            groupsTable.setDisable(true);
-            groupsTable.setVisible(false);
+            tagsTreePaneXML.getChildren().add(tagsTreeView);
 
-            buttonBox.setDisable(true);
-            buttonBox.setVisible(false);
-            
-            if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(currentLookAndFeel)) {
-                groupsPane = new OwnNoteTabPane(groupsPaneFXML, this);
-                groupsPane.loadPreferences(OwnNoteEditorPreferences.getInstance());
-                groupsPane.setDisable(false);
-                groupsPane.setVisible(true);
-
-                myGroupList = groupsPane;
-            } else {
-                // show TagsTreeView (special version without checkboxes & drag/drop of tags)
-                tagsTreeView = new TagsTreeView(this);
-
-                tagsTreePaneXML.getChildren().add(tagsTreeView);
-
-                myGroupList = tagsTreeView;
-            }
-            
-            // 2. note table is shown left
-            middlePaneXML.getChildren().remove(notesTableFXML);
-            leftPaneXML.getChildren().setAll(notesTableFXML);
-            
-            // 3. and can't be deleted with trashcan
-            noteDeleteColFXML.setVisible(false);
-            noteDeleteColFXML.setMinWidth(0d);
-            noteDeleteColFXML.setMaxWidth(0d);
-            notesTableFXML.getColumns().remove(noteDeleteColFXML);
-
-            // maximize noteNameCol
-            // http://bekwam.blogspot.com/2016/02/getting-around-javafx-tableview.html
-            noteNameColFXML.prefWidthProperty().bind(
-                                notesTableFXML.widthProperty()
-                                .subtract(noteModifiedColFXML.widthProperty())
-                                .subtract(2)
-                             );
-            
-            // name can be changed - but not for all entries!
-            noteNameCol.setEditable(true);
-            notesTable.setEditable(true);
-            
-            // From documentation - The .root style class is applied to the root node of the Scene instance.
-            gridPane.getScene().getRoot().setStyle("note-selected-background-color: white");
-            gridPane.getScene().getRoot().setStyle("note-selected-font-color: black");
-            
-            // renaming note
-            noteNameCol.setOnEditCommit((CellEditEvent<Map, String> t) -> {
-                final Note curNote = ObjectsHelper.uncheckedCast(t.getTableView().getItems().get(t.getTablePosition().getRow()));
-
-                if (!t.getNewValue().equals(t.getOldValue())) {
-                    if (!renameNote(curNote, t.getNewValue())) {
-                        // TF, 20160815: restore old name in case of error
-
-                        // https://stackoverflow.com/questions/20798634/restore-oldvalue-in-tableview-after-editing-the-cell-javafx
-                        t.getTableView().getColumns().get(0).setVisible(false);
-                        t.getTableView().getColumns().get(0).setVisible(true);
-                    }
-                }
-            });
-            
+            myGroupList = tagsTreeView;
         }
-        
+
+        // 2. note table is shown left
+        middlePaneXML.getChildren().remove(notesTableFXML);
+        leftPaneXML.getChildren().setAll(notesTableFXML);
+
+        // maximize noteNameCol
+        // http://bekwam.blogspot.com/2016/02/getting-around-javafx-tableview.html
+        noteNameColFXML.prefWidthProperty().bind(
+                            notesTableFXML.widthProperty()
+                            .subtract(noteModifiedColFXML.widthProperty())
+                            .subtract(2)
+                         );
+
+        // name can be changed - but not for all entries!
+        noteNameCol.setEditable(true);
+        notesTable.setEditable(true);
+
+        // From documentation - The .root style class is applied to the root node of the Scene instance.
+        gridPane.getScene().getRoot().setStyle("note-selected-background-color: white");
+        gridPane.getScene().getRoot().setStyle("note-selected-font-color: black");
+
+        // renaming note
+        noteNameCol.setOnEditCommit((CellEditEvent<Map, String> t) -> {
+            final Note curNote = ObjectsHelper.uncheckedCast(t.getTableView().getItems().get(t.getTablePosition().getRow()));
+
+            if (!t.getNewValue().equals(t.getOldValue())) {
+                if (!renameNote(curNote, t.getNewValue())) {
+                    // TF, 20160815: restore old name in case of error
+
+                    // https://stackoverflow.com/questions/20798634/restore-oldvalue-in-tableview-after-editing-the-cell-javafx
+                    t.getTableView().getColumns().get(0).setVisible(false);
+                    t.getTableView().getColumns().get(0).setVisible(true);
+                }
+            }
+        });
+            
         // TFE, 20201204: new column to the left for tagtree layout
         if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
         }
@@ -892,12 +590,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         // run layout to have everything set up
         splitPaneXML.applyCss();
         splitPaneXML.requestLayout();
-        
-        // For each divider register a mouse pressed and a released listener
-        for (Node node: splitPaneXML.lookupAll(".split-pane-divider")) {
-            node.setOnMousePressed(evMousePressed -> mouseDragOnDivider = true);
-            node.setOnMouseReleased(evMouseReleased -> mouseDragOnDivider = false );
-        }
         
         // now sync splitpane dividers with grid column width
         // TFE, 20201204: gets more tricky with for columns :-)
@@ -949,11 +641,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                             newPercentage - gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth());
                     setRemainingColumnWidth(EDITOR_COLUMN);
 
-                    if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-                        classicGroupWidth = newPercentage;
-                    } else {
-                        groupTabsGroupWidth = newPercentage;
-                    }
+                    groupTabsGroupWidth = newPercentage;
 
 //                    System.out.println("Moved Note/Group-Editor divider to " + newPercentage + "%");
                 });
@@ -998,9 +686,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     private void initMenus() {
         // 1. select entry based on value of currentLookAndFeel
         switch (currentLookAndFeel) {
-            case classic:
-                classicLookAndFeel.setSelected(true);
-                break;
             case groupTabs:
                 groupTabsLookAndFeel.setSelected(true);
                 break;
@@ -1010,7 +695,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         }
 
         // 2. add listener to track changes of layout - only after setting it initially
-        classicLookAndFeel.getToggleGroup().selectedToggleProperty().addListener(
+        groupTabsLookAndFeel.getToggleGroup().selectedToggleProperty().addListener(
             (ObservableValue<? extends Toggle> arg0, Toggle arg1, Toggle arg2) -> {
                 // when starting up things might not be initialized properly
                 if (arg2 != null) {
@@ -1018,9 +703,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
                     // store in the preferences - don't overwrite local variable!
                     final RadioMenuItem radioArg = ((RadioMenuItem) arg2);
-                    if (radioArg.equals(classicLookAndFeel)) {
-                        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name());
-                    } else if (radioArg.equals(groupTabsLookAndFeel)) {
+                    if (radioArg.equals(groupTabsLookAndFeel)) {
                         OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.groupTabs.name());
                     } else if (radioArg.equals(tagTreeLookAndFeel)) {
                         OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.tagTree.name());
@@ -1206,10 +889,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         
         // 1. switch views: replace NoteTable with htmlEditor
         showNoteEditor();
-        initGroupNameBox();
-        noteNameText.setText(curNote.getNoteName());
-        groupNameBox.setValue(curNote.getGroupName());
-        this.handleQuickSave = true;
 
         // 2. show content of file in editor
         if (curNote.getNoteFileContent() == null) {
@@ -1247,126 +926,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         noteHTMLEditor.scrollToAndToggleCheckBox(textPos, htmlText, taskId, isChecked);
     }
 
-    private void hideAndDisableAllCreateControls() {
-        // show new button
-        showAndEnableControl(newButton);
-        
-        hideAndDisableControl(noteNameText);
-        
-        hideAndDisableControl(groupNameBox);
-
-        hideAndDisableControl(groupNameText);
-        
-        hideAndDisableControl(createButton);
-
-        hideAndDisableControl(cancelButton);
-    }
-
-    private void showAndEnableInitialCreateControls() {
-        // hide new button
-        hideAndDisableControl(newButton);
-        
-        showAndEnableControl(noteNameText);
-        noteNameText.setPromptText("note title");
-
-        showAndEnableControl(groupNameBox);
-        
-        hideAndDisableControl(groupNameText);
-
-        showAndEnableControl(createButton);
-        
-        // make sure quicksave & save button isn't left over shown from previous
-        hideAndDisableControl(quickSaveButton);
-        this.handleQuickSave = false;
-        hideAndDisableControl(saveButton);
-
-        showAndEnableControl(cancelButton);
-    }
-
-    private void hideNoteEditor() {
-        noteHTMLEditor.setDisable(true);
-        noteHTMLEditor.setVisible(false);
-        
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-            notesTable.setDisable(false);
-            notesTable.setVisible(true);
-        }
-    }
-
     private void showNoteEditor() {
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-            notesTable.setDisable(true);
-            notesTable.setVisible(false);
-        }
-
         noteHTMLEditor.setDisable(false);
         noteHTMLEditor.setVisible(true);
-
-        if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-            showAndEnableInitialEditControls();
-        }
-    }
-    
-    private void hideAndDisableAllEditControls() {
-        // show new button
-        showAndEnableControl(newButton);
-        
-        hideAndDisableControl(noteNameText);
-        
-        hideAndDisableControl(groupNameBox);
-
-        hideAndDisableControl(groupNameText);
-        
-        hideAndDisableControl(quickSaveButton);
-        this.handleQuickSave = false;
-
-        hideAndDisableControl(saveButton);
-        
-        hideAndDisableControl(cancelButton);
-    }
-
-    private void showAndEnableInitialEditControls() {
-        // hide new button
-        hideAndDisableControl(newButton);
-        
-        showAndEnableControl(noteNameText);
-        noteNameText.setPromptText("note title");
-
-        showAndEnableControl(groupNameBox);
-        
-        hideAndDisableControl(groupNameText);
-
-        // make sure create button isn't left over shown from previous
-        hideAndDisableControl(createButton);
-
-        showAndEnableControl(quickSaveButton);
-
-        showAndEnableControl(saveButton);
-        
-        showAndEnableControl(cancelButton);
-    }
-    
-    private void hideAndDisableControl(final Control control) {
-        control.setDisable(true);
-        control.setVisible(false);
-        control.setMinWidth(0);
-        control.setMaxWidth(0);
-        control.setPrefWidth(0);
-    }
-    
-    private void showAndEnableControl(final Control control) {
-        control.setDisable(false);
-        control.setVisible(true);
-        control.setPrefWidth(Control.USE_COMPUTED_SIZE);
-        control.setMinWidth(Control.USE_PREF_SIZE);
-        control.setMaxWidth(Control.USE_PREF_SIZE);
-    }
-
-    private void initGroupNameBox() {
-        groupNameBox.getItems().clear();
-        groupNameBox.getItems().add(NoteGroup.NOT_GROUPED);
-        groupNameBox.getItems().add(NoteGroup.NEW_GROUP);
-        groupNameBox.getItems().addAll(realGroupNames);
     }
     
     public OwnNoteHTMLEditor getNoteEditor() {
@@ -1512,14 +1074,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         boolean result = OwnNoteFileManager.getInstance().saveNote(note);
                 
         if (result) {
-            if (OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-                hideAndDisableAllEditControls();
-                hideNoteEditor();
-                initFromDirectory(false, false);
-            } else {
-                // TF, 20170723: refresh notes list since modified has changed
-                notesTableFXML.refresh();
-            }
+            // TF, 20170723: refresh notes list since modified has changed
+            notesTableFXML.refresh();
             
             // update all editors
             noteHTMLEditor.hasBeenSaved();
@@ -1540,6 +1096,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     }
     
     public void setGroupNameFilter(final String groupName) {
+        currentGroupTagProperty().set(TagManager.getInstance().tagForGroupName(groupName, false));
+        
         notesTable.setGroupNameFilter(groupName);
     }
     
@@ -1568,9 +1126,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                         // done, selectGroupForNote calls selectFirstOrCurrentNote() internally - BUT NO LOOPS PLEASE
                         firstNoteAccess = false;
                         Platform.runLater(() -> {
-                            if (!OwnNoteEditorParameters.LookAndFeel.classic.equals(currentLookAndFeel)) {
-                                myGroupList.selectGroupForNote(currentNoteProperty.get());
-                            }
+                            myGroupList.selectGroupForNote(currentNoteProperty.get());
                         });
                         return;
                     }
@@ -1811,5 +1367,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     // and now everyone can listen to note selection changes...
     public ObjectProperty<Note> currentNoteProperty() {
         return currentNoteProperty;
+    }
+
+    // and now everyone can listen to group attribute changes...
+    public ObjectProperty<TagData> currentGroupTagProperty() {
+        return currentGroupTagProperty;
     }
 }

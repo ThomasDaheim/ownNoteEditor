@@ -60,8 +60,8 @@ import static tf.helper.javafx.AbstractStage.INSET_TOP_BOTTOM;
 import tf.helper.javafx.EnumHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.tags.TagData;
-import tf.ownnote.ui.tags.TagsEditor;
 import tf.ownnote.ui.tags.TagManager;
+import tf.ownnote.ui.tags.TagsEditor;
 
 /**
  * Show & edit task data as a GridPane.

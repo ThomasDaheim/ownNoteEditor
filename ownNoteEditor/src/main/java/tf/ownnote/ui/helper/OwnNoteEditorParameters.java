@@ -20,7 +20,8 @@ public class OwnNoteEditorParameters {
     };
 
     public static enum LookAndFeel {
-        classic,
+        // TFE, 202100402: goodbye, classic look & feel...
+//        classic,
         groupTabs,
         tagTree
     };
@@ -46,7 +47,6 @@ public class OwnNoteEditorParameters {
                 OwnNoteEditorParameters.CmdOps.lookAndFeel.toString(), 
                 OwnNoteEditorParameters.CmdOps.lookAndFeel.toString(), 
                 true, 
-                "Layout to use - <arg> can be \"classic\" or \"oneNote\"");
         options.addOption(
                 OwnNoteEditorParameters.CmdOps.ownCloudDir.toString(), 
                 OwnNoteEditorParameters.CmdOps.ownCloudDir.toString(), 
@@ -69,13 +69,13 @@ public class OwnNoteEditorParameters {
                 value = command.getOptionValue(OwnNoteEditorParameters.CmdOps.lookAndFeel.toString());
 
                 switch (value) {
-                    case "classic":
-                        // System.out.println("Option lookAndFeel found: " + laf);
-                        lookAndFeel = LookAndFeel.classic;
-                        break;
-                    case "oneNote":
+                    case "groupTabs":
                         // System.out.println("Option lookAndFeel found: " + laf);
                         lookAndFeel = LookAndFeel.groupTabs;
+                        break;
+                    case "tagTree":
+                        // System.out.println("Option lookAndFeel found: " + laf);
+                        lookAndFeel = LookAndFeel.tagTree;
                         break;
                     default:
                         System.out.println("Value \"" + value + "\" for option lookAndFeel not recognized.");

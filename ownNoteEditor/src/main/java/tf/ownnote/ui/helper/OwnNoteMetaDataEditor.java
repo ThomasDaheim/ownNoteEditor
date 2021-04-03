@@ -68,8 +68,8 @@ import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteMetaData;
 import tf.ownnote.ui.notes.NoteVersion;
 import tf.ownnote.ui.tags.TagData;
-import tf.ownnote.ui.tags.TagEditor;
 import tf.ownnote.ui.tags.TagManager;
+import tf.ownnote.ui.tags.TagsEditor;
 import tf.ownnote.ui.tasks.TaskCount;
 import tf.ownnote.ui.tasks.TaskManager;
 
@@ -185,7 +185,7 @@ public class OwnNoteMetaDataEditor {
         
         final Button tagsButton = new Button("+");
         tagsButton.setOnAction((t) -> {
-            TagEditor.getInstance().editTags(editorNote.getMetaData());
+            TagsEditor.getInstance().editTags(editorNote.getMetaData());
         });
 
         final Menu attachmentsMenu = new Menu("Attachments");

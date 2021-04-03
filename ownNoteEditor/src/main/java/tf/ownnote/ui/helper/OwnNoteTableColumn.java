@@ -57,9 +57,6 @@ public class OwnNoteTableColumn {
     private TableColumn<Map, String> myTableColumn = null;
     private String backgroundColor = "white";
     
-    // we need to know the tabletype as well...
-    private OwnNoteTableView.TableType myTableType = null;
-
     private OwnNoteTableColumn() {
         super();
     }
@@ -69,17 +66,6 @@ public class OwnNoteTableColumn {
         myTableColumn = tableColumn;
         myEditor = editor;
         
-        // TF, 20160627: select tabletype based on passed TableColumn - safer than having a setTableType method
-        if (tableColumn.getId().startsWith("note")) {
-            myTableType = OwnNoteTableView.TableType.notesTable;
-        }
-        if (tableColumn.getId().startsWith("group")) {
-            myTableType = OwnNoteTableView.TableType.groupsTable;
-        }
-
-        // stop if we haven't been passed a correct TableColumn
-        assert (myTableType != null);
-
         initTableColumn();
     }
     
@@ -98,10 +84,6 @@ public class OwnNoteTableColumn {
         return (TableColumn<Map, String> param) -> new ObjectCell(myEditor, this, linkCursor, new UniversalMouseEvent(myEditor));
     }
 
-    public OwnNoteTableView.TableType getTableType() {
-        return myTableType;
-    }
-    
     public TableColumn<Map, String> getTableColumn() {
         return myTableColumn;
     }
@@ -178,18 +160,6 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
                 curNote =
                     ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex()));
                 //reInit = this.myEditor.editNote(curNote);
-                break;
-            case "noteDeleteColFXML":
-                //System.out.println("Clicked in noteDeleteCol");
-                curNote =
-                    ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex()));
-                reInit = this.myEditor.deleteNote(curNote);
-                break;
-            case "groupDeleteColFXML":
-                //System.out.println("Clicked in groupDeleteCol");
-                curNoteGroup =
-                    new NoteGroup(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
-                reInit = this.myEditor.deleteGroupWrapper(curNoteGroup);
                 break;
             default:
                 //System.out.println("Ignoring click into " + clickedCell.getId() + " for controller " + this.myEditor.toString());
