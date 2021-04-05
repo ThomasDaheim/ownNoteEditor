@@ -121,11 +121,13 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     private final static TagData ROOT_TAG = new TagData(ROOT_TAG_NAME);
     
     // TFE, 20210330: also hold a flat set of tags with an extractor - to be able to listen to changes of tag content
-    private final ObservableList<TagData> flatTags = 
+    private final static ObservableList<TagData> flatTags = 
             FXCollections.observableArrayList(p -> new Observable[]{p.nameProperty(), p.iconNameProperty(), p.colorNameProperty(), p.parentProperty(), p.getChildren()});
     // but then we need to keep track of changes in the tag tree to update the flattened tag list....
     private final ListChangeListener<TagData> tagChildrenListener;
-
+    // TFE, 20210405: hold list of group tags with an extractor - to be able to listen to changes of tag content
+    private final static ObservableList<TagData> groupTags = 
+            FXCollections.observableArrayList(p -> new Observable[]{p.nameProperty(), p.iconNameProperty(), p.colorNameProperty()});
     
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
@@ -169,18 +171,27 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         OwnNoteFileManager.getInstance().subscribe(INSTANCE);
         myEditor.getNoteEditor().subscribe(INSTANCE);
     }
-    
-    public TagData getRootTag() {
+
+    private void initTags() {
         if (!tagsLoaded) {
             // lazy loading
             loadTags();
         }
-        
+    }
+    
+    public final TagData getRootTag() {
+        initTags();
         // you can use but not change
         return ROOT_TAG;
     }
+
+    public ObservableList<TagData> getGroupTags() {
+        initTags();
+        return groupTags;
+    }
     
     public ObservableList<TagData> getFlatTagsList() {
+        initTags();
         // not to be changed - only to be listened to
         return flatTags;
     }
@@ -252,6 +263,9 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             }
             
             if (TagManager.ReservedTagNames.Groups.name().equals(tag.getName())) {
+                // store for later use
+                groupTags.setAll(tag.getChildren());
+                
                 boolean hasAllGroups = false;
                 boolean hasNotGrouped = false;
                 
@@ -300,7 +314,6 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 for (TagData tagChild : tag.getChildren()) {
                     tagChild.getLinkedNotes().addAll(OwnNoteFileManager.getInstance().getNotesForGroup(tagChild.getName()));
                 }
-
             }
             
             reservedTags.add(tag);
@@ -584,7 +597,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     
     public static boolean isGroupsChildTag(final TagData tag) {
         // a group tag is the "Groups" itself and everything below it
-        return (tag.getParent() != null) && TagManager.ReservedTagNames.Groups.name().equals(tag.getParent().getName());
+        return groupTags.contains(tag);
     }
     
     public static boolean isEditableTag(final TagData tag) {
