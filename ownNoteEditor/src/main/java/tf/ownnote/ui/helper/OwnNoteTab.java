@@ -28,6 +28,7 @@ import tf.helper.javafx.AppClipboard;
 import tf.helper.javafx.StyleHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.tags.TagData;
 
 /**
  * A draggable tab that can optionally be detached from its tab pane and shown
@@ -51,6 +52,7 @@ public class OwnNoteTab extends Tab {
     
     private String tabName;
     private String tabCount;
+    private TagData tabTag;
     private String backgroundColor = "white";
 
     // can this tab be a drop target for notes?
@@ -73,15 +75,17 @@ public class OwnNoteTab extends Tab {
      * normal tabs and DragableTabs mixed will cause issues!
      * <p>
      * @param text the text to appear on the tag label.
-     * @param count number of th3 tab in the tab pane
+     * @param count number of notes for this group
+     * @param tag the corresponding tag
      * @param editor reference to the OwnNoteEditor
      */
-    public OwnNoteTab(String text, String count, final OwnNoteEditor editor) {
+    public OwnNoteTab(final String text, final String count, final TagData tag, final OwnNoteEditor editor) {
         nameLabel.setPadding(new Insets(5));
         
         myEditor = editor;
         tabName = text;
         tabCount = count;
+        tabTag = tag;
         
         setLabelText(text);
 
@@ -293,6 +297,14 @@ public class OwnNoteTab extends Tab {
         } else {
             nameLabel.setText(text);
         }
+        
+        // TFE, 2021 0407: set tag icon, if any
+        if (tabTag != null && tabTag.getIconName() != null && !tabTag.getIconName().isEmpty()) {
+            final Label graphic = tabTag.getIcon();
+            graphic.getStyleClass().add("tag-icon");
+            nameLabel.setGraphic(graphic);
+        }
+        
         dragText.setText(text);
         setGraphic(nameLabel);
     }
@@ -373,7 +385,7 @@ public class OwnNoteTab extends Tab {
                 node.getLayoutBounds().getHeight());
     }
 
-    public Rectangle2D getAbsoluteRect(Tab tab) {
+    private Rectangle2D getAbsoluteRect(Tab tab) {
         Node node = ((OwnNoteTab) tab).getLabel();
         // loop 2 upwards to TabPaneSkin
         node = node.getParent().getParent();
@@ -387,7 +399,6 @@ public class OwnNoteTab extends Tab {
     }
 
     private static class InsertData {
-
         private final int index;
         private final TabPane insertPane;
 
@@ -403,6 +414,5 @@ public class OwnNoteTab extends Tab {
         public TabPane getInsertPane() {
             return insertPane;
         }
-
     }
 }

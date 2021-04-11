@@ -26,17 +26,14 @@
 package tf.ownnote.ui.helper;
 
 import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
@@ -72,14 +69,14 @@ import tf.helper.javafx.TableMenuUtils;
 import tf.helper.javafx.TableViewPreferences;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.tags.TagData;
+import tf.ownnote.ui.tags.TagManager;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder {
+public class OwnNoteTableView implements IPreferencesHolder {
     public static final DataFormat DRAG_AND_DROP = new DataFormat("application/ownnoteeditor-ownnotetableview-dnd");
 
     // callback to OwnNoteEditor required for e.g. delete & rename
@@ -103,7 +100,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     private List<TableColumn<Map<String, String>,?>> mySortOrder;
     
     // store selected group before changing the group lists for later re-select
-    private String selectedGroupName = NoteGroup.ALL_GROUPS;
+    private String selectedGroupName = TagManager.ALL_GROUPS;
 
     private OwnNoteTableView() {
         super();
@@ -129,50 +126,6 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
 //            store.put(OwnNoteEditorPreferences.RECENT_NOTESTABLE_SORTORDER, TableSortHelper.toString(getSortOrder()));
         TableViewPreferences.saveTableViewPreferences(myTableView, OwnNoteEditorPreferences.RECENT_NOTESTABLE_SETTINGS.getAsType(), store);
     }
-
-    @Override
-    public void setGroups(final ObservableList<NoteGroup> groupsList, final boolean updateOnly) {
-        // remember the current group
-        storeSelectedGroup();
-
-        if (!updateOnly) {
-            myTableView.setItems(null);
-            myTableView.layout();
-        }
-        
-        final List<String> listNames = new LinkedList<>();
-        if (myTableView.getItems() != null) {
-            listNames.addAll(
-                myTableView.getItems().stream().
-                    map(s -> {
-                        return ((NoteGroup) s).getGroupName();
-                    }).
-                    collect(Collectors.toList()));
-        }
-        
-        final ObservableList<Map<String, String>> newGroups = FXCollections.<Map<String, String>>observableArrayList();
-        for (NoteGroup group: groupsList) {
-           final String groupName = group.getGroupName();
-
-           if (!updateOnly || !listNames.contains(groupName)) {
-               newGroups.add(group);
-           }
-        }
-        if (myTableView.getItems() != null) {
-            myTableView.getItems().addAll(newGroups);
-        } else {
-            myTableView.setItems(newGroups);
-        }
-        restoreSortOrder();
-        
-        // try to restore the current group if its still there
-        restoreSelectedGroup();
-    }
-    
-    @Override
-    public NoteGroup getCurrentGroup() {
-        return new NoteGroup(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
-    }
     
     private TableView<Map<String, String>> getTableView() {
         return myTableView;
@@ -185,11 +138,6 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
     public void selectAndFocusRow(final int rownum) {
         selectRow(rownum);
         myTableView.getFocusModel().focus(rownum);
-    }
-    
-    @Override
-    public void selectGroupForNote(final Note note) {
-        myTableView.getSelectionModel().select(OwnNoteFileManager.getInstance().getNoteGroup(note));
     }
     
     public void selectNote(final Note note) {
@@ -216,7 +164,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
             // no note selected - above empty part of the table
             String newGroupName = (String) getTableView().getUserData();
             // TF, 20160524: group name could be "All" - thats to be changed to "Not grouped"
-            if (newGroupName == null || newGroupName.equals(NoteGroup.ALL_GROUPS)) {
+            if (newGroupName == null || newGroupName.equals(TagManager.ALL_GROUPS)) {
                 newGroupName = "";
             }
             final String newNoteName = myEditor.uniqueNewNoteNameForGroup(newGroupName);
@@ -273,7 +221,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
                             assert (item instanceof Note);
 
                             // get the color for the groupname
-                            final String groupColor = myEditor.getGroupColor(((Note) item).getGroupName());
+                            final String groupColor = TagManager.getInstance().tagForGroupName(((Note) item).getGroupName(), false).getColorName();
                             setStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": " + groupColor);
                             //System.out.println("updateItem - groupName, groupColor: " + groupName + ", " + groupColor);
                         }
@@ -399,7 +347,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
             for (Map<String, String> noteData : getItems()) {
                 note = ObjectsHelper.uncheckedCast(noteData);
                 
-                if (newNoteName.equals(note.getNoteName()) && NoteGroup.isSameGroup(newGroupName, note.getGroupName())) {
+                if (newNoteName.equals(note.getNoteName()) && TagManager.isSameGroup(newGroupName, note.getGroupName())) {
                     selectIndex = i;
                     break;
                 }
@@ -422,31 +370,6 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         }
     }
 
-    private void storeSelectedGroup() {
-        if (myTableView.getSelectionModel().getSelectedItem() != null) {
-            selectedGroupName = getCurrentGroup().getGroupName();
-        } else {
-            selectedGroupName = NoteGroup.ALL_GROUPS;
-        }
-    }
-
-    private void restoreSelectedGroup() {
-        int selectIndex = 0;
-        int i = 0;
-        NoteGroup NoteGroup;
-        for (Map<String, String> note : getItems()) {
-            NoteGroup = new NoteGroup(ObjectsHelper.uncheckedCast(note));
-
-            if (selectedGroupName.equals(NoteGroup.getGroupName())) {
-                selectIndex = i;
-                break;
-            }
-            i++;
-        }
-
-        selectRow(selectIndex);
-    }
-
     /* Required getter and setter methods are forwarded to internal TableView */
 
     public void setEditable(final boolean b) {
@@ -457,7 +380,6 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         return myTableView.getScene();
     }
 
-    @Override
     public void setBackgroundColor(final String color) {
         myTableView.setStyle(StyleHelper.addAndRemoveStyles(
                 myTableView, 
@@ -540,7 +462,7 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         
         filteredData.setPredicate((Note note) -> {
             // 1. If group filter text is empty or "All": no need to check
-            if (groupNameFilter != null && !groupNameFilter.isEmpty() && !groupNameFilter.equals(NoteGroup.ALL_GROUPS) ) {
+            if (groupNameFilter != null && !groupNameFilter.isEmpty() && !groupNameFilter.equals(TagManager.ALL_GROUPS) ) {
                 // Compare group name to group filter text
                 if (!note.getGroupName().equals(groupNameFilter)) {
                     return false;
@@ -584,12 +506,10 @@ public class OwnNoteTableView implements IGroupListContainer, IPreferencesHolder
         return result;
     }
 
-    @Override
     public void setDisable(final boolean b) {
         myTableView.setDisable(b);
     }
 
-    @Override
     public void setVisible(final boolean b) {
         myTableView.setVisible(b);
     }

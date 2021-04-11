@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
@@ -42,6 +43,7 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
@@ -92,7 +94,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AboutMenu;
-import tf.helper.javafx.EnumHelper;
 import tf.helper.javafx.TableMenuUtils;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
@@ -106,7 +107,6 @@ import tf.ownnote.ui.helper.OwnNoteTableColumn;
 import tf.ownnote.ui.helper.OwnNoteTableView;
 import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.notes.NoteMetaDataEditor;
 import tf.ownnote.ui.tags.TagData;
 import tf.ownnote.ui.tags.TagManager;
@@ -136,8 +136,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     
     private final static int TEXTFIELD_WIDTH = 100;  
     
-    private final List<String> realGroupNames = new LinkedList<>();
-    
     private ObservableList<Note> notesList = null;
     
     private final BooleanProperty inEditMode = new SimpleBooleanProperty();
@@ -159,12 +157,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     private final ObjectProperty<TagData> currentGroupTagProperty = new SimpleObjectProperty<>(null);
     
     private IGroupListContainer myGroupList = null;
-    
-    // available colors for tabs to rotate through
-    // issue #36 - have "All" without color
-    // TF, 20170122: use colors similar to OneNote - a bit less bright
-    //private static final String[] groupColors = { "darkseagreen", "cornflowerblue", "lightsalmon", "gold", "orchid", "cadetblue", "goldenrod", "darkorange", "MediumVioletRed", "lightpink", "skyblue" };
-    private static final String[] groupColors = { "#F4A6A6", "#99D0DF", "#F1B87F", "#F2A8D1", "#9FB2E1", "#B4AFDF", "#D4B298", "#C6DA82", "#A2D07F", "#F1B5B5", "#ffb6c1", "#87ceeb" };
     
     // TFE, 20201203: some constants for the different columns of our gridpane
     private static final int TAGTREE_COLUMN = 0;
@@ -271,7 +263,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // defer initEditor since we need to know the value of the prameters...
+        // defer initEditor since we need to know the value of the parameters...
     }
     
     public void stop(final boolean productiveRun) {
@@ -757,7 +749,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             TagManager.getInstance().groupsToTags();
         });
 
-        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v5.3", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v6.0", "https://github.com/ThomasDaheim/ownNoteEditor");
     }
     
     // do everything to show / hide tasklist
@@ -809,12 +801,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         }
         
         // scan directory and re-populate lists
-        OwnNoteFileManager.getInstance().initNotesPath(ownCloudPath.textProperty().getValue());
+        OwnNoteFileManager.getInstance().initNotesPath(ownCloudPath.textProperty().getValue(), resetTasksTags);
 
-        taskList.populateTaskList();
-        // TFE, 20201206: re-populate tags treeview as well - if shown
-        if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
-            tagsTreeView.fillTreeView(TagsTreeView.WorkMode.LIST_MODE, null);
+        if (resetTasksTags) {
+            taskList.populateTaskList();
+            // TFE, 20201206: re-populate tags treeview as well - if shown
+            if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+                tagsTreeView.fillTreeView(TagsTreeView.WorkMode.LIST_MODE, null);
+            }
         }
         
         // add new table entries & disable & enable accordingly
@@ -825,10 +819,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         // do the stuff in the OwnNoteTableView - thats the right place!
         notesTable.setNotes(notesList);
         
-        myGroupList.setGroups(OwnNoteFileManager.getInstance().getGroupsList(), updateOnly);
-        
-        // and now store group names (real ones!) for later use
-        initGroupNames();
+        myGroupList.setGroups(TagManager.getInstance().getGroupTags(), updateOnly);
     }
     
     public boolean checkChangedNote() {
@@ -916,69 +907,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     
     public OwnNoteHTMLEditor getNoteEditor() {
         return noteHTMLEditor;
-    }
-
-    public boolean createGroupWrapper(final String newGroupName) {
-        Boolean result = OwnNoteFileManager.getInstance().createGroup(newGroupName);
-
-        if (!result) {
-            // error message - most likely group with same name already exists
-            showAlert(AlertType.ERROR, "Error Dialog", "New group couldn't be created.", "Group with same name already exists.");
-        }
-        
-        return result;
-    }
-
-    public boolean renameGroupWrapper(final String oldValue, final String newValue) {
-        boolean result = false;
-
-        // no rename for "All" and "Not Grouped"
-        if (!NoteGroup.isSpecialGroup(newValue)) {
-            result = OwnNoteFileManager.getInstance().renameGroup(oldValue, newValue);
-            initGroupNames();
-
-            if (!result) {
-                // error message - most likely note in new group with same name already exists
-                showAlert(AlertType.ERROR, "Error Dialog", "An error occured while renaming the group.", "A file in the new group has the same name as a file in the old.");
-            } else {
-                //check if we just moved the current note in the editor...
-                if (noteHTMLEditor.getEditedNote() != null) {
-                    noteHTMLEditor.doNameChange(oldValue, newValue, noteHTMLEditor.getEditedNote().getNoteName(), noteHTMLEditor.getEditedNote().getNoteName());
-                }
-            }
-        }
-        
-        return result;
-    }
-
-    public Boolean deleteGroupWrapper(final NoteGroup curGroup) {
-        boolean result = false;
-                
-        final String groupName = curGroup.getGroupName();
-        // no delete for "All" and "Not Grouped"
-        if (!NoteGroup.isSpecialGroup(groupName)) {
-            result = OwnNoteFileManager.getInstance().deleteGroup(groupName);
-            initGroupNames();
-
-            if (!result) {
-                // error message - most likely note in "Not grouped" with same name already exists
-                showAlert(AlertType.ERROR, "Error Dialog", "An error occured while deleting the group.", "An ungrouped file has the same name as a file in this group.");
-            }
-        }
-        
-        return result;
-    }
-
-    private void initGroupNames() {
-        realGroupNames.clear();
-
-        final ObservableList<NoteGroup> groupsList = OwnNoteFileManager.getInstance().getGroupsList();
-        for (NoteGroup group: groupsList) {
-            final String groupName = group.getGroupName();
-            if (!NoteGroup.isSpecialGroup(groupName)) {
-                realGroupNames.add(groupName);
-            }
-        }
     }
 
     @Override
@@ -1155,7 +1083,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         final String fileName = filePath.getFileName().toString();
         if (!filesInProgress.contains(fileName)) {
         
-            // System.out.printf("Time %s: You're new here!\n", getCurrentTimeStamp());
+//            System.out.printf("Time %s: You're new here! %s\n", getCurrentTimeStamp(), fileName);
             filesInProgress.add(fileName);
             
             // re-init list of groups and notes - file has beeen added or removed
@@ -1225,19 +1153,17 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                 }
             
                 // TFE, 20210101: only initFromDirectory if anything related to note files has changed!
-                if (filePath.toFile().isFile() && OwnNoteFileManager.NOTE_EXT.equals(FilenameUtils.getExtension(fileName))) {
+                if (OwnNoteFileManager.NOTE_EXT.equals(FilenameUtils.getExtension(fileName))) {
                     // show only notes for selected group
-                    final String curGroupName = myGroupList.getCurrentGroup().getGroupName();
+                    final String curGroupName = myGroupList.getCurrentGroup().getName();
 
                     initFromDirectory(true, true);
                     selectFirstOrCurrentNote();
 
                     // but only if group still exists in the list!
-                    final List<String> allGroupNames = new LinkedList<>(realGroupNames);
-                    allGroupNames.add(NoteGroup.ALL_GROUPS);
-                    allGroupNames.add(NoteGroup.NOT_GROUPED);
-
-                    if (allGroupNames.contains(curGroupName)) {
+                    if (TagManager.getInstance().getGroupTags().stream().map((t) -> {
+                        return t.getName();
+                    }).collect(Collectors.toList()).contains(curGroupName)) {
                         setGroupNameFilter(curGroupName);
                     }
 
@@ -1256,46 +1182,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     // TF, 20160630: refactored from "getClassicLook" to show its real meeaning
     public OwnNoteEditorParameters.LookAndFeel getCurrentLookAndFeel() {
         return currentLookAndFeel;
-    }
-
-    // TF, 20160703: to support coloring of notes table view for individual notes
-    // TF, 20170528: determine color from groupname for new colors
-    public String getGroupColor(String groupName) {
-        String groupColor = "";
-
-        final NoteGroup group = OwnNoteFileManager.getInstance().getNoteGroup(groupName);
-        final TagData groupTag = TagManager.getInstance().tagForName(groupName, null, false);
-        if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(getCurrentLookAndFeel()) && groupTag != null) {
-            // for tagTree the color comes from the tag color - if any
-            groupColor = groupTag.getColorName();
-        } else if (group != null) {
-            // otherwise it comes from the group color - if any
-            groupColor = group.getGroupColor();
-        }
-        
-        if (groupColor == null || groupColor.isEmpty()) {
-            final int groupIndex = OwnNoteFileManager.getInstance().getGroupsList().indexOf(group);
-
-            // TF, 20170122: "All" & "Not grouped" have their own colors ("darkgrey", "lightgrey"), rest uses list of colors
-            switch (groupIndex) {
-                case 0: 
-                    groupColor = "darkgrey";
-                    break;
-                case 1: 
-                    groupColor = "lightgrey";
-                    break;
-                case -1:
-                    // no color found via tag or group - must be new
-                    groupColor = groupColors[OwnNoteFileManager.getInstance().getGroupsList().size() % groupColors.length];
-                    break;
-                default: 
-                    groupColor = groupColors[groupIndex % groupColors.length];
-                    break;
-            }
-//                System.out.println("Found group: " + groupName + " as number: " + groupIndex + " color: " + groupColor);
-        }
-        
-        return groupColor;
     }
     
     // TF, 20160816: wrapper for alerts that stores the alert as long as its shown - needed for testing alerts with testfx

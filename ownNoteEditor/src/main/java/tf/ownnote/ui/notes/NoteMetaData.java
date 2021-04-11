@@ -102,23 +102,26 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
 
     private Note myNote;
     
-    public NoteMetaData() {
+    public NoteMetaData(final Note note) {
         super();
+        
+        myNote = note;
 
         // go, tell it to the mountains
         myTags.addListener((SetChangeListener.Change<? extends TagData> change) -> {
-            // can happen e.g. when using constructor fromHtmlComment()
-            if (myNote == null) {
-                return;
-            }
-            
             if (change.wasAdded()) {
+                if ("f428f49b35af".equals(change.getElementAdded().getId())) {
+                    System.out.println("Linking note " + myNote.getNoteName() + " to tag " + change.getElementAdded().getName());
+                }
 //                System.out.println("Linking note " + myNote.getNoteName() + " to tag " + change.getElementAdded().getName());
                 change.getElementAdded().getLinkedNotes().add(myNote);
                 hasUnsavedChanges.set(true);
             }
 
             if (change.wasRemoved()) {
+                if ("f428f49b35af".equals(change.getElementAdded().getId())) {
+                    System.out.println("Unlinking note " + myNote.getNoteName() + " from tag " + change.getElementRemoved().getName());
+                }
 //                System.out.println("Unlinking note " + myNote.getNoteName() + " from tag " + change.getElementRemoved().getName());
                 change.getElementRemoved().getLinkedNotes().remove(myNote);
                 hasUnsavedChanges.set(true);
@@ -126,20 +129,10 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
         });
 
         myVersions.addListener((ListChangeListener.Change<? extends NoteVersion> change) -> {
-            // can happen e.g. when using constructor fromHtmlComment()
-            if (myNote == null) {
-                return;
-            }
-            
             hasUnsavedChanges.set(true);
         });
         
         myAttachments.addListener((ListChangeListener.Change<? extends String> change) -> {
-            // can happen e.g. when using constructor fromHtmlComment()
-            if (myNote == null) {
-                return;
-            }
-            
             hasUnsavedChanges.set(true);
         });
     }
@@ -271,8 +264,8 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
         return result;
     }
     
-    public static NoteMetaData fromHtmlComment(final String htmlString) {
-        final NoteMetaData result = new NoteMetaData();
+    public static NoteMetaData fromHtmlComment(final Note note, final String htmlString) {
+        final NoteMetaData result = new NoteMetaData(note);
 
         // parse html string
         // everything inside a <!-- --> could be metadata in the form 

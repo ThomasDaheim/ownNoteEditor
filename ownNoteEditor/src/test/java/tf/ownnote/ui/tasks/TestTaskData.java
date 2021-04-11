@@ -25,7 +25,7 @@ public class TestTaskData {
     @Before
     public void setUp() {
         OwnNoteFileManager.getInstance().setCallback(null);
-        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/");
+        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/", true);
     }
     
     @After
@@ -55,7 +55,7 @@ public class TestTaskData {
         
         final Note note = OwnNoteFileManager.getInstance().getNotesList().get(0);
         final String noteContent = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
-        exceptionRule.expectMessage("Text not starting with checkbox pattern: " + noteContent.split(System.lineSeparator())[0]);
+        exceptionRule.expectMessage("Text not starting with checkbox pattern: " + noteContent.split("\\n")[0]);
         new TaskData(note, noteContent, 0);
     }
     
@@ -64,7 +64,7 @@ public class TestTaskData {
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
         final String noteContent = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         
-        TaskData taskData = new TaskData(note, noteContent, 64);
+        TaskData taskData = new TaskData(note, noteContent, 63);
         Assert.assertFalse(taskData.isCompleted());
         Assert.assertEquals(" tell me, what to do!", taskData.getDescription());
     }
@@ -74,7 +74,7 @@ public class TestTaskData {
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
         final String noteContent = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         
-        TaskData taskData = new TaskData(note, noteContent, 371);
+        TaskData taskData = new TaskData(note, noteContent, 368);
         Assert.assertTrue(taskData.isCompleted());
         // feel free to figure out how ? is handled correctly in all this string business
         Assert.assertTrue(taskData.getDescription().startsWith(" of course with something special: "));

@@ -43,9 +43,11 @@ import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
@@ -61,9 +63,10 @@ import org.apache.commons.io.FileUtils;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.notes.NoteMetaData;
 import tf.ownnote.ui.notes.NoteVersion;
+import tf.ownnote.ui.tags.TagData;
+import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tasks.TaskManager;
 
 /**
@@ -73,8 +76,8 @@ import tf.ownnote.ui.tasks.TaskManager;
 public class OwnNoteFileManager implements INoteCRMDS {
     private final static OwnNoteFileManager INSTANCE = new OwnNoteFileManager();
     
-    public final static String NOTE_EXT = ".htm";
-    public final static String ALL_NOTES = "*" + NOTE_EXT;
+    public final static String NOTE_EXT = "htm";
+    public final static String ALL_NOTES = "*." + NOTE_EXT;
     
     // TFE: 20210125: and now with backup, too!
     private final static String BACKUP_DIR = File.separator + "Backup";
@@ -89,7 +92,6 @@ public class OwnNoteFileManager implements INoteCRMDS {
     
     private String notesPath;
     
-    private final Map<String, NoteGroup> groupsList = new LinkedHashMap<>();
     private final Map<String, Note> notesList = new LinkedHashMap<>();
     
     private OwnNoteFileManager() {
@@ -123,27 +125,15 @@ public class OwnNoteFileManager implements INoteCRMDS {
         myDirMonitor.stop();
     }
     
-    public void initNotesPath(final String newPath) {
+    public void initNotesPath(final String newPath, final boolean resetTasksTags) {
         assert newPath != null;
         
         notesPath = newPath;
         
         // scan directory for files and build groups & notes maps
-        groupsList.clear();
         notesList.clear();
+        List<String> groupsList = new ArrayList<>();
 
-        NoteGroup groupRow = new NoteGroup();
-        groupRow.setGroupName(NoteGroup.ALL_GROUPS);
-        groupRow.setGroupDelete(null);
-        groupRow.setGroupCount("0");
-        groupsList.put("All", new NoteGroup(groupRow));
-        
-        groupRow.clear();
-        groupRow.setGroupName(NoteGroup.NOT_GROUPED);
-        groupRow.setGroupDelete(null);
-        groupRow.setGroupCount("0");
-        groupsList.put("Not grouped", new NoteGroup(groupRow));
-        
         // iterate over all files from directory
         DirectoryStream<Path> stream = null;
         try {
@@ -160,27 +150,14 @@ public class OwnNoteFileManager implements INoteCRMDS {
                     // see pull request #44
                     noteName = filename.substring(filename.indexOf("]")+2, filename.lastIndexOf("."));
                 } else {
-                    groupName = NoteGroup.NOT_GROUPED;
+                    groupName = TagManager.NOT_GROUPED;
                     // see pull request #44
                     noteName = filename.substring(0, filename.lastIndexOf("."));
                 }
 
-                if (groupsList.containsKey(groupName)) {
-                    // group already exists - increase counter
-                    groupRow = groupsList.get(groupName);
-                    groupRow.setGroupCount(Integer.toString(Integer.valueOf(groupRow.getGroupCount())+1));
-                    groupsList.replace(groupName, new NoteGroup(groupRow));
-                } else {                    // new group - add to list
-                    groupRow.clear();
-                    groupRow.setGroupName(groupName);
-                    groupRow.setGroupDelete(OwnNoteFileManager.deleteString);
-                    groupRow.setGroupCount("1");
-                    groupsList.put(groupName, new NoteGroup(groupRow));
+                if (!groupsList.contains(groupName)) {
+                    groupsList.add(groupName);
                 }
-                // allways increment count for all :-)
-                groupRow = groupsList.get(NoteGroup.ALL_GROUPS);
-                groupRow.setGroupCount(Integer.toString(Integer.valueOf(groupRow.getGroupCount())+1));
-                groupsList.replace(NoteGroup.ALL_GROUPS, new NoteGroup(groupRow));
             }
 
             // TFE, 20201209: decouple reading of groups from reading of notes - since we want to have group data loaded when we init the tags
@@ -197,7 +174,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                     // see pull request #44
                     noteName = filename.substring(filename.indexOf("]")+2, filename.lastIndexOf("."));
                 } else {
-                    groupName = NoteGroup.NOT_GROUPED;
+                    groupName = TagManager.NOT_GROUPED;
                     // see pull request #44
                     noteName = filename.substring(0, filename.lastIndexOf("."));
                 }
@@ -209,20 +186,24 @@ public class OwnNoteFileManager implements INoteCRMDS {
                 noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
                 noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
                 // TFE; 20201023: set note metadata from file content
-                noteRow.setMetaData(NoteMetaData.fromHtmlComment(getFirstLine(file)));
+                noteRow.setMetaData(NoteMetaData.fromHtmlComment(noteRow, getFirstLine(file)));
                 // use filename and not notename since duplicate note names can exist in different groups
                 notesList.put(filename, noteRow);
-                //System.out.println("Added note " + noteName + " for group " + groupName + " from filename " + filename);
+//                System.out.println("Added note " + noteName + " for group " + groupName + " from filename " + filename);
             }
         } catch (IOException | DirectoryIteratorException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        // TFE, 20201207: initialize color per group
-        for (String groupName : groupsList.keySet()) {
-            groupsList.get(groupName).setGroupColor(myEditor.getGroupColor(groupName));
+        // init tags now that we have the list of groups from the files
+        if (resetTasksTags) {
+            TagManager.getInstance().loadTags();
         }
-        
+        for (String groupName : groupsList) {
+            // add if not already present
+            TagManager.getInstance().createTag(groupName, true);
+        }
+
         // fix #14
         // monitor directory for changes
         myDirMonitor.setDirectoryToMonitor(notesPath);
@@ -247,10 +228,6 @@ public class OwnNoteFileManager implements INoteCRMDS {
         return notesPath;
     }
     
-    public ObservableList<NoteGroup> getGroupsList() {
-        return FXCollections.<NoteGroup>observableArrayList(groupsList.values());
-    }
-
     public ObservableList<Note> getNotesList() {
         return FXCollections.<Note>observableArrayList(notesList.values());
     }
@@ -268,48 +245,50 @@ public class OwnNoteFileManager implements INoteCRMDS {
             return null;
         }
         
-        Note result = null;
+        // TFE, 20210411: not sure what below code was good for...
+//        Note result = null;
+//        
+//        for (Map.Entry<String, Note> note : notesList.entrySet()) {
+//            if (note.getKey().equals(noteFileName)) {
+//                result = note.getValue();
+//                break;
+//            }
+//        }
         
-        for (Map.Entry<String, Note> note : notesList.entrySet()) {
-            if (note.getKey().equals(noteFileName)) {
-                result = note.getValue();
-            }
-        }
-        
-        return result;
+        return notesList.get(noteFileName);
     }
     
     public Set<Note> getNotesForGroup(final String groupName) {
-        final Set<Note> result = new HashSet<>();
+        // TFE, 20210406: count thy notes...
+        return notesList.values().stream().filter((t) -> {
+            return switch (groupName) {
+                case TagManager.ALL_GROUPS -> true;
+                case TagManager.NOT_GROUPED -> t.getGroupName() == null || t.getGroupName().isEmpty();
+                default -> groupName.equals(t.getGroupName());
+            };
+        }).collect(Collectors.toSet());
         
-        for (Map.Entry<String, Note> note : notesList.entrySet()) {
-            if (NoteGroup.ALL_GROUPS.equals(groupName) ||
-                    NoteGroup.ALL_GROUPS.equals(groupName) && note.getValue().getGroupName().isEmpty() ||
-                    note.getValue().getGroupName().equals(groupName)) {
-                result.add(note.getValue());
-            }
-        }
-        
-        return result;
+        // TFE, 20210406: its not required that you have a group tag as actual tag in the notes metadata...
+        // maybe this should be enforced?
+//        final Set<Note> result = new HashSet<>();
+//        
+//        final TagData groupTag = TagManager.getInstance().tagForGroupName(groupName, false);
+//        if (groupTag != null) {
+//            result.addAll(groupTag.getLinkedNotes());
+//        }
+//        
+//        return result;
     }
     
-    public NoteGroup getNoteGroup(final String groupName) {
+    public TagData getNoteGroup(final String groupName) {
         if (groupName == null) {
             return null;
         }
         
-        NoteGroup result = null;
-
-        for (Map.Entry<String, NoteGroup> group : groupsList.entrySet()) {
-            if (group.getKey().equals(groupName)) {
-                result = group.getValue();
-            }
-        }
-        
-        return result;
+        return TagManager.getInstance().tagForGroupName(groupName, false);
     }
     
-    public NoteGroup getNoteGroup(final Note note) {
+    public TagData getNoteGroup(final Note note) {
         return getNoteGroup(note.getGroupName());
     }
 
@@ -331,10 +310,6 @@ public class OwnNoteFileManager implements INoteCRMDS {
         
         try {
             Files.delete(Paths.get(notesPath, noteFileName));
-            
-            final NoteGroup groupRow = groupsList.get(groupName);
-            groupRow.setGroupCount(Integer.toString(Integer.valueOf(groupRow.getGroupCount())-1));
-            groupsList.replace(groupName, groupRow);
         } catch (IOException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = false;
@@ -348,7 +323,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         assert groupName != null;
         assert noteName != null;
         
-        return buildGroupName(groupName) + noteName + NOTE_EXT;
+        return buildGroupName(groupName) + noteName + "." + NOTE_EXT;
     }
     
     public String buildNoteName(final Note note) {
@@ -362,7 +337,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         
         String result = null;
         
-        if (NoteGroup.isSpecialGroup(groupName)) {
+        if (TagManager.isSpecialGroup(groupName)) {
             // only the note name
             result = "";
         } else {
@@ -395,7 +370,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
             noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
             // TFE, 20210113: init data as well - especially charset
             noteRow.setNoteFileContent("");
-            noteRow.setMetaData(new NoteMetaData());
+            noteRow.setMetaData(new NoteMetaData(noteRow));
             noteRow.getMetaData().setCharset(StandardCharsets.UTF_8);
 
             // use filename and not notename since duplicate note names can exist in diffeent groups
@@ -411,7 +386,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         resetFilesInProgress();
         return result;
     }
-
+    
     public Note readNote(final Note curNote, final boolean forceRead) {
         assert curNote != null;
         
@@ -576,6 +551,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         return result;
     }
     
+    @Override
     public boolean moveNote(final Note note, final String newGroupName) {
         assert note != null;
         assert newGroupName != null;
@@ -608,38 +584,11 @@ public class OwnNoteFileManager implements INoteCRMDS {
         }
         
         if (result) {
-            // TFE, 20201227: the beenfits of testing... finding an old bug :-)
+            // TFE, 20201227: the benfits of testing... finding an old bug :-)
             note.setGroupName(newGroupName);
-            
-            // change count on groups
-            final NoteGroup oldGroupRow = groupsList.get(oldGroupName);
-            final NoteGroup newGroupRow = groupsList.get(newGroupName);
-            oldGroupRow.setGroupCount(Integer.toString(Integer.valueOf(newGroupRow.getGroupCount())-1));
-            newGroupRow.setGroupCount(Integer.toString(Integer.valueOf(newGroupRow.getGroupCount())+1));
-            groupsList.replace(oldGroupName, oldGroupRow);
-            groupsList.replace(newGroupName, newGroupRow);
         }
         
         resetFilesInProgress();
-        return result;
-    }
-
-    public boolean createGroup(final String groupName) {
-        assert groupName != null;
-        
-        boolean result = true;
-
-        if (!groupsList.containsKey(groupName)) {
-            // creating a group is only adding it to the groupsList
-            final NoteGroup groupRow = new NoteGroup();
-            groupRow.setGroupName(groupName);
-            groupRow.setGroupDelete(OwnNoteFileManager.deleteString);
-            groupRow.setGroupCount("0");
-            groupsList.put(groupName, new NoteGroup(groupRow));
-        } else {
-            result = false;
-        }
-        
         return result;
     }
 
@@ -709,7 +658,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                         // TF, 20151129
                         // update notelist as well
                         noteRow = notesList.remove(filename);
-                        noteRow.setGroupName(NoteGroup.isNotGrouped(newGroupName) ? NoteGroup.NOT_GROUPED : newGroupName);
+                        noteRow.setGroupName(TagManager.isNotGrouped(newGroupName) ? TagManager.NOT_GROUPED : newGroupName);
                         notesList.put(newFileName, noteRow);
 
                     } catch (IOException ex) {
@@ -725,34 +674,6 @@ public class OwnNoteFileManager implements INoteCRMDS {
             }
         }
         
-        // TF, 20151129
-        // 4. update grouplist as well
-        // TF, 20151215: if new group already exists only increase note count!
-        // TF, 20170131; re-insert new group at same position as before - otherwise the coloring gets screwed up
-        final NoteGroup oldGroupRow = groupsList.get(oldGroupName);
-        final NoteGroup newGroupRow = groupsList.get(newGroupName);
-        if (newGroupRow == null) {
-            oldGroupRow.setGroupName(newGroupName);
-            // we need to replace "in place" to keep coloring the same
-            // so remove & put don't do the trick since they change the order
-            // we have to copy over the list into a new one and replace the old entry
-            final LinkedHashMap<String, NoteGroup> oldList = new LinkedHashMap<>(groupsList);
-            groupsList.clear();
-            for (Map.Entry<String, NoteGroup> entry : oldList.entrySet()) {
-                if (!oldGroupName.equals(entry.getKey())) {
-                    groupsList.put(entry.getKey(), entry.getValue());
-                } else {
-                    groupsList.put(newGroupName, entry.getValue());
-                }
-            }
-        } else {
-            // old map entry can simply be removed
-            groupsList.remove(oldGroupName);
-
-            newGroupRow.setGroupCount(Integer.toString(Integer.valueOf(newGroupRow.getGroupCount())+Integer.valueOf(oldGroupRow.getGroupCount())));
-            groupsList.replace(newGroupName, newGroupRow);
-        }
-
         resetFilesInProgress();
         return result;
     }
@@ -761,7 +682,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         assert groupName != null;
         
         // deleting a group is removing the group name from the note name
-        return renameGroup(groupName, NoteGroup.NOT_GROUPED);
+        return renameGroup(groupName, TagManager.NOT_GROUPED);
     }
     
     public boolean noteExists(final String groupName, final String noteName) {

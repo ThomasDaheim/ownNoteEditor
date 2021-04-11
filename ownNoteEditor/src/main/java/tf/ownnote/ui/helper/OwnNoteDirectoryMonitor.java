@@ -33,6 +33,7 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
@@ -196,7 +197,7 @@ public class OwnNoteDirectoryMonitor {
                 if (enabled) {
                     // fix for CPU-load issue - do nothing for a while
                     try {
-                        Thread.sleep(500);
+                        Thread.sleep(250);
                     } catch (InterruptedException ex) {
                         Logger.getLogger(OwnNoteDirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
                     }
@@ -216,8 +217,8 @@ public class OwnNoteDirectoryMonitor {
                         // we have a polled event, now we traverse it and
                         // receive all the states from it
                         for (WatchEvent<?> event : key.pollEvents()) {
-                            // System.out.printf("Time %s: Received %s event for file: %s\n",
-                            //          myEditor.getCurrentTimeStamp(), event.kind(), event.context() );
+//                            System.out.printf("Time %s: Received %s event for file: %s\n",
+//                                    Instant.now().toString(), event.kind(), event.context() );
 
                             final WatchEvent.Kind<?> eventKind = event.kind();
                             if (eventKind == StandardWatchEventKinds.OVERFLOW) {
@@ -231,6 +232,8 @@ public class OwnNoteDirectoryMonitor {
                                     break;
                                 }
                             }
+//                            System.out.printf("Time %s: Processed %s event for file: %s\n",
+//                                    Instant.now().toString(), event.kind(), event.context() );
                         }
                         key.reset();
                     }

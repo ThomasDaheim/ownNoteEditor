@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<listProperty>
+	<taginfo>
+		<name class="stringProperty">Groups</name>
+		<children class="listProperty">
+			<taginfo>
+				<name class="stringProperty">All</name>
+				<children class="listProperty"/>
+				<iconName class="stringProperty"></iconName>
+				<colorName class="stringProperty">#F4A6A6</colorName>
+				<id>5910f367ed69</id>
+			</taginfo>
+			<taginfo>
+				<name class="stringProperty">Not grouped</name>
+				<children class="listProperty"/>
+				<iconName class="stringProperty"></iconName>
+				<colorName class="stringProperty">#F4A6A6</colorName>
+				<id>d0e3cbd827cd</id>
+			</taginfo>
+			<taginfo>
+				<name class="stringProperty">Test</name>
+				<children class="listProperty"/>
+				<iconName class="stringProperty"></iconName>
+				<colorName class="stringProperty">darkgrey</colorName>
+				<id>e5699f358d92</id>
+			</taginfo>
+		</children>
+		<iconName class="stringProperty"></iconName>
+		<colorName class="stringProperty"></colorName>
+		<id>5fda0dc60dec</id>
+	</taginfo>
+</listProperty>

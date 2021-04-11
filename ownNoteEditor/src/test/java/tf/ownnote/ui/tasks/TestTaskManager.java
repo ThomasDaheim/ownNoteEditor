@@ -6,10 +6,11 @@
 package tf.ownnote.ui.tasks;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
+import javafx.collections.ObservableSet;
+import javafx.collections.SetChangeListener;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -26,7 +27,7 @@ public class TestTaskManager {
     @Before
     public void setUp() {
         OwnNoteFileManager.getInstance().setCallback(null);
-        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/");
+        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/", true);
         
         TaskManager.getInstance().resetTaskList();
     }
@@ -40,15 +41,17 @@ public class TestTaskManager {
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
         
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
-        Assert.assertEquals(5, TaskManager.getInstance().tasksFromNote(note, content).size());
+        Assert.assertEquals(5, TaskManager.getInstance().tasksForNote(note).size());
     }
 
     @Test
     public void testGetTaskList() {
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
         
-        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
-        final List<TaskData> taskList = TaskManager.getInstance().getTaskList();
+        // need to sort task list since other tests might have screwed with the order
+        final List<TaskData> taskList = TaskManager.getInstance().tasksForNote(note).stream().sorted((o1, o2) -> {
+            return Integer.compare(o1.getTextPos(), o2.getTextPos());
+        }).collect(Collectors.toList());
         Assert.assertEquals(5, taskList.size());
         
         for (TaskData data : taskList) {
@@ -65,23 +68,19 @@ public class TestTaskManager {
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
         
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
-        final ObservableList<TaskData> taskList = TaskManager.getInstance().getTaskList();
+        TaskManager.getInstance().tasksForNote(note);
+        final ObservableSet<TaskData> taskList = note.getMetaData().getTasks();
         Assert.assertEquals(5, taskList.size());
         
         BooleanProperty wasUpdated = new SimpleBooleanProperty(Boolean.FALSE);
         BooleanProperty wasAdded = new SimpleBooleanProperty(Boolean.FALSE);
         BooleanProperty wasRemoved = new SimpleBooleanProperty(Boolean.FALSE);
-        taskList.addListener((ListChangeListener.Change<? extends TaskData> change) -> {
-            while (change.next()) {
-                if (change.wasAdded()) {
-                    wasAdded.setValue(Boolean.TRUE);
-                }
-                if (change.wasRemoved()) {
-                    wasRemoved.setValue(Boolean.TRUE);
-                }
-                if (change.wasUpdated()) {
-                    wasUpdated.setValue(Boolean.TRUE);
-                }
+        taskList.addListener((SetChangeListener.Change<? extends TaskData> change) -> {
+            if (change.wasAdded()) {
+                wasAdded.setValue(Boolean.TRUE);
+            }
+            if (change.wasRemoved()) {
+                wasRemoved.setValue(Boolean.TRUE);
             }
         });
         
@@ -156,26 +155,29 @@ public class TestTaskManager {
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
         
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
-        final ObservableList<TaskData> taskList = TaskManager.getInstance().getTaskList();
+        // need to sort task list since other tests might have screwed with the order
+        final List<TaskData> taskList = TaskManager.getInstance().tasksForNote(note).stream().sorted((o1, o2) -> {
+            return Integer.compare(o1.getTextPos(), o2.getTextPos());
+        }).collect(Collectors.toList());
         Assert.assertEquals(5, taskList.size());
         
         // change an existing checkbox to see if updated works
         final TaskData firstTask = taskList.get(0);
-        final String firstDescription = firstTask.getDescription();
-        int textPos = content.indexOf(firstTask.getDescription());
+        final String firstDescription = firstTask.getHtmlText();
+        int textPos = content.indexOf(firstDescription);
         String newContent = content.substring(0, textPos) + " - TEST - " + content.substring(textPos);
 
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, content, newContent);
-        Assert.assertNotEquals(firstDescription, firstTask.getDescription());
-        Assert.assertEquals(" - TEST - " + firstDescription, firstTask.getDescription());
+        Assert.assertNotEquals(firstDescription, firstTask.getHtmlText());
+        Assert.assertEquals(" - TEST - " + firstDescription, firstTask.getHtmlText());
         
         // change back
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, newContent, content);
-        Assert.assertEquals(firstDescription, firstTask.getDescription());
+        Assert.assertEquals(firstDescription, firstTask.getHtmlText());
         
         // switch between checked / unchecked
         Assert.assertFalse(firstTask.isCompleted());
-        textPos = content.indexOf(firstTask.getDescription());
+        textPos = content.indexOf(firstTask.getHtmlText());
         newContent = content.substring(0, firstTask.getTextPos()) + TaskData.CHECKED_BOXES_1 + content.substring(textPos);
 
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, content, newContent);

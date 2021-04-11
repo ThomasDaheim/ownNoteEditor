@@ -62,8 +62,8 @@ import tf.ownnote.ui.helper.OwnNoteEditorParameters;
 import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 import tf.ownnote.ui.helper.OwnNoteTab;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.notes.NoteGroup;
 import tf.ownnote.ui.notes.TestNoteData;
+import tf.ownnote.ui.tags.TagManager;
 
 /**
  *
@@ -166,7 +166,7 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         // tabs are not nodes!!! So we have to find them the hard way
         final ObservableList<Tab> tabsList = groupsPaneFXML.getTabs();
         allTab = (OwnNoteTab) tabsList.stream().filter(x -> {
-                                                        return ((Label) x.getGraphic()).getText().startsWith(NoteGroup.ALL_GROUPS);
+                                                        return ((Label) x.getGraphic()).getText().startsWith(TagManager.ALL_GROUPS);
                                                     }).findFirst().orElse(null);
         test1Tab = (OwnNoteTab) tabsList.stream().filter(x -> {
                                                         return ((Label) x.getGraphic()).getText().startsWith("Test1");
@@ -320,11 +320,11 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
 
         // #1 ------------------------------------------------------------------
         // check "ALL" tab, that should have 4 entries
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTab(0, TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS));
 
         // #2 ------------------------------------------------------------------
         // check "NOT_GROUPED" tab, that should be empty
-        testTab(1, NoteGroup.NOT_GROUPED, myTestdata.getNotesCountForGroup(NoteGroup.NOT_GROUPED));
+        testTab(1, TagManager.NOT_GROUPED, myTestdata.getNotesCountForGroup(TagManager.NOT_GROUPED));
 
         // #3 ------------------------------------------------------------------
         // check "Test 1" tab, that should have 2 entries
@@ -553,7 +553,7 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         System.out.println("running testNotesFilter()");
 
         // leerer filter -> alle sichtbar
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTab(0, TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS));
         
         //////////////////////////
         // namensfilter
@@ -562,22 +562,22 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         // "Test1" als namensfilter -> 0 sichtbar
         clickOn(noteFilterText);
         write("Test1");
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForName("Test1"));
+        testTab(0, TagManager.ALL_GROUPS, myTestdata.getNotesCountForName("Test1"));
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTab(0, TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS));
         
         // "SUCH" als namensfilter -> 0 sichtbar
         clickOn(noteFilterText);
         write("SUCH");
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForName("SUCH"));
+        testTab(0, TagManager.ALL_GROUPS, myTestdata.getNotesCountForName("SUCH"));
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTab(0, TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS));
         
         //////////////////////////
         // inhaltsfilter
@@ -588,17 +588,17 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         // "Test1" als inhaltsfilter -> 2 sichtbar
         clickOn(noteFilterText);
         write("Test1");
-        testTab(0, NoteGroup.ALL_GROUPS, 2);
+        testTab(0, TagManager.ALL_GROUPS, 2);
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTab(0, TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS));
         
         // "SUCH" als inhaltsfilter -> 1 sichtbar
         clickOn(noteFilterText);
         write("SUCH");
-        testTab(0, NoteGroup.ALL_GROUPS, 1);
+        testTab(0, TagManager.ALL_GROUPS, 1);
         
         // reset everything, PLEASE
         clickOn(noteFilterCheck);
@@ -611,7 +611,7 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
 
         long sleepTime = 1200;
         
-        // TFE, 20190930: switch to correct tab initially to avoid later chanegs that might trigger hasChanged() calls
+        // TFE, 20190930: switch to correct tab initially to avoid later changes that might trigger hasChanged() calls
         selectTab(0);
         
         // #1 ------------------------------------------------------------------
@@ -621,7 +621,7 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: add a new file to group Test1");
         
         // check new count
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS) + 1);
+        testTab(0, TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS) + 1);
         
         // #2 ------------------------------------------------------------------
         // delete the new file
@@ -630,7 +630,7 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: delete the new file");
         
         // check new count
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTab(0, TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS));
         
         // #3 ------------------------------------------------------------------
         // add a new file to a new group
@@ -659,7 +659,7 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify old count
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTab(0, TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS));
 
         // #5 ------------------------------------------------------------------
         // delete file in editor BUT "Save as new"
@@ -671,7 +671,7 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify old count
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTab(0, TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS));
         // but with new note name!
         final int newCount = myTestdata.getNotesList().size() + 1;
         final String newName = "New Note " + newCount;
@@ -689,7 +689,7 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify new count
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS) - 1);
+        testTab(0, TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS) - 1);
         
         // create back again
         assertTrue(myTestdata.createTestFile(testpath, "[Test1] test1.htm"));
@@ -697,7 +697,7 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: create back again");
 
         // verify old count
-        testTab(0, NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS));
+        testTab(0, TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS));
     }
     
     private void resetForNextTest() {

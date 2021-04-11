@@ -74,11 +74,11 @@ public class TagDataWrapper {
         }
     }
     
-    public TagData getTagInfo() {
+    public TagData getTagData() {
         return myTag;
     }
     
-    public void setTagInfo(final TagData tag) {
+    public void setTagData(final TagData tag) {
         myTag = tag;
     }
     

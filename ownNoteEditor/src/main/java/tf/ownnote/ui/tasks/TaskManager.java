@@ -10,10 +10,12 @@ import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -99,7 +101,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     }
     
     // noteContent as separate parm since it could be called from change within the editor before save
-    protected Set<TaskData> tasksFromNote(final Note note, final String noteContent) {
+    private Set<TaskData> tasksFromNote(final Note note, final String noteContent) {
 //        System.out.println("tasksFromNote started: " + Instant.now());
         final Set<TaskData> result = new HashSet<>();
 
@@ -582,7 +584,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     public Set<TaskData> tasksForNote(final Note note) {
         return getTaskList().stream().filter((t) -> {
             return t.getNote().equals(note);
-        }).collect(Collectors.toSet());
+        }).collect(Collectors.toCollection(LinkedHashSet::new));
     }
     
     public void replaceTaskDataInNote(final Note note, final boolean suppressMessages) {

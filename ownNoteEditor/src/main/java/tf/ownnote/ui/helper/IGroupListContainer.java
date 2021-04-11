@@ -27,7 +27,7 @@ package tf.ownnote.ui.helper;
 
 import javafx.collections.ObservableList;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.notes.NoteGroup;
+import tf.ownnote.ui.tags.TagData;
 
 /**
  * Things you need to provide in order to act as a container 
@@ -37,9 +37,9 @@ import tf.ownnote.ui.notes.NoteGroup;
  */
 public interface IGroupListContainer {
     
-    public abstract void setGroups(final ObservableList<NoteGroup> groupsList, final boolean updateOnly);
+    public abstract void setGroups(final ObservableList<TagData> groupsList, final boolean updateOnly);
     
-    public abstract NoteGroup getCurrentGroup();
+    public abstract TagData getCurrentGroup();
     
     public abstract void selectGroupForNote(final Note note);
     

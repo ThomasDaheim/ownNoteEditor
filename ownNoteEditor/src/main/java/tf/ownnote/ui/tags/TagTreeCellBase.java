@@ -44,7 +44,6 @@ import org.controlsfx.control.PopOver;
 import tf.helper.javafx.CellUtils;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  * Base class for some common functionality of all tag treeview cells.
@@ -76,7 +75,30 @@ public class TagTreeCellBase {
     public final static StringConverter<TagDataWrapper> tagInfoConverter = new StringConverter<TagDataWrapper>() {
         @Override
         public String toString(TagDataWrapper item) {
-            return item.getTagInfo().getName();
+            final TagData tag = item.getTagData();
+            if (tag.getChildren().isEmpty()) {
+                if ("f428f49b35af".equals(tag.getId())) {
+                    System.out.println("----------------------------------------");
+                    System.out.println("Showing linked notes count " + tag.getLinkedNotes().size() + " for tag " + tag.getName() + ", " + tag);
+                }
+//                System.out.println("Showing linked notes count " + tag.getLinkedNotes().size() + " for tag " + tag.getName() + ", " + tag);
+                return tag.getName() + " (" + tag.getLinkedNotes().size() + ")";
+            } else {
+                return tag.getName();
+            }
+        }
+
+        @Override
+        public TagDataWrapper fromString(String string) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+    };
+    
+    // internal string converter that only returns the name without the linked note count - used when editing the tag name
+    private final static StringConverter<TagDataWrapper> tagInfoConverterForEdit = new StringConverter<TagDataWrapper>() {
+        @Override
+        public String toString(TagDataWrapper item) {
+            return item.getTagData().getName();
         }
 
         @Override
@@ -88,7 +110,7 @@ public class TagTreeCellBase {
     public void updateItem(ITagTreeCell cell, TagDataWrapper item, boolean empty, final OwnNoteEditor editor) {
         if (item != null && !empty) {
             final TreeCell<TagDataWrapper> treeCell = cell.getTreeCell();
-            final TagData tag = item.getTagInfo();
+            final TagData tag = item.getTagData();
             
             // TFE, 20210310: we might have icons now, too
             final String iconName = tag.getIconName();
@@ -119,7 +141,7 @@ public class TagTreeCellBase {
                 treeCell.setGraphic(holder);
             }
 
-            final String sibling = TagManager.isGroupsChildTag(tag) ? NoteGroup.NEW_GROUP : "New sibling";
+            final String sibling = TagManager.isGroupsChildTag(tag) ? TagManager.NEW_GROUP : "New sibling";
             final MenuItem newSilblingItem = new MenuItem(sibling);
             newSilblingItem.setOnAction((ActionEvent event) -> {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
@@ -128,7 +150,7 @@ public class TagTreeCellBase {
             });
 
             // only if allowed
-            final String child = TagManager.isGroupsTag(tag) ? NoteGroup.NEW_GROUP : "New child";
+            final String child = TagManager.isGroupsTag(tag) ? TagManager.NEW_GROUP : "New child";
             final MenuItem newChildItem = new MenuItem(child);
             newChildItem.setOnAction((ActionEvent event) -> {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
@@ -207,7 +229,7 @@ public class TagTreeCellBase {
         final TreeCell<TagDataWrapper> treeCell = cell.getTreeCell();
 
         if (treeCell.isEditing()) {
-            final TextField textField = createTextField(treeCell, cell.getTextConverter());
+            final TextField textField = createTextField(treeCell, tagInfoConverterForEdit);
 
             if (treeCell.getTreeView() instanceof TagsTreeView) {
                 // set textformatter that checks against existing tags and disables duplicates
@@ -217,7 +239,7 @@ public class TagTreeCellBase {
             }
             final HBox hbox = new HBox(CellUtils.TREE_VIEW_HBOX_GRAPHIC_PADDING);
 
-            CellUtils.startEdit(treeCell, cell.getTextConverter(), hbox, getTreeItemGraphic(treeCell), textField);
+            CellUtils.startEdit(treeCell, tagInfoConverterForEdit, hbox, getTreeItemGraphic(treeCell), textField);
         }
     }
 
@@ -244,7 +266,7 @@ public class TagTreeCellBase {
                                 + "StringConverter is null. Be sure to set a StringConverter "
                                 + "in your cell factory.");
             }
-            cell.getItem().getTagInfo().setName(textField.getText());
+            cell.getItem().getTagData().setName(textField.getText());
             cell.commitEdit(cell.getItem());
             event.consume();
         });

@@ -67,7 +67,7 @@ if (!hasProperty('mainClass')) {
 mainClassName = 'tf.ownnote.ui.main.OwnNoteEditorManager'
 def appName='OwnNoteEditor'
 group='tf.OwnNoteEditor'
-version='5.3'
+version='6.0'
 
 // In this section you declare the dependencies for your production and test code
 dependencies {

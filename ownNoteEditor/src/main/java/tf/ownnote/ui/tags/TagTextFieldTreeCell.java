@@ -75,7 +75,7 @@ public class TagTextFieldTreeCell extends TextFieldTreeCell<TagDataWrapper> impl
         
         // check if item can be edited
         final TreeItem<TagDataWrapper> treeItem = getTreeItem();
-        if ((treeItem != null) && TagManager.isEditableTag(treeItem.getValue().getTagInfo())) {
+        if ((treeItem != null) && TagManager.isEditableTag(treeItem.getValue().getTagData())) {
             return;
         }
         

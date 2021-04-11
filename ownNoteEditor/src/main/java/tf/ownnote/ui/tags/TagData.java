@@ -25,7 +25,6 @@
  */
 package tf.ownnote.ui.tags;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -49,8 +48,6 @@ import tf.ownnote.ui.notes.Note;
  * @author thomas
  */
 public class TagData {
-    private final static String DEFAULT_COLOR = ColorConverter.JavaFXtoCSS(Color.BLACK);
-    
     private final StringProperty nameProperty = new SimpleStringProperty("");
     private final ObservableList<TagData> children = FXCollections.<TagData>observableArrayList();
     private final ObjectProperty<TagData> parentProperty = new SimpleObjectProperty<>(null);
@@ -81,20 +78,14 @@ public class TagData {
     // TFE, 20201230: initialized here to always have a value but can be overwritten from parsed noteContent
     private String myId = RandomStringUtils.random(12, "0123456789abcdef"); 
     
-    public TagData() {
+    private TagData() {
         this("");
     }
 
-    public TagData(final String na) {
-        this(na, new ArrayList<>());
-    }
-
-    public TagData(final String na, final List<TagData> childs) {
+    protected TagData(final String na) {
         nameProperty.set(na);
         
         readResolve();
-        
-        children.setAll(FXCollections.<TagData>observableArrayList(childs));
     }
     
     // required for deserialization by xstream
@@ -115,6 +106,30 @@ public class TagData {
 //                            System.out.println("Removing tag parent: " + this.getName() + " for tag: " + tag.getName() + ", " + tag);
                             tag.setParent(null);
                         }
+                    }
+                }
+            }
+        });
+
+        linkedNotes.addListener((ListChangeListener.Change<? extends Note> change) -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (Note note: change.getAddedSubList()) {
+                        if ("f428f49b35af".equals(getId())) {
+                            System.out.println("Setting linked note " + note.getNoteName() + " for tag " + getName() + ", " + this + ", linked notes count " + linkedNotes.size());
+                            getLinkedNotes();
+                        }
+//                        System.out.println("Setting linked note " + note.getNoteName() + " for tag " + getName() + ", " + this + ", linked notes count " + linkedNotes.size());
+                    }
+                }
+
+                if (change.wasRemoved()) {
+                    for (Note note: change.getRemoved()) {
+                        if ("f428f49b35af".equals(getId())) {
+                            System.out.println("Removing linked note " + note.getNoteName() + " for tag " + getName() + ", " + this + ", linked notes count " + linkedNotes.size());
+                            getLinkedNotes();
+                        }
+//                        System.out.println("Removing linked note " + note.getNoteName() + " for tag " + getName() + ", " + this + ", linked notes count " + linkedNotes.size());
                     }
                 }
             }
@@ -181,21 +196,25 @@ public class TagData {
         if (!colorNameProperty.get().isEmpty()) {
             return colorNameProperty.get();
         } else {
-            return DEFAULT_COLOR;
+            return null;
         }
     }
 
     public void setColorName(final String col) {
-        if (!DEFAULT_COLOR.equals(col)) {
-            colorNameProperty.set(col);
-        }
+        colorNameProperty.set(col);
     }
 
     public ObservableList<Note> getLinkedNotes() {
+        if ("f428f49b35af".equals(getId())) {
+            System.out.println("Getting " + linkedNotes.size() + " linked notes from " + getName() + ", " + this);
+        }
         return linkedNotes;
     }
 
     public void setLinkedNotes(final Set<Note> notes) {
+        if ("f428f49b35af".equals(getId())) {
+            System.out.println("Setting " + notes.size() + " linked notes @ " + getName() + ", " + this);
+        }
         linkedNotes.clear();
         linkedNotes.addAll(notes);
     }

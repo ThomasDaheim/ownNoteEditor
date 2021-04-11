@@ -44,7 +44,8 @@ import tf.helper.javafx.CellUtils;
 import tf.helper.javafx.StyleHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.notes.NoteGroup;
+import tf.ownnote.ui.tags.TagData;
+import tf.ownnote.ui.tags.TagManager;
 
 /**
  *
@@ -153,7 +154,6 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
         boolean reInit = false;
         
         Note curNote = null;
-        NoteGroup curNoteGroup = null;
         switch(clickedCell.getId()) {
             case "noteNameColFXML":
                 //System.out.println("Clicked in noteNameCol");
@@ -212,7 +212,7 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
     
     @Override
     public void startEdit() {
-        if (NoteGroup.isSpecialGroup(getText())) {
+        if (TagManager.isSpecialGroup(getText())) {
             return;
         }
         super.startEdit();
@@ -239,7 +239,7 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
                 "noteNameColFXML".equals(getId()) && 
                 OwnNoteEditorParameters.LookAndFeel.tagTree.equals(myEditor.getCurrentLookAndFeel())) {
             final Note note = ObjectsHelper.uncheckedCast(getTableRow().getItem());
-            final String groupColor = myEditor.getGroupColor(note.getGroupName());
+            final String groupColor = TagManager.getInstance().tagForGroupName(note.getGroupName(), false).getColorName();
             graphic = new Label("    ");
             graphic.setStyle("-fx-background-color: " + groupColor + ";");
         }
