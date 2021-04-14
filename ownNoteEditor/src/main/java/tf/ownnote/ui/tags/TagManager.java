@@ -232,17 +232,19 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
     
     public void resetTagList() {
-        removeTagChildrenListener();
-        ROOT_TAG.getChildren().clear();
-        tagsLoaded = false;
+        if (tagsLoaded) {
+            removeTagChildrenListener();
+            ROOT_TAG.getChildren().clear();
+            tagsLoaded = false;
+        }
     }
     
-    public void loadTags() {
+    private void loadTags() {
         final String fileName = OwnNoteFileManager.getInstance().getNotesPath() + TAG_FILE;
         final File file = new File(fileName);
         if (file.exists() && !file.isDirectory() && file.canRead()) {
             // load from xml AND from current metadata
-            final XStream xstream = new XStream(new PureJavaReflectionProvider(), new DomDriver("ISO-8859-1"));
+            final XStream xstream = new XStream(new PureJavaReflectionProvider(), new DomDriver("UTF-8"));
             xstream.setMode(XStream.XPATH_RELATIVE_REFERENCES);
             XStream.setupDefaultSecurity(xstream);
             final Class<?>[] classes = new Class[] { 
@@ -336,11 +338,6 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                     
                     tag.getChildren().add(1, notGrouped);
                 }
-
-                // link notes to group tags - notes might not have the tags explicitly...
-                for (TagData tagChild : tag.getChildren()) {
-                    tagChild.getLinkedNotes().addAll(OwnNoteFileManager.getInstance().getNotesForGroup(tagChild.getName()));
-                }
             }
             
             reservedTags.put(reservedTag, tag);
@@ -398,7 +395,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
         
         // save to xml
-        final XStream xstream = new XStream(new DomDriver("ISO-8859-1"));
+        final XStream xstream = new XStream(new DomDriver("UTF-8"));
         xstream.setMode(XStream.XPATH_RELATIVE_REFERENCES);
         XStream.setupDefaultSecurity(xstream);
         final Class<?>[] classes = new Class[] { 
@@ -762,5 +759,24 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             result = GlyphsDude.createIconLabel(FontAwesomeIcon.BUG, "", size.getSize(), "0px", ContentDisplay.CENTER);
         }
         return result;
+    }
+    
+    // ===========================================================================
+    
+    public void checkLinkedNotesCount(final String tagId, final int count) {
+        Optional<TagData> tag = flatTags.stream().filter((t) -> {
+            return t.getId().equals(tagId);
+        }).findFirst();
+        
+        if (tag.isEmpty()) {
+            System.out.println("Bummer, tag with id " + tagId + " not found!");
+        } else {
+            final int size = tag.get().getLinkedNotes().size();
+            if (size != count) {
+                System.out.println("Bummer, tag with id " + tagId + " has " + size + " linked notes instead of " + count);
+            } else {
+                System.out.println("Bingo, tag with id " + tagId + " has " + count + " linked notes!");
+            }
+        }
     }
 }

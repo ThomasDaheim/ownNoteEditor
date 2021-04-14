@@ -37,9 +37,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Label;
-import javafx.scene.paint.Color;
 import org.apache.commons.lang3.RandomStringUtils;
-import tf.helper.javafx.ColorConverter;
 import tf.ownnote.ui.notes.Note;
 
 /**
@@ -115,20 +113,12 @@ public class TagData {
             while (change.next()) {
                 if (change.wasAdded()) {
                     for (Note note: change.getAddedSubList()) {
-                        if ("f428f49b35af".equals(getId())) {
-                            System.out.println("Setting linked note " + note.getNoteName() + " for tag " + getName() + ", " + this + ", linked notes count " + linkedNotes.size());
-                            getLinkedNotes();
-                        }
 //                        System.out.println("Setting linked note " + note.getNoteName() + " for tag " + getName() + ", " + this + ", linked notes count " + linkedNotes.size());
                     }
                 }
 
                 if (change.wasRemoved()) {
                     for (Note note: change.getRemoved()) {
-                        if ("f428f49b35af".equals(getId())) {
-                            System.out.println("Removing linked note " + note.getNoteName() + " for tag " + getName() + ", " + this + ", linked notes count " + linkedNotes.size());
-                            getLinkedNotes();
-                        }
 //                        System.out.println("Removing linked note " + note.getNoteName() + " for tag " + getName() + ", " + this + ", linked notes count " + linkedNotes.size());
                     }
                 }
@@ -205,16 +195,10 @@ public class TagData {
     }
 
     public ObservableList<Note> getLinkedNotes() {
-        if ("f428f49b35af".equals(getId())) {
-            System.out.println("Getting " + linkedNotes.size() + " linked notes from " + getName() + ", " + this);
-        }
         return linkedNotes;
     }
 
     public void setLinkedNotes(final Set<Note> notes) {
-        if ("f428f49b35af".equals(getId())) {
-            System.out.println("Setting " + notes.size() + " linked notes @ " + getName() + ", " + this);
-        }
         linkedNotes.clear();
         linkedNotes.addAll(notes);
     }

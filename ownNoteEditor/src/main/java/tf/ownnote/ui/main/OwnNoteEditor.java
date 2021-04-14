@@ -363,7 +363,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
         // paint the look
         initEditor();
-
+        
         // scan files in directory
         initFromDirectory(false, true);
     }
@@ -373,17 +373,16 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     // TFE: 20181028: pathBox has moved to menu to make room for filterBox
     // TFE, 20200810: 3rd column added for task handling
     // TFE, 20201204: column to the left added for tag tree
+    // TFE, 20210412: no more classic look & feel
     //
     // -------------------------------------------------------------------------------------------------------------------
     // |                            |                            |                           |                           |
-    // |                            | all : noteFilterBox        | classic: buttonBox        | all: taskFilterBox        |
-    // |                            |                            | groupTabs: groupsPaneFXML |                           |
+    // |                            | all : noteFilterBox        | groupTabs: groupsPaneFXML | all: taskFilterBox        |
     // |                            |                            | tagTree: nothing          |                           |
     // |                            |                            |                           |                           |
     // -------------------------------------------------------------------------------------------------------------------
     // |                            |                            |                           |                           |
-    // | classic: nothing           | classic: groupsTableFXML   | all: noteEditorFXML       | all: taskListFXML         |
-    // | groupTabs: nothing         | groupTabs: notesTableFXML  |                           |                           |
+    // | groupTabs: nothing         | groupTabs: notesTableFXML  | all: noteEditorFXML       | all: taskListFXML         |
     // | tagTree: TagsTreeView      | tagTree: notesTableFXML    |                           |                           |
     // |                            |                            |                           |                           |
     // -------------------------------------------------------------------------------------------------------------------
@@ -801,7 +800,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         }
         
         // scan directory and re-populate lists
-        OwnNoteFileManager.getInstance().initNotesPath(ownCloudPath.textProperty().getValue(), resetTasksTags);
+        OwnNoteFileManager.getInstance().initNotesPath(ownCloudPath.textProperty().getValue());
 
         if (resetTasksTags) {
             taskList.populateTaskList();

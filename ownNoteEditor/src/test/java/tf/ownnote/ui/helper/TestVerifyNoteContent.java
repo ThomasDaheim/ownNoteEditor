@@ -43,7 +43,7 @@ public class TestVerifyNoteContent {
     @Before
     public void setUp() {
         OwnNoteFileManager.getInstance().setCallback(null);
-        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/", true);
+        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/");
     }
     
     @After

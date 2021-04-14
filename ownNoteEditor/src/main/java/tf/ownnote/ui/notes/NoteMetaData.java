@@ -110,18 +110,12 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
         // go, tell it to the mountains
         myTags.addListener((SetChangeListener.Change<? extends TagData> change) -> {
             if (change.wasAdded()) {
-                if ("f428f49b35af".equals(change.getElementAdded().getId())) {
-                    System.out.println("Linking note " + myNote.getNoteName() + " to tag " + change.getElementAdded().getName());
-                }
 //                System.out.println("Linking note " + myNote.getNoteName() + " to tag " + change.getElementAdded().getName());
                 change.getElementAdded().getLinkedNotes().add(myNote);
                 hasUnsavedChanges.set(true);
             }
 
             if (change.wasRemoved()) {
-                if ("f428f49b35af".equals(change.getElementAdded().getId())) {
-                    System.out.println("Unlinking note " + myNote.getNoteName() + " from tag " + change.getElementRemoved().getName());
-                }
 //                System.out.println("Unlinking note " + myNote.getNoteName() + " from tag " + change.getElementRemoved().getName());
                 change.getElementRemoved().getLinkedNotes().remove(myNote);
                 hasUnsavedChanges.set(true);
@@ -213,9 +207,12 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
     }
     
     public void setNote(final Note note) {
-        updateTags(UpdateTag.UNLINK);
-        myNote = note;
-        updateTags(UpdateTag.LINK);
+        assert note != null;
+        if (!note.equals(myNote)) {
+            updateTags(UpdateTag.UNLINK);
+            myNote = note;
+            updateTags(UpdateTag.LINK);
+        }
     }
     
     public Charset getCharset() {
@@ -276,7 +273,7 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
             // no changes for "newborn" metadata
             result.setUnsavedChanges(false);
         }
-
+        
         return result;
     }
     

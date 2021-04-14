@@ -77,11 +77,6 @@ public class TagTreeCellBase {
         public String toString(TagDataWrapper item) {
             final TagData tag = item.getTagData();
             if (tag.getChildren().isEmpty()) {
-                if ("f428f49b35af".equals(tag.getId())) {
-                    System.out.println("----------------------------------------");
-                    System.out.println("Showing linked notes count " + tag.getLinkedNotes().size() + " for tag " + tag.getName() + ", " + tag);
-                }
-//                System.out.println("Showing linked notes count " + tag.getLinkedNotes().size() + " for tag " + tag.getName() + ", " + tag);
                 return tag.getName() + " (" + tag.getLinkedNotes().size() + ")";
             } else {
                 return tag.getName();

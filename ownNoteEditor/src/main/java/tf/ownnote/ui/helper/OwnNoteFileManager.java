@@ -125,7 +125,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         myDirMonitor.stop();
     }
     
-    public void initNotesPath(final String newPath, final boolean resetTasksTags) {
+    public void initNotesPath(final String newPath) {
         assert newPath != null;
         
         notesPath = newPath;
@@ -195,19 +195,14 @@ public class OwnNoteFileManager implements INoteCRMDS {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        // init tags now that we have the list of groups from the files
-        if (resetTasksTags) {
-            TagManager.getInstance().loadTags();
-        }
         for (String groupName : groupsList) {
-            // add if not already present
-            TagManager.getInstance().createTag(groupName, true);
+            // add if not already present AND link notes to group tags - notes might not have the tags explicitly...
+            TagManager.getInstance().createTag(groupName, true).getLinkedNotes().addAll(getNotesForGroup(groupName));
         }
 
         // fix #14
         // monitor directory for changes
         myDirMonitor.setDirectoryToMonitor(notesPath);
-        
     }
     
     private String getFirstLine(final File file) {
