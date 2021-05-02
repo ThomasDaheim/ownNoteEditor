@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
+import javafx.beans.Observable;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -47,7 +48,8 @@ import tf.ownnote.ui.notes.Note;
  */
 public class TagData {
     private final StringProperty nameProperty = new SimpleStringProperty("");
-    private final ObservableList<TagData> children = FXCollections.<TagData>observableArrayList();
+    private final ObservableList<TagData> children = 
+            FXCollections.<TagData>observableArrayList(p -> new Observable[]{p.nameProperty(), p.iconNameProperty(), p.colorNameProperty(), p.parentProperty()});
     private final ObjectProperty<TagData> parentProperty = new SimpleObjectProperty<>(null);
     private final StringProperty iconNameProperty = new SimpleStringProperty();
     private final StringProperty colorNameProperty = new SimpleStringProperty("");
@@ -220,6 +222,17 @@ public class TagData {
     }
 
     public void setParent(final TagData parent) {
+        // conveniance in case of e.g. test cases that trigger multiple setParent with the same values
+        if (Objects.equals(this.getParent(), parent)) {
+            // nothing to do here...
+            return;
+        }
+        
+//        if (parent != null) {
+//            System.out.println("Setting parent to " + parent.getName() + " for tag " + getName());
+//        } else {
+//            System.out.println("Setting parent to 'null' for tag " + getName());
+//        }
         parentProperty.set(parent);
     }
     

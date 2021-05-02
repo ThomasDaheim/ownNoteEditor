@@ -235,9 +235,9 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
         // set property after filling list :-)
         initWorkMode();
         
-        // add listener to flat tags list to get notified on case of 
-        TagManager.getInstance().getFlatTagsList().removeListener(tagListener);
-        TagManager.getInstance().getFlatTagsList().addListener(tagListener);
+        // add listener to tags list to get notified on case of 
+        TagManager.getInstance().removeListener(tagListener);
+        TagManager.getInstance().addListener(tagListener);
     }
     
     private void newItemConsumer(final TreeItem<TagDataWrapper> newItem) {

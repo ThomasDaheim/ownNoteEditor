@@ -125,18 +125,18 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     
     private final static Map<ReservedTagName, TagData> reservedTags = new HashMap<>();
     
-    private final static String ROOT_TAG_NAME = "Tags";
+    protected final static String ROOT_TAG_NAME = "Tags";
     // root of all tags - not saved or loaded
     private final static TagData ROOT_TAG = new TagData(ROOT_TAG_NAME);
     
-    // TFE, 20210330: also hold a flat set of tags with an extractor - to be able to listen to changes of tag content
-    private final static ObservableList<TagData> flatTags = 
-            FXCollections.observableArrayList(p -> new Observable[]{p.nameProperty(), p.iconNameProperty(), p.colorNameProperty(), p.parentProperty(), p.getChildren()});
-    // but then we need to keep track of changes in the tag tree to update the flattened tag list....
+    // we need to keep track of changes in the tag tree to update the group tag list....
     private final ListChangeListener<TagData> tagChildrenListener;
     // TFE, 20210405: hold list of group tags with an extractor - to be able to listen to changes of tag content
-    private final static ObservableList<TagData> groupTags = 
-            FXCollections.observableArrayList(p -> new Observable[]{p.nameProperty(), p.iconNameProperty(), p.colorNameProperty()});
+    private final ObservableList<TagData> groupTags = 
+            FXCollections.<TagData>observableArrayList(p -> new Observable[]{p.nameProperty(), p.iconNameProperty(), p.colorNameProperty()});
+    
+    // know thy listeners - to able to add / remove from added / removed tags
+    private final List<ListChangeListener<? super TagData>> changeListeners = new ArrayList<>();
     
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
@@ -150,32 +150,32 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         tagChildrenListener = new ListChangeListener<>() {
             @Override
             public void onChanged(ListChangeListener.Change<? extends TagData> change) {
-                boolean doFlatten = false;
-                while (change.next() && !doFlatten) {
+                while (change.next()) {
                     if (change.wasRemoved()) {
-                        doFlatten = true;
                         for (TagData tag : change.getRemoved()) {
                             // can't check for isGroupsChildTag(tag) anymore since ith has already been removed from the parent...
+                            System.out.println("Tag " + tag.getId() + ", " + tag.getName() + " was removed from group tags");
                             groupTags.remove(tag);
                         }
                     }
                     if (change.wasAdded()) {
-                        doFlatten = true;
                         for (TagData tag : change.getAddedSubList()) {
-                            if (isGroupsChildTag(tag)) {
+                            if (isGroupsChildTag(tag) && !groupTags.contains(tag)) {
+                                System.out.println("Tag " + tag.getId() + ", " + tag.getName() + " was added to group tags");
                                 groupTags.add(tag);
                             }
                         }
                     }
-                }
-                
-                if (doFlatten) {
-                    removeTagChildrenListener();
-                    flattenTags();
-                    attachTagChildrenListener();
+                    if (change.wasUpdated()) {
+                        for (TagData tag : change.getList().subList(change.getFrom(), change.getTo())) {
+                            System.out.println("Tag " + tag.getId() + ", " + tag.getName() + " was updated");
+                        }
+                    }
                 }
             }
         };
+        
+        changeListeners.add(tagChildrenListener);
     }
 
     public static TagManager getInstance() {
@@ -194,6 +194,9 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         if (!tagsLoaded) {
             // lazy loading
             loadTags();
+
+            // we want to listen to everything as well
+            doAddAllListener(ROOT_TAG);
         }
     }
     
@@ -225,15 +228,9 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         return (groupName1.equals(groupName2) || isNotGrouped(groupName1) && isNotGrouped(groupName2));
     }    
     
-    public ObservableList<TagData> getFlatTagsList() {
-        initTags();
-        // not to be changed - only to be listened to
-        return flatTags;
-    }
-    
     public void resetTagList() {
         if (tagsLoaded) {
-            removeTagChildrenListener();
+            doRemoveAllListener(ROOT_TAG);
             ROOT_TAG.getChildren().clear();
             tagsLoaded = false;
         }
@@ -325,54 +322,63 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 if (!hasAllGroups) {
                     // all groups is always the first entry
                     System.out.println("No tag for group " + ALL_GROUPS + " found. Adding...");
-                    final TagData allGroups = new TagData(ALL_GROUPS);
-                    allGroups.setColorName(getGroupColor(allGroups));
-                    
-                    tag.getChildren().add(0, allGroups);
+                    createTagAtPosition(ALL_GROUPS, true, 0);
                 }
                 if (!hasNotGrouped) {
                     // all groups is always the second entry
                     System.out.println("No tag for group " + NOT_GROUPED + " found. Adding...");
-                    final TagData notGrouped = new TagData(NOT_GROUPED);
-                    notGrouped.setColorName(getGroupColor(notGrouped));
-                    
-                    tag.getChildren().add(1, notGrouped);
+                    createTagAtPosition(NOT_GROUPED, true, 1);
                 }
             }
             
             reservedTags.put(reservedTag, tag);
         }
 
-        // backlink all parents
-        flattenTags();
-
-        for (TagData tag: flatTags) {
-            for (TagData childTag : tag.getChildren()) {
-                childTag.setParent(tag);
-            }
-        }
-
-        attachTagChildrenListener();
+        // backlink all parents recursively
+        backlinkParent(ROOT_TAG);
     }
-    
-    private void flattenTags() {
-        // create a flat list of all tags
-        flatTags.setAll(getRootTag().getChildren().stream().map((t) -> {
-            return t.flattened();
-        }).flatMap(Function.identity()).collect(Collectors.toList()));
-    }
-    
-    private void attachTagChildrenListener() {
-        getRootTag().getChildren().addListener(tagChildrenListener);
-        for (TagData tag: flatTags) {
-            tag.getChildren().addListener(tagChildrenListener);
+    private void backlinkParent(final TagData tag) {
+        for (TagData childTag : tag.getChildren()) {
+            childTag.setParent(tag);
+            backlinkParent(childTag);
         }
     }
     
-    private void removeTagChildrenListener() {
-        getRootTag().getChildren().removeListener(tagChildrenListener);
-        for (TagData tag: flatTags) {
-            tag.getChildren().removeListener(tagChildrenListener);
+    public void addListener(ListChangeListener<? super TagData> ll) {
+        changeListeners.add(ll);
+        doAddListener(getRootTag(), ll);
+    }
+    private void doAddListener(final TagData tagRoot, ListChangeListener<? super TagData> ll) {
+        // add listener to my children and to the children of my children
+        System.out.println("Adding listener " + ll + " to tag " + tagRoot.getName());
+        tagRoot.getChildren().addListener(ll);
+        for (TagData tag : tagRoot.getChildren()) {
+            doAddListener(tag, ll);
+        }
+    }
+    private void doAddAllListener(final TagData tagRoot) {
+        // add all listeners to the children
+        for (ListChangeListener<? super TagData> ll : changeListeners) {
+            doAddListener(tagRoot, ll);
+        }
+    }
+    
+    public void removeListener(ListChangeListener<? super TagData> ll) {
+        changeListeners.remove(ll);
+        doRemoveListener(getRootTag(), ll);
+    }
+    private void doRemoveListener(final TagData tagRoot, ListChangeListener<? super TagData> ll) {
+        // remove listener from my children and from the children of my children
+        System.out.println("Removing listener " + ll + " from tag " + tagRoot.getName());
+        tagRoot.getChildren().removeListener(ll);
+        for (TagData tag : tagRoot.getChildren()) {
+            doRemoveListener(tag, ll);
+        }
+    }
+    private void doRemoveAllListener(final TagData tagRoot) {
+        // add all listeners to the children
+        for (ListChangeListener<? super TagData> ll : changeListeners) {
+            doRemoveListener(tagRoot, ll);
         }
     }
 
@@ -544,7 +550,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
 
             if (result) {
                 //check if we just moved the current note in the editor...
-                if (myEditor.getNoteEditor().getEditedNote() != null && myEditor.getNoteEditor().getEditedNote().getGroupName().equals(oldName)) {
+                if (myEditor != null && myEditor.getNoteEditor().getEditedNote() != null && myEditor.getNoteEditor().getEditedNote().getGroupName().equals(oldName)) {
                     myEditor.getNoteEditor().doNameChange(oldName, newGroupName, 
                             myEditor.getNoteEditor().getEditedNote().getNoteName(), myEditor.getNoteEditor().getEditedNote().getNoteName());
                 }
@@ -581,6 +587,9 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             // go through tag tree an delete tag
             if (tag.getParent() != null) {
                 tag.getParent().getChildren().remove(tag);
+
+                // remove all listeners from the children
+                doRemoveAllListener(tag);
             }
         } else {
             tag.setName(newName);
@@ -599,7 +608,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         return result;
     }
     
-    public TagData createTag(final String name, final boolean isGroup) {
+    // helper to insert group at certain position in list
+    private TagData createTagAtPosition(final String name, final boolean isGroup, final int position) {
         // does it already exist?
         TagData result = tagForName(name, null, false);
         
@@ -610,14 +620,23 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
         if (result == null) {
             result = new TagData(name);
+            // add all listeners to the children
+            doAddAllListener(result);
+
             if (isGroup) {
                 // TFE, 20210307: add it to the list as well - dummy
-                reservedTags.get(ReservedTagName.Groups).getChildren().add(result);
+                if (position != -1) {
+                    reservedTags.get(ReservedTagName.Groups).getChildren().add(position, result);
+                }
                 initGroupTag(result);
             }
         }
 
         return result;
+    }
+
+    public TagData createTag(final String name, final boolean isGroup) {
+        return createTagAtPosition(name, isGroup, -1);
     }
     
     public boolean deleteTag(final TagData tag) {
@@ -763,20 +782,22 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     
     // ===========================================================================
     
-    public void checkLinkedNotesCount(final String tagId, final int count) {
-        Optional<TagData> tag = flatTags.stream().filter((t) -> {
-            return t.getId().equals(tagId);
-        }).findFirst();
-        
-        if (tag.isEmpty()) {
-            System.out.println("Bummer, tag with id " + tagId + " not found!");
-        } else {
-            final int size = tag.get().getLinkedNotes().size();
-            if (size != count) {
-                System.out.println("Bummer, tag with id " + tagId + " has " + size + " linked notes instead of " + count);
-            } else {
-                System.out.println("Bingo, tag with id " + tagId + " has " + count + " linked notes!");
-            }
-        }
-    }
+//    public void checkLinkedNotesCount(final String tagId, final int count) {
+//        Optional<TagData> tag = getRootTag().getChildren().stream().map((t) -> {
+//            return t.flattened();
+//        }).flatMap(Function.identity()).filter((t) -> {
+//            return t.getId().equals(tagId);
+//        }).findFirst();
+//        
+//        if (tag.isEmpty()) {
+//            System.out.println("Bummer, tag with id " + tagId + " not found!");
+//        } else {
+//            final int size = tag.get().getLinkedNotes().size();
+//            if (size != count) {
+//                System.out.println("Bummer, tag with id " + tagId + " has " + size + " linked notes instead of " + count);
+//            } else {
+//                System.out.println("Bingo, tag with id " + tagId + " has " + count + " linked notes!");
+//            }
+//        }
+//    }
 }
