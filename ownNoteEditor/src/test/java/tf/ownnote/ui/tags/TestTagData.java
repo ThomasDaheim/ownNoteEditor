@@ -34,6 +34,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import tf.ownnote.ui.helper.OwnNoteFileManager;
 
 /**
  *
@@ -73,17 +74,20 @@ public class TestTagData {
         testChangeType.addListener((ListChangeListener.Change<? extends ChangeType> change) -> {
             while (change.next()) {
                 if (change.wasRemoved()) {
-                    System.out.println("Change event was removed: " + change.getRemoved());
+//                    System.out.println("Change event was removed: " + change.getRemoved());
                 }
                 if (change.wasAdded()) {
-                    System.out.println("Change event was added: " + change.getAddedSubList());
+//                    System.out.println("Change event was added: " + change.getAddedSubList());
                 }
             }
         });
     }
     
-    @Before
+    @Before 
     public void setUp() {
+        TagManager.getInstance().resetTagList();
+        OwnNoteFileManager.getInstance().setCallback(null);
+        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/LookAndFeel");
     }
     
     @After
@@ -149,16 +153,15 @@ public class TestTagData {
     }
     
     @Test
-    public void testChildListener() {
+    public void testChildListenerLocal() {
         final TagData localRoot = new TagData("ROOT");
-        
         localRoot.getChildren().addListener(tagTestListener);
         
         final TagData localChild1 = new TagData("CHILD_1");
         final TagData localChild2 = new TagData("CHILD_2");
         
         testChangeType.clear();
-        System.out.println("testChildListener: addAll of 2 childs to root");
+        System.out.println("testChildListenerLocal: addAll of 2 childs to root");
         localRoot.getChildren().addAll(localChild1, localChild2);
         Assert.assertEquals("Count of changes", 5, testChangeType.size());
         // 1. we have "ADDED" to the list
@@ -174,13 +177,49 @@ public class TestTagData {
 
         // change attributes
         testChangeType.clear();
-        System.out.println("testChildListener: setName of root");
+        System.out.println("testChildListenerLocal: setName of root");
         localRoot.setName("DUMMY");
         // no listener => no change triggered
         Assert.assertTrue("No change listener", testChangeType.isEmpty());
 
         testChangeType.clear();
-        System.out.println("testChildListener: setName of child #1");
+        System.out.println("testChildListenerLocal: setName of child #1");
+        localChild1.setName("DUMMY");
+        Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
+    }
+    
+    @Test
+    public void testChildListenerManager() {
+        TagManager.getInstance().addListener(tagTestListener);
+        final TagData localRoot = TagManager.getInstance().createTag("ROOT", false);
+        
+        final TagData localChild1 = TagManager.getInstance().createTag("CHILD_1", false);
+        final TagData localChild2 = TagManager.getInstance().createTag("CHILD_2", false);
+        
+        testChangeType.clear();
+        System.out.println("testChildListenerManager: addAll of 2 childs to root");
+        localRoot.getChildren().addAll(localChild1, localChild2);
+        Assert.assertEquals("Count of changes", 5, testChangeType.size());
+        // 1. we have "ADDED" to the list
+        Assert.assertEquals("1. we have \"ADDED\" to the list", ChangeType.ADDED, testChangeType.get(0));
+        // 2. we have "UPDATED" of the parent property
+        Assert.assertEquals("2. we have \"UPDATED\" of the parent property", ChangeType.UPDATED, testChangeType.get(1));
+        // 3. we have "ADDED" to the list
+        Assert.assertEquals("3. we have \"ADDED\" to the list", ChangeType.ADDED, testChangeType.get(2));
+        // 4. we have "UPDATED" of the parent property
+        Assert.assertEquals("4. we have \"UPDATED\" of the parent property", ChangeType.UPDATED, testChangeType.get(3));
+        // 5. we have "ADDED" from the parent tag
+        Assert.assertEquals("5. we have \"ADDED\" from the parent tag", ChangeType.ADDED, testChangeType.get(4));
+
+        // change attributes
+        testChangeType.clear();
+        System.out.println("testChildListenerManager: setName of root");
+        localRoot.setName("DUMMY");
+        // no listener => no change triggered
+        Assert.assertTrue("No change listener", testChangeType.isEmpty());
+
+        testChangeType.clear();
+        System.out.println("testChildListenerManager: setName of child #1");
         localChild1.setName("DUMMY");
         Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
     }
@@ -188,7 +227,6 @@ public class TestTagData {
     @Test
     public void testChildListenerReuse() {
         final TagData localRoot = new TagData("ROOT");
-        
         localRoot.getChildren().addListener(tagTestListener);
         
         final TagData localChild1 = new TagData("CHILD_1");

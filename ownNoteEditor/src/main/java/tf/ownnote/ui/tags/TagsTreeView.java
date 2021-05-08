@@ -251,6 +251,11 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
             refresh();
         });
 
+        // refresh on change of linked notes - is part of the group name...
+        newItem.getValue().getTagData().getLinkedNotes().addListener((ListChangeListener.Change<? extends Note> change) -> {
+            refresh();
+        });
+
         final TagDataWrapper tag = newItem.getValue();
         if (tag != null) {
             if (initialTags.contains(tag.getTagData())) {

@@ -195,9 +195,14 @@ public class OwnNoteFileManager implements INoteCRMDS {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
         }
 
+        // TFE, 20210508: don't forget to add notes to group ALL as well...
+        final TagData allGroups = TagManager.getInstance().tagForGroupName(TagManager.ALL_GROUPS, false);
+        allGroups.getLinkedNotes().clear();
         for (String groupName : groupsList) {
+            final Set<Note> groupNotes = getNotesForGroup(groupName);
             // add if not already present AND link notes to group tags - notes might not have the tags explicitly...
-            TagManager.getInstance().createTag(groupName, true).getLinkedNotes().addAll(getNotesForGroup(groupName));
+            TagManager.getInstance().tagForGroupName(groupName, true).getLinkedNotes().setAll(groupNotes);
+            allGroups.getLinkedNotes().addAll(groupNotes);
         }
 
         // fix #14

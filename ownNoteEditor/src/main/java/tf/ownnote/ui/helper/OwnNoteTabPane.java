@@ -174,7 +174,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         
         final String tabName = "New Group " + myTabPane.getTabs().size();
         
-        final TagData newTag = TagManager.getInstance().createTag(tabName, true);
+        final TagData newTag = TagManager.getInstance().tagForGroupName(tabName, true);
         final OwnNoteTab newTab = new OwnNoteTab(tabName, "0", null, myEditor);
         newTab.setClosable(true);
         newTab.setDetachable(false);

@@ -216,7 +216,7 @@ public class TagTreeCellBase {
             }
             
             // name needs to be unique, so we can also use it as id - makes life easier in 
-            treeCell.setId(tag.getName());
+            treeCell.setId(tag.getId());
         }
     }            
 

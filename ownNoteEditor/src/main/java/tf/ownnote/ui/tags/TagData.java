@@ -56,24 +56,6 @@ public class TagData {
     
     // link to notes with this tag - transient, will be re-created on startup
     private final ObservableList<Note> linkedNotes = FXCollections.<Note>observableArrayList();
-//    private final ObservableSet<Note> linkedNotes = FXCollections.<Note>observableSet(new HashSet<>() {
-//        @Override
-//        public boolean remove(Object o) {
-//            // TFE; 20201227: for some obscure reason the following doesn't work - don't ask
-//            boolean result = super.remove(o);
-//            if (!result) {
-//                Iterator<Note> it = iterator();
-//                while(it.hasNext()){
-//                    if (it.next().equals(o)) {
-//                        it.remove();
-//                        result = true;
-//                        break;
-//                    }
-//                }
-//            }
-//            return result;
-//        }        
-//    });
 
     // TFE, 20201230: initialized here to always have a value but can be overwritten from parsed noteContent
     private String myId = RandomStringUtils.random(12, "0123456789abcdef"); 
@@ -85,11 +67,6 @@ public class TagData {
     protected TagData(final String na) {
         nameProperty.set(na);
         
-        readResolve();
-    }
-    
-    // required for deserialization by xstream
-    private Object readResolve() {
         children.addListener((ListChangeListener.Change<? extends TagData> change) -> {
             while (change.next()) {
                 if (change.wasAdded()) {
@@ -126,9 +103,27 @@ public class TagData {
                 }
             }
         });
-
-        return this;
     }
+    
+//    // required for deserialization by xstream
+//    private Object readResolve() {
+//        // TODO: what to do here to properly init nameProperty???
+//        System.out.println("In readResolve() of tag " + getName());
+//        
+//        String name = getName();
+//        setName("XSTREAM FORCED ME TO DO THIS");
+//        setName(name);
+//
+//        name = getColorName();
+//        setColorName("XSTREAM FORCED ME TO DO THIS");
+//        setColorName(name);
+//
+//        name = getIconName();
+//        setIconName("XSTREAM FORCED ME TO DO THIS");
+//        setIconName(name);
+//
+//        return this;
+//    }
     
     @Override
     public boolean equals(Object o) {
@@ -146,6 +141,22 @@ public class TagData {
         int hash = 7;
         hash = 11 * hash + Objects.hashCode(this.nameProperty.get());
         return hash;
+    }
+    
+    protected TagData cloneMe() {
+        final TagData clone = new TagData(getName());
+        clone.myId = myId;
+        clone.colorNameProperty.set(colorNameProperty.get());
+        clone.iconNameProperty.set(iconNameProperty.get());
+        // list copied directly
+        clone.linkedNotes.setAll(linkedNotes);
+        
+        // clone childs recursively
+        for (TagData child : children) {
+            clone.children.add(child.cloneMe());
+        }
+        
+        return clone;
     }
 
     public String getId() {
@@ -185,7 +196,7 @@ public class TagData {
     }
 
     public String getColorName() {
-        if (!colorNameProperty.get().isEmpty()) {
+        if ((colorNameProperty.get() != null) && !colorNameProperty.get().isEmpty()) {
             return colorNameProperty.get();
         } else {
             return null;
@@ -221,7 +232,7 @@ public class TagData {
         return parentProperty.get();
     }
 
-    public void setParent(final TagData parent) {
+    protected void setParent(final TagData parent) {
         // conveniance in case of e.g. test cases that trigger multiple setParent with the same values
         if (Objects.equals(this.getParent(), parent)) {
             // nothing to do here...

@@ -153,22 +153,22 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 while (change.next()) {
                     if (change.wasRemoved()) {
                         for (TagData tag : change.getRemoved()) {
-                            // can't check for isGroupsChildTag(tag) anymore since ith has already been removed from the parent...
-                            System.out.println("Tag " + tag.getId() + ", " + tag.getName() + " was removed from group tags");
+                            // can't check for isGroupsChildTag(tag) anymore since it has already been removed from the parent...
+//                            System.out.println("Tag " + tag.getId() + ", " + tag.getName() + " was removed from group tags");
                             groupTags.remove(tag);
                         }
                     }
                     if (change.wasAdded()) {
                         for (TagData tag : change.getAddedSubList()) {
                             if (isGroupsChildTag(tag) && !groupTags.contains(tag)) {
-                                System.out.println("Tag " + tag.getId() + ", " + tag.getName() + " was added to group tags");
+//                                System.out.println("Tag " + tag.getId() + ", " + tag.getName() + " was added to group tags");
                                 groupTags.add(tag);
                             }
                         }
                     }
                     if (change.wasUpdated()) {
                         for (TagData tag : change.getList().subList(change.getFrom(), change.getTo())) {
-                            System.out.println("Tag " + tag.getId() + ", " + tag.getName() + " was updated");
+//                            System.out.println("Tag " + tag.getId() + ", " + tag.getName() + " was updated");
                         }
                     }
                 }
@@ -217,7 +217,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
     
     public static boolean isNotGrouped(final String groupName) {
-        // isEmpty() happens for new notes, otherwise, hrou names are NOT_GROUPED from OwnNoteFileManager.initNotesPath()
+        // isEmpty() happens for new notes, otherwise, group names are NOT_GROUPED from OwnNoteFileManager.initNotesPath()
         return (groupName.isEmpty() || NOT_GROUPED.equals(groupName));
     }
     
@@ -237,6 +237,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
     
     private void loadTags() {
+        final TagData xstreamRoot = new TagData("xstream-root");
+        
         final String fileName = OwnNoteFileManager.getInstance().getNotesPath() + TAG_FILE;
         final File file = new File(fileName);
         if (file.exists() && !file.isDirectory() && file.canRead()) {
@@ -276,7 +278,9 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 BufferedInputStream stdin = new BufferedInputStream(new FileInputStream(fileName));
                 Reader reader = new InputStreamReader(stdin, "ISO-8859-1");
             ) {
-                ROOT_TAG.setChildren(ObjectsHelper.uncheckedCast(xstream.fromXML(reader)));
+                // TFE, 20210507: can't read into real root tag since xstream deserialization messes something up with the properties
+                // and that stops change events from being registered and provided via property extractors
+                xstreamRoot.setChildren(ObjectsHelper.uncheckedCast(xstream.fromXML(reader)));
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(TagManager.class.getName()).log(Level.SEVERE, null, ex);
             } catch (UnsupportedEncodingException ex) {
@@ -285,6 +289,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 Logger.getLogger(TagManager.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+        // deep copy tags over to real root
+        ROOT_TAG.setChildren(xstreamRoot.cloneMe().getChildren());
         tagsLoaded = true;
         
         // ensure reserved names are fixed
@@ -350,7 +356,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
     private void doAddListener(final TagData tagRoot, ListChangeListener<? super TagData> ll) {
         // add listener to my children and to the children of my children
-        System.out.println("Adding listener " + ll + " to tag " + tagRoot.getName());
+//        System.out.println("Adding listener " + ll + " to tag " + tagRoot.getName());
         tagRoot.getChildren().addListener(ll);
         for (TagData tag : tagRoot.getChildren()) {
             doAddListener(tag, ll);
@@ -369,7 +375,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
     private void doRemoveListener(final TagData tagRoot, ListChangeListener<? super TagData> ll) {
         // remove listener from my children and from the children of my children
-        System.out.println("Removing listener " + ll + " from tag " + tagRoot.getName());
+//        System.out.println("Removing listener " + ll + " from tag " + tagRoot.getName());
         tagRoot.getChildren().removeListener(ll);
         for (TagData tag : tagRoot.getChildren()) {
             doRemoveListener(tag, ll);
@@ -497,6 +503,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
 
     public Set<TagData> tagsForNames(final Set<String> tagNames, final TagData startTag, final boolean createIfNotFound) {
+        initTags();
         final Set<TagData> result = new HashSet<>();
         
         final TagData realStartTag = (startTag != null) ? startTag : getRootTag();
@@ -518,7 +525,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             } else {
                 // we didn't run into that one before...
                 if (createIfNotFound) {
-                    final TagData newTag = createTag(tagName, isGroupsChildTag(startTag));
+                    final TagData newTag = createTag(tagName, isGroupsChildTag(realStartTag));
                     realStartTag.getChildren().add(newTag);
                     result.add(newTag);
                 }
@@ -635,7 +642,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         return result;
     }
 
-    public TagData createTag(final String name, final boolean isGroup) {
+    protected TagData createTag(final String name, final boolean isGroup) {
         return createTagAtPosition(name, isGroup, -1);
     }
     
@@ -700,7 +707,15 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     public static boolean isGroupsChildTag(final TagData tag) {
         // a group tag is the "Groups" itself and everything below it
         // don't use groupTags here since the list might not yet have been updated...
-        return reservedTags.get(ReservedTagName.Groups).getChildren().contains(tag);
+        final Set<TagData> flatTags = reservedTags.get(ReservedTagName.Groups).getChildren().stream().map((t) -> {
+            return t.flattened();
+        }).flatMap(Function.identity()).collect(Collectors.toSet());
+
+        final Optional<TagData> groupTag = flatTags.stream().filter((t) -> {
+            return t.getName().equals(tag.getName());
+        }).findFirst();
+
+        return groupTag.isPresent();
     }
     
     public static boolean isEditableTag(final TagData tag) {
