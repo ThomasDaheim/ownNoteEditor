@@ -102,20 +102,24 @@ public class OwnNoteHTMLEditor {
     // TFE, 20200504: support more than one language here
     private static final String CONTEXT_MENU = ".context-menu";
     private static final List<String> RELOAD_PAGE = List.of("Reload page", "Seite neu laden");
-    private static final List<String> OPEN_FRAME_NEW_WINDOW = List.of("Open Frame in New Window", "Frame in neuem Fenster \\u00d6ffnen");
-    private static final List<String> OPEN_LINK = List.of("Open Link", "Link \\u00d6ffnen");
-    private static final List<String> OPEN_LINK_NEW_WINDOW = List.of("Open Link in New Window", "Link in neuem Fenster \\u00d6ffnen");
+    private static final List<String> OPEN_FRAME_NEW_WINDOW = List.of("Open Frame in New Window", "Frame in neuem Fenster \u00f6ffnen");
+    private static final List<String> OPEN_LINK = List.of("Open Link", "Link \u00f6ffnen");
+    private static final List<String> OPEN_LINK_NEW_WINDOW = List.of("Open Link in New Window", "Link in neuem Fenster \u00f6ffnen");
     private static final List<List<String>> REMOVE_MENUES =  List.of(RELOAD_PAGE, OPEN_FRAME_NEW_WINDOW, OPEN_LINK, OPEN_LINK_NEW_WINDOW);
+    
     private static final List<String> COPY_SELECTION = List.of("Copy", "Kopieren");
-    private static final List<String> COPY_TEXT_SELECTION = List.of("Copy Text", "Kopieren als Text");
+    private static final List<String> COPY_TEXT_SELECTION = List.of("Copy as text", "Kopieren als Text");
     private static final List<String> SAVE_NOTE = List.of("Save", "Speichern");
     // TFE, 20210304: add context menu to insert attachment link into note
-    private static final List<String> ATTACHMENT_LINK = List.of("Insert attachment link", "Anhang-Link einf\\u00fcgen");
+    private static final List<String> ATTACHMENT_LINK = List.of("Insert attachment link", "Anhang-Link einf\u00fcgen");
     private static final List<String> COMPRESS_IMAGES = List.of("Compress images", "Bilder komprimieren");
     private static final List<String> REPLACE_CHECKEDBOXES = List.of("Checked box -> " + TaskData.ARCHIVED_BOX, "Checked Box -> " + TaskData.ARCHIVED_BOX);
     private static final List<String> REPLACE_CHECKMARKS = List.of(TaskData.ARCHIVED_BOX + " -> Checked box", TaskData.ARCHIVED_BOX + " -> Checked Box");
+
+    // complete list of menu items for language check
+    private static final List<List<String>> TINYMCE_MENUES =  List.of(COPY_SELECTION, RELOAD_PAGE, OPEN_FRAME_NEW_WINDOW, OPEN_LINK, OPEN_LINK_NEW_WINDOW);
     
-    private int language;
+    private int language = -1;
 
     private WebView myWebView;
     private WebEngine myWebEngine;
@@ -481,7 +485,7 @@ public class OwnNoteHTMLEditor {
             editedNote.setNoteEditorContent(getNoteText());
             if (myEditor.saveNote(editedNote)) {
                 // TFE, 20210224: update editor content since task metadata might have changed!
-                editNote(editedNote, editedNote.getNoteEditorContent());
+                editNote(editedNote, editedNote.getNoteEditorContent(), true);
             }
         }
     }
@@ -490,14 +494,14 @@ public class OwnNoteHTMLEditor {
         final String content = TaskManager.replaceCheckedBoxes(getNoteText());
         
         contentChanged(content);
-        editNote(editedNote, content);
+        editNote(editedNote, content, true);
     }
     
     public void replaceCheckmarks() {
         final String content = TaskManager.replaceCheckmarks(getNoteText());
         
         contentChanged(content);
-        editNote(editedNote, content);
+        editNote(editedNote, content, true);
     }
     
     private void compressImages() {
@@ -620,7 +624,7 @@ public class OwnNoteHTMLEditor {
         }
         
         contentChanged(content);
-        editNote(editedNote, content);
+        editNote(editedNote, content, true);
     }
     
     private void initPopupWindow() {
@@ -640,6 +644,14 @@ public class OwnNoteHTMLEditor {
                             final ContextMenuContent cmc = (ContextMenuContent)((Parent) bridge).getChildrenUnmodifiable().get(0);
 
                             final VBox itemsContainer = cmc.getItemsContainer();
+                            
+                            // TFE, 202100510: loop through once before to determine language
+                            for (Node n: itemsContainer.getChildren()) {
+                                assert n instanceof ContextMenuContent.MenuItemContainer;
+                                
+                                final ContextMenuContent.MenuItemContainer item = (ContextMenuContent.MenuItemContainer) n;
+                                setLanguage(item.getItem().getText());
+                            }
                             
                             // check for "Reload page", ... entry and remove it...
                             int index = 0;
@@ -664,22 +676,24 @@ public class OwnNoteHTMLEditor {
                                 
                                 index++;
                             }
+                            
                             if (copyIndex != -1) {
                                 // TFE, 20191211: add option to copy plain text as well
-                                final MenuItem copyPlain = new MenuItem(COPY_TEXT_SELECTION.get(language));
+                                final MenuItem copyPlain = new MenuItem(COPY_TEXT_SELECTION.get(getLanguage()));
                                 copyPlain.setOnAction((ActionEvent event) -> {
                                     copyToClipboard(true, false);
                                 });
 
-                                // add new item:
+                                // add new item
                                 itemsContainer.getChildren().add(copyIndex+1, cmc.new MenuItemContainer(copyPlain));
                             }
+
                             if (!deleteNodes.isEmpty()) {
                                 itemsContainer.getChildren().removeAll(deleteNodes);
                             }
 
                             // adding save item
-                            final MenuItem saveMenu = new MenuItem(SAVE_NOTE.get(language));
+                            final MenuItem saveMenu = new MenuItem(SAVE_NOTE.get(getLanguage()));
                             saveMenu.setOnAction((ActionEvent event) -> {
                                 saveNote();
                             });
@@ -688,23 +702,23 @@ public class OwnNoteHTMLEditor {
                             saveMenu.setAccelerator(UsefulKeyCodes.CNTRL_S.getKeyCodeCombination());
                             
                             // add attachment links - fill menu items for each edited note individually
-                            final Menu attachMenu = new Menu(ATTACHMENT_LINK.get(language));
+                            final Menu attachMenu = new Menu(ATTACHMENT_LINK.get(getLanguage()));
                             populateAttachMenu(attachMenu);
                             
                             // checkbox -> symbol
-                            final MenuItem replaceCheckedBoxesMenu = new MenuItem(REPLACE_CHECKEDBOXES.get(language));
+                            final MenuItem replaceCheckedBoxesMenu = new MenuItem(REPLACE_CHECKEDBOXES.get(getLanguage()));
                             replaceCheckedBoxesMenu.setOnAction((ActionEvent event) -> {
                                 replaceCheckedBoxes();
                             });
 
                             // symbol -> checkbox
-                            final MenuItem replaceCheckmarksMenu = new MenuItem(REPLACE_CHECKMARKS.get(language));
+                            final MenuItem replaceCheckmarksMenu = new MenuItem(REPLACE_CHECKMARKS.get(getLanguage()));
                             replaceCheckmarksMenu.setOnAction((ActionEvent event) -> {
                                 replaceCheckmarks();
                             });
 
                             // compress images
-                            final MenuItem compressImagesMenu = new MenuItem(COMPRESS_IMAGES.get(language));
+                            final MenuItem compressImagesMenu = new MenuItem(COMPRESS_IMAGES.get(getLanguage()));
                             compressImagesMenu.setOnAction((ActionEvent event) -> {
                                 compressImages();
                             });
@@ -723,15 +737,33 @@ public class OwnNoteHTMLEditor {
         }
     } 
     
-    private boolean removeMenu(final String menuname) {
-        boolean result = false;
+    private int getLanguage() {
+        return language == -1 ? 0 : language;
+    }
+    
+    private void setLanguage(final String menuname) {
+        if (language != -1) {
+            // we only need to determine it once...
+            return;
+        }
         
-        for (List<String> strings : REMOVE_MENUES) {
+        for (List<String> strings : TINYMCE_MENUES) {
             final int nameIndex = strings.indexOf(menuname);
             
             if (nameIndex != -1) {
                 language = nameIndex;
+                break;
+            }
+        }
+    }
+
+    private boolean removeMenu(final String menuname) {
+        boolean result = false;
+        
+        for (List<String> strings : REMOVE_MENUES) {
+            if (strings.indexOf(menuname) != -1) {
                 result = true;
+                break;
             }
         }
         
@@ -769,6 +801,22 @@ public class OwnNoteHTMLEditor {
         myClipboardFx.setContent(clipboardContent);
     }
     
+    private void pasteFromClipboard(final boolean runLater, final boolean pasteFullHTML) {
+        // tricky... in some cases we want to let tinymce do its work before in others we don't
+        if (runLater) {
+            Platform.runLater(() -> {
+                doPasteFromClipboard(pasteFullHTML);
+            });
+        } else {
+            doPasteFromClipboard(pasteFullHTML);
+        }
+    }
+    
+    
+    private void doPasteFromClipboard(final boolean pasteFullHTML) {
+        System.out.println("doPasteFromClipboard reached");
+    }
+
     //
     // javascript callbacks
     //
@@ -779,9 +827,8 @@ public class OwnNoteHTMLEditor {
         String result = "";
 
         try {
-            if (myClipboardFx.hasHtml()) {
-                result = myClipboardFx.getHtml();
-            } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
+            // TFE, 20210510: get html content as text flavor as well - to enabled "Paste as text" behaviour
+            if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
                 // We use the AWT clipboard if we want to retreive text because the FX implementation delivers funky characters
                 // when pasting from e.g. Command Prompt
                 result = (String) myClipboardAwt.getData(DataFlavor.stringFlavor);
@@ -846,14 +893,14 @@ public class OwnNoteHTMLEditor {
     }
         
     public void editNote(final Note note) {
-        editNote(note, note != null ? note.getNoteFileContent() : "");
+        editNote(note, note != null ? note.getNoteFileContent() : "", false);
     }
         
-    private void editNote(final Note note, final String text) {
+    private void editNote(final Note note, final String text, final boolean keepCursorPos) {
         setContentDone = false;
         Runnable task = () -> {
             //System.out.println("setEditorText " + text);
-            wrapExecuteScript(myWebEngine, "saveSetContent('" + replaceForEditor(text) + "');");
+            wrapExecuteScript(myWebEngine, "saveSetContent('" + replaceForEditor(text) + "', " + keepCursorPos + ");");
         };
         
         startTask(task);

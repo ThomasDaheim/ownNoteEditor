@@ -317,6 +317,20 @@
 .taskdata:noteSelected > * {
     -fx-font-weight: bold;
 }
+
+/* mark task data based on distance to due date */
+.taskdata:overdue > *{
+    -fx-fill: #a94442;
+}
+.taskdata:upcoming > * {
+    -fx-fill: #e90;
+}
+.taskdata:longtime > * {
+    -fx-fill: #093;
+}
+.taskdata:anytime > * {
+}
+
 .taskdata-popup {
     -fx-font-size: 0.9em;
 }

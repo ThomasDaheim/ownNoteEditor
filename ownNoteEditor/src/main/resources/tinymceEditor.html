@@ -85,7 +85,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     relative_urls: false,
                     remove_script_host: false,
                     plugins: [
-                            "autoresize codesample wordcount visualchars textcolor advlist autolink lists link charmap anchor",
+                            // TFE, 20210511: add image & image tools plugins
+                            "autoresize codesample wordcount visualchars textcolor advlist autolink lists link charmap anchor image imagetools",
                             "searchreplace visualblocks code insertdatetime media table contextmenu autoresize emoticons help toc hr paste"
                     ],
                     codesample_languages: [
@@ -362,20 +363,40 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         .end()).html();
             }
 
-            function saveSetContent(content) {
+            function saveSetContent(content, keepCursorPos) {
                 //console.log('JavaScript: saveSetContent was called.');
+                
+                // TFE, 20210510: get current cursor position for later restore
+                // https://drujoopress.wordpress.com/2014/08/06/find-cursor-position-inside-tinymce-editor/
+                // var selRng = tinymce.activeEditor.selection.getRng().cloneRange();
+                // var selStart = selRng.startOffset;
+                // var selStartNode = selRng.startContainer;
+                // var selEnd = selRng.endOffset;
+                // var selEndNode = selRng.endContainer;
 
                 tinymce.activeEditor.setContent(unwrapCheckboxes(content));
                 
                 // https://www.tinymce.com/docs/advanced/events/#dirty
                 tinymce.activeEditor.setDirty(false);
-                //console.log('JavaScript: saveSetContent done.');
 
                 // TFE, 20181203: reset undo history since it would re-create previous note text...
                 // https://community.tiny.cloud/communityQuestion?id=9066100000097T2AAI
                 tinymce.activeEditor.undoManager.clear();
                 
+                if (keepCursorPos) {
+                    // TFE, 20210511: not yet working TODO: how to move cursor?
+                    // selRng.setStart(selStartNode, selStart);
+                    // selRng.setEnd(selEndNode, selEnd);
+                    // tinymce.activeEditor.selection.setRng(selRng);
+                    
+                    // const rightArrowKey = 39;
+                    // const event = new KeyboardEvent('keydown',{'key':rightArrowKey});
+                    // var textnode = document.getElementById('mytextarea');
+                    // textnode.dispatchEvent(event);
+                }
+                
                 contentChanged = false;
+                //console.log('JavaScript: saveSetContent done.');
             }
 
             // try getContent() and if fails use tinymce.activeEditor.getBody().innerHTML AND replace img blobs by real base64 data

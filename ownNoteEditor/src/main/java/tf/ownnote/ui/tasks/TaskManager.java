@@ -11,6 +11,8 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -27,6 +29,7 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
+import javafx.scene.Node;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
@@ -55,6 +58,12 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     private final static Pattern TASK_PATTERN = Pattern.compile(TaskData.ANY_BOXES, Pattern.LITERAL);
     
     public static final PseudoClass TASK_COMPLETED = PseudoClass.getPseudoClass("completed");
+
+    // TFE, 20210511: color task data based on distance to due date - if any
+    public static final PseudoClass TASK_OVERDUE = PseudoClass.getPseudoClass("overdue");
+    public static final PseudoClass TASK_UPCOMING = PseudoClass.getPseudoClass("upcoming");
+    public static final PseudoClass TASK_LONGTIME = PseudoClass.getPseudoClass("longtime");
+    public static final PseudoClass TASK_ANYTIME = PseudoClass.getPseudoClass("anytime");
 
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyyMMDD-HHmmss"); 
     
@@ -642,5 +651,34 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     
     public static String replaceCheckmarks(final String content) {
         return content.replace(TaskData.ARCHIVED_BOX, TaskData.CHECKED_BOXES_2);
+    }
+    
+    public static void setPseudoClassForDueDate(final Node node, final TaskData task) {
+        PseudoClass result;
+
+        final LocalDateTime dueDate = task.getDueDate();
+        if (dueDate == null) {
+            result = TASK_ANYTIME;
+        } else {
+            final LocalDateTime now = LocalDateTime.now();
+            final int dateDiff = Period.between(now.toLocalDate(), dueDate.toLocalDate()).getDays();
+            // TODO: put logic & values into map and/or own class...
+            if (dateDiff > 3) {
+                result = TASK_LONGTIME;
+            } else if (dateDiff > 0) {
+                result = TASK_UPCOMING;
+            } else {
+                result = TASK_OVERDUE;
+            }
+        }
+
+        node.pseudoClassStateChanged(result, true);
+    }
+    
+    public static void resetPseudoClassForDueDate(final Node node) {
+        node.pseudoClassStateChanged(TaskManager.TASK_OVERDUE, false);
+        node.pseudoClassStateChanged(TaskManager.TASK_UPCOMING, false);
+        node.pseudoClassStateChanged(TaskManager.TASK_LONGTIME, false);
+        node.pseudoClassStateChanged(TaskManager.TASK_ANYTIME, false);
     }
 }

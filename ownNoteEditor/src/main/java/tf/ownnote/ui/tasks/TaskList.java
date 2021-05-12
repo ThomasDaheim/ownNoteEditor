@@ -67,7 +67,7 @@ public class TaskList {
         final StringConverter<TaskData> converter = new StringConverter<TaskData>() {
             @Override
             public String toString(TaskData task) {
-                return task.getDescription();
+                return task.getDescription() + System.lineSeparator() + TaskCard.getPriorityText(task) + "\t\t" + TaskCard.getDueDateText(task);
             }
 
             // not actually used by CheckBoxListCell
@@ -85,8 +85,11 @@ public class TaskList {
                 public void updateItem(TaskData item, boolean empty) {
                     super.updateItem(item, empty);
                     
+                    // TFE, 20210511: mark based on distance to due date
+                    TaskManager.resetPseudoClassForDueDate(this);
                     if (item != null && !empty) {
                         pseudoClassStateChanged(TaskManager.TASK_COMPLETED, item.isCompleted());
+                        TaskManager.setPseudoClassForDueDate(this, item);
                         
                         final Note currentNote = myEditor.currentNoteProperty().get();
                         if (currentNote != null && currentNote.equals(item.getNote())) {
