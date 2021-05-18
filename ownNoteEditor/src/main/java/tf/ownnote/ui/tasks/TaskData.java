@@ -171,7 +171,7 @@ public class TaskData implements ICommentDataHolder, ITagHolder {
     
     private boolean inStatusChange = false;
 
-    protected TaskData() {
+    private TaskData() {
     }
     
     public TaskData(final Note note, final String noteContent, final int textPos) {

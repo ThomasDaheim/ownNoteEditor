@@ -355,6 +355,9 @@ public class TaskDataEditor extends GridPane {
             comment = commentArea.getText();
         }
         myTask.setComment(comment);
+        
+        // TFE, 20210512: and now the note has unsaved changes as well...
+        myTask.getNote().setUnsavedChanges(true);
     }
 
     // provision for future conversion into an AbstractStage - not very YAGNI
