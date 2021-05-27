@@ -330,6 +330,21 @@
 }
 .taskdata:anytime > * {
 }
+/* similar is required for calendar view */
+.calendar-cell:style-1 {
+    -fx-background-color: #a94442;
+    -fx-text-fill: white;
+}
+.calendar-cell:style-2 {
+    -fx-background-color: #e90;
+    -fx-text-fill: white;
+}
+.calendar-cell:style-3 {
+    -fx-background-color: #093;
+    -fx-text-fill: white;
+}
+.calendar-cell:style-4 {
+}
 
 .taskdata-popup {
     -fx-font-size: 0.9em;

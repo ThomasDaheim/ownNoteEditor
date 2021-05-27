@@ -86,7 +86,7 @@ public class TestTaskData {
         
         TaskData taskData = new TaskData(note, noteContent, 63);
         Assert.assertFalse(taskData.isCompleted());
-        Assert.assertEquals(" tell me, what to do!", taskData.getDescription());
+        Assert.assertEquals(" tell me, what to do!", taskData.getEventDescription());
     }
     
     @Test

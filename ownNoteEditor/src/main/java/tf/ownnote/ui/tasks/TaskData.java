@@ -5,6 +5,7 @@
  */
 package tf.ownnote.ui.tasks;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +22,8 @@ import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.unbescape.html.HtmlEscape;
+import tf.helper.javafx.calendarview.CalendarView;
+import tf.helper.javafx.calendarview.ICalendarEvent;
 import tf.ownnote.ui.commentdata.CommentDataMapper;
 import tf.ownnote.ui.commentdata.ICommentDataHolder;
 import tf.ownnote.ui.commentdata.ICommentDataInfo;
@@ -38,7 +41,7 @@ import tf.ownnote.ui.tags.TagManager;
  * 
  * @author thomas
  */
-public class TaskData implements ICommentDataHolder, ITagHolder {
+public class TaskData implements ICommentDataHolder, ITagHolder, ICalendarEvent {
     // TFE, 20200712: add search of unchecked boxes
     // TFE, 20201103: actual both variants of html are valid and need to be supported equally
     public final static String UNCHECKED_BOXES_1 = "<input type=\"checkbox\" />";
@@ -47,7 +50,7 @@ public class TaskData implements ICommentDataHolder, ITagHolder {
     public final static String CHECKED_BOXES_2 = "<input type=\"checkbox\" checked=\"checked\">";
     public final static String ANY_BOXES = "<input type=\"checkbox\"";
     public final static String ARCHIVED_BOX = "\u2611";
-    
+
     // info per available metadata - name & multiplicity
     public static enum CommentDataInfo implements ICommentDataInfo {
         ID("id", Multiplicity.SINGLE),
@@ -157,6 +160,7 @@ public class TaskData implements ICommentDataHolder, ITagHolder {
     private String myEscapedText;
     private int myTextPos;
     private final ObjectProperty<LocalDateTime> myDueDate = new SimpleObjectProperty<>();
+    private final ObjectProperty<LocalDate> myEventDate = new SimpleObjectProperty<>();
     private String myComment = null;
     private final ObjectProperty<TaskStatus> myStatus = new SimpleObjectProperty<>(TaskStatus.OPEN);
     private final ObjectProperty<TaskPriority> myPriority = new SimpleObjectProperty<>(TaskPriority.LOW);
@@ -225,6 +229,20 @@ public class TaskData implements ICommentDataHolder, ITagHolder {
 //                System.out.println("Unlinking note " + myNote.getNoteName() + " from tag " + change.getElementRemoved().getName());
                 change.getElementRemoved().getLinkedNotes().remove(myNote);
                 myNote.setUnsavedChanges(true);
+            }
+        });
+        
+        // we also need the date as localdate for ICalenderEvent
+        if (myDueDate.get() == null) {
+            myEventDate.set(null);
+        } else {
+            myEventDate.set(myDueDate.get().toLocalDate());
+        }
+        myDueDate.addListener((ov, oldValue, newValue) -> {
+            if (newValue == null) {
+                myEventDate.set(null);
+            } else {
+                myEventDate.set(newValue.toLocalDate());
             }
         });
     }
@@ -499,5 +517,27 @@ public class TaskData implements ICommentDataHolder, ITagHolder {
             }).collect(Collectors.toList());
         }
         return null;
+    }
+    
+    // things to do to be a good CalendarEvent
+
+    @Override
+    public ObjectProperty<LocalDate> getStartDate() {
+        return myEventDate;
+    }
+
+    @Override
+    public ObjectProperty<LocalDate> getEndDate() {
+        return myEventDate;
+    }
+
+    @Override
+    public ObjectProperty<CalendarView.DateStyle> getStyle() {
+        return new SimpleObjectProperty<>(TaskManager.getDateStyleForDueDate(this));
+    }
+
+    @Override
+    public StringProperty getEventDescription() {
+        return myDescription;
     }
 }

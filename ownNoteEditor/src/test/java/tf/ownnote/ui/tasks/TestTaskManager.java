@@ -79,7 +79,7 @@ public class TestTaskManager {
             Assert.assertEquals("TestTasks", data.getNote().getNoteName());
         }
         
-        Assert.assertEquals(" tell me, what to do!", taskList.get(0).getDescription());
+        Assert.assertEquals(" tell me, what to do!", taskList.get(0).getEventDescription());
         Assert.assertTrue(taskList.get(2).getDescription().startsWith(" of course with something special: "));
     }
     

@@ -26,10 +26,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javafx.application.Platform;
+import javafx.beans.Observable;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
+import tf.helper.javafx.calendarview.CalendarView;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
@@ -65,12 +67,26 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     public static final PseudoClass TASK_LONGTIME = PseudoClass.getPseudoClass("longtime");
     public static final PseudoClass TASK_ANYTIME = PseudoClass.getPseudoClass("anytime");
 
+    // TFE, 20210527: similar is needed for events as well
+    public static final CalendarView.DateStyle EVENT_OVERDUE = CalendarView.DateStyle.STYLE_1;
+    public static final CalendarView.DateStyle EVENT_UPCOMING = CalendarView.DateStyle.STYLE_2;
+    public static final CalendarView.DateStyle EVENT_LONGTIME = CalendarView.DateStyle.STYLE_3;
+    public static final CalendarView.DateStyle EVENT_ANYTIME = CalendarView.DateStyle.STYLE_4;
+    
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyyMMDD-HHmmss"); 
     
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
     
-    private final ObservableList<TaskData> taskList = FXCollections.<TaskData>observableArrayList();
+    // TFE, 20210527: use property exatractors for all properties
+    private final ObservableList<TaskData> taskList = 
+            FXCollections.<TaskData>observableArrayList(p -> new Observable[]{
+                p.descriptionProperty(), 
+                p.dueDateProperty(), 
+                p.isCompletedProperty(),
+                p.getTags(),
+                p.taskPriorityProperty(), 
+                p.taskStatusProperty()});
     private boolean taskListInitialized = false;
     
     private boolean inFileChange = false;
@@ -237,7 +253,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 // fallback: find by text
                 if (oldnew.isEmpty()) {
                     oldnew = oldTasks.stream().filter((t) -> {
-                        return t.getDescription().equals(newTask.getDescription());
+                        return t.getEventDescription().equals(newTask.getEventDescription());
                     }).findFirst();
                 }
                 
@@ -680,5 +696,27 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         node.pseudoClassStateChanged(TaskManager.TASK_UPCOMING, false);
         node.pseudoClassStateChanged(TaskManager.TASK_LONGTIME, false);
         node.pseudoClassStateChanged(TaskManager.TASK_ANYTIME, false);
+    }
+    
+    public static CalendarView.DateStyle getDateStyleForDueDate(final TaskData task) {
+        CalendarView.DateStyle result;
+
+        final LocalDateTime dueDate = task.getDueDate();
+        if (dueDate == null) {
+            result = EVENT_ANYTIME;
+        } else {
+            final LocalDateTime now = LocalDateTime.now();
+            final int dateDiff = Period.between(now.toLocalDate(), dueDate.toLocalDate()).getDays();
+            // TODO: put logic & values into map and/or own class...
+            if (dateDiff > 3) {
+                result = EVENT_LONGTIME;
+            } else if (dateDiff > 0) {
+                result = EVENT_UPCOMING;
+            } else {
+                result = EVENT_OVERDUE;
+            }
+        }
+        
+        return result;
     }
 }

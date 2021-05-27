@@ -101,7 +101,7 @@ public class TaskBoardLane extends VBox {
         });
         
         // change when status changes
-        TaskManager.getInstance().getTaskList().addListener((ListChangeListener.Change<? extends TaskData> c) -> {
+        TaskManager.getInstance().getTaskList().addListener((ListChangeListener.Change<? extends TaskData> change) -> {
             Platform.runLater(() -> {
                 // run later - since we might be in TaskManager.initTaskList()
                 items.setAll(TaskManager.getInstance().getTaskList());
