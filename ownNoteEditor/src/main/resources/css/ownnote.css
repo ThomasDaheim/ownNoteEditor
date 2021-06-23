@@ -386,6 +386,29 @@
     -fx-font-weight: bold;
 }
 
+/* calendar styles for tasks */
+.calendar-cell:date-holiday {
+    -fx-background-color: #99ffcc !important;
+}
+.calendar-cell:style-1 /* EVENT_OVERDUE */ {
+    -fx-text-fill: black;
+    -fx-background-color: #a94442;
+}
+.calendar-cell:style-2 /* EVENT_UPCOMING */ {
+    -fx-text-fill: black;
+    -fx-background-color: #e90;
+}
+.calendar-cell:style-3 /* EVENT_LONGTIME */ {
+    -fx-text-fill: black;
+    -fx-background-color: #093;
+}
+.calendar-cell:style-4 /* EVENT_ANYTIME */ {
+    -fx-text-fill: black;
+    -fx-background-color: #093;
+    -fx-opacity: 0.4 ;
+}
+
+
 /* no scrollbars in webview, please */
 .noteEditor, 
 .noteHTMLEditor {

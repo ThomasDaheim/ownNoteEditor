@@ -672,19 +672,23 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     public static void setPseudoClassForDueDate(final Node node, final TaskData task) {
         PseudoClass result;
 
-        final LocalDateTime dueDate = task.getDueDate();
-        if (dueDate == null) {
+        if (task.isCompleted()) {
             result = TASK_ANYTIME;
         } else {
-            final LocalDateTime now = LocalDateTime.now();
-            final int dateDiff = Period.between(now.toLocalDate(), dueDate.toLocalDate()).getDays();
-            // TODO: put logic & values into map and/or own class...
-            if (dateDiff > 3) {
-                result = TASK_LONGTIME;
-            } else if (dateDiff > 0) {
-                result = TASK_UPCOMING;
+            final LocalDateTime dueDate = task.getDueDate();
+            if (dueDate == null) {
+                result = TASK_ANYTIME;
             } else {
-                result = TASK_OVERDUE;
+                final LocalDateTime now = LocalDateTime.now();
+                final int dateDiff = Period.between(now.toLocalDate(), dueDate.toLocalDate()).getDays();
+                // TODO: put logic & values into map and/or own class...
+                if (dateDiff > 3) {
+                    result = TASK_LONGTIME;
+                } else if (dateDiff > 0) {
+                    result = TASK_UPCOMING;
+                } else {
+                    result = TASK_OVERDUE;
+                }
             }
         }
 
@@ -701,19 +705,23 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     public static CalendarView.DateStyle getDateStyleForDueDate(final TaskData task) {
         CalendarView.DateStyle result;
 
-        final LocalDateTime dueDate = task.getDueDate();
-        if (dueDate == null) {
+        if (task.isCompleted()) {
             result = EVENT_ANYTIME;
         } else {
-            final LocalDateTime now = LocalDateTime.now();
-            final int dateDiff = Period.between(now.toLocalDate(), dueDate.toLocalDate()).getDays();
-            // TODO: put logic & values into map and/or own class...
-            if (dateDiff > 3) {
-                result = EVENT_LONGTIME;
-            } else if (dateDiff > 0) {
-                result = EVENT_UPCOMING;
+            final LocalDateTime dueDate = task.getDueDate();
+            if (dueDate == null) {
+                result = EVENT_ANYTIME;
             } else {
-                result = EVENT_OVERDUE;
+                final LocalDateTime now = LocalDateTime.now();
+                final int dateDiff = Period.between(now.toLocalDate(), dueDate.toLocalDate()).getDays();
+                // TODO: put logic & values into map and/or own class...
+                if (dateDiff > 3) {
+                    result = EVENT_LONGTIME;
+                } else if (dateDiff > 0) {
+                    result = EVENT_UPCOMING;
+                } else {
+                    result = EVENT_OVERDUE;
+                }
             }
         }
         

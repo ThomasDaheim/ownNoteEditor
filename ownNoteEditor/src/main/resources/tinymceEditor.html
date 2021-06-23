@@ -115,6 +115,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     media_live_embeds: true,
                     media_alt_source: false,
                     media_poster: false,
+                    // TFE, 20210613: target of links is always default browser of system
+                    target_list: false,
+                    default_link_target: 'dummy',
                     paste_preprocess : function(plugin, args) {
                         if(!regularPaste) {
                             args.content = ""; // Ignore what TinyMCE think it should insert
@@ -198,7 +201,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             
                             // links
                             $(editor.getBody()).on("click", "a", function(el) {
+                                // TFE, 20210613: https://stackoverflow.com/a/26396587
                                 el.preventDefault();
+                                el.stopPropagation();
 
                                 // callback to java to open in standard browser
                                 editorCallback.openLinkInDefaultBrowser($(el.target).attr('href'));
@@ -644,5 +649,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <body>
         <textarea id="mytextarea"></textarea>
+        <iframe src='about:blank' name='dummy' height='0' width='0'></iframe>
     </body>
 </html>

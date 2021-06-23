@@ -144,6 +144,7 @@ public class TaskBoard extends AbstractStage {
 
         final RowConstraints rowConstraint1 = new RowConstraints();
         rowConstraint1.setVgrow(Priority.NEVER);
+        rowConstraint1.setMaxHeight(220);
         final RowConstraints rowConstraint2 = new RowConstraints();
         rowConstraint2.setValignment(VPos.TOP);
         rowConstraint2.setVgrow(Priority.ALWAYS);
@@ -157,14 +158,15 @@ public class TaskBoard extends AbstractStage {
         final ScrollPane calendarView = calendar.getCalendarView();
         calendarView.setFitToWidth(true);
         calendarView.setFitToHeight(true);
-        calendarView.setPrefHeight(300);
+        calendarView.setPrefHeight(220);
         // show german holidays in calendar
         HolidayProviderFactory.getInstance().registerHolidayProvider(Locale.GERMANY, GermanHolidayProvider.getInstance());
         calendar.addCalendarProviders(Arrays.asList(HolidayProviderFactory.getInstance()));
 
+        // the array trick to avoid "Variables used in lambda should be final or effectively final"
+        boolean [] firstShown = {false};
         // show tasks as events in calendar
         // TODO: filter auf offene Tasks
-        boolean [] firstShown = {false};
         TaskManager.getInstance().getTaskList().addListener((ListChangeListener.Change<? extends TaskData> change) -> {
             if (firstShown[0]) {
                 Platform.runLater(() -> {
@@ -188,8 +190,7 @@ public class TaskBoard extends AbstractStage {
                 });
             }
         });
-        // the array trick to avoid "Variables used in lambda should be final or effectively final"
-        // show tasks as eventson first showing
+        // show tasks as events on first showing
         showingProperty().addListener((ov, t, t1) -> {
             if (!firstShown[0]) {
                 final List<ICalendarEvent> temp = new ArrayList<>();
@@ -203,9 +204,9 @@ public class TaskBoard extends AbstractStage {
         calendar.addEventHandler(new EventHandler<>() {
             @Override
             public void handle(CalendarViewEvent t) {
-                if (CalendarViewEvent.OBJECT_DROPPED.equals(t.getEventType()) && t.getDroppedObject() instanceof TaskData) {
-                    final TaskData task = ObjectsHelper.uncheckedCast(t.getDroppedObject());
-                    task.setDueDate(t.getDropDate().atTime(LocalTime.now()));
+                if (CalendarViewEvent.OBJECT_DROPPED.equals(t.getEventType()) && t.getDroppedObject() instanceof TaskCard) {
+                    final TaskCard taskCard = ObjectsHelper.uncheckedCast(t.getDroppedObject());
+                    taskCard.getTaskData().setDueDate(t.getDropDate().atTime(LocalTime.now()));
                 }
             }
         });
