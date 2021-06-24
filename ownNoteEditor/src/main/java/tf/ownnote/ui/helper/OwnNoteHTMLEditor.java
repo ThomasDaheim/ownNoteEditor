@@ -79,6 +79,8 @@ import netscape.javascript.JSObject;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.unbescape.html.HtmlEscape;
 import tf.helper.general.ImageHelper;
 import tf.helper.javafx.UsefulKeyCodes;
@@ -788,6 +790,9 @@ public class OwnNoteHTMLEditor {
         String selection = (String) dummy;
 
         if (!copyFullHTML) {
+            // TFE, 20210624: we often have space after link before newline - since "SPACE" after paste link makes it a link...
+            // we need to remove these since it breaks paste
+            selection = selection.replaceAll("(\\</a\\>)&nbsp;(\\</.*\\>)", "$1$2");
             // TFE, 20191211: remove html tags BUT convert </p> to </p> + line break
             selection = selection.replaceAll("\\</p\\>", "</p>" + System.lineSeparator());
             selection = stripHtmlTags(selection);
@@ -797,7 +802,11 @@ public class OwnNoteHTMLEditor {
 
         final ClipboardContent clipboardContent = new ClipboardContent();
         clipboardContent.putString(selection);
-        clipboardContent.putHtml(selection);
+        if (copyFullHTML) {
+            // add as html as well to know later on which version to paste...
+            clipboardContent.putHtml(selection);
+        }
+        // set the Fx clipboard to pass it on to the AWT clipboard... probably a better way to do that
         myClipboardFx.setContent(clipboardContent);
     }
     
@@ -826,17 +835,19 @@ public class OwnNoteHTMLEditor {
         // https://stackoverrun.com/de/q/9359780#39265109
         String result = "";
 
+        // We use the AWT clipboard because the FX implementation delivers funky characters when pasting from e.g. Command Prompt and images
         try {
-            // TFE, 20210510: get html content as text flavor as well - to enabled "Paste as text" behaviour
-            if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
-                // We use the AWT clipboard if we want to retreive text because the FX implementation delivers funky characters
-                // when pasting from e.g. Command Prompt
+            if (myClipboardFx.hasHtml()) {
+                // TFE, 20210624: change from 20210510 breaks html copy & paste...
+                result = myClipboardFx.getHtml();
+            } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
                 result = (String) myClipboardAwt.getData(DataFlavor.stringFlavor);
-                result = result.replaceAll("(\n|\r|\n\r|\r\n)", "<br />");
-            // TFE, 20201012: allow pasting of images
+                if (!isHtml(result)) {
+                    result = result.replaceAll("(\n|\r|\n\r|\r\n)", "<br />");
+                }
             } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.imageFlavor)) {
-                // issues with images from javafx clipboard?
-                // https://bugs.openjdk.java.net/browse/JDK-8223425
+                // TFE, 20201012: allow pasting of images
+                // issues with images from javafx clipboard: https://bugs.openjdk.java.net/browse/JDK-8223425
                 final BufferedImage img = (BufferedImage) myClipboardAwt.getData(DataFlavor.imageFlavor); 
                 final String base64String;
                 try (ByteArrayOutputStream baos = new ByteArrayOutputStream(1000)) {
@@ -1046,6 +1057,21 @@ public class OwnNoteHTMLEditor {
     public static String stripHtmlTags(final String input) {
         return input.contains("<") ? TAG_PATTERN.matcher(input).replaceAll("") : input;
     }
+    
+    /**
+     * See: https://codereview.stackexchange.com/a/112506
+     * Verify if a string contains any HTML characters by comparing its
+     * HTML-escaped version with the original.
+     * @param input the input String
+     * @return boolean  True if the String contains HTML characters
+     */
+    public static boolean isHtml(final String input) {
+        boolean isHtml = false;
+        if (input != null) {
+            isHtml = (!input.equals(HtmlEscape.escapeHtml4(input)) && !input.equals(HtmlEscape.escapeHtml5(input)));
+        }
+        return isHtml;
+    }    
 
     // https://stackoverflow.com/questions/28687640/javafx-8-webengine-how-to-get-console-log-from-javascript-to-system-out-in-ja
     public class JavascriptLogger
