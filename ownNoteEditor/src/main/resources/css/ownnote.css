@@ -391,21 +391,21 @@
     -fx-background-color: #99ffcc !important;
 }
 .calendar-cell:style-1 /* EVENT_OVERDUE */ {
-    -fx-text-fill: black;
-    -fx-background-color: #a94442;
+    -fx-text-fill: black !important;
+    -fx-background-color: #a94442 !important;
 }
 .calendar-cell:style-2 /* EVENT_UPCOMING */ {
-    -fx-text-fill: black;
-    -fx-background-color: #e90;
+    -fx-text-fill: black !important;
+    -fx-background-color: #e90 !important;
 }
 .calendar-cell:style-3 /* EVENT_LONGTIME */ {
-    -fx-text-fill: black;
-    -fx-background-color: #093;
+    -fx-text-fill: black !important;
+    -fx-background-color: #093 !important;
 }
 .calendar-cell:style-4 /* EVENT_ANYTIME */ {
-    -fx-text-fill: black;
-    -fx-background-color: #093;
-    -fx-opacity: 0.4 ;
+    -fx-text-fill: black !important;
+    -fx-background-color: #093 !important;
+    -fx-opacity: 0.4 !important;
 }
 
 

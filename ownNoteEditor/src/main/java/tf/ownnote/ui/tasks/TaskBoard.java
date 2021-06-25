@@ -144,6 +144,7 @@ public class TaskBoard extends AbstractStage {
 
         final RowConstraints rowConstraint1 = new RowConstraints();
         rowConstraint1.setVgrow(Priority.NEVER);
+        rowConstraint1.setMinHeight(220);
         rowConstraint1.setMaxHeight(220);
         final RowConstraints rowConstraint2 = new RowConstraints();
         rowConstraint2.setValignment(VPos.TOP);
@@ -158,6 +159,8 @@ public class TaskBoard extends AbstractStage {
         final ScrollPane calendarView = calendar.getCalendarView();
         calendarView.setFitToWidth(true);
         calendarView.setFitToHeight(true);
+        calendarView.setMaxHeight(220);
+        calendarView.setMinHeight(220);
         calendarView.setPrefHeight(220);
         // show german holidays in calendar
         HolidayProviderFactory.getInstance().registerHolidayProvider(Locale.GERMANY, GermanHolidayProvider.getInstance());

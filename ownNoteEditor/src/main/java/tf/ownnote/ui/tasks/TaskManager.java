@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -420,7 +421,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         // if we should select the note OR if its anyways the one shown in the editor
         if (selectNote || task.getNote().equals(myEditor.getEditedNote())) {
             if (completedChanged) {
-                // below changes the status implicetly - but wrong :-) e.g. Done -> Open independent of drag position on kanban board
+                // below changes the status implicitly - but wrong :-) e.g. Done -> Open independent of drag position on kanban board
                 myEditor.selectNoteAndToggleCheckBox(task.getNote(), task.getTextPos(), task.getDescription(), task.getId(), newStatus.isCompleted());
             } else {
                 myEditor.selectNoteAndCheckBox(task.getNote(), task.getTextPos(), task.getDescription(), task.getId());
@@ -428,7 +429,12 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             task.setTaskStatus(newStatus);
         } else {
             // handling of read & save note / select note
-            OwnNoteFileManager.getInstance().readNote(task.getNote(), false);
+            // who could we end up if the note of the task hasn't been read???
+//            OwnNoteFileManager.getInstance().readNote(task.getNote(), false);
+            if (task.getNote().getNoteFileContent() == null) {
+                System.err.println("Task status changed without note loaded! Task: " + task.getHtmlText() + ", Note: " + task.getNote().getNoteFileName());
+                return false;
+            }
 
             // tricky, we need to change note text content as well
             String content = task.getNote().getNoteFileContent();
@@ -464,6 +470,45 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         }
         inStatusChange = false;
         
+        return result;
+    }
+    
+    public boolean processTaskDataChanged(final TaskData task, final TaskData.TaskPriority newPrio, final LocalDateTime newDate, final String newComment, final boolean suppressMessages) {
+        if (isProcessing()) {
+            return true;
+        }
+        
+        boolean result = true;
+
+        boolean hasChanged = false;
+        if (!Objects.equals(task.getTaskPriority(), newPrio)) {
+            hasChanged = true;
+            task.setTaskPriority(newPrio);
+        }
+        if (!Objects.equals(task.getDueDate(), newDate)) {
+            hasChanged = true;
+            task.setDueDate(newDate);
+        }
+        if (!Objects.equals(task.getComment(), newComment)) {
+            hasChanged = true;
+            task.setComment(newComment);
+        }
+        
+        if (hasChanged) {
+            if (task.getNote().equals(myEditor.getEditedNote())) {
+                // TFE, 20210512: and now the note has unsaved changes as well...
+                task.getNote().setUnsavedChanges(true);
+            } else {
+                // save note content
+                if (task.getNote().getNoteFileContent() == null) {
+                    System.err.println("Task status changed without note loaded! Task: " + task.getHtmlText() + ", Note: " + task.getNote().getNoteFileName());
+                    return false;
+                }
+
+                result = OwnNoteFileManager.getInstance().saveNote(task.getNote(), suppressMessages);
+            }
+        }
+
         return result;
     }
     

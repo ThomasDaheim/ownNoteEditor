@@ -343,21 +343,24 @@ public class TaskDataEditor extends GridPane {
 //        myTask.setTaskStatus(EnumHelper.getInstance().selectedEnumChoiceBox(TaskData.TaskStatus.class, statusBox));
         // TODO: replace update process in taskmanager with a listener to task status...
         TaskManager.getInstance().processTaskStatusChanged(myTask, EnumHelper.getInstance().selectedEnumChoiceBox(TaskData.TaskStatus.class, statusBox), false, true);
-        myTask.setTaskPriority(EnumHelper.getInstance().selectedEnumChoiceBox(TaskData.TaskPriority.class, prioBox));
+
+        LocalDateTime date = null;
         if (!duedateTimeTxt.getText().isEmpty()) {
-            final Date date = duedateTimeTxt.getCalendar().getTime();
-            myTask.setDueDate(LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault()));
-        } else {
-            myTask.setDueDate(null);
+            date = LocalDateTime.ofInstant(duedateTimeTxt.getCalendar().getTime().toInstant(), ZoneId.systemDefault());
         }
         String comment = null;
         if (commentArea.getText() != null && !commentArea.getText().isEmpty()) {
             comment = commentArea.getText();
         }
         myTask.setComment(comment);
-        
-        // TFE, 20210512: and now the note has unsaved changes as well...
-        myTask.getNote().setUnsavedChanges(true);
+
+        // TFE, 20210625: let TaskManger due the work...
+        TaskManager.getInstance().processTaskDataChanged(
+                myTask, 
+                EnumHelper.getInstance().selectedEnumChoiceBox(TaskData.TaskPriority.class, prioBox), 
+                date, 
+                comment,
+                true);
     }
 
     // provision for future conversion into an AbstractStage - not very YAGNI
