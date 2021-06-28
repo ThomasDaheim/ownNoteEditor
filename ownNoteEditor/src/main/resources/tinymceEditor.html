@@ -349,11 +349,19 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             }
 
             function insertText(content) {
-                //console.log('insertText ' + content);
+                console.log('insertText ' + content);
                 tinymce.activeEditor.execCommand("mceInsertContent", false, content);
                 contentChanged = true;
             }
             
+            function insertHyperLink(link, linktext) {
+                //console.log('insertHyperLink ' + link);
+                var hyperLink = "<a href='" + link + "' target='dummy'>" + linktext + "</a>";
+
+                tinymce.activeEditor.execCommand("mceInsertContent", false, hyperLink);
+                contentChanged = true;
+            }
+
             function unwrapCheckboxes(content) {
                 // TFE, 20201102: remove all text decorations from checkboxs, otherwise checkChanged won't find any tasks
                 // since decorations can come in any combination, we need to repeat N unwraps N times to make sure to get them all...

@@ -58,6 +58,8 @@ import javafx.print.PrinterJob;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.ContextMenu;
+import javafx.scene.control.CustomMenuItem;
+import javafx.scene.control.ListView;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.input.Clipboard;
@@ -634,107 +636,189 @@ public class OwnNoteHTMLEditor {
 
         for (Window window : windows) {
             if (window instanceof ContextMenu) {
-                if (window.getScene() != null && window.getScene().getRoot() != null) { 
-                    final Parent root = window.getScene().getRoot();
-
-                    // access to context menu content
-                    if (!root.getChildrenUnmodifiable().isEmpty()) {
-                        Node popup = root.getChildrenUnmodifiable().get(0);
-                        if (popup.lookup(CONTEXT_MENU) != null) {
-                            final Node bridge = popup.lookup(CONTEXT_MENU);
-
-                            final ContextMenuContent cmc = (ContextMenuContent)((Parent) bridge).getChildrenUnmodifiable().get(0);
-
-                            final VBox itemsContainer = cmc.getItemsContainer();
-                            
-                            // TFE, 202100510: loop through once before to determine language
-                            for (Node n: itemsContainer.getChildren()) {
-                                assert n instanceof ContextMenuContent.MenuItemContainer;
-                                
-                                final ContextMenuContent.MenuItemContainer item = (ContextMenuContent.MenuItemContainer) n;
-                                setLanguage(item.getItem().getText());
-                            }
-                            
-                            // check for "Reload page", ... entry and remove it...
-                            int index = 0;
-                            int copyIndex = -1;
-                            List<Node> deleteNodes = new ArrayList<>();
-                            for (Node n: itemsContainer.getChildren()) {
-                                assert n instanceof ContextMenuContent.MenuItemContainer;
-                                
-                                final ContextMenuContent.MenuItemContainer item = (ContextMenuContent.MenuItemContainer) n;
-                                if (removeMenu(item.getItem().getText())) {
-                                    deleteNodes.add(n);
-                                }
-                                
-                                // TFE, 20181209: need to monitor "Copy" in order to add copied text to the OS clipboard as well
-                                if (COPY_SELECTION.contains(item.getItem().getText())) {
-                                    item.getItem().setOnAction((t) -> {
-                                        copyToClipboard(true, true);
-                                    });
-                                    
-                                    copyIndex = index;
-                                }
-                                
-                                index++;
-                            }
-                            
-                            if (copyIndex != -1) {
-                                // TFE, 20191211: add option to copy plain text as well
-                                final MenuItem copyPlain = new MenuItem(COPY_TEXT_SELECTION.get(getLanguage()));
-                                copyPlain.setOnAction((ActionEvent event) -> {
-                                    copyToClipboard(true, false);
-                                });
-
-                                // add new item
-                                itemsContainer.getChildren().add(copyIndex+1, cmc.new MenuItemContainer(copyPlain));
-                            }
-
-                            if (!deleteNodes.isEmpty()) {
-                                itemsContainer.getChildren().removeAll(deleteNodes);
-                            }
-
-                            // adding save item
-                            final MenuItem saveMenu = new MenuItem(SAVE_NOTE.get(getLanguage()));
-                            saveMenu.setOnAction((ActionEvent event) -> {
-                                saveNote();
-                            });
-                            // not working... BUT still here to show short cut :-) 
-                            // work is done in myWebView.addEventHandler(KeyEvent.KEY_PRESSED...
-                            saveMenu.setAccelerator(UsefulKeyCodes.CNTRL_S.getKeyCodeCombination());
-                            
-                            // add attachment links - fill menu items for each edited note individually
-                            final Menu attachMenu = new Menu(ATTACHMENT_LINK.get(getLanguage()));
-                            populateAttachMenu(attachMenu);
-                            
-                            // checkbox -> symbol
-                            final MenuItem replaceCheckedBoxesMenu = new MenuItem(REPLACE_CHECKEDBOXES.get(getLanguage()));
-                            replaceCheckedBoxesMenu.setOnAction((ActionEvent event) -> {
-                                replaceCheckedBoxes();
-                            });
-
-                            // symbol -> checkbox
-                            final MenuItem replaceCheckmarksMenu = new MenuItem(REPLACE_CHECKMARKS.get(getLanguage()));
-                            replaceCheckmarksMenu.setOnAction((ActionEvent event) -> {
-                                replaceCheckmarks();
-                            });
-
-                            // compress images
-                            final MenuItem compressImagesMenu = new MenuItem(COMPRESS_IMAGES.get(getLanguage()));
-                            compressImagesMenu.setOnAction((ActionEvent event) -> {
-                                compressImages();
-                            });
-
-                            // add new items:
-                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(saveMenu));
-                            // TODO: menuitems not showing
-//                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(attachMenu));
-                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(compressImagesMenu));
-                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(replaceCheckedBoxesMenu));
-                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(replaceCheckmarksMenu));
-                        }
-                    }
+                final ContextMenu cm = (ContextMenu) window;
+                
+                // TFE, 202100510: loop through once before to determine language
+                for (MenuItem item: cm.getItems()) {
+                    setLanguage(item.getText());
                 }
+                
+                // check for "Reload page", ... entry and remove it...
+                int index = 0;
+                int copyIndex = -1;
+                List<MenuItem> deleteMenuItems = new ArrayList<>();
+                for (MenuItem item: cm.getItems()) {
+                    if (removeMenu(item.getText())) {
+                        deleteMenuItems.add(item);
+                    }
+
+                    // TFE, 20181209: need to monitor "Copy" in order to add copied text to the OS clipboard as well
+                    if (COPY_SELECTION.contains(item.getText())) {
+                        item.setOnAction((t) -> {
+                            copyToClipboard(true, true);
+                        });
+
+                        copyIndex = index;
+                    }
+
+                    index++;
+                }
+                
+                if (copyIndex != -1) {
+                    // TFE, 20191211: add option to copy plain text as well
+                    final MenuItem copyPlain = new MenuItem(COPY_TEXT_SELECTION.get(getLanguage()));
+                    copyPlain.setOnAction((ActionEvent event) -> {
+                        copyToClipboard(true, false);
+                    });
+
+                    // add new item
+                    cm.getItems().add(copyIndex+1, copyPlain);
+                }
+
+                if (!deleteMenuItems.isEmpty()) {
+                    cm.getItems().removeAll(deleteMenuItems);
+                }
+
+                // adding save item
+                final MenuItem saveMenu = new MenuItem(SAVE_NOTE.get(getLanguage()));
+                saveMenu.setOnAction((ActionEvent event) -> {
+                    saveNote();
+                });
+                // not working... BUT still here to show short cut :-) 
+                // work is done in myWebView.addEventHandler(KeyEvent.KEY_PRESSED...
+                saveMenu.setAccelerator(UsefulKeyCodes.CNTRL_S.getKeyCodeCombination());
+
+                // add attachment links - fill menu items for each edited note individually
+                final Menu attachMenu = new Menu(ATTACHMENT_LINK.get(getLanguage()));
+                populateAttachMenu(attachMenu);
+
+                // checkbox -> symbol
+                final MenuItem replaceCheckedBoxesMenu = new MenuItem(REPLACE_CHECKEDBOXES.get(getLanguage()));
+                replaceCheckedBoxesMenu.setOnAction((ActionEvent event) -> {
+                    replaceCheckedBoxes();
+                });
+
+                // symbol -> checkbox
+                final MenuItem replaceCheckmarksMenu = new MenuItem(REPLACE_CHECKMARKS.get(getLanguage()));
+                replaceCheckmarksMenu.setOnAction((ActionEvent event) -> {
+                    replaceCheckmarks();
+                });
+
+                // compress images
+                final MenuItem compressImagesMenu = new MenuItem(COMPRESS_IMAGES.get(getLanguage()));
+                compressImagesMenu.setOnAction((ActionEvent event) -> {
+                    compressImages();
+                });
+
+                // add new items:
+                cm.getItems().add(saveMenu);
+                cm.getItems().add(attachMenu);
+                cm.getItems().add(compressImagesMenu);
+                cm.getItems().add(replaceCheckedBoxesMenu);
+                cm.getItems().add(replaceCheckmarksMenu);
+                
+                // TFE, 20210628: work directly on ContextMenu - why all the complex logic below?
+//                if (window.getScene() != null && window.getScene().getRoot() != null) { 
+//                    final Parent root = window.getScene().getRoot();
+//
+//                    // access to context menu content
+//                    if (!root.getChildrenUnmodifiable().isEmpty()) {
+//                        Node popup = root.getChildrenUnmodifiable().get(0);
+//                        if (popup.lookup(CONTEXT_MENU) != null) {
+//                            final Node bridge = popup.lookup(CONTEXT_MENU);
+//
+//                            final ContextMenuContent cmc = (ContextMenuContent)((Parent) bridge).getChildrenUnmodifiable().get(0);
+//
+//                            final VBox itemsContainer = cmc.getItemsContainer();
+//                            
+//                            // TFE, 202100510: loop through once before to determine language
+//                            for (Node n: itemsContainer.getChildren()) {
+//                                assert n instanceof ContextMenuContent.MenuItemContainer;
+//                                
+//                                final ContextMenuContent.MenuItemContainer item = (ContextMenuContent.MenuItemContainer) n;
+//                                setLanguage(item.getItem().getText());
+//                            }
+//                            
+//                            // check for "Reload page", ... entry and remove it...
+//                            int index = 0;
+//                            int copyIndex = -1;
+//                            List<Node> deleteMenuItems = new ArrayList<>();
+//                            for (Node n: itemsContainer.getChildren()) {
+//                                assert n instanceof ContextMenuContent.MenuItemContainer;
+//                                
+//                                final ContextMenuContent.MenuItemContainer item = (ContextMenuContent.MenuItemContainer) n;
+//                                if (removeMenu(item.getItem().getText())) {
+//                                    deleteMenuItems.add(n);
+//                                }
+//                                
+//                                // TFE, 20181209: need to monitor "Copy" in order to add copied text to the OS clipboard as well
+//                                if (COPY_SELECTION.contains(item.getItem().getText())) {
+//                                    item.getItem().setOnAction((t) -> {
+//                                        copyToClipboard(true, true);
+//                                    });
+//                                    
+//                                    copyIndex = index;
+//                                }
+//                                
+//                                index++;
+//                            }
+//                            
+//                            if (copyIndex != -1) {
+//                                // TFE, 20191211: add option to copy plain text as well
+//                                final MenuItem copyPlain = new MenuItem(COPY_TEXT_SELECTION.get(getLanguage()));
+//                                copyPlain.setOnAction((ActionEvent event) -> {
+//                                    copyToClipboard(true, false);
+//                                });
+//
+//                                // add new item
+//                                itemsContainer.getChildren().add(copyIndex+1, cmc.new MenuItemContainer(copyPlain));
+//                            }
+//
+//                            if (!deleteMenuItems.isEmpty()) {
+//                                itemsContainer.getChildren().removeAll(deleteMenuItems);
+//                            }
+//
+//                            // adding save item
+//                            final MenuItem saveMenu = new MenuItem(SAVE_NOTE.get(getLanguage()));
+//                            saveMenu.setOnAction((ActionEvent event) -> {
+//                                saveNote();
+//                            });
+//                            // not working... BUT still here to show short cut :-) 
+//                            // work is done in myWebView.addEventHandler(KeyEvent.KEY_PRESSED...
+//                            saveMenu.setAccelerator(UsefulKeyCodes.CNTRL_S.getKeyCodeCombination());
+//                            
+//                            // add attachment links - fill menu items for each edited note individually
+//                            final CustomMenuItem attachMenu = new CustomMenuItem();
+//                            populateAttachMenu(attachMenu);
+//                            
+//                            // checkbox -> symbol
+//                            final MenuItem replaceCheckedBoxesMenu = new MenuItem(REPLACE_CHECKEDBOXES.get(getLanguage()));
+//                            replaceCheckedBoxesMenu.setOnAction((ActionEvent event) -> {
+//                                replaceCheckedBoxes();
+//                            });
+//
+//                            // symbol -> checkbox
+//                            final MenuItem replaceCheckmarksMenu = new MenuItem(REPLACE_CHECKMARKS.get(getLanguage()));
+//                            replaceCheckmarksMenu.setOnAction((ActionEvent event) -> {
+//                                replaceCheckmarks();
+//                            });
+//
+//                            // compress images
+//                            final MenuItem compressImagesMenu = new MenuItem(COMPRESS_IMAGES.get(getLanguage()));
+//                            compressImagesMenu.setOnAction((ActionEvent event) -> {
+//                                compressImages();
+//                            });
+//
+//                            // add new items:
+//                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(saveMenu));
+//                            // TODO: menuitems not showing
+//                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(attachMenu));
+//                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(compressImagesMenu));
+//                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(replaceCheckedBoxesMenu));
+//                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(replaceCheckmarksMenu));
+//                        }
+//                    }
+//                }
             }
         }
     } 
@@ -870,13 +954,17 @@ public class OwnNoteHTMLEditor {
         if (attachMenu == null) {
             return;
         }
+        
         attachMenu.getItems().clear();
+        
         if (editedNote != null) {
             for (String attachment : editedNote.getMetaData().getAttachments()) {
                 final MenuItem attachItem = new MenuItem(attachment);
                 attachItem.setOnAction((ActionEvent event) -> {
                     final String fileName = NoteMetaData.getAttachmentPath() + attachment;
-                    System.out.println("Inserting link to " + fileName);
+                    // insert hyperlink at position
+                    // <a href="fileName" target="dummy">attachment</a>
+                    wrapExecuteScript(myWebEngine, "insertHyperLink('" + replaceForEditor(fileName) + "', '" + attachment + "');");
                 });
                 attachMenu.getItems().add(attachItem);
             }

@@ -166,12 +166,7 @@ public class TaskList {
                 }
             });
 
-            final MenuItem switchTask = new MenuItem("Change task status");
-            switchTask.setOnAction(event -> {
-                cell.getItem().setCompleted(!cell.getItem().isCompleted());
-            });
-            
-            contextMenu.getItems().addAll(editTask, switchTask);
+            contextMenu.getItems().addAll(editTask);
 
             cell.contextMenuProperty().bind(
                     Bindings.when(cell.emptyProperty())
@@ -207,7 +202,6 @@ public class TaskList {
             // run later - since we might be in TaskManager.initTaskList()
             Platform.runLater(() -> {
                 items.setAll(TaskManager.getInstance().getTaskList());
-                initListData();
             });
         });
         items.setAll(TaskManager.getInstance().getTaskList());
