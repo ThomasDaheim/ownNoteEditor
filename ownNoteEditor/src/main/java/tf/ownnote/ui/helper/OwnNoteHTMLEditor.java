@@ -25,7 +25,6 @@
  */
 package tf.ownnote.ui.helper;
 
-import com.sun.javafx.scene.control.ContextMenuContent;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -55,11 +54,7 @@ import javafx.concurrent.Worker;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.print.PrinterJob;
-import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.control.ContextMenu;
-import javafx.scene.control.CustomMenuItem;
-import javafx.scene.control.ListView;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.input.Clipboard;
@@ -71,7 +66,6 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
@@ -81,8 +75,6 @@ import netscape.javascript.JSObject;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.StringEscapeUtils;
 import org.unbescape.html.HtmlEscape;
 import tf.helper.general.ImageHelper;
 import tf.helper.javafx.UsefulKeyCodes;

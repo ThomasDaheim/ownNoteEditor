@@ -44,7 +44,6 @@ import tf.helper.javafx.CellUtils;
 import tf.helper.javafx.StyleHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.tags.TagData;
 import tf.ownnote.ui.tags.TagManager;
 
 /**

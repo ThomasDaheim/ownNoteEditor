@@ -25,7 +25,6 @@
  */
 package tf.ownnote.ui.tasks;
 
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -45,13 +44,11 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.RowConstraints;
-import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.StageStyle;
 import jfxtras.styles.jmetro.JMetro;
 import jfxtras.styles.jmetro.Style;
-import org.junit.Assert;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AbstractStage;
 import tf.helper.javafx.calendarview.CalendarView;
