@@ -206,7 +206,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                 el.stopPropagation();
 
                                 // callback to java to open in standard browser
-                                editorCallback.openLinkInDefaultBrowser($(el.target).attr('href'));
+                                editorCallback.openLinkInDefaultBrowser($(el.target).attr('href'), $(el.target).attr('data-note-attachment'));
                             });
                             // TODO: catch links from help view as well
                             editor.on('OpenWindow', function (win) { 
@@ -354,9 +354,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 contentChanged = true;
             }
             
-            function insertHyperLink(link, linktext) {
-                //console.log('insertHyperLink ' + link);
-                var hyperLink = "<a href='" + link + "' target='dummy'>" + linktext + "</a>";
+            function insertLinkToNoteAttachment(link, linktext) {
+                var hyperLink = "<a href='" + link + "' data-note-attachment='yes' target='dummy'>" + linktext + "</a>";
 
                 tinymce.activeEditor.execCommand("mceInsertContent", false, hyperLink);
                 contentChanged = true;

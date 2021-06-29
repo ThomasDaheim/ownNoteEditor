@@ -964,17 +964,23 @@ public class OwnNoteHTMLEditor {
                     final String fileName = NoteMetaData.getAttachmentPath() + attachment;
                     // insert hyperlink at position
                     // <a href="fileName" target="dummy">attachment</a>
-                    wrapExecuteScript(myWebEngine, "insertHyperLink('" + replaceForEditor(fileName) + "', '" + attachment + "');");
+                    // TFE, 20210629: if we don't use the real attachment path, tinymce messes up the url to point to somewhere...
+                    wrapExecuteScript(myWebEngine, "insertLinkToNoteAttachment('" + replaceForEditor(fileName) + "', '" + attachment + "');");
                 });
                 attachMenu.getItems().add(attachItem);
             }
         }
     }
     
-    private void openLinkInDefaultBrowser(final String url) {
+    private void openLinkInDefaultBrowser(final String url, final String attachment) {
         // first load is OK :-)
         if (myHostServices != null && editorInitialized) {
-            myHostServices.showDocument(url);
+            String realUrl = url;
+            if ("yes".equals(attachment)) {
+                // replace previous path to attachment folder with current one
+                realUrl = NoteMetaData.getAttachmentPath() + FilenameUtils.getName(url);
+            }
+            myHostServices.showDocument(realUrl);
         }
     }
     
@@ -1196,8 +1202,8 @@ public class OwnNoteHTMLEditor {
             myself.saveNote();
 //            System.out.println("Java: saveNote() done");
         }
-        public void openLinkInDefaultBrowser(final String url) {
-            myself.openLinkInDefaultBrowser(url);
+        public void openLinkInDefaultBrowser(final String url, final String attachment) {
+            myself.openLinkInDefaultBrowser(url, attachment);
         }
         
         public String getClipboardContent() {
