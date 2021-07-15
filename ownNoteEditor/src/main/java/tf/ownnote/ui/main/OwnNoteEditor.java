@@ -46,6 +46,8 @@ import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
@@ -151,11 +153,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     private final BooleanProperty tasklistVisible = new SimpleBooleanProperty(true);
     
     // TFE, 20210301: make this a property so that rest of the world can listen to changes...
-    private final ObjectProperty<Note> currentNoteProperty = new SimpleObjectProperty<>(null);
+    private final ReadOnlyObjectWrapper<Note> currentNoteProperty = new ReadOnlyObjectWrapper<>(null);
     // TFE, 20210401: have current group tag as property as well, e.g. to listen to changes of color & icon
-    private final ObjectProperty<TagData> currentGroupTagProperty = new SimpleObjectProperty<>(null);
+    private final ReadOnlyObjectWrapper<TagData> currentGroupTagProperty = new ReadOnlyObjectWrapper<>(null);
     
     private IGroupListContainer myGroupList = null;
+    
+    // TFE, 20210715: lets store the most recently selected note per group
+    private final Map<String, Note> recentNoteForGroup = new HashMap<>();
     
     // TFE, 20201203: some constants for the different columns of our gridpane
     private static final int TAGTREE_COLUMN = 0;
@@ -299,6 +304,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                 OwnNoteEditorPreferences.LAST_EDITED_NOTE.put(noteHTMLEditor.getEditedNote().getNoteName());
                 OwnNoteEditorPreferences.LAST_EDITED_GROUP.put(noteHTMLEditor.getEditedNote().getGroupName());
             }
+            
+            // TODO: store recent note for group to references
 
             // TFE, 20201121: tag info is now stored in a separate file
             TagManager.getInstance().saveTags();
@@ -365,6 +372,16 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         
         // scan files in directory
         initFromDirectory(false, true);
+        
+        // TFE, 20210715: if note changes, group might need to change as well
+        currentNoteProperty.addListener((ov, oldNote, newNote) -> {
+            if (newNote != null && !newNote.equals(oldNote)) {
+                currentGroupTagProperty.set(TagManager.getInstance().tagForGroupName(newNote.getGroupName(), false));
+            }
+            
+        });
+        
+        // TODO: get recent note for group from references
     }
 
     //
@@ -796,6 +813,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             // TFE, 20201115: throw away any current tasklist - we might have changed the path!
             TaskManager.getInstance().resetTaskList();
             TagManager.getInstance().resetTagList();
+
+            recentNoteForGroup.clear();
         }
         
         // scan directory and re-populate lists
@@ -869,6 +888,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         noteHTMLEditor.editNote(curNote);
         noteMetaEditor.editNote(curNote);
         currentNoteProperty.set(curNote);
+        recentNoteForGroup.put(curNote.getGroupName(), curNote);
         
         return result;
     }
@@ -1005,9 +1025,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     }
     
     public void setGroupNameFilter(final String groupName) {
-        currentGroupTagProperty().set(TagManager.getInstance().tagForGroupName(groupName, false));
+        currentGroupTagProperty.set(TagManager.getInstance().tagForGroupName(groupName, false));
         
         notesTable.setGroupNameFilter(groupName);
+        
+        // TFE, 20210715: select most recent note for this group - if any
+        if (recentNoteForGroup.containsKey(groupName)) {
+            notesTable.selectNote(recentNoteForGroup.get(groupName));
+        }
     }
     
     public void setTagFilter(final TagData tag) {
@@ -1232,12 +1257,12 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     }
     
     // and now everyone can listen to note selection changes...
-    public ObjectProperty<Note> currentNoteProperty() {
-        return currentNoteProperty;
+    public ReadOnlyObjectProperty<Note> currentNoteProperty() {
+        return currentNoteProperty.getReadOnlyProperty();
     }
 
     // and now everyone can listen to group attribute changes...
-    public ObjectProperty<TagData> currentGroupTagProperty() {
-        return currentGroupTagProperty;
+    public ReadOnlyObjectProperty<TagData> currentGroupTagProperty() {
+        return currentGroupTagProperty.getReadOnlyProperty();
     }
 }
