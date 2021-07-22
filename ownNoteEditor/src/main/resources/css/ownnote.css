@@ -388,7 +388,7 @@
 
 /* calendar styles for tasks */
 .calendar-cell:date-holiday {
-    -fx-background-color: #99ffcc !important;
+    -fx-background-color: #99ffff !important;
 }
 .calendar-cell:style-1 /* EVENT_OVERDUE */ {
     -fx-text-fill: black !important;
@@ -404,7 +404,7 @@
 }
 .calendar-cell:style-4 /* EVENT_ANYTIME */ {
     -fx-text-fill: black !important;
-    -fx-background-color: #093 !important;
+    -fx-background-color: #0f0 !important;
     -fx-opacity: 0.4 !important;
 }
 
