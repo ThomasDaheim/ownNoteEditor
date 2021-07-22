@@ -13,10 +13,14 @@ V 6.0: Getting rid of old stuff
 
 * Removed "classic" look & feel
 * Changed all group handling to use tags
-* Show icons for groups in tag tree and tab views
+* Show icons for groups in tag tree and tab views, highlight based on distance to due date
 * Show note count for tag tree view
 * Tasks can have tags
 * Editor to change icon and color for tags
+* Calendar for KANBAN board incl. drag & drop to set due dates
+* Bugfixes, small features: store recent note per group, insert link to attachments in notes, ...
+
+Important: Once in a while I can see log messages that indicate mess-ups when changing task status in text & tasklist. But so far nothing the note text has never been mixed up...
 
 V 5.2: Fixes
 
