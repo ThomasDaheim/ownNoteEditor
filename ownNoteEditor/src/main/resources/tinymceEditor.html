@@ -85,7 +85,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     relative_urls: false,
                     remove_script_host: false,
                     plugins: [
-                            "autoresize codesample wordcount visualchars textcolor advlist autolink lists link charmap anchor",
+                            // TFE, 20210511: add image & image tools plugins
+                            "autoresize codesample wordcount visualchars textcolor advlist autolink lists link charmap anchor image imagetools",
                             "searchreplace visualblocks code insertdatetime media table contextmenu autoresize emoticons help toc hr paste"
                     ],
                     codesample_languages: [
@@ -114,6 +115,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     media_live_embeds: true,
                     media_alt_source: false,
                     media_poster: false,
+                    // TFE, 20210613: target of links is always default browser of system
+                    target_list: false,
+                    default_link_target: 'dummy',
                     paste_preprocess : function(plugin, args) {
                         if(!regularPaste) {
                             args.content = ""; // Ignore what TinyMCE think it should insert
@@ -197,10 +201,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             
                             // links
                             $(editor.getBody()).on("click", "a", function(el) {
+                                // TFE, 20210613: https://stackoverflow.com/a/26396587
                                 el.preventDefault();
+                                el.stopPropagation();
 
                                 // callback to java to open in standard browser
-                                editorCallback.openLinkInDefaultBrowser($(el.target).attr('href'));
+                                editorCallback.openLinkInDefaultBrowser($(el.target).attr('href'), $(el.target).attr('data-note-attachment'));
                             });
                             // TODO: catch links from help view as well
                             editor.on('OpenWindow', function (win) { 
@@ -343,11 +349,18 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             }
 
             function insertText(content) {
-                //console.log('insertText ' + content);
+                console.log('insertText ' + content);
                 tinymce.activeEditor.execCommand("mceInsertContent", false, content);
                 contentChanged = true;
             }
             
+            function insertLinkToNoteAttachment(link, linktext) {
+                var hyperLink = "<a href='" + link + "' data-note-attachment='yes' target='dummy'>" + linktext + "</a>";
+
+                tinymce.activeEditor.execCommand("mceInsertContent", false, hyperLink);
+                contentChanged = true;
+            }
+
             function unwrapCheckboxes(content) {
                 // TFE, 20201102: remove all text decorations from checkboxs, otherwise checkChanged won't find any tasks
                 // since decorations can come in any combination, we need to repeat N unwraps N times to make sure to get them all...
@@ -362,20 +375,40 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         .end()).html();
             }
 
-            function saveSetContent(content) {
+            function saveSetContent(content, keepCursorPos) {
                 //console.log('JavaScript: saveSetContent was called.');
+                
+                // TFE, 20210510: get current cursor position for later restore
+                // https://drujoopress.wordpress.com/2014/08/06/find-cursor-position-inside-tinymce-editor/
+                // var selRng = tinymce.activeEditor.selection.getRng().cloneRange();
+                // var selStart = selRng.startOffset;
+                // var selStartNode = selRng.startContainer;
+                // var selEnd = selRng.endOffset;
+                // var selEndNode = selRng.endContainer;
 
                 tinymce.activeEditor.setContent(unwrapCheckboxes(content));
                 
                 // https://www.tinymce.com/docs/advanced/events/#dirty
                 tinymce.activeEditor.setDirty(false);
-                //console.log('JavaScript: saveSetContent done.');
 
                 // TFE, 20181203: reset undo history since it would re-create previous note text...
                 // https://community.tiny.cloud/communityQuestion?id=9066100000097T2AAI
                 tinymce.activeEditor.undoManager.clear();
                 
+                if (keepCursorPos) {
+                    // TFE, 20210511: not yet working TODO: how to move cursor?
+                    // selRng.setStart(selStartNode, selStart);
+                    // selRng.setEnd(selEndNode, selEnd);
+                    // tinymce.activeEditor.selection.setRng(selRng);
+                    
+                    // const rightArrowKey = 39;
+                    // const event = new KeyboardEvent('keydown',{'key':rightArrowKey});
+                    // var textnode = document.getElementById('mytextarea');
+                    // textnode.dispatchEvent(event);
+                }
+                
                 contentChanged = false;
+                //console.log('JavaScript: saveSetContent done.');
             }
 
             // try getContent() and if fails use tinymce.activeEditor.getBody().innerHTML AND replace img blobs by real base64 data
@@ -409,7 +442,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             
             // similar to saveGetContent() - only for current selection
             function saveGetSelection() {
-                //console.log('JavaScript: saveGetSelection was called. ' + copyFullHTML);
+                //console.log('JavaScript: saveGetSelection was called. ');
                 // TFE, 20210114: make sure we have done all callbacks before...
                 checkContentChanged();
 
@@ -623,5 +656,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <body>
         <textarea id="mytextarea"></textarea>
+        <iframe src='about:blank' name='dummy' height='0' width='0'></iframe>
     </body>
 </html>

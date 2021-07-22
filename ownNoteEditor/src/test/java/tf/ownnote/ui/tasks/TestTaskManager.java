@@ -1,15 +1,36 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ *  Copyright (c) 2014ff Thomas Feuster
+ *  All rights reserved.
+ *  
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  1. Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *  3. The name of the author may not be used to endorse or promote products
+ *     derived from this software without specific prior written permission.
+ *  
+ *  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ *  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ *  OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ *  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ *  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ *  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package tf.ownnote.ui.tasks;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
+import javafx.collections.ObservableSet;
+import javafx.collections.SetChangeListener;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -40,15 +61,17 @@ public class TestTaskManager {
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
         
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
-        Assert.assertEquals(5, TaskManager.getInstance().tasksFromNote(note, content).size());
+        Assert.assertEquals(5, TaskManager.getInstance().tasksForNote(note).size());
     }
 
     @Test
     public void testGetTaskList() {
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
         
-        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
-        final List<TaskData> taskList = TaskManager.getInstance().getTaskList();
+        // need to sort task list since other tests might have screwed with the order
+        final List<TaskData> taskList = TaskManager.getInstance().tasksForNote(note).stream().sorted((o1, o2) -> {
+            return Integer.compare(o1.getTextPos(), o2.getTextPos());
+        }).collect(Collectors.toList());
         Assert.assertEquals(5, taskList.size());
         
         for (TaskData data : taskList) {
@@ -56,7 +79,7 @@ public class TestTaskManager {
             Assert.assertEquals("TestTasks", data.getNote().getNoteName());
         }
         
-        Assert.assertEquals(" tell me, what to do!", taskList.get(0).getDescription());
+        Assert.assertEquals(" tell me, what to do!", taskList.get(0).getEventDescription());
         Assert.assertTrue(taskList.get(2).getDescription().startsWith(" of course with something special: "));
     }
     
@@ -65,23 +88,19 @@ public class TestTaskManager {
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
         
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
-        final ObservableList<TaskData> taskList = TaskManager.getInstance().getTaskList();
+        TaskManager.getInstance().tasksForNote(note);
+        final ObservableSet<TaskData> taskList = note.getMetaData().getTasks();
         Assert.assertEquals(5, taskList.size());
         
         BooleanProperty wasUpdated = new SimpleBooleanProperty(Boolean.FALSE);
         BooleanProperty wasAdded = new SimpleBooleanProperty(Boolean.FALSE);
         BooleanProperty wasRemoved = new SimpleBooleanProperty(Boolean.FALSE);
-        taskList.addListener((ListChangeListener.Change<? extends TaskData> change) -> {
-            while (change.next()) {
-                if (change.wasAdded()) {
-                    wasAdded.setValue(Boolean.TRUE);
-                }
-                if (change.wasRemoved()) {
-                    wasRemoved.setValue(Boolean.TRUE);
-                }
-                if (change.wasUpdated()) {
-                    wasUpdated.setValue(Boolean.TRUE);
-                }
+        taskList.addListener((SetChangeListener.Change<? extends TaskData> change) -> {
+            if (change.wasAdded()) {
+                wasAdded.setValue(Boolean.TRUE);
+            }
+            if (change.wasRemoved()) {
+                wasRemoved.setValue(Boolean.TRUE);
             }
         });
         
@@ -156,26 +175,29 @@ public class TestTaskManager {
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
         
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
-        final ObservableList<TaskData> taskList = TaskManager.getInstance().getTaskList();
+        // need to sort task list since other tests might have screwed with the order
+        final List<TaskData> taskList = TaskManager.getInstance().tasksForNote(note).stream().sorted((o1, o2) -> {
+            return Integer.compare(o1.getTextPos(), o2.getTextPos());
+        }).collect(Collectors.toList());
         Assert.assertEquals(5, taskList.size());
         
         // change an existing checkbox to see if updated works
         final TaskData firstTask = taskList.get(0);
-        final String firstDescription = firstTask.getDescription();
-        int textPos = content.indexOf(firstTask.getDescription());
+        final String firstDescription = firstTask.getHtmlText();
+        int textPos = content.indexOf(firstDescription);
         String newContent = content.substring(0, textPos) + " - TEST - " + content.substring(textPos);
 
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, content, newContent);
-        Assert.assertNotEquals(firstDescription, firstTask.getDescription());
-        Assert.assertEquals(" - TEST - " + firstDescription, firstTask.getDescription());
+        Assert.assertNotEquals(firstDescription, firstTask.getHtmlText());
+        Assert.assertEquals(" - TEST - " + firstDescription, firstTask.getHtmlText());
         
         // change back
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, newContent, content);
-        Assert.assertEquals(firstDescription, firstTask.getDescription());
+        Assert.assertEquals(firstDescription, firstTask.getHtmlText());
         
         // switch between checked / unchecked
         Assert.assertFalse(firstTask.isCompleted());
-        textPos = content.indexOf(firstTask.getDescription());
+        textPos = content.indexOf(firstTask.getHtmlText());
         newContent = content.substring(0, firstTask.getTextPos()) + TaskData.CHECKED_BOXES_1 + content.substring(textPos);
 
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, content, newContent);

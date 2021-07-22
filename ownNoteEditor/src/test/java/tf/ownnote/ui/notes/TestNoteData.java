@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 2014 Thomas Feuster
- * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. The name of the author may not be used to endorse or promote products
- *    derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *  Copyright (c) 2014ff Thomas Feuster
+ *  All rights reserved.
+ *  
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  1. Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *  3. The name of the author may not be used to endorse or promote products
+ *     derived from this software without specific prior written permission.
+ *  
+ *  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ *  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ *  OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ *  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ *  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ *  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package tf.ownnote.ui.notes;
 
@@ -39,28 +39,20 @@ import java.util.Map;
 import org.apache.commons.io.FilenameUtils;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.tags.TagManager;
 
 /**
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public class TestNoteData {
-    private final Map<String, NoteGroup> groupsList = new LinkedHashMap<>();
+    private final Map<String, Integer> groupsList = new LinkedHashMap<>();
     private final Map<String, Note> notesList = new LinkedHashMap<>();
 
     public TestNoteData() {
         // init groupsList for know groups - ALL & NOT_GROUPED
-        NoteGroup groupRow = new NoteGroup();
-        groupRow.setGroupName(NoteGroup.ALL_GROUPS);
-        groupRow.setGroupDelete(null);
-        groupRow.setGroupCount("0");
-        groupsList.put("All", new NoteGroup(groupRow));
-        
-        groupRow.clear();
-        groupRow.setGroupName(NoteGroup.NOT_GROUPED);
-        groupRow.setGroupDelete(null);
-        groupRow.setGroupCount("0");
-        groupsList.put("Not grouped", new NoteGroup(groupRow));
+        groupsList.put(TagManager.ALL_GROUPS, 0);
+        groupsList.put(TagManager.NOT_GROUPED, 0);
     }
     
     public void copyTestFiles(final Path testpath) throws Throwable {
@@ -70,20 +62,25 @@ public class TestNoteData {
         for (File htmlfile : files) {
             // get file name from path + file
             String filename = htmlfile.getName();
-            // System.out.println("copying: " + filename);
+//             System.out.println("copying: " + filename);
             
             // create new filename
             Path notename = Paths.get(testpath.toAbsolutePath() + "/" + filename);
-            // System.out.println("to: " + notename.toString());
+//             System.out.println("to: " + notename.toString());
             
             // copy
             Files.copy(htmlfile.toPath(), notename);
             
             // and now add to our internal groupsList if a htm file
-            if (FilenameUtils.isExtension(htmlfile.getName(), "htm")) {
+            if (FilenameUtils.isExtension(htmlfile.getName(), OwnNoteFileManager.NOTE_EXT)) {
                 updateLists(htmlfile);
             }
-        }        
+        }
+        
+        // TFE: 20210409: copy meta data as well
+        Path metaname = Paths.get(testpath.toAbsolutePath() + "/MetaData/tag_info.xml");
+        Path xmlfile = Paths.get("src/test/resources/LookAndFeel/MetaData/tag_info.xml");
+        Files.copy(xmlfile, metaname);
     }
     
     public boolean createTestFile(final Path testpath, final String filename) {
@@ -133,52 +130,33 @@ public class TestNoteData {
             // see pull request #44
             noteName = filename.substring(filename.indexOf("]")+2, filename.lastIndexOf("."));
         } else {
-            groupName = NoteGroup.NOT_GROUPED;
+            groupName = TagManager.NOT_GROUPED;
             // see pull request #44
             noteName = filename.substring(0, filename.lastIndexOf("."));
         }
         
-        NoteGroup groupRow = new NoteGroup();
-        if (groupsList.containsKey(groupName)) {
-            // group already exists - increase counter
-            groupRow = groupsList.get(groupName);
-            groupRow.setGroupCount(Integer.toString(Integer.valueOf(groupRow.getGroupCount())+1));
-            groupsList.replace(groupName, new NoteGroup(groupRow));
-        } else {                    // new group - add to list
-            groupRow.clear();
-            groupRow.setGroupName(groupName);
-            groupRow.setGroupDelete(OwnNoteFileManager.deleteString);
-            groupRow.setGroupCount("1");
-            groupsList.put(groupName, new NoteGroup(groupRow));
+        // increase group count for group
+        if (!groupsList.containsKey(groupName)) {
+            groupsList.put(groupName, 1);
+        } else {
+            groupsList.put(groupName, groupsList.get(groupName)+1);
         }
-        // allways increment count for all :-)
-        groupRow = groupsList.get(NoteGroup.ALL_GROUPS);
-        groupRow.setGroupCount(Integer.toString(Integer.valueOf(groupRow.getGroupCount())+1));
-        groupsList.replace(NoteGroup.ALL_GROUPS, new NoteGroup(groupRow));
+        // ALL group is always increased...
+        groupsList.put(TagManager.ALL_GROUPS, groupsList.get(TagManager.ALL_GROUPS)+1);
         
         final Note noteRow = new Note(groupName, noteName);
         noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
         noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
-        // use filename and not notename since duplicate note names can exist in diffeent groups
+        // use filename and not notename since duplicate note names can exist in different groups
         notesList.put(filename, noteRow);
     }
     
-    public Collection<NoteGroup> getGroupsList() {
-        return groupsList.values();
+    public Collection<String> getGroupsList() {
+        return groupsList.keySet();
     }
     
     public Collection<Note> getNotesList() {
         return notesList.values();
-    }
-    
-    public int getNotesCountForGroup(final String groupName) {
-        int result = 0;
-        
-        if (groupsList.containsKey(groupName)) {
-            result = Integer.parseInt(groupsList.get(groupName).getGroupCount());
-        }
-        
-        return result;
     }
     
     public int getNotesCountForName(final String noteName) {
@@ -207,5 +185,9 @@ public class TestNoteData {
         final File result = new File("src/test/resources/dummy.txt");
         
         return result;
+    }
+    
+    public int getNotesCountForGroup(final String groupName) {
+        return groupsList.get(groupName);
     }
 }

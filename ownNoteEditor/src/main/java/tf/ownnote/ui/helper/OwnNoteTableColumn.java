@@ -44,7 +44,7 @@ import tf.helper.javafx.CellUtils;
 import tf.helper.javafx.StyleHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.notes.NoteGroup;
+import tf.ownnote.ui.tags.TagManager;
 
 /**
  *
@@ -57,9 +57,6 @@ public class OwnNoteTableColumn {
     private TableColumn<Map, String> myTableColumn = null;
     private String backgroundColor = "white";
     
-    // we need to know the tabletype as well...
-    private OwnNoteTableView.TableType myTableType = null;
-
     private OwnNoteTableColumn() {
         super();
     }
@@ -69,17 +66,6 @@ public class OwnNoteTableColumn {
         myTableColumn = tableColumn;
         myEditor = editor;
         
-        // TF, 20160627: select tabletype based on passed TableColumn - safer than having a setTableType method
-        if (tableColumn.getId().startsWith("note")) {
-            myTableType = OwnNoteTableView.TableType.notesTable;
-        }
-        if (tableColumn.getId().startsWith("group")) {
-            myTableType = OwnNoteTableView.TableType.groupsTable;
-        }
-
-        // stop if we haven't been passed a correct TableColumn
-        assert (myTableType != null);
-
         initTableColumn();
     }
     
@@ -98,10 +84,6 @@ public class OwnNoteTableColumn {
         return (TableColumn<Map, String> param) -> new ObjectCell(myEditor, this, linkCursor, new UniversalMouseEvent(myEditor));
     }
 
-    public OwnNoteTableView.TableType getTableType() {
-        return myTableType;
-    }
-    
     public TableColumn<Map, String> getTableColumn() {
         return myTableColumn;
     }
@@ -171,25 +153,12 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
         boolean reInit = false;
         
         Note curNote = null;
-        NoteGroup curNoteGroup = null;
         switch(clickedCell.getId()) {
             case "noteNameColFXML":
                 //System.out.println("Clicked in noteNameCol");
                 curNote =
                     ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex()));
                 //reInit = this.myEditor.editNote(curNote);
-                break;
-            case "noteDeleteColFXML":
-                //System.out.println("Clicked in noteDeleteCol");
-                curNote =
-                    ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex()));
-                reInit = this.myEditor.deleteNote(curNote);
-                break;
-            case "groupDeleteColFXML":
-                //System.out.println("Clicked in groupDeleteCol");
-                curNoteGroup =
-                    new NoteGroup(ObjectsHelper.uncheckedCast(clickedCell.getTableView().getItems().get(clickedCell.getIndex())));
-                reInit = this.myEditor.deleteGroupWrapper(curNoteGroup);
                 break;
             default:
                 //System.out.println("Ignoring click into " + clickedCell.getId() + " for controller " + this.myEditor.toString());
@@ -242,7 +211,7 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
     
     @Override
     public void startEdit() {
-        if (NoteGroup.isSpecialGroup(getText())) {
+        if (TagManager.isSpecialGroup(getText())) {
             return;
         }
         super.startEdit();
@@ -269,7 +238,7 @@ class ObjectCell extends TextFieldTableCell<Map, String> {
                 "noteNameColFXML".equals(getId()) && 
                 OwnNoteEditorParameters.LookAndFeel.tagTree.equals(myEditor.getCurrentLookAndFeel())) {
             final Note note = ObjectsHelper.uncheckedCast(getTableRow().getItem());
-            final String groupColor = myEditor.getGroupColor(note.getGroupName());
+            final String groupColor = TagManager.getInstance().tagForGroupName(note.getGroupName(), false).getColorName();
             graphic = new Label("    ");
             graphic.setStyle("-fx-background-color: " + groupColor + ";");
         }

@@ -44,6 +44,7 @@ import tf.ownnote.ui.commentdata.CommentDataMapper;
 import tf.ownnote.ui.commentdata.ICommentDataHolder;
 import tf.ownnote.ui.commentdata.ICommentDataInfo;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.tags.ITagHolder;
 import tf.ownnote.ui.tags.TagData;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tasks.TaskData;
@@ -53,7 +54,7 @@ import tf.ownnote.ui.tasks.TaskData;
  * 
  * @author thomas
  */
-public class NoteMetaData implements ICommentDataHolder {
+public class NoteMetaData implements ICommentDataHolder, ITagHolder {
     public final static String ATTACHMENTS_DIR = File.separator + "Attachments";
     
     private enum UpdateTag {
@@ -101,16 +102,13 @@ public class NoteMetaData implements ICommentDataHolder {
 
     private Note myNote;
     
-    public NoteMetaData() {
+    public NoteMetaData(final Note note) {
         super();
+        
+        myNote = note;
 
         // go, tell it to the mountains
         myTags.addListener((SetChangeListener.Change<? extends TagData> change) -> {
-            // can happen e.g. when using constructor fromHtmlComment()
-            if (myNote == null) {
-                return;
-            }
-            
             if (change.wasAdded()) {
 //                System.out.println("Linking note " + myNote.getNoteName() + " to tag " + change.getElementAdded().getName());
                 change.getElementAdded().getLinkedNotes().add(myNote);
@@ -125,19 +123,10 @@ public class NoteMetaData implements ICommentDataHolder {
         });
 
         myVersions.addListener((ListChangeListener.Change<? extends NoteVersion> change) -> {
-            // can happen e.g. when using constructor fromHtmlComment()
-            if (myNote == null) {
-                return;
-            }
-            
             hasUnsavedChanges.set(true);
         });
+        
         myAttachments.addListener((ListChangeListener.Change<? extends String> change) -> {
-            // can happen e.g. when using constructor fromHtmlComment()
-            if (myNote == null) {
-                return;
-            }
-            
             hasUnsavedChanges.set(true);
         });
     }
@@ -175,10 +164,12 @@ public class NoteMetaData implements ICommentDataHolder {
         }
     }
 
+    @Override
     public ObservableSet<TagData> getTags() {
         return myTags;
     }
 
+    @Override
     public void setTags(final Set<TagData> tags) {
         myTags.clear();
         myTags.addAll(tags);
@@ -216,9 +207,12 @@ public class NoteMetaData implements ICommentDataHolder {
     }
     
     public void setNote(final Note note) {
-        updateTags(UpdateTag.UNLINK);
-        myNote = note;
-        updateTags(UpdateTag.LINK);
+        assert note != null;
+        if (!note.equals(myNote)) {
+            updateTags(UpdateTag.UNLINK);
+            myNote = note;
+            updateTags(UpdateTag.LINK);
+        }
     }
     
     public Charset getCharset() {
@@ -267,8 +261,8 @@ public class NoteMetaData implements ICommentDataHolder {
         return result;
     }
     
-    public static NoteMetaData fromHtmlComment(final String htmlString) {
-        final NoteMetaData result = new NoteMetaData();
+    public static NoteMetaData fromHtmlComment(final Note note, final String htmlString) {
+        final NoteMetaData result = new NoteMetaData(note);
 
         // parse html string
         // everything inside a <!-- --> could be metadata in the form 
@@ -279,7 +273,7 @@ public class NoteMetaData implements ICommentDataHolder {
             // no changes for "newborn" metadata
             result.setUnsavedChanges(false);
         }
-
+        
         return result;
     }
     

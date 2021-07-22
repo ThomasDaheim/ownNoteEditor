@@ -25,11 +25,11 @@
  */
 package tf.ownnote.ui.tags;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
+import javafx.beans.Observable;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -37,6 +37,7 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.scene.control.Label;
 import org.apache.commons.lang3.RandomStringUtils;
 import tf.ownnote.ui.notes.Note;
 
@@ -47,53 +48,25 @@ import tf.ownnote.ui.notes.Note;
  */
 public class TagData {
     private final StringProperty nameProperty = new SimpleStringProperty("");
-    private final ObservableList<TagData> children = FXCollections.<TagData>observableArrayList();
+    private final ObservableList<TagData> children = 
+            FXCollections.<TagData>observableArrayList(p -> new Observable[]{p.nameProperty(), p.iconNameProperty(), p.colorNameProperty(), p.parentProperty()});
     private final ObjectProperty<TagData> parentProperty = new SimpleObjectProperty<>(null);
-    private final StringProperty iconNameProperty = new SimpleStringProperty("");
+    private final StringProperty iconNameProperty = new SimpleStringProperty();
     private final StringProperty colorNameProperty = new SimpleStringProperty("");
     
     // link to notes with this tag - transient, will be re-created on startup
     private final ObservableList<Note> linkedNotes = FXCollections.<Note>observableArrayList();
-//    private final ObservableSet<Note> linkedNotes = FXCollections.<Note>observableSet(new HashSet<>() {
-//        @Override
-//        public boolean remove(Object o) {
-//            // TFE; 20201227: for some obscure reason the following doesn't work - don't ask
-//            boolean result = super.remove(o);
-//            if (!result) {
-//                Iterator<Note> it = iterator();
-//                while(it.hasNext()){
-//                    if (it.next().equals(o)) {
-//                        it.remove();
-//                        result = true;
-//                        break;
-//                    }
-//                }
-//            }
-//            return result;
-//        }        
-//    });
 
     // TFE, 20201230: initialized here to always have a value but can be overwritten from parsed noteContent
     private String myId = RandomStringUtils.random(12, "0123456789abcdef"); 
     
-    public TagData() {
+    private TagData() {
         this("");
     }
 
-    public TagData(final String na) {
-        this(na, new ArrayList<>());
-    }
-
-    public TagData(final String na, final List<TagData> childs) {
+    protected TagData(final String na) {
         nameProperty.set(na);
         
-        readResolve();
-        
-        children.setAll(FXCollections.<TagData>observableArrayList(childs));
-    }
-    
-    // required for deserialization by xstream
-    private Object readResolve() {
         children.addListener((ListChangeListener.Change<? extends TagData> change) -> {
             while (change.next()) {
                 if (change.wasAdded()) {
@@ -115,8 +88,42 @@ public class TagData {
             }
         });
 
-        return this;
+        linkedNotes.addListener((ListChangeListener.Change<? extends Note> change) -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (Note note: change.getAddedSubList()) {
+//                        System.out.println("Setting linked note " + note.getNoteName() + " for tag " + getName() + ", " + this + ", linked notes count " + linkedNotes.size());
+                    }
+                }
+
+                if (change.wasRemoved()) {
+                    for (Note note: change.getRemoved()) {
+//                        System.out.println("Removing linked note " + note.getNoteName() + " for tag " + getName() + ", " + this + ", linked notes count " + linkedNotes.size());
+                    }
+                }
+            }
+        });
     }
+    
+//    // required for deserialization by xstream
+//    private Object readResolve() {
+//        // TODO: what to do here to properly init nameProperty???
+//        System.out.println("In readResolve() of tag " + getName());
+//        
+//        String name = getName();
+//        setName("XSTREAM FORCED ME TO DO THIS");
+//        setName(name);
+//
+//        name = getColorName();
+//        setColorName("XSTREAM FORCED ME TO DO THIS");
+//        setColorName(name);
+//
+//        name = getIconName();
+//        setIconName("XSTREAM FORCED ME TO DO THIS");
+//        setIconName(name);
+//
+//        return this;
+//    }
     
     @Override
     public boolean equals(Object o) {
@@ -134,6 +141,22 @@ public class TagData {
         int hash = 7;
         hash = 11 * hash + Objects.hashCode(this.nameProperty.get());
         return hash;
+    }
+    
+    protected TagData cloneMe() {
+        final TagData clone = new TagData(getName());
+        clone.myId = myId;
+        clone.colorNameProperty.set(colorNameProperty.get());
+        clone.iconNameProperty.set(iconNameProperty.get());
+        // list copied directly
+        clone.linkedNotes.setAll(linkedNotes);
+        
+        // clone childs recursively
+        for (TagData child : children) {
+            clone.children.add(child.cloneMe());
+        }
+        
+        return clone;
     }
 
     public String getId() {
@@ -163,13 +186,21 @@ public class TagData {
     public void setIconName(final String na) {
         iconNameProperty.set(na);
     }
+    
+    public Label getIcon() {
+        return TagManager.getIconForName(iconNameProperty.get(), TagManager.IconSize.NORMAL);
+    }
 
     public StringProperty colorNameProperty() {
         return colorNameProperty;
     }
 
     public String getColorName() {
-        return colorNameProperty.get();
+        if ((colorNameProperty.get() != null) && !colorNameProperty.get().isEmpty()) {
+            return colorNameProperty.get();
+        } else {
+            return null;
+        }
     }
 
     public void setColorName(final String col) {
@@ -201,7 +232,18 @@ public class TagData {
         return parentProperty.get();
     }
 
-    public void setParent(final TagData parent) {
+    protected void setParent(final TagData parent) {
+        // conveniance in case of e.g. test cases that trigger multiple setParent with the same values
+        if (Objects.equals(this.getParent(), parent)) {
+            // nothing to do here...
+            return;
+        }
+        
+//        if (parent != null) {
+//            System.out.println("Setting parent to " + parent.getName() + " for tag " + getName());
+//        } else {
+//            System.out.println("Setting parent to 'null' for tag " + getName());
+//        }
         parentProperty.set(parent);
     }
     

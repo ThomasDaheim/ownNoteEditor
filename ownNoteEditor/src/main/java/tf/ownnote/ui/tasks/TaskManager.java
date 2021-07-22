@@ -10,21 +10,28 @@ import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javafx.application.Platform;
+import javafx.beans.Observable;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
+import javafx.scene.Node;
+import tf.helper.javafx.calendarview.CalendarView;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
@@ -54,12 +61,32 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     
     public static final PseudoClass TASK_COMPLETED = PseudoClass.getPseudoClass("completed");
 
+    // TFE, 20210511: color task data based on distance to due date - if any
+    public static final PseudoClass TASK_OVERDUE = PseudoClass.getPseudoClass("overdue");
+    public static final PseudoClass TASK_UPCOMING = PseudoClass.getPseudoClass("upcoming");
+    public static final PseudoClass TASK_LONGTIME = PseudoClass.getPseudoClass("longtime");
+    public static final PseudoClass TASK_ANYTIME = PseudoClass.getPseudoClass("anytime");
+
+    // TFE, 20210527: similar is needed for events as well
+    public static final CalendarView.DateStyle EVENT_OVERDUE = CalendarView.DateStyle.STYLE_1;
+    public static final CalendarView.DateStyle EVENT_UPCOMING = CalendarView.DateStyle.STYLE_2;
+    public static final CalendarView.DateStyle EVENT_LONGTIME = CalendarView.DateStyle.STYLE_3;
+    public static final CalendarView.DateStyle EVENT_ANYTIME = CalendarView.DateStyle.STYLE_4;
+    
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyyMMDD-HHmmss"); 
     
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
     
-    private final ObservableList<TaskData> taskList = FXCollections.<TaskData>observableArrayList();
+    // TFE, 20210527: use property exatractors for all properties
+    private final ObservableList<TaskData> taskList = 
+            FXCollections.<TaskData>observableArrayList(p -> new Observable[]{
+                p.descriptionProperty(), 
+                p.dueDateProperty(), 
+                p.isCompletedProperty(),
+                p.getTags(),
+                p.taskPriorityProperty(), 
+                p.taskStatusProperty()});
     private boolean taskListInitialized = false;
     
     private boolean inFileChange = false;
@@ -99,7 +126,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     }
     
     // noteContent as separate parm since it could be called from change within the editor before save
-    protected Set<TaskData> tasksFromNote(final Note note, final String noteContent) {
+    private Set<TaskData> tasksFromNote(final Note note, final String noteContent) {
 //        System.out.println("tasksFromNote started: " + Instant.now());
         final Set<TaskData> result = new HashSet<>();
 
@@ -226,7 +253,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 // fallback: find by text
                 if (oldnew.isEmpty()) {
                     oldnew = oldTasks.stream().filter((t) -> {
-                        return t.getDescription().equals(newTask.getDescription());
+                        return t.getEventDescription().equals(newTask.getEventDescription());
                     }).findFirst();
                 }
                 
@@ -393,7 +420,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         // if we should select the note OR if its anyways the one shown in the editor
         if (selectNote || task.getNote().equals(myEditor.getEditedNote())) {
             if (completedChanged) {
-                // below changes the status implicetly - but wrong :-) e.g. Done -> Open independent of drag position on kanban board
+                // below changes the status implicitly - but wrong :-) e.g. Done -> Open independent of drag position on kanban board
                 myEditor.selectNoteAndToggleCheckBox(task.getNote(), task.getTextPos(), task.getDescription(), task.getId(), newStatus.isCompleted());
             } else {
                 myEditor.selectNoteAndCheckBox(task.getNote(), task.getTextPos(), task.getDescription(), task.getId());
@@ -401,7 +428,12 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             task.setTaskStatus(newStatus);
         } else {
             // handling of read & save note / select note
-            OwnNoteFileManager.getInstance().readNote(task.getNote(), false);
+            // who could we end up if the note of the task hasn't been read???
+//            OwnNoteFileManager.getInstance().readNote(task.getNote(), false);
+            if (task.getNote().getNoteFileContent() == null) {
+                System.err.println("Task status changed without note loaded! Task: " + task.getHtmlText() + ", Note: " + task.getNote().getNoteFileName());
+                return false;
+            }
 
             // tricky, we need to change note text content as well
             String content = task.getNote().getNoteFileContent();
@@ -437,6 +469,45 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         }
         inStatusChange = false;
         
+        return result;
+    }
+    
+    public boolean processTaskDataChanged(final TaskData task, final TaskData.TaskPriority newPrio, final LocalDateTime newDate, final String newComment, final boolean suppressMessages) {
+        if (isProcessing()) {
+            return true;
+        }
+        
+        boolean result = true;
+
+        boolean hasChanged = false;
+        if (!Objects.equals(task.getTaskPriority(), newPrio)) {
+            hasChanged = true;
+            task.setTaskPriority(newPrio);
+        }
+        if (!Objects.equals(task.getDueDate(), newDate)) {
+            hasChanged = true;
+            task.setDueDate(newDate);
+        }
+        if (!Objects.equals(task.getComment(), newComment)) {
+            hasChanged = true;
+            task.setComment(newComment);
+        }
+        
+        if (hasChanged) {
+            if (task.getNote().equals(myEditor.getEditedNote())) {
+                // TFE, 20210512: and now the note has unsaved changes as well...
+                task.getNote().setUnsavedChanges(true);
+            } else {
+                // save note content
+                if (task.getNote().getNoteFileContent() == null) {
+                    System.err.println("Task status changed without note loaded! Task: " + task.getHtmlText() + ", Note: " + task.getNote().getNoteFileName());
+                    return false;
+                }
+
+                result = OwnNoteFileManager.getInstance().saveNote(task.getNote(), suppressMessages);
+            }
+        }
+
         return result;
     }
     
@@ -582,7 +653,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     public Set<TaskData> tasksForNote(final Note note) {
         return getTaskList().stream().filter((t) -> {
             return t.getNote().equals(note);
-        }).collect(Collectors.toSet());
+        }).collect(Collectors.toCollection(LinkedHashSet::new));
     }
     
     public void replaceTaskDataInNote(final Note note, final boolean suppressMessages) {
@@ -640,5 +711,64 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     
     public static String replaceCheckmarks(final String content) {
         return content.replace(TaskData.ARCHIVED_BOX, TaskData.CHECKED_BOXES_2);
+    }
+    
+    public static void setPseudoClassForDueDate(final Node node, final TaskData task) {
+        PseudoClass result;
+
+        if (task.isCompleted()) {
+            result = TASK_ANYTIME;
+        } else {
+            final LocalDateTime dueDate = task.getDueDate();
+            if (dueDate == null) {
+                result = TASK_ANYTIME;
+            } else {
+                final LocalDateTime now = LocalDateTime.now();
+                final int dateDiff = Period.between(now.toLocalDate(), dueDate.toLocalDate()).getDays();
+                // TODO: put logic & values into map and/or own class...
+                if (dateDiff > 3) {
+                    result = TASK_LONGTIME;
+                } else if (dateDiff > 0) {
+                    result = TASK_UPCOMING;
+                } else {
+                    result = TASK_OVERDUE;
+                }
+            }
+        }
+
+        node.pseudoClassStateChanged(result, true);
+    }
+    
+    public static void resetPseudoClassForDueDate(final Node node) {
+        node.pseudoClassStateChanged(TaskManager.TASK_OVERDUE, false);
+        node.pseudoClassStateChanged(TaskManager.TASK_UPCOMING, false);
+        node.pseudoClassStateChanged(TaskManager.TASK_LONGTIME, false);
+        node.pseudoClassStateChanged(TaskManager.TASK_ANYTIME, false);
+    }
+    
+    public static CalendarView.DateStyle getDateStyleForDueDate(final TaskData task) {
+        CalendarView.DateStyle result;
+
+        if (task.isCompleted()) {
+            result = EVENT_ANYTIME;
+        } else {
+            final LocalDateTime dueDate = task.getDueDate();
+            if (dueDate == null) {
+                result = EVENT_ANYTIME;
+            } else {
+                final LocalDateTime now = LocalDateTime.now();
+                final int dateDiff = Period.between(now.toLocalDate(), dueDate.toLocalDate()).getDays();
+                // TODO: put logic & values into map and/or own class...
+                if (dateDiff > 3) {
+                    result = EVENT_LONGTIME;
+                } else if (dateDiff > 0) {
+                    result = EVENT_UPCOMING;
+                } else {
+                    result = EVENT_OVERDUE;
+                }
+            }
+        }
+        
+        return result;
     }
 }

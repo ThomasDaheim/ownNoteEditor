@@ -38,7 +38,7 @@ import javafx.collections.ObservableList;
  */
 public class TagDataWrapper {
     private final BooleanProperty selectedProperty = new SimpleBooleanProperty(false);
-    private final TagData myTag;
+    private TagData myTag;
     private final ObservableList<TagDataWrapper> children = FXCollections.<TagDataWrapper>observableArrayList();
     
     private TagDataWrapper() {
@@ -74,8 +74,12 @@ public class TagDataWrapper {
         }
     }
     
-    public TagData getTagInfo() {
+    public TagData getTagData() {
         return myTag;
+    }
+    
+    public void setTagData(final TagData tag) {
+        myTag = tag;
     }
     
     public BooleanProperty selectedProperty() {

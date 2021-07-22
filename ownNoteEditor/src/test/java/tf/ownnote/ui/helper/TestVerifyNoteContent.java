@@ -30,8 +30,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
-import tf.ownnote.ui.helper.VerifyNoteContent;
 import tf.ownnote.ui.notes.Note;
 
 /**
@@ -84,7 +82,7 @@ public class TestVerifyNoteContent {
 
     @Test
     public void testVerifyAdditionalAttributes() throws Exception {
-        final String errorString = "Checking of Additional checkbox attributes failed!\n  Found <input type=\"checkbox\" value=\"salami\"> @610\n  Found <input name=\"zutat\" type=\"checkbox\" value=\"salami\"> @1044\n  Found <input name=\"zutat\" type=\"checkbox\"> @277\n  Found <input name=\"zutat\" type=\"checkbox\" value=\"salami\"> @1333\n";
+        final String errorString = "Checking of Additional checkbox attributes failed!\n  Found <input type=\"checkbox\" value=\"salami\"> @519\n  Found <input name=\"zutat\" type=\"checkbox\" value=\"salami\"> @953\n  Found <input name=\"zutat\" type=\"checkbox\" value=\"salami\"> @1242\n";
         final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestVerify_ADD_ATTR");
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
 

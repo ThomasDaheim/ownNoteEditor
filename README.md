@@ -3,9 +3,24 @@ JavaFX editor for the ownNote files locally stored in ownCloud/nextCloud folder.
 
 Aim was to mimic the behaviour of the former ownNote web client using JavaFX and working directly on the ownNote files in a local directory. This code does NOT update any of the SQL tables used by owNote - but so far this doesn't seem to impact anything.
 
+Note on v6.0: After the "classic" look & feel from ownNotes has been removed it might actually be time to rename the whole project to something like "htmlNoteEditor". But we have enough changes for one major release...
+
 Note on v5.0: A lot has happened since the initial version of the editor. ownNotes / nextNotes project for NextCloud seems to have died and there is no need anymore to try to mimic their behaviour and notes / groups handling. Therefore, its time for some re-design :-)
 
 Note on Java 11: After various tweaks to build.gradle this now also runs under Java 11. See e.g. https://github.com/kelemen/netbeans-gradle-project/issues/403 an some of the discussion that where required to get there... Unfortunately, there is one issue with the TestFX framework when trying to drag & drop notes. Since I wasn't able to fix this I had to disable the "testDragNote()" test step.
+
+V 6.0: Getting rid of old stuff
+
+* Removed "classic" look & feel
+* Changed all group handling to use tags
+* Show icons for groups in tag tree and tab views, highlight based on distance to due date
+* Show note count for tag tree view
+* Tasks can have tags
+* Editor to change icon and color for tags
+* Calendar for KANBAN board incl. drag & drop to set due dates
+* Bugfixes, small features: store recent note per group, insert link to attachments in notes, ...
+
+Important: Once in a while I can see log messages that indicate mess-ups when changing task status in text & tasklist. But so far nothing the note text has never been mixed up...
 
 V 5.2: Fixes
 

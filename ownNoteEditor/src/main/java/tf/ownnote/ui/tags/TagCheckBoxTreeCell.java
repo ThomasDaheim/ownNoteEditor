@@ -70,7 +70,7 @@ public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagDataWrapper> implem
     @Override
     public void updateItem(TagDataWrapper item, boolean empty) {
         super.updateItem(item, empty);
-        TagTreeCellBase.updateItem(this, item, empty);
+        TagTreeCellBase.getInstance().updateItem(this, item, empty, myEditor);
     }            
 
     @Override
@@ -81,18 +81,18 @@ public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagDataWrapper> implem
         
         // check if item can be edited
         final TreeItem<TagDataWrapper> treeItem = getTreeItem();
-        if ((treeItem != null) && TagManager.isEditableTag(treeItem.getValue().getTagInfo())) {
+        if ((treeItem != null) && TagManager.isEditableTag(treeItem.getValue().getTagData())) {
             return;
         }
         
         super.startEdit();
-        TagTreeCellBase.startEdit(this);
+        TagTreeCellBase.getInstance().startEdit(this);
     }
 
     @Override
     public void cancelEdit() {
         super.cancelEdit();
-        TagTreeCellBase.cancelEdit(this);
+        TagTreeCellBase.getInstance().cancelEdit(this);
     }
 
     @Override

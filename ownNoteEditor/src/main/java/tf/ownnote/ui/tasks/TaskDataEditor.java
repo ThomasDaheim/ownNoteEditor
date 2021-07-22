@@ -28,26 +28,39 @@ package tf.ownnote.ui.tasks;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javafx.collections.SetChangeListener;
 import javafx.event.ActionEvent;
 import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.geometry.VPos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.text.TextAlignment;
 import jfxtras.scene.control.CalendarTextField;
 import static tf.helper.javafx.AbstractStage.INSET_TOP;
 import static tf.helper.javafx.AbstractStage.INSET_TOP_BOTTOM;
 import tf.helper.javafx.EnumHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
+import tf.ownnote.ui.tags.TagData;
+import tf.ownnote.ui.tags.TagManager;
+import tf.ownnote.ui.tags.TagsEditor;
 
 /**
  * Show & edit task data as a GridPane.
@@ -61,7 +74,7 @@ import tf.ownnote.ui.main.OwnNoteEditor;
  * 
  * @author thomas
  */
-public class TaskEditor extends GridPane {
+public class TaskDataEditor extends GridPane {
     private final TaskData myTask;
     
     private final Label idLbl = new Label(); 
@@ -72,13 +85,31 @@ public class TaskEditor extends GridPane {
             EnumHelper.getInstance().createChoiceBox(TaskData.TaskPriority.class, TaskData.TaskPriority.MEDIUM);
     private final CalendarTextField duedateTimeTxt = new CalendarTextField();
     private final TextArea commentArea = new TextArea();
+    //TFE, 20210308: tasks can have tags too
+    private final FlowPane tagsBox = new FlowPane();
+    private SetChangeListener<TagData> tagListener;
     
-    private TaskEditor() {
+    private TaskDataEditor() {
         this(null);
     }
     
-    public TaskEditor(final TaskData task) {
+    public TaskDataEditor(final TaskData task) {
         myTask = task;
+        
+        tagListener = new SetChangeListener<>() {
+            @Override
+            public void onChanged(SetChangeListener.Change<? extends TagData> change) {
+                if (change.wasRemoved()) {
+                    removeTagLabel(change.getElementRemoved().getName());
+                }
+                if (change.wasAdded()) {
+                    // TFE, 2021012: don't ask - for some reason we need to remove first to avoid duplicates
+                    // might be an issue in which order the listener is called?
+                    removeTagLabel(change.getElementAdded().getName());
+                    addTagLabel(change.getElementAdded().getName());
+                }
+            }
+        };
         
         initCard();
         initValues();
@@ -100,7 +131,7 @@ public class TaskEditor extends GridPane {
 
         int rowNum = 0;
         // description
-        Tooltip t = new Tooltip("Task descrioption from note text");
+        Tooltip t = new Tooltip("Task description from note text");
         final Label lbldesc = new Label("Description:");
         lbldesc.setTooltip(t);
         getGridPane().add(lbldesc, 0, rowNum, 1, 1);
@@ -163,6 +194,29 @@ public class TaskEditor extends GridPane {
         GridPane.setMargin(commentArea, INSET_TOP);
 
         rowNum++;
+        // tags
+        t = new Tooltip("Tags");
+        final Label tagsLbl = new Label("Tags:");
+        tagsLbl.setTooltip(t);
+        getGridPane().add(tagsLbl, 0, rowNum, 1, 1);
+        GridPane.setValignment(tagsLbl, VPos.TOP);
+        GridPane.setMargin(tagsLbl, INSET_TOP);
+
+        final HBox hbox = new HBox();
+        hbox.setAlignment(Pos.TOP_CENTER);
+        tagsBox.getStyleClass().add("tagsBox");
+        tagsBox.setAlignment(Pos.CENTER_LEFT);
+        
+        final Button tagsButton = new Button("+");
+        tagsButton.setOnAction((e) -> {
+            e.consume();
+            TagsEditor.getInstance().editTags(myTask);
+        });
+        hbox.getChildren().addAll(tagsBox, tagsButton);
+        getGridPane().add(hbox, 1, rowNum, 1, 1);
+        GridPane.setMargin(hbox, INSET_TOP);
+        
+        rowNum++;
         // task id
         t = new Tooltip("Task id");
         final Label lblid = new Label("Task id:");
@@ -180,7 +234,7 @@ public class TaskEditor extends GridPane {
         saveButton.setOnAction((ActionEvent event) -> {
             saveValues();
             // give parent node the oportunity to close
-            fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, KeyCode.ESCAPE.toString(), KeyCode.ESCAPE.toString(), KeyCode.ESCAPE, false, false, false, false));
+            fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, KeyCode.ACCEPT.toString(), KeyCode.ACCEPT.toString(), KeyCode.ACCEPT, false, false, false, false));
         });
         // not working since no scene yet...
 //        getScene().getAccelerators().put(UsefulKeyCodes.CNTRL_S.getKeyCodeCombination(), () -> {
@@ -228,6 +282,59 @@ public class TaskEditor extends GridPane {
         t = new Tooltip(myTask.getComment());
         commentArea.setTooltip(t);
         commentArea.setText(myTask.getComment());
+
+        tagsBox.getChildren().clear();
+        final Set<String> tags = myTask.getTags().stream().map((e) -> {
+            return e.getName();
+        }).collect(Collectors.toSet());
+        for (String tag : tags) {
+            addTagLabel(tag);
+        }
+
+        // change listener as well
+        myTask.getTags().addListener(tagListener);
+        
+    }
+    
+    private Node getTagLabel(final String tag) {
+        final HBox result = new HBox();
+        result.getStyleClass().add("tagLabel");
+        result.setAlignment(Pos.CENTER_LEFT);
+        result.setPadding(new Insets(0, 2, 0, 2));
+        result.setUserData(tag);
+
+        final Label tagLabel = new Label(tag);
+        
+        // add "remove" "button"
+        final Label removeTag = new Label("X");
+        removeTag.getStyleClass().add("removeButton");
+        removeTag.setAlignment(Pos.CENTER);
+        removeTag.setTextAlignment(TextAlignment.CENTER);
+        removeTag.setContentDisplay(ContentDisplay.CENTER);
+        HBox.setMargin(removeTag, new Insets(0, 0, 0, 4));
+        
+        removeTag.setOnMouseClicked((t) -> {
+            // get rid of this tag in the task
+            myTask.getTags().remove(TagManager.getInstance().tagForName(tag, null, false));
+        });
+        
+        result.getChildren().addAll(tagLabel, removeTag);
+
+        return result;
+    }
+
+    private void addTagLabel(final String tag) {
+        final Node tagLabel = getTagLabel(tag);
+        FlowPane.setMargin(tagLabel, new Insets(0, 0, 0, 4));
+        tagsBox.getChildren().add(tagLabel);
+    }
+    
+    private void removeTagLabel(final String tag) {
+        final List<Node> tagsList = tagsBox.getChildren().stream().filter((t) -> {
+            return ((String) t.getUserData()).equals(tag);
+        }).collect(Collectors.toList());
+        
+        tagsBox.getChildren().removeAll(tagsList);
     }
     
     public void saveValues() {
@@ -235,18 +342,24 @@ public class TaskEditor extends GridPane {
 //        myTask.setTaskStatus(EnumHelper.getInstance().selectedEnumChoiceBox(TaskData.TaskStatus.class, statusBox));
         // TODO: replace update process in taskmanager with a listener to task status...
         TaskManager.getInstance().processTaskStatusChanged(myTask, EnumHelper.getInstance().selectedEnumChoiceBox(TaskData.TaskStatus.class, statusBox), false, true);
-        myTask.setTaskPriority(EnumHelper.getInstance().selectedEnumChoiceBox(TaskData.TaskPriority.class, prioBox));
+
+        LocalDateTime date = null;
         if (!duedateTimeTxt.getText().isEmpty()) {
-            final Date date = duedateTimeTxt.getCalendar().getTime();
-            myTask.setDueDate(LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault()));
-        } else {
-            myTask.setDueDate(null);
+            date = LocalDateTime.ofInstant(duedateTimeTxt.getCalendar().getTime().toInstant(), ZoneId.systemDefault());
         }
         String comment = null;
         if (commentArea.getText() != null && !commentArea.getText().isEmpty()) {
             comment = commentArea.getText();
         }
         myTask.setComment(comment);
+
+        // TFE, 20210625: let TaskManger due the work...
+        TaskManager.getInstance().processTaskDataChanged(
+                myTask, 
+                EnumHelper.getInstance().selectedEnumChoiceBox(TaskData.TaskPriority.class, prioBox), 
+                date, 
+                comment,
+                true);
     }
 
     // provision for future conversion into an AbstractStage - not very YAGNI
@@ -254,4 +367,15 @@ public class TaskEditor extends GridPane {
         return this;
     }
     
+    public static boolean isCompleteCode(final KeyCode code) {
+        return isSaveCode(code) || isCancelCode(code);
+    }
+
+    public static boolean isSaveCode(final KeyCode code) {
+        return KeyCode.ACCEPT.equals(code);
+    }
+
+    public static boolean isCancelCode(final KeyCode code) {
+        return KeyCode.ESCAPE.equals(code);
+    }
 }

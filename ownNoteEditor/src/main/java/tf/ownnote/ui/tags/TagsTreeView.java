@@ -28,7 +28,6 @@ package tf.ownnote.ui.tags;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -44,7 +43,6 @@ import tf.ownnote.ui.helper.IGroupListContainer;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  * A TreeView for TagInfo.
@@ -52,7 +50,7 @@ import tf.ownnote.ui.notes.NoteGroup;
  * It supports checking / unchecking items for e.g. bulk actions done in the TagManager.
  * But since it should be working with RecursiveTreeItem to support a hierarchy of tags it 
  * can't be a using CheckboxTreeItem - you can't have a generic class for the whole TreeItem hierarchy...
- * Also, we wan't to be able to edit the Tag name.
+ * Also, we want to be able to edit the Tag name.
  * 
  * So we need to merge the functionality of CheckBoxTreeCell with TextFieldTreeCell :-)
  * And we need to do something similar to CheckTreeView from controlsfx that keeps track of the selected items.
@@ -75,13 +73,13 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
     
     private WorkMode myWorkMode = WorkMode.EDIT_MODE;
     
-    private BiConsumer<String, String> renameFunction;
-    
     private final ObservableSet<TagData> selectedItems = FXCollections.<TagData>observableSet(new HashSet<>());
     
     private final Set<TagData> initialTags = new HashSet<>();
     
-    private NoteGroup currentGroup;
+    private TagData currentGroup;
+
+    private ListChangeListener<TagData> tagListener;
     
     public TagsTreeView() {
         initTreeView();
@@ -106,11 +104,10 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
         setShowRoot(false);
         
         setOnEditCommit((t) -> {
-            if (!t.getNewValue().getTagInfo().getName().equals(t.getOldValue().getTagInfo().getName())) {
-                assert renameFunction != null;
-                renameFunction.accept(t.getOldValue().getTagInfo().getName(), t.getNewValue().getTagInfo().getName());
-                
-                t.getOldValue().getTagInfo().setName(t.getNewValue().getTagInfo().getName());
+            // TODO: verify that this works!
+            if (!t.getNewValue().getTagData().getName().equals(t.getOldValue().getTagData().getName())) {
+                TagManager.getInstance().renameTag(t.getOldValue().getTagData(), t.getNewValue().getTagData().getName());
+                t.getNewValue().getTagData().setName(t.getNewValue().getTagData().getName());
             }
         });
         
@@ -120,12 +117,12 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
             if (!getSelectionModel().getSelectedItems().isEmpty() && WorkMode.LIST_MODE.equals(myWorkMode)) {
                 final TreeItem<TagDataWrapper> item = getSelectionModel().getSelectedItems().get(0);
                 if (item != null) {
-                    final TagData tag = item.getValue().getTagInfo();
+                    final TagData tag = item.getValue().getTagData();
                     
                     if (TagManager.isGroupsTag(tag)) {
                         // "Groups" selected => similar to "All" in tabs
-                        currentGroup = OwnNoteFileManager.getInstance().getNoteGroup(NoteGroup.ALL_GROUPS);
-                        myEditor.setGroupNameFilter(NoteGroup.ALL_GROUPS);
+                        currentGroup = OwnNoteFileManager.getInstance().getNoteGroup(TagManager.ALL_GROUPS);
+                        myEditor.setGroupNameFilter(TagManager.ALL_GROUPS);
                     } else if (TagManager.isAnyGroupTag(tag)) {
                         // a tag under "Groups" selected => similar to select a tab
                         currentGroup = OwnNoteFileManager.getInstance().getNoteGroup(tag.getName());
@@ -143,6 +140,26 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
                 }
             }
         });
+        
+        // TFE, 20210331: listener to react to changes to any tags properties
+        tagListener = new ListChangeListener<>() {
+            @Override
+            public void onChanged(ListChangeListener.Change<? extends TagData> change) {
+                while (change.next()) {
+                    if (change.wasRemoved()) {
+                        // nothing to do - handled by recursivetreeitem
+                    }
+                    if (change.wasAdded()) {
+                        // nothing to do - handled by recursivetreeitem
+                    }
+                    if (change.wasUpdated()) {
+                        // refresh / rebuild the list
+                        refresh();
+                    }
+                }
+            }
+        };
+        
     }
     
     private void initWorkMode() {
@@ -170,7 +187,7 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
             break;
         }
         
-        currentGroup = OwnNoteFileManager.getInstance().getNoteGroup(NoteGroup.ALL_GROUPS);
+        currentGroup = OwnNoteFileManager.getInstance().getNoteGroup(TagManager.ALL_GROUPS);
     }
     
     public BooleanProperty allowReorderProperty() {
@@ -185,11 +202,6 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
         return selectedItems.stream().filter((t) -> {
             return t.getChildren().isEmpty();
         }).collect(Collectors.toSet());
-    }
-    
-    // callback to do the work
-    public void setRenameFunction(final BiConsumer<String, String> funct) {
-        renameFunction = funct;
     }
     
     public void fillTreeView(final WorkMode workMode, final Set<TagData> tags) {
@@ -216,12 +228,16 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
         inInitTreeView = true;
         // for SELECT_MODE we don't show Groups - since its handled implicitly & is connected to the group name of the notes file
         setRoot(new RecursiveTreeItem<>(new TagDataWrapper(TagManager.getInstance().getRootTag()), this::newItemConsumer, (item) -> null, TagDataWrapper::getChildren, true, (item) -> {
-            return !(WorkMode.SELECT_MODE.equals(myWorkMode) && TagManager.isGroupsTag(item.getTagInfo()));
+            return !(WorkMode.SELECT_MODE.equals(myWorkMode) && TagManager.isGroupsTag(item.getTagData()));
         }));
         inInitTreeView = false;
         
         // set property after filling list :-)
         initWorkMode();
+        
+        // add listener to tags list to get notified on case of 
+        TagManager.getInstance().removeListener(tagListener);
+        TagManager.getInstance().addListener(tagListener);
     }
     
     private void newItemConsumer(final TreeItem<TagDataWrapper> newItem) {
@@ -231,18 +247,23 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
             changeAction(newItem, oldValue, newValue);
         });
         
-        newItem.getValue().getTagInfo().nameProperty().addListener((obs, oldValue, newValue) -> {
+        newItem.getValue().getTagData().nameProperty().addListener((obs, oldValue, newValue) -> {
+            refresh();
+        });
+
+        // refresh on change of linked notes - is part of the group name...
+        newItem.getValue().getTagData().getLinkedNotes().addListener((ListChangeListener.Change<? extends Note> change) -> {
             refresh();
         });
 
         final TagDataWrapper tag = newItem.getValue();
         if (tag != null) {
-            if (initialTags.contains(tag.getTagInfo())) {
+            if (initialTags.contains(tag.getTagData())) {
                 tag.setSelected(true);
-                selectedItems.add(tag.getTagInfo());
+                selectedItems.add(tag.getTagData());
             } else {
                 tag.setSelected(false);
-                selectedItems.remove(tag.getTagInfo());
+                selectedItems.remove(tag.getTagData());
             }
         }
     }
@@ -259,9 +280,9 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
                 propagateUpwards(item, newValue);
 
                 if (newValue) {
-                    selectedItems.add(item.getValue().getTagInfo());
+                    selectedItems.add(item.getValue().getTagData());
                 } else {
-                    selectedItems.remove(item.getValue().getTagInfo());
+                    selectedItems.remove(item.getValue().getTagData());
                 }
             }
         }
@@ -314,7 +335,7 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
     // TODO make a generic helper method out of it with TreeItem<T>, Function<TreeItem<T>, S> and S value
     public static TreeItem<TagDataWrapper> getTreeViewItem(TreeItem<TagDataWrapper> item , String value) {
         if (item != null) {
-            if (item.getValue().getTagInfo().getName().equals(value)) {
+            if (item.getValue().getTagData().getName().equals(value)) {
                 // found it!
                 return item;
             }
@@ -332,12 +353,12 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
     }
 
     @Override
-    public void setGroups(ObservableList<NoteGroup> groupsList, boolean updateOnly) {
+    public void setGroups(ObservableList<TagData> groupsList, boolean updateOnly) {
         myEditor.selectFirstOrCurrentNote();
     }
 
     @Override
-    public NoteGroup getCurrentGroup() {
+    public TagData getCurrentGroup() {
         return currentGroup;
     }
 

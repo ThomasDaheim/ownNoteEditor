@@ -37,7 +37,6 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Dragboard;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.TransferMode;
@@ -63,9 +62,9 @@ public class TaskCard extends GridPane {
     private final TaskData myTask;
     
     private final Label descLbl = new Label(); 
-    private final static String DUEDATE_TEXT = "\u23F0 "; //"\uD83D\uDCC5 "
+    private final static String DUEDATE_LABEL = "\u23F0 "; //"\uD83D\uDCC5 "
     private final Label dueDateLbl = new Label(); 
-    private final static String PRIO_TEXT = "Prio: ";
+    private final static String PRIO_LABEL = "Prio: ";
     private final Label prioLbl = new Label(); 
     
     // TFE, 20210305: make sure we only attach listener once and it can be removed afterwards
@@ -93,6 +92,7 @@ public class TaskCard extends GridPane {
             public void changed(ObservableValue<? extends LocalDateTime> ov, LocalDateTime oldValue, LocalDateTime newValue) {
                 if (newValue != null && !newValue.equals(oldValue)) {
                     setPseudoClass();
+                    setDueDateLabel();
                 }
             }
         };
@@ -127,20 +127,28 @@ public class TaskCard extends GridPane {
 
         rowNum++;
         //  priority & due date
+        prioLbl.getStyleClass().add("taskdata");
         getGridPane().add(prioLbl, 0, rowNum, 1, 1);
         GridPane.setMargin(prioLbl, AbstractStage.INSET_TOP);
 
+        dueDateLbl.getStyleClass().add("taskdata");
         getGridPane().add(dueDateLbl, 1, rowNum, 1, 1);
         GridPane.setMargin(dueDateLbl, AbstractStage.INSET_TOP);
 
         // support for editing the task on this card
         final PopOver popOver = new PopOver();
-        popOver.setAutoHide(true);
+        popOver.setAutoHide(false);
         popOver.setAutoFix(true);
         popOver.setCloseButtonEnabled(true);
         popOver.setArrowLocation(PopOver.ArrowLocation.TOP_CENTER);
         popOver.setArrowSize(0);
-        popOver.setContentNode(new TaskEditor(myTask));
+        popOver.setContentNode(new TaskDataEditor(myTask));
+
+        focusedProperty().addListener((ov, oldValue, newValue) -> {
+            if (newValue != null && !newValue.equals(oldValue) && !newValue) {
+                popOver.hide();
+            }
+        });
 
         final ContextMenu contextMenu = new ContextMenu();
         final MenuItem editTask = new MenuItem("Edit task");
@@ -151,6 +159,7 @@ public class TaskCard extends GridPane {
         contextMenu.getItems().addAll(editTask);
         
         setOnMouseClicked((t) -> {
+            requestFocus();
             if (t.getClickCount() == 2) {
                 popOver.show(this);
                 initValues();
@@ -161,12 +170,13 @@ public class TaskCard extends GridPane {
         });
 
         popOver.addEventHandler(KeyEvent.KEY_PRESSED, (t) -> {
-            if (KeyCode.ESCAPE.equals(t.getCode())) {
+            if (TaskDataEditor.isCompleteCode(t.getCode())) {
                 popOver.hide();
             }
         });
         
         setOnDragDetected((t) -> {
+            setFocused(true);
             AppClipboard.getInstance().addContent(TaskBoard.DRAG_AND_DROP, myTask);
 
             /* allow any transfer mode */
@@ -200,7 +210,7 @@ public class TaskCard extends GridPane {
         }
         setPseudoClass();
 
-        prioLbl.textProperty().bind(Bindings.concat(PRIO_TEXT, myTask.taskPriorityProperty()));
+        prioLbl.textProperty().bind(Bindings.concat(PRIO_LABEL, myTask.taskPriorityProperty()));
         if (inFirstInit) {
             myTask.dueDateProperty().addListener(dateListener);
         }
@@ -211,11 +221,20 @@ public class TaskCard extends GridPane {
     
     private void setPseudoClass() {
         descLbl.pseudoClassStateChanged(TaskManager.TASK_COMPLETED, myTask.isCompleted());
+        
+        // TFE, 20210511: mark based on distance to due date
+        TaskManager.resetPseudoClassForDueDate(descLbl);
+        TaskManager.setPseudoClassForDueDate(descLbl, myTask);
+
+        TaskManager.resetPseudoClassForDueDate(prioLbl);
+        TaskManager.setPseudoClassForDueDate(prioLbl, myTask);
+
+        TaskManager.resetPseudoClassForDueDate(dueDateLbl);
+        TaskManager.setPseudoClassForDueDate(dueDateLbl, myTask);
     }
     
     private void setDueDateLabel() {
-        final String dueDate = myTask.getDueDate() != null ? DUEDATE_TEXT + OwnNoteEditor.DATE_TIME_FORMATTER.format(myTask.getDueDate()) : "";
-        dueDateLbl.setText(dueDate);
+        dueDateLbl.setText(getDueDateText(myTask));
     }
 
     // provision for future conversion into an AbstractStage - not very YAGNI
@@ -225,5 +244,13 @@ public class TaskCard extends GridPane {
     
     public TaskData getTaskData() {
         return myTask;
+    }
+    
+    public static String getPriorityText(final TaskData task) {
+        return PRIO_LABEL + task.getTaskPriority().toString();
+    }
+    
+    public static String getDueDateText(final TaskData task) {
+        return task.getDueDate() != null ? DUEDATE_LABEL + OwnNoteEditor.DATE_TIME_FORMATTER.format(task.getDueDate()) : "";
     }
 }

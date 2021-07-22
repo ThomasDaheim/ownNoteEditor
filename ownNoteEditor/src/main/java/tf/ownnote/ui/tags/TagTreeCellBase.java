@@ -37,12 +37,13 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.util.StringConverter;
+import org.controlsfx.control.PopOver;
 import tf.helper.javafx.CellUtils;
 import tf.ownnote.ui.helper.FormatHelper;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
-import tf.ownnote.ui.notes.NoteGroup;
+import tf.ownnote.ui.main.OwnNoteEditor;
 
 /**
  * Base class for some common functionality of all tag treeview cells.
@@ -50,10 +51,19 @@ import tf.ownnote.ui.notes.NoteGroup;
  * @author thomas
  */
 public class TagTreeCellBase {
+    private final static TagTreeCellBase INSTANCE = new TagTreeCellBase();
+
+    private TagTreeCellBase() {
+    }
+
+    public static TagTreeCellBase getInstance() {
+        return INSTANCE;
+    }
+    
     public final static StringConverter<TreeItem<TagDataWrapper>> treeItemConverter = new StringConverter<TreeItem<TagDataWrapper>>() {
         @Override
         public String toString(TreeItem<TagDataWrapper> item) {
-            return item.getValue().getTagInfo().getName();
+            return tagInfoConverter.toString(item.getValue());
         }
 
         @Override
@@ -65,7 +75,12 @@ public class TagTreeCellBase {
     public final static StringConverter<TagDataWrapper> tagInfoConverter = new StringConverter<TagDataWrapper>() {
         @Override
         public String toString(TagDataWrapper item) {
-            return item.getTagInfo().getName();
+            final TagData tag = item.getTagData();
+            if (tag.getChildren().isEmpty()) {
+                return tag.getName() + " (" + tag.getLinkedNotes().size() + ")";
+            } else {
+                return tag.getName();
+            }
         }
 
         @Override
@@ -74,13 +89,28 @@ public class TagTreeCellBase {
         }
     };
     
-    public static void updateItem(ITagTreeCell cell, TagDataWrapper item, boolean empty) {
+    // internal string converter that only returns the name without the linked note count - used when editing the tag name
+    private final static StringConverter<TagDataWrapper> tagInfoConverterForEdit = new StringConverter<TagDataWrapper>() {
+        @Override
+        public String toString(TagDataWrapper item) {
+            return item.getTagData().getName();
+        }
+
+        @Override
+        public TagDataWrapper fromString(String string) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+    };
+    
+    public void updateItem(ITagTreeCell cell, TagDataWrapper item, boolean empty, final OwnNoteEditor editor) {
         if (item != null && !empty) {
             final TreeCell<TagDataWrapper> treeCell = cell.getTreeCell();
-            final TagData tag = item.getTagInfo();
+            final TagData tag = item.getTagData();
             
+            // TFE, 20210310: we might have icons now, too
+            final String iconName = tag.getIconName();
             final String colorName = tag.getColorName();
-            if (colorName != null && !colorName.isEmpty()) {
+            if ((iconName != null && !iconName.isEmpty()) || (colorName != null && !colorName.isEmpty())) {
                 // happy for any hint how this look can be achieved with less effort...
                 final HBox holder = new HBox();
                 holder.setAlignment(Pos.CENTER);
@@ -88,16 +118,25 @@ public class TagTreeCellBase {
                 final Label spacer = new Label("");
                 spacer.setGraphic(treeCell.getGraphic());
 
-                final Label graphic = new Label("   ");
-                graphic.setStyle("-fx-background-color: " + colorName + ";");
+                Label graphic;
+                if (iconName != null && !iconName.isEmpty()) {
+                    graphic = tag.getIcon();
+                    graphic.getStyleClass().add("tag-icon");
+                    if (colorName != null && !colorName.isEmpty()) {
+                        graphic.setStyle("icon-color: " + colorName + ";");
+                    }
+                } else {
+                    graphic = new Label("   ");
+                    if (colorName != null && !colorName.isEmpty()) {
+                        graphic.setStyle("-fx-background-color: " + colorName + ";");
+                    }
+                }
                 
                 holder.getChildren().addAll(spacer, graphic);
                 treeCell.setGraphic(holder);
             }
 
-            final ContextMenu contextMenu = new ContextMenu();
-
-            final String sibling = TagManager.isGroupsChildTag(tag) ? NoteGroup.NEW_GROUP : "New sibling";
+            final String sibling = TagManager.isGroupsChildTag(tag) ? TagManager.NEW_GROUP : "New sibling";
             final MenuItem newSilblingItem = new MenuItem(sibling);
             newSilblingItem.setOnAction((ActionEvent event) -> {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
@@ -106,13 +145,48 @@ public class TagTreeCellBase {
             });
 
             // only if allowed
-            final String child = TagManager.isGroupsTag(tag) ? NoteGroup.NEW_GROUP : "New child";
+            final String child = TagManager.isGroupsTag(tag) ? TagManager.NEW_GROUP : "New child";
             final MenuItem newChildItem = new MenuItem(child);
             newChildItem.setOnAction((ActionEvent event) -> {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
                 final String tagName = child + " " + tag.getChildren().size();
                 tag.getChildren().add(TagManager.getInstance().createTag(tagName, TagManager.isGroupsTag(tag)));
             });
+
+            // TFE, 20210317: add now we have an edit dialoge for tags...
+            final MenuItem editItem1 = new MenuItem("Edit");
+            editItem1.setOnAction((ActionEvent event) -> {
+                // support for editing the task on this card
+                final PopOver popOver = new PopOver();
+                popOver.setAutoHide(false);
+                popOver.setAutoFix(true);
+                popOver.setCloseButtonEnabled(true);
+                popOver.setArrowLocation(PopOver.ArrowLocation.TOP_CENTER);
+                popOver.setArrowSize(0);
+                popOver.setContentNode(TagDataEditor.getInstance().editTag(tag, editor));
+
+                popOver.addEventHandler(KeyEvent.KEY_PRESSED, (t) -> {
+                    if (TagDataEditor.isCompleteCode(t.getCode())) {
+                        popOver.hide();
+                    }
+                });
+
+                treeCell.focusedProperty().addListener((ov, oldValue, newValue) -> {
+                    if (newValue != null && !newValue.equals(oldValue) && !newValue) {
+                        popOver.hide();
+                    }
+                });
+
+                popOver.show(treeCell);
+            });
+            // can't use same MenuItem in two menus...
+            final MenuItem editItem2 = new MenuItem("Edit");
+            editItem2.setOnAction((ActionEvent event) -> {
+                editItem1.fire();
+            });
+            
+            final ContextMenu contextMenuFull = new ContextMenu();
+            final ContextMenu contextMenuEdit = new ContextMenu();
 
             // only if allowed
             final MenuItem deleteItem = new MenuItem("Delete");
@@ -122,33 +196,35 @@ public class TagTreeCellBase {
 
             if (tag.getParent() != null) {
                 // no siblings for root
-                contextMenu.getItems().add(newSilblingItem);
+                contextMenuFull.getItems().add(newSilblingItem);
             }
             if (TagManager.childTagsAllowed(tag)) {
-                contextMenu.getItems().add(newChildItem);
+                contextMenuFull.getItems().add(newChildItem);
             }
+            contextMenuFull.getItems().add(editItem1);
+            contextMenuEdit.getItems().add(editItem2);
             if (!TagManager.isFixedTag(tag)) {
-                contextMenu.getItems().add(deleteItem);
+                contextMenuFull.getItems().add(deleteItem);
             }
 
             if (treeCell.getTreeView() instanceof TagsTreeView) {
                 treeCell.contextMenuProperty().bind(
                         Bindings.when(((TagsTreeView) treeCell.getTreeView()).allowReorderProperty()).
-                                then(contextMenu).otherwise((ContextMenu)null));
+                                then(contextMenuFull).otherwise(contextMenuEdit));
             } else {
-                treeCell.setContextMenu(contextMenu);
+                treeCell.setContextMenu(contextMenuFull);
             }
             
             // name needs to be unique, so we can also use it as id - makes life easier in 
-            treeCell.setId(tag.getName());
+            treeCell.setId(tag.getId());
         }
     }            
 
-    public static void startEdit(ITagTreeCell cell) {
+    public void startEdit(ITagTreeCell cell) {
         final TreeCell<TagDataWrapper> treeCell = cell.getTreeCell();
 
         if (treeCell.isEditing()) {
-            final TextField textField = createTextField(treeCell, cell.getTextConverter());
+            final TextField textField = createTextField(treeCell, tagInfoConverterForEdit);
 
             if (treeCell.getTreeView() instanceof TagsTreeView) {
                 // set textformatter that checks against existing tags and disables duplicates
@@ -158,22 +234,22 @@ public class TagTreeCellBase {
             }
             final HBox hbox = new HBox(CellUtils.TREE_VIEW_HBOX_GRAPHIC_PADDING);
 
-            CellUtils.startEdit(treeCell, cell.getTextConverter(), hbox, getTreeItemGraphic(treeCell), textField);
+            CellUtils.startEdit(treeCell, tagInfoConverterForEdit, hbox, getTreeItemGraphic(treeCell), textField);
         }
     }
 
-    public static void cancelEdit(ITagTreeCell cell) {
+    public void cancelEdit(ITagTreeCell cell) {
         final TreeCell<TagDataWrapper> treeCell = cell.getTreeCell();
 
         CellUtils.cancelEdit(treeCell, cell.getTextConverter(), getTreeItemGraphic(treeCell));
     }
 
-    private static Node getTreeItemGraphic(TreeCell<TagDataWrapper> cell) {
+    private Node getTreeItemGraphic(TreeCell<TagDataWrapper> cell) {
         TreeItem<TagDataWrapper> treeItem = cell.getTreeItem();
         return treeItem == null ? null : treeItem.getGraphic();
     }
 
-    public static TextField createTextField(final Cell<TagDataWrapper> cell, final StringConverter<TagDataWrapper> converter) {
+    public TextField createTextField(final Cell<TagDataWrapper> cell, final StringConverter<TagDataWrapper> converter) {
         final TextField textField = new TextField(CellUtils.getItemText(cell, converter));
 
         // Use onAction here rather than onKeyReleased (with check for Enter),
@@ -185,7 +261,7 @@ public class TagTreeCellBase {
                                 + "StringConverter is null. Be sure to set a StringConverter "
                                 + "in your cell factory.");
             }
-            cell.getItem().getTagInfo().setName(textField.getText());
+            cell.getItem().getTagData().setName(textField.getText());
             cell.commitEdit(cell.getItem());
             event.consume();
         });

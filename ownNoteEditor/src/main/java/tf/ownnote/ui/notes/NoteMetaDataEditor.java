@@ -23,7 +23,7 @@
  *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  *  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package tf.ownnote.ui.helper;
+package tf.ownnote.ui.notes;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,7 +31,6 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -53,6 +52,7 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
@@ -63,12 +63,9 @@ import javafx.stage.FileChooser;
 import org.apache.commons.io.FileUtils;
 import tf.helper.javafx.AbstractStage;
 import tf.helper.javafx.ShowAlerts;
+import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
-import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.notes.NoteMetaData;
-import tf.ownnote.ui.notes.NoteVersion;
 import tf.ownnote.ui.tags.TagData;
-import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tags.TagsEditor;
 import tf.ownnote.ui.tasks.TaskCount;
 import tf.ownnote.ui.tasks.TaskManager;
@@ -82,7 +79,7 @@ import tf.ownnote.ui.tasks.TaskManager;
  * 3) Tasks: show counts (open / closed / total)
  * @author thomas
  */
-public class OwnNoteMetaDataEditor {
+public class NoteMetaDataEditor {
     private HBox myHBox;
     
     // callback to OwnNoteEditor required for e.g. delete & rename
@@ -100,12 +97,12 @@ public class OwnNoteMetaDataEditor {
     // TFE, 20210305: make sure we only attach listener once and it can be removed afterwards
     private SetChangeListener<TagData> tagListener;
     private ListChangeListener<String> attachListener;
-
-    private OwnNoteMetaDataEditor() {
+    
+    private NoteMetaDataEditor() {
         super();
     }
     
-    public OwnNoteMetaDataEditor(final HBox hBox, final OwnNoteEditor editor) {
+    public NoteMetaDataEditor(final HBox hBox, final OwnNoteEditor editor) {
         super();
 
         myEditor = editor;
@@ -118,13 +115,10 @@ public class OwnNoteMetaDataEditor {
             @Override
             public void onChanged(SetChangeListener.Change<? extends TagData> change) {
                 if (change.wasRemoved()) {
-                    removeTagLabel(change.getElementRemoved().getName());
+                    removeTagLabel(change.getElementRemoved());
                 }
                 if (change.wasAdded()) {
-                    // TFE, 2021012: don't ask - for some reason we need to remove first to avoid duplicates
-                    // might be an issue in which order the listener is called?
-                    removeTagLabel(change.getElementAdded().getName());
-                    addTagLabel(change.getElementAdded().getName());
+                    addTagLabel(change.getElementAdded());
                 }
             }
         };
@@ -179,9 +173,16 @@ public class OwnNoteMetaDataEditor {
         HBox.setMargin(tagsLbl, AbstractStage.INSET_SMALL);
         
         tagsBox.getStyleClass().add("tagsBox");
-        tagsBox.setMaxWidth(300.0);
         tagsBox.setAlignment(Pos.CENTER_LEFT);
         tagsBox.setPadding(new Insets(0, 2, 0, 2));
+
+        // wrap into a scrollpane in case of too many tags...
+        final ScrollPane tagsScroll = new ScrollPane(tagsBox);
+        tagsScroll.getStyleClass().add("tagsPane");
+        tagsScroll.setMaxWidth(300.0);
+        tagsScroll.setFitToHeight(true);
+        tagsScroll.setFitToWidth(true);
+        tagsScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         
         final Button tagsButton = new Button("+");
         tagsButton.setOnAction((t) -> {
@@ -214,7 +215,7 @@ public class OwnNoteMetaDataEditor {
         taskstxt.setTooltip(t);
         HBox.setMargin(taskstxt, new Insets(0, 8, 0, 0));
         
-        myHBox.getChildren().addAll(authorsLbl, versions, tagsLbl, tagsBox, tagsButton, attachments, region1, tasksLbl, taskstxt);
+        myHBox.getChildren().addAll(authorsLbl, versions, tagsLbl, tagsScroll, tagsButton, attachments, region1, tasksLbl, taskstxt);
     }
     
     public void editNote(final Note note) {
@@ -242,13 +243,10 @@ public class OwnNoteMetaDataEditor {
         versions.getSelectionModel().selectFirst();
         
         tagsBox.getChildren().clear();
-        final Set<String> tags = editorNote.getMetaData().getTags().stream().map((t) -> {
-            return t.getName();
-        }).collect(Collectors.toSet());
-        for (String tag : tags) {
+        for (TagData tag : editorNote.getMetaData().getTags()) {
             addTagLabel(tag);
         }
-
+        
         // change listener as well
         editorNote.getMetaData().getTags().addListener(tagListener);
         
@@ -264,18 +262,19 @@ public class OwnNoteMetaDataEditor {
         taskstxt.setText(taskCount.getCount(TaskCount.TaskType.OPEN) + " / " + taskCount.getCount(TaskCount.TaskType.CLOSED) + " / " + taskCount.getCount(TaskCount.TaskType.TOTAL));
     }
     
-    private void addTagLabel(final String tag) {
+    private void addTagLabel(final TagData tag) {
         final Node tagLabel = getTagLabel(tag);
         FlowPane.setMargin(tagLabel, new Insets(0, 0, 0, 4));
+
         tagsBox.getChildren().add(tagLabel);
     }
     
-    private void removeTagLabel(final String tag) {
-        final List<Node> tagsList = tagsBox.getChildren().stream().filter((t) -> {
-            return ((String) t.getUserData()).equals(tag);
+    private void removeTagLabel(final TagData tag) {
+        final List<Node> tagNodes = tagsBox.getChildren().stream().filter((t) -> {
+            return ((TagData) t.getUserData()).equals(tag);
         }).collect(Collectors.toList());
         
-        tagsBox.getChildren().removeAll(tagsList);
+        tagsBox.getChildren().removeAll(tagNodes);
     }
     
     public boolean hasChanged() {
@@ -287,14 +286,15 @@ public class OwnNoteMetaDataEditor {
         editNote(editorNote);
     }
     
-    private Node getTagLabel(final String tag) {
+    private Node getTagLabel(final TagData tag) {
         final HBox result = new HBox();
         result.getStyleClass().add("tagLabel");
         result.setAlignment(Pos.CENTER_LEFT);
         result.setPadding(new Insets(0, 2, 0, 2));
         result.setUserData(tag);
 
-        final Label tagLabel = new Label(tag);
+        final Label tagLabel = new Label("");
+        tagLabel.textProperty().bind(tag.nameProperty());
         
         // add "remove" "button"
         final Label removeTag = new Label("X");
@@ -306,7 +306,7 @@ public class OwnNoteMetaDataEditor {
         
         removeTag.setOnMouseClicked((t) -> {
             // get rid of this tag in the note and of the node in the pane...
-            editorNote.getMetaData().getTags().remove(TagManager.getInstance().tagForName(tag, null, false));
+            editorNote.getMetaData().getTags().remove(tag);
             // refresh notes list - we might have removed a tag that is used for notes selection
             myEditor.refilterNotesList();
         });
@@ -363,7 +363,8 @@ public class OwnNoteMetaDataEditor {
     private void removeAttachMenu(final String attach) {
         final List<MenuItem> menuList = attachments.getMenus().get(0).getItems().stream().filter((t) -> {
             return ((String) t.getUserData()).equals(attach);
-        }).collect(Collectors.toList());        
+        }).collect(Collectors.toList());
+        
         attachments.getMenus().get(0).getItems().removeAll(menuList);
     }
 
@@ -376,7 +377,7 @@ public class OwnNoteMetaDataEditor {
             try {
                 FileUtils.forceMkdir(new File(OwnNoteFileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR));
             } catch (IOException ex) {
-                Logger.getLogger(OwnNoteMetaDataEditor.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(NoteMetaDataEditor.class.getName()).log(Level.SEVERE, null, ex);
                 return;
             }
             final String fileName = NoteMetaData.getAttachmentPath() + selectedFile.getName();
@@ -398,7 +399,7 @@ public class OwnNoteMetaDataEditor {
                 editorNote.getMetaData().getAttachments().add(file.getName());
                 attachments.getMenus().get(0).show();
             } catch (IOException ex) {
-                Logger.getLogger(OwnNoteMetaDataEditor.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(NoteMetaDataEditor.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }

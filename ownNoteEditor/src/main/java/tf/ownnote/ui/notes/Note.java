@@ -64,7 +64,7 @@ public class Note extends HashMap<String, String> {
     private Note() {
         super();
         
-        setMetaData(new NoteMetaData());
+        setMetaData(new NoteMetaData(this));
     }
     
     public Note(final String groupName, final String noteName) {
@@ -72,7 +72,7 @@ public class Note extends HashMap<String, String> {
         
         setGroupName(groupName);
         setNoteName(noteName);
-        setMetaData(new NoteMetaData());
+        setMetaData(new NoteMetaData(this));
     }
     
     public Note(final Note note) {
@@ -106,10 +106,7 @@ public class Note extends HashMap<String, String> {
             return false;
         }
         final Note other = (Note) obj;
-        if (!NoteGroup.isSameGroup(this.getGroupName(), other.getGroupName()) || !Objects.equals(this.getNoteName(), other.getNoteName())) {
-            return false;
-        }
-        return true;
+        return (Objects.equals(this.getGroupName(), other.getGroupName()) && Objects.equals(this.getNoteName(), other.getNoteName()));
     }
     
     public static String getNoteValueName(final int i) {
@@ -158,7 +155,7 @@ public class Note extends HashMap<String, String> {
         
         // set meta data - was done intially but might now have changed during editing
         if (NoteMetaData.hasMetaDataContent(content)) {
-            setMetaData(NoteMetaData.fromHtmlComment(content));
+            setMetaData(NoteMetaData.fromHtmlComment(this, content));
         }
     }
 
@@ -168,7 +165,11 @@ public class Note extends HashMap<String, String> {
 
     public void setNoteEditorContent(final String content) {
         put(NoteMapKey.noteEditorContent.name(), content);
-        hasUnsavedNoteChanges.set(!HtmlEscape.unescapeHtml(getNoteFileContent()).equals(HtmlEscape.unescapeHtml(getNoteEditorContent())));
+        if (getNoteFileContent() != null && getNoteEditorContent() != null) {
+            hasUnsavedNoteChanges.set(!HtmlEscape.unescapeHtml(getNoteFileContent()).equals(HtmlEscape.unescapeHtml(getNoteEditorContent())));
+        } else {
+            hasUnsavedNoteChanges.set(getNoteFileContent() != getNoteEditorContent());
+        }
     }
 
     public NoteMetaData getMetaData() {

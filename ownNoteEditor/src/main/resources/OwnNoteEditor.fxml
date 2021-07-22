@@ -3,7 +3,6 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.CheckMenuItem?>
-<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.CustomMenuItem?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
@@ -28,7 +27,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.web.WebView?>
 
-<BorderPane fx:id="borderPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="400.0" minWidth="600.0" prefHeight="600.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tf.ownnote.ui.main.OwnNoteEditor">
+<BorderPane fx:id="borderPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="400.0" minWidth="600.0" prefHeight="600.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/15.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tf.ownnote.ui.main.OwnNoteEditor">
    <center>
       <GridPane fx:id="gridPane" prefHeight="600.0" prefWidth="1200.0" BorderPane.alignment="CENTER">
         <columnConstraints>
@@ -47,11 +46,10 @@
                   <StackPane fx:id="tagsTreePaneXML" prefHeight="150.0" prefWidth="200.0" />
                   <StackPane fx:id="leftPaneXML" prefHeight="150.0" prefWidth="200.0">
                      <children>
-                        <TableView fx:id="groupsTableFXML" prefHeight="200.0" prefWidth="200.0" styleClass="groupsTable">
+                        <TableView fx:id="notesTableFXML" prefHeight="200.0" prefWidth="200.0" styleClass="notesTable">
                           <columns>
-                            <TableColumn fx:id="groupNameColFXML" editable="false" prefWidth="75.0" styleClass="groupNameCol" text="Name" />
-                              <TableColumn fx:id="groupDeleteColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="false" styleClass="groupDeleteCol" />
-                              <TableColumn fx:id="groupCountColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="true" styleClass="groupCountCol" text="Count" />
+                            <TableColumn fx:id="noteNameColFXML" editable="false" prefWidth="75.0" styleClass="noteNameCol" text="Name" />
+                            <TableColumn fx:id="noteModifiedColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteModifiedCol" text="Modified" />
                           </columns>
                         </TableView>
                      </children>
@@ -64,14 +62,6 @@
                               <HBox fx:id="noteMetaEditorFXML" maxHeight="30.0" minHeight="30.0" prefHeight="30.0" prefWidth="354.0" styleClass="noteMetaEditor" />
                            </children>
                         </VBox>
-                        <TableView fx:id="notesTableFXML" prefHeight="200.0" prefWidth="200.0" styleClass="notesTable">
-                          <columns>
-                            <TableColumn fx:id="noteNameColFXML" editable="false" prefWidth="75.0" styleClass="noteNameCol" text="Name" />
-                            <TableColumn fx:id="noteModifiedColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteModifiedCol" text="Modified" />
-                              <TableColumn fx:id="noteDeleteColFXML" editable="false" prefWidth="75.0" resizable="false" sortable="false" styleClass="noteDeleteCol" />
-                              <TableColumn fx:id="noteGroupColFXML" editable="false" maxWidth="0.0" minWidth="0.0" prefWidth="0.0" resizable="false" sortable="true" styleClass="noteGroupCol" text="Group" visible="false" />
-                          </columns>
-                        </TableView>
                      </children>
                   </StackPane>
                   <StackPane fx:id="rightPaneXML" prefHeight="150.0" prefWidth="200.0">
@@ -82,52 +72,6 @@
                </items>
             </SplitPane>
             <TabPane fx:id="groupsPaneFXML" disable="true" prefHeight="40.0" prefWidth="496.0" styleClass="groupsPane" tabClosingPolicy="UNAVAILABLE" visible="false" GridPane.columnIndex="2" />
-            <HBox fx:id="buttonBox" alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="2">
-               <children>
-                  <Button fx:id="newButton" mnemonicParsing="false" text="New">
-                     <HBox.margin>
-                        <Insets />
-                     </HBox.margin>
-                  </Button>
-                  <TextField fx:id="noteNameText" disable="true">
-                     <HBox.margin>
-                        <Insets />
-                     </HBox.margin>
-                  </TextField>
-                  <ComboBox fx:id="groupNameBox" disable="true" prefWidth="150.0">
-                     <HBox.margin>
-                        <Insets />
-                     </HBox.margin>
-                  </ComboBox>
-                  <TextField fx:id="groupNameText" disable="true">
-                     <HBox.margin>
-                        <Insets />
-                     </HBox.margin>
-                  </TextField>
-                  <Button fx:id="createButton" disable="true" mnemonicParsing="false" text="Create">
-                     <HBox.margin>
-                        <Insets />
-                     </HBox.margin>
-                  </Button>
-                  <Button fx:id="quickSaveButton" disable="true" mnemonicParsing="false" text="QuickSave">
-                     <HBox.margin>
-                        <Insets />
-                     </HBox.margin>
-                  </Button>
-                  <Button fx:id="saveButton" disable="true" mnemonicParsing="false" text="Save">
-                     <HBox.margin>
-                        <Insets />
-                     </HBox.margin>
-                  </Button>
-                  <Button fx:id="cancelButton" disable="true" mnemonicParsing="false" text="Cancel">
-                     <HBox.margin>
-                        <Insets />
-                     </HBox.margin>
-                  </Button>
-               </children>
-               <padding>
-                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-               </padding></HBox>
             <HBox spacing="10.0" GridPane.columnIndex="1">
                <children>
                   <TextField fx:id="noteFilterText" minWidth="100.0" prefHeight="25.0" prefWidth="180.0" promptText="Search" styleClass="noteFilterText" />
@@ -185,11 +129,10 @@
                   </CustomMenuItem>
                   <Menu fx:id="menuLookAndFeel" mnemonicParsing="false" text="Look &amp; Feel">
                      <items>
-                        <RadioMenuItem fx:id="classicLookAndFeel" mnemonicParsing="false" text="Classic">
+                        <RadioMenuItem fx:id="groupTabsLookAndFeel" mnemonicParsing="false" text="GroupTabs">
                            <toggleGroup>
                               <ToggleGroup fx:id="LookAndFeel" />
                            </toggleGroup></RadioMenuItem>
-                        <RadioMenuItem fx:id="groupTabsLookAndFeel" mnemonicParsing="false" text="GroupTabs" toggleGroup="$LookAndFeel" />
                         <RadioMenuItem fx:id="tagTreeLookAndFeel" mnemonicParsing="false" text="TagTree" toggleGroup="$LookAndFeel" />
                         <MenuItem disable="true" mnemonicParsing="false" text="(restart required)" />
                      </items>

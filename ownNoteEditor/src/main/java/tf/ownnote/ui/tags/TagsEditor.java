@@ -43,20 +43,19 @@ import static tf.helper.javafx.AbstractStage.INSET_TOP_BOTTOM;
 import tf.helper.javafx.EnumHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.main.OwnNoteEditorManager;
-import tf.ownnote.ui.notes.Note;
 
 /**
  * Edit tags & tag structure in a treeview.
  * 
  * @author thomas
  */
-public class TagEditor extends AbstractStage {
-    private final static TagEditor INSTANCE = new TagEditor();
+public class TagsEditor extends AbstractStage {
+    private final static TagsEditor INSTANCE = new TagsEditor();
     
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
     
-    private Note myWorkNote;
+    private ITagHolder myTagHolder;
     
     public enum BulkAction {
         None,
@@ -74,14 +73,14 @@ public class TagEditor extends AbstractStage {
     private final TagsTreeView tagsTreeView = new TagsTreeView();
     private final Button saveBtn = new Button("Save");
 
-    private TagEditor() {
+    private TagsEditor() {
         super();
         // Exists only to defeat instantiation.
         
         initViewer();
     }
 
-    public static TagEditor getInstance() {
+    public static TagsEditor getInstance() {
         return INSTANCE;
     }
 
@@ -125,7 +124,6 @@ public class TagEditor extends AbstractStage {
         
         rowNum++;
         // table to hold tags
-        tagsTreeView.setRenameFunction(TagManager.getInstance()::doRenameTag);
         getGridPane().add(tagsTreeView, 0, rowNum, 2, 1);
         GridPane.setMargin(tagsTreeView, INSET_TOP);
         GridPane.setVgrow(tagsTreeView, Priority.ALWAYS);
@@ -135,10 +133,10 @@ public class TagEditor extends AbstractStage {
         
         saveBtn.setOnAction((ActionEvent arg0) -> {
             // save tags to file
-            if (myWorkNote == null) {
+            if (myTagHolder == null) {
                 TagManager.getInstance().saveTags();
             } else {
-                myWorkNote.getMetaData().setTags(tagsTreeView.getSelectedLeafItems());
+                myTagHolder.setTags(tagsTreeView.getSelectedLeafItems());
                 // refresh notes list - we might have removed a tag that is used for notes selection
                 myEditor.refilterNotesList();
             }
@@ -164,10 +162,10 @@ public class TagEditor extends AbstractStage {
         VBox.setMargin(buttonBox, INSET_TOP_BOTTOM);
     }
     
-    public boolean editTags(final Note workNote) {
+    public boolean editTags(final ITagHolder tagHolder) {
         assert myEditor != null;
         
-        myWorkNote = workNote;
+        myTagHolder = tagHolder;
         
         initTags();
         
@@ -180,7 +178,7 @@ public class TagEditor extends AbstractStage {
         bulkActionChoiceBox.getSelectionModel().select(BulkAction.None);
         applyBulkActionBtn.setDisable(true);
 
-        if (myWorkNote == null) {
+        if (myTagHolder == null) {
             bulkActionChoiceBox.setManaged(true);
             bulkActionChoiceBox.setDisable(false);
             applyBulkActionBtn.setManaged(true);
@@ -191,7 +189,7 @@ public class TagEditor extends AbstractStage {
             bulkActionChoiceBox.setDisable(true);
             applyBulkActionBtn.setManaged(false);
             saveBtn.setText("Set");
-            tagsTreeView.fillTreeView(TagsTreeView.WorkMode.SELECT_MODE, myWorkNote.getMetaData().getTags());
+            tagsTreeView.fillTreeView(TagsTreeView.WorkMode.SELECT_MODE, myTagHolder.getTags());
         }
     }
     
@@ -199,8 +197,7 @@ public class TagEditor extends AbstractStage {
         tagsTreeView.getSelectedItems().stream().forEach((t) -> {
             switch (action) {
                 case Delete:
-                    TagManager.getInstance().doRenameTag(t.getName(), null);
-                    TagManager.getInstance().deleteTag(t);
+                    TagManager.getInstance().renameTag(t, null);
                     break;
             }
         });

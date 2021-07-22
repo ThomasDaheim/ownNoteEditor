@@ -1,31 +1,30 @@
 /*
- * Copyright (c) 2014 Thomas Feuster
- * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. The name of the author may not be used to endorse or promote products
- *    derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *  Copyright (c) 2014ff Thomas Feuster
+ *  All rights reserved.
+ *  
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  1. Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *  3. The name of the author may not be used to endorse or promote products
+ *     derived from this software without specific prior written permission.
+ *  
+ *  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ *  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ *  OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ *  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ *  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ *  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package tf.ownnote.ui.main;
 
-import tf.ownnote.ui.notes.TestNoteData;
 import java.awt.MouseInfo;
 import java.awt.Point;
 import java.io.IOException;
@@ -60,7 +59,7 @@ import org.testfx.framework.junit.ApplicationTest;
 import tf.ownnote.ui.helper.OwnNoteEditorParameters;
 import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.notes.NoteGroup;
+import tf.ownnote.ui.notes.TestNoteData;
 import tf.ownnote.ui.tags.TagData;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tags.TagTextFieldTreeCell;
@@ -91,7 +90,6 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
     
     @Override
     public void start(Stage stage) throws Exception {
-        System.out.println("running start()");
         myStage = stage;
         
         myApp = new OwnNoteEditorManager();
@@ -118,19 +116,17 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 
     @Override
     public void init() throws Exception {
-        System.out.println("running init()");
         super.init();
 
         // get current look & feel and notes path
         try {
-            currentLookAndFeel = OwnNoteEditorParameters.LookAndFeel.valueOf(
-                    OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.classic.name()));
+            currentLookAndFeel = OwnNoteEditorPreferences.RECENT_LOOKANDFEEL.getAsType();
 
-            currentPath = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, "");
+            currentPath = OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH.getAsType();
 //            System.out.println("currentPath: " + currentPath);
 
-            lastGroupName = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.LAST_EDITED_GROUP, "");
-            lastNoteName = OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.LAST_EDITED_NOTE, "");
+            lastGroupName = OwnNoteEditorPreferences.LAST_EDITED_GROUP.getAsType();
+            lastNoteName = OwnNoteEditorPreferences.LAST_EDITED_NOTE.getAsType();
         } catch (SecurityException ex) {
             Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
         }        
@@ -148,10 +144,10 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         }
         
         // set look & feel and notes path name
-        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, OwnNoteEditorParameters.LookAndFeel.tagTree.name());
-        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, testpath.toString());
-        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_GROUP, "");
-        OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_NOTE, "");
+        OwnNoteEditorPreferences.RECENT_LOOKANDFEEL.put(OwnNoteEditorParameters.LookAndFeel.tagTree);
+        OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH.put(testpath.toString());
+        OwnNoteEditorPreferences.LAST_EDITED_GROUP.put("");
+        OwnNoteEditorPreferences.LAST_EDITED_NOTE.put("");
         //System.out.println("testpath: " + testpath.toString());
     }
 
@@ -177,7 +173,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         notesTableFXML = (TableView<Map<String, String>>) find(".notesTable");
         tagsTreeView = (TreeView<TagData>) find(".tagsTreeView");
         
-        allTag = (TagTextFieldTreeCell) find("#" + NoteGroup.ALL_GROUPS);
+        allTag = (TagTextFieldTreeCell) find("#" + TagManager.ALL_GROUPS);
         test1Tag = (TagTextFieldTreeCell) find("#Test1");
         test2Tag = (TagTextFieldTreeCell) find("#Test2");
         test3Tag = (TagTextFieldTreeCell) find("#Test3");
@@ -188,8 +184,6 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
     
     /* IMO, it is quite recommended to clear the ongoing events, in case of. */
     private void tearDown() {
-        System.out.println("running tearDown()");
-
         /* Close the window. It will be re-opened at the next test. */
         release(new KeyCode[] {});
         release(new MouseButton[] {});
@@ -205,19 +199,19 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         
         // set look & feel to old value
         if (currentLookAndFeel != null) {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_LOOKANDFEEL, currentLookAndFeel.name());
+            OwnNoteEditorPreferences.RECENT_LOOKANDFEEL.put(currentLookAndFeel);
         }
         
         // set path name to old value
         if (currentPath != null) {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH, currentPath);
+            OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH.put(currentPath);
         }
         
         if (lastGroupName != null) {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_GROUP, lastGroupName);
+            OwnNoteEditorPreferences.LAST_EDITED_GROUP.put(lastGroupName);
         }
         if (lastNoteName != null) {
-            OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.LAST_EDITED_NOTE, lastNoteName);
+            OwnNoteEditorPreferences.LAST_EDITED_NOTE.put(lastNoteName);
         }
         
         try {
@@ -278,10 +272,11 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         testInitialSetup();
         resetForNextTest();
         
-        testAddDeleteNote();
+        // TFE, 20210411: test rename first - otherwise some strang note selection issue
+        testRenameNote();
         resetForNextTest();
 
-        testRenameNote();
+        testAddDeleteNote();
         resetForNextTest();
 
         // TFE; 20201115: dragging with testfx doesn't work anymore for some time now :-(
@@ -322,11 +317,11 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 
         // #1 ------------------------------------------------------------------
         // check "ALL" tag, that should have 4 entries
-        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.TAG_CHILDREN);
+        testTag(TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS), CheckMode.TAG_CHILDREN);
 
         // #2 ------------------------------------------------------------------
         // check "NOT_GROUPED" tag, that should be empty
-        testTag(NoteGroup.NOT_GROUPED, myTestdata.getNotesCountForGroup(NoteGroup.NOT_GROUPED), CheckMode.TAG_CHILDREN);
+        testTag(TagManager.NOT_GROUPED, myTestdata.getNotesCountForGroup(TagManager.NOT_GROUPED), CheckMode.TAG_CHILDREN);
 
         // #3 ------------------------------------------------------------------
         // check "Test 1" tag, that should have 2 entries
@@ -517,7 +512,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         System.out.println("running testGroups()");
 
         // All, Not Grouped, Test1, Test2, Test3 => 5 tags
-        assertTrue(TagManager.getInstance().tagForName(TagManager.ReservedTagNames.Groups.name(), null, true).getChildren().size() == myTestdata.getGroupsList().size());
+        assertTrue(TagManager.getInstance().tagForName(TagManager.ReservedTagName.Groups.name(), null, true).getChildren().size() == myTestdata.getGroupsList().size());
         assertTrue(tagsTreeView.getRoot().getChildren().get(0).getChildren().size() == myTestdata.getGroupsList().size());
         
 //        // #2 ------------------------------------------------------------------
@@ -546,7 +541,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         System.out.println("running testNotesFilter()");
 
         // leerer filter -> alle sichtbar
-        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.TABLE_ELEMENTS);
+        testTag(TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS), CheckMode.TABLE_ELEMENTS);
         
         //////////////////////////
         // namensfilter
@@ -555,22 +550,22 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         // "Test1" als namensfilter -> 0 sichtbar
         clickOn(noteFilterText);
         write("Test1");
-        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForName("Test1"), CheckMode.TABLE_ELEMENTS);
+        testTag(TagManager.ALL_GROUPS, myTestdata.getNotesCountForName("Test1"), CheckMode.TABLE_ELEMENTS);
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.TABLE_ELEMENTS);
+        testTag(TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS), CheckMode.TABLE_ELEMENTS);
         
         // "SUCH" als namensfilter -> 0 sichtbar
         clickOn(noteFilterText);
         write("SUCH");
-        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForName("SUCH"), CheckMode.TABLE_ELEMENTS);
+        testTag(TagManager.ALL_GROUPS, myTestdata.getNotesCountForName("SUCH"), CheckMode.TABLE_ELEMENTS);
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.TABLE_ELEMENTS);
+        testTag(TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS), CheckMode.TABLE_ELEMENTS);
         
         //////////////////////////
         // inhaltsfilter
@@ -581,17 +576,17 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         // "Test1" als inhaltsfilter -> 2 sichtbar
         clickOn(noteFilterText);
         write("Test1");
-        testTag(NoteGroup.ALL_GROUPS, 2, CheckMode.TABLE_ELEMENTS);
+        testTag(TagManager.ALL_GROUPS, 2, CheckMode.TABLE_ELEMENTS);
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.TABLE_ELEMENTS);
+        testTag(TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS), CheckMode.TABLE_ELEMENTS);
         
         // "SUCH" als inhaltsfilter -> 1 sichtbar
         clickOn(noteFilterText);
         write("SUCH");
-        testTag(NoteGroup.ALL_GROUPS, 1, CheckMode.TABLE_ELEMENTS);
+        testTag(TagManager.ALL_GROUPS, 1, CheckMode.TABLE_ELEMENTS);
         
         // reset everything, PLEASE
         clickOn(noteFilterCheck);
@@ -614,7 +609,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: add a new file to group Test1");
         
         // check new count
-        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS) + 1, CheckMode.BOTH);
+        testTag(TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS) + 1, CheckMode.BOTH);
         
         // #2 ------------------------------------------------------------------
         // delete the new file
@@ -623,7 +618,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: delete the new file");
         
         // check new count
-        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.BOTH);
+        testTag(TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS), CheckMode.BOTH);
         
         // #3 ------------------------------------------------------------------
         // add a new file to a new group
@@ -652,7 +647,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify old count
-        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.BOTH);
+        testTag(TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS), CheckMode.BOTH);
 
         // #5 ------------------------------------------------------------------
         // delete file in editor BUT "Save as new"
@@ -664,7 +659,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify old count
-        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.BOTH);
+        testTag(TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS), CheckMode.BOTH);
         // but with new note name!
         final int newCount = myTestdata.getNotesList().size() + 1;
         final String newName = "New Note " + newCount;
@@ -682,7 +677,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify new count
-        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS) - 1, CheckMode.BOTH);
+        testTag(TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS) - 1, CheckMode.BOTH);
         
         // create back again
         assertTrue(myTestdata.createTestFile(testpath, "[Test1] test1.htm"));
@@ -690,7 +685,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: create back again");
 
         // verify old count
-        testTag(NoteGroup.ALL_GROUPS, myTestdata.getNotesCountForGroup(NoteGroup.ALL_GROUPS), CheckMode.BOTH);
+        testTag(TagManager.ALL_GROUPS, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS), CheckMode.BOTH);
     }
     
     private void resetForNextTest() {

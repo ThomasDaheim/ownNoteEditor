@@ -22,6 +22,7 @@
     task-lane-color: white;
     note-selected-background-color: -fx-base;
     note-selected-font-color: black;
+    icon-color: black;
 }
 
 .nametooltip {
@@ -201,10 +202,18 @@
     -fx-margin: 0;
 }
 
-.tagsBox {
-    -fx-border-radius: 4;
+.tagsPane {
+    -fx-border-radius: 2;
     -fx-border-style: solid;
     -fx-border-color: darkgray;
+    -fx-background-color: white;
+}
+
+.tagsBox {
+    -fx-border-radius: 0;
+    -fx-border-style: none;
+    -fx-border-color: white;
+    -fx-background-color: white;
 }
 
 .tagLabel {
@@ -293,6 +302,9 @@
 .tagsTreeView .tree-cell:filled:hover {
     -fx-background-color: cell_hover_color !important;
 }
+.tag-icon > .glyph-icon {
+    -fx-fill: icon-color;
+}
 
 /* style task data */
 .taskdata > * {
@@ -305,10 +317,40 @@
 .taskdata:noteSelected > * {
     -fx-font-weight: bold;
 }
+
+/* mark task data based on distance to due date */
+.taskdata:overdue > *{
+    -fx-fill: #a94442;
+}
+.taskdata:upcoming > * {
+    -fx-fill: #e90;
+}
+.taskdata:longtime > * {
+    -fx-fill: #093;
+}
+.taskdata:anytime > * {
+}
+/* similar is required for calendar view */
+.calendar-cell:style-1 {
+    -fx-background-color: #a94442;
+    -fx-text-fill: white;
+}
+.calendar-cell:style-2 {
+    -fx-background-color: #e90;
+    -fx-text-fill: white;
+}
+.calendar-cell:style-3 {
+    -fx-background-color: #093;
+    -fx-text-fill: white;
+}
+.calendar-cell:style-4 {
+}
+
 .taskdata-popup {
     -fx-font-size: 0.9em;
 }
-.taskEditor > * {
+.taskEditor > *,
+.tagEditor > * {
     -fx-strikethrough: false !important;
     -fx-font-weight: normal !important;
 }
@@ -333,6 +375,9 @@
     -fx-border-color: darkgray;
     -fx-background-color: white;
 }
+.task-card:focused {
+    -fx-background-color: #97caf0;
+}
 .task-board-lane-header {
     -fx-text-fill: white;
     -fx-alignment: CENTER;
@@ -340,6 +385,29 @@
     -fx-padding: 10 0 10 0;
     -fx-font-weight: bold;
 }
+
+/* calendar styles for tasks */
+.calendar-cell:date-holiday {
+    -fx-background-color: #99ffff !important;
+}
+.calendar-cell:style-1 /* EVENT_OVERDUE */ {
+    -fx-text-fill: black !important;
+    -fx-background-color: #a94442 !important;
+}
+.calendar-cell:style-2 /* EVENT_UPCOMING */ {
+    -fx-text-fill: black !important;
+    -fx-background-color: #e90 !important;
+}
+.calendar-cell:style-3 /* EVENT_LONGTIME */ {
+    -fx-text-fill: black !important;
+    -fx-background-color: #093 !important;
+}
+.calendar-cell:style-4 /* EVENT_ANYTIME */ {
+    -fx-text-fill: black !important;
+    -fx-background-color: #0f0 !important;
+    -fx-opacity: 0.4 !important;
+}
+
 
 /* no scrollbars in webview, please */
 .noteEditor, 

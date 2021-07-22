@@ -20,7 +20,6 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.CheckBoxListCell;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.util.StringConverter;
 import org.controlsfx.control.PopOver;
@@ -68,7 +67,7 @@ public class TaskList {
         final StringConverter<TaskData> converter = new StringConverter<TaskData>() {
             @Override
             public String toString(TaskData task) {
-                return task.getDescription();
+                return task.getDescription() + System.lineSeparator() + TaskCard.getPriorityText(task) + "\t\t" + TaskCard.getDueDateText(task);
             }
 
             // not actually used by CheckBoxListCell
@@ -86,8 +85,11 @@ public class TaskList {
                 public void updateItem(TaskData item, boolean empty) {
                     super.updateItem(item, empty);
                     
+                    // TFE, 20210511: mark based on distance to due date
+                    TaskManager.resetPseudoClassForDueDate(this);
                     if (item != null && !empty) {
                         pseudoClassStateChanged(TaskManager.TASK_COMPLETED, item.isCompleted());
+                        TaskManager.setPseudoClassForDueDate(this, item);
                         
                         final Note currentNote = myEditor.currentNoteProperty().get();
                         if (currentNote != null && currentNote.equals(item.getNote())) {
@@ -126,31 +128,45 @@ public class TaskList {
             
             cell.getStyleClass().add("taskdata");
             
-            final ContextMenu contextMenu = new ContextMenu();
-
-            final MenuItem editTask = new MenuItem("Edit task");
             final PopOver popOver = new PopOver();
-            popOver.setAutoHide(true);
+            popOver.setAutoHide(false);
             popOver.setAutoFix(true);
             popOver.setCloseButtonEnabled(true);
             popOver.setArrowLocation(PopOver.ArrowLocation.TOP_CENTER);
             popOver.setArrowSize(0);
-            editTask.setOnAction(event -> {
-                popOver.setContentNode(new TaskEditor(cell.getItem()));
-                popOver.show(cell);
+            
+            cell.focusedProperty().addListener((ov, oldValue, newValue) -> {
+                if (newValue != null && !newValue.equals(oldValue) && !newValue) {
+                    popOver.hide();
+                }
             });
-            popOver.addEventHandler(KeyEvent.KEY_PRESSED, (t) -> {
-                if (KeyCode.ESCAPE.equals(t.getCode())) {
+            myTaskList.focusedProperty().addListener((ov, oldValue, newValue) -> {
+                if (newValue != null && !newValue.equals(oldValue) && !newValue) {
                     popOver.hide();
                 }
             });
 
-            final MenuItem switchTask = new MenuItem("Change task status");
-            switchTask.setOnAction(event -> {
-                cell.getItem().setCompleted(!cell.getItem().isCompleted());
+            cell.setOnMouseClicked((t) -> {
+                if (!cell.isEmpty() && t.getClickCount() == 2) {
+                    popOver.setContentNode(new TaskDataEditor(cell.getItem()));
+                    popOver.show(cell);
+                }
             });
             
-            contextMenu.getItems().addAll(editTask, switchTask);
+            final ContextMenu contextMenu = new ContextMenu();
+
+            final MenuItem editTask = new MenuItem("Edit task");
+            editTask.setOnAction(event -> {
+                popOver.setContentNode(new TaskDataEditor(cell.getItem()));
+                popOver.show(cell);
+            });
+            popOver.addEventHandler(KeyEvent.KEY_PRESSED, (t) -> {
+                if (TaskDataEditor.isCompleteCode(t.getCode())) {
+                    popOver.hide();
+                }
+            });
+
+            contextMenu.getItems().addAll(editTask);
 
             cell.contextMenuProperty().bind(
                     Bindings.when(cell.emptyProperty())
@@ -186,7 +202,6 @@ public class TaskList {
             // run later - since we might be in TaskManager.initTaskList()
             Platform.runLater(() -> {
                 items.setAll(TaskManager.getInstance().getTaskList());
-                initListData();
             });
         });
         items.setAll(TaskManager.getInstance().getTaskList());

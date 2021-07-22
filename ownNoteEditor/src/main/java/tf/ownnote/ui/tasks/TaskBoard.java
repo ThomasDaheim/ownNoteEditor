@@ -25,10 +25,19 @@
  */
 package tf.ownnote.ui.tasks;
 
+import java.time.LocalTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import javafx.application.Platform;
+import javafx.collections.ListChangeListener;
+import javafx.event.EventHandler;
+import javafx.geometry.HPos;
 import javafx.geometry.Rectangle2D;
 import javafx.geometry.VPos;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.input.DataFormat;
 import javafx.scene.layout.ColumnConstraints;
@@ -40,7 +49,14 @@ import javafx.stage.Screen;
 import javafx.stage.StageStyle;
 import jfxtras.styles.jmetro.JMetro;
 import jfxtras.styles.jmetro.Style;
+import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AbstractStage;
+import tf.helper.javafx.calendarview.CalendarView;
+import tf.helper.javafx.calendarview.CalendarViewEvent;
+import tf.helper.javafx.calendarview.CalenderViewOptions;
+import tf.helper.javafx.calendarview.GermanHolidayProvider;
+import tf.helper.javafx.calendarview.HolidayProviderFactory;
+import tf.helper.javafx.calendarview.ICalendarEvent;
 import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
 import tf.ownnote.ui.main.OwnNoteEditorManager;
 
@@ -74,15 +90,17 @@ public class TaskBoard extends AbstractStage {
         setMinWidth(400.0);
         setMinHeight(200.0);
 
-        Double recentWindowWidth = Double.valueOf(
-                OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_WIDTH, "800"));
-        Double recentWindowHeigth = Double.valueOf(
-                OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_HEIGTH, "600"));
+        Double recentWindowWidth = OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_WIDTH.getAsType();
+        Double recentWindowHeigth = OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_HEIGTH.getAsType();
         final Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
-        Double recentWindowLeft = Double.valueOf(
-                OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_LEFT, String.valueOf((primScreenBounds.getWidth() - recentWindowWidth) / 2.0)));
-        Double recentWindowTop = Double.valueOf(
-                OwnNoteEditorPreferences.getInstance().get(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_TOP, String.valueOf((primScreenBounds.getHeight() - recentWindowHeigth) / 2.0)));
+        Double recentWindowLeft = OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_LEFT.getAsType();
+        if (Double.isNaN(recentWindowLeft)) {
+            recentWindowLeft = (primScreenBounds.getWidth() - recentWindowWidth) / 2.0;
+        }
+        Double recentWindowTop = OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_TOP.getAsType();
+        if (Double.isNaN(recentWindowTop)) {
+            recentWindowTop = (primScreenBounds.getHeight() - recentWindowHeigth) / 2.0;
+        }
         // TFE, 20201011: check that not larger than current screens - might happen with multiple monitors
         if (Screen.getScreensForRectangle(recentWindowLeft, recentWindowTop, recentWindowWidth, recentWindowHeigth).isEmpty()) {
             recentWindowWidth = 800.0;
@@ -98,10 +116,10 @@ public class TaskBoard extends AbstractStage {
         
         setOnCloseRequest((t) -> {
             if (!isMaximized() && !isIconified()) {
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_WIDTH, String.valueOf(getWidth()));
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_HEIGTH, String.valueOf(getHeight()));
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_LEFT, String.valueOf(getX()));
-                OwnNoteEditorPreferences.getInstance().put(OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_TOP, String.valueOf(getY()));
+                OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_WIDTH.put(getWidth());
+                OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_HEIGTH.put(getHeight());
+                OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_LEFT.put(getX());
+                OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_TOP.put(getY());
             }
         });
         
@@ -121,13 +139,84 @@ public class TaskBoard extends AbstractStage {
         }
         getGridPane().getColumnConstraints().addAll(columnConstraints);
 
-        final RowConstraints rowConstraint = new RowConstraints();
-        rowConstraint.setValignment(VPos.TOP);
-        rowConstraint.setVgrow(Priority.ALWAYS);
-        rowConstraint.setFillHeight(true);
-        getGridPane().getRowConstraints().addAll(rowConstraint);
+        final RowConstraints rowConstraint1 = new RowConstraints();
+        rowConstraint1.setVgrow(Priority.NEVER);
+        rowConstraint1.setMinHeight(220);
+        rowConstraint1.setMaxHeight(220);
+        final RowConstraints rowConstraint2 = new RowConstraints();
+        rowConstraint2.setValignment(VPos.TOP);
+        rowConstraint2.setVgrow(Priority.ALWAYS);
+        rowConstraint2.setFillHeight(true);
+        getGridPane().getRowConstraints().addAll(rowConstraint1, rowConstraint2);
 
         int rowNum = 0;
+        // add calendar on top
+        final CalendarView calendar = new CalendarView(YearMonth.now(), 
+                new CalenderViewOptions().setAdditionalMonths(3).setMarkToday(true).setMarkWeekends(true).setShowWeekNumber(true));
+        final ScrollPane calendarView = calendar.getCalendarView();
+        calendarView.setFitToWidth(true);
+        calendarView.setFitToHeight(true);
+        calendarView.setMaxHeight(220);
+        calendarView.setMinHeight(220);
+        calendarView.setPrefHeight(220);
+        // show german holidays in calendar
+        HolidayProviderFactory.getInstance().registerHolidayProvider(Locale.GERMANY, GermanHolidayProvider.getInstance());
+        calendar.addCalendarProviders(Arrays.asList(HolidayProviderFactory.getInstance()));
+
+        // the array trick to avoid "Variables used in lambda should be final or effectively final"
+        boolean [] firstShown = {false};
+        // show tasks as events in calendar
+        // TODO: filter auf offene Tasks
+        TaskManager.getInstance().getTaskList().addListener((ListChangeListener.Change<? extends TaskData> change) -> {
+            if (firstShown[0]) {
+                Platform.runLater(() -> {
+                    // run later - since we might be in TaskManager.initTaskList()
+                    while (change.next()) {
+                        if (change.wasRemoved()) {
+                            final List<ICalendarEvent> temp = new ArrayList<>();
+                            temp.addAll(change.getRemoved());
+                            calendar.removeCalendarEvents(temp);
+                        }
+                        if (change.wasAdded()) {
+                            final List<ICalendarEvent> temp = new ArrayList<>();
+                            temp.addAll(change.getAddedSubList());
+                            calendar.addCalendarEvents(temp);
+                        }
+                        if (change.wasUpdated()) {
+                            // force rebuild of calendar - dates might have changed
+                            calendar.rebuildCalendar();
+                        }
+                    }
+                });
+            }
+        });
+        // show tasks as events on first showing
+        showingProperty().addListener((ov, t, t1) -> {
+            if (!firstShown[0]) {
+                final List<ICalendarEvent> temp = new ArrayList<>();
+                temp.addAll(TaskManager.getInstance().getTaskList());
+                calendar.addCalendarEvents(temp);
+                firstShown[0] = true;
+            }
+        });
+        
+        // update tasks if dropped on a calendar
+        calendar.addEventHandler(new EventHandler<>() {
+            @Override
+            public void handle(CalendarViewEvent t) {
+                if (CalendarViewEvent.OBJECT_DROPPED.equals(t.getEventType()) && t.getDroppedObject() instanceof TaskCard) {
+                    final TaskCard taskCard = ObjectsHelper.uncheckedCast(t.getDroppedObject());
+                    taskCard.getTaskData().setDueDate(t.getDropDate().atTime(LocalTime.now()));
+                }
+            }
+        });
+        
+        getGridPane().add(calendarView, 0, rowNum, statusCount, 1);
+        GridPane.setHalignment(calendarView, HPos.CENTER);
+        GridPane.setVgrow(calendarView, Priority.NEVER);
+        
+        rowNum++;
+        // add task board lanes
         for (int i = 0; i < statusCount; i++) {
             final TaskBoardLane lane = new TaskBoardLane(TaskData.TaskStatus.values()[i]);
             lane.setMinWidth(200.0);

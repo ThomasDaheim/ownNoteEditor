@@ -43,7 +43,6 @@ import tf.helper.javafx.AppClipboard;
 import tf.ownnote.ui.helper.OwnNoteTableView;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.notes.NoteGroup;
 
 /**
  * Add TextFieldTreeCell functionality to CheckBoxTreeCell
@@ -174,7 +173,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
             final TreeCell<TagDataWrapper> treeCell, 
             final TreeView<TagDataWrapper> treeView, 
             final boolean allowReorder) {
-        if (treeCell.getItem() == null || TagManager.isFixedTag(treeCell.getItem().getTagInfo()) || !allowReorder) return;
+        if (treeCell.getItem() == null || TagManager.isFixedTag(treeCell.getItem().getTagData()) || !allowReorder) return;
         
         final TreeItem<TagDataWrapper> draggedItem = treeCell.getTreeItem();
 
@@ -186,7 +185,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
         final ClipboardContent content = new ClipboardContent();
         // store key pressed info in dragboard - no key events during drag & drop!
         // only if child tag is allowed...
-        content.put(DRAG_AND_DROP, String.valueOf(event.isShiftDown() && TagManager.childTagsAllowed(treeCell.getItem().getTagInfo())));
+        content.put(DRAG_AND_DROP, String.valueOf(event.isShiftDown() && TagManager.childTagsAllowed(treeCell.getItem().getTagData())));
         db.setContent(content);
         db.setDragView(treeCell.snapshot(null, null));
         
@@ -204,7 +203,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
         if (treeCell.getItem() == null) return;
         
         if (event.getDragboard().hasContent(DRAG_AND_DROP)) {
-            if (TagManager.isFixedTag(treeCell.getItem().getTagInfo())) return;
+            if (TagManager.isFixedTag(treeCell.getItem().getTagData())) return;
             
             final TreeItem<TagDataWrapper> thisItem = treeCell.getTreeItem();
 
@@ -237,14 +236,14 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
             final Note dragNote = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(OwnNoteTableView.DRAG_AND_DROP));
             
             // note is dragged here - only accept if it hasn't this tag / group already
-            final TagData thisTag = treeCell.getTreeItem().getValue().getTagInfo();
+            final TagData thisTag = treeCell.getTreeItem().getValue().getTagData();
             boolean dropAllowed = true;
             if (TagManager.isAnyGroupTag(thisTag)) {
                 // you can't drop on your own group, on "Groups" or "All" tags
                 // how about other tags that aren't leafs?
                 dropAllowed = !thisTag.getName().equals(dragNote.getGroupName()) && 
                         !TagManager.isGroupsTag(thisTag) && 
-                        !NoteGroup.ALL_GROUPS.equals(thisTag.getName());
+                        !TagManager.ALL_GROUPS.equals(thisTag.getName());
             } else {
                 dropAllowed = !dragNote.getMetaData().getTags().contains(thisTag);
             }
@@ -261,7 +260,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
     }
 
     private void drop(final DragEvent event, final TreeCell<TagDataWrapper> treeCell, final TreeView<TagDataWrapper> treeView) {
-        if (treeCell.getItem() == null || TagManager.isFixedTag(treeCell.getItem().getTagInfo())) return;
+        if (treeCell.getItem() == null || TagManager.isFixedTag(treeCell.getItem().getTagData())) return;
         
         boolean success = true;
         if (event.getDragboard().hasContent(DRAG_AND_DROP)) {
@@ -271,12 +270,12 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
             final TreeItem<TagDataWrapper> draggedItem = dragCell.getTreeItem();
             final TreeItem<TagDataWrapper> draggedItemParent = draggedItem.getParent();
             
-            final TagData draggedTag = draggedItem.getValue().getTagInfo();
+            final TagData draggedTag = draggedItem.getValue().getTagData();
 
             // remove from previous location - but only if not same parent!
             if (!thisItemParent.equals(draggedItemParent)) {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
-                draggedItemParent.getValue().getTagInfo().getChildren().remove(draggedTag);
+                draggedItemParent.getValue().getTagData().getChildren().remove(draggedTag);
             }
 
             // dropping on parent node makes it the first child
@@ -291,19 +290,19 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
                     int oldInParent = thisItem.getParent().getChildren().indexOf(draggedItem);
                     // act on tag lists - RecursiveTreeItem will take care of the rest
                     if (DropPosition.TOP.equals(dropPosition.dropHint)) {
-                        thisItemParent.getValue().getTagInfo().getChildren().add(indexInParent, draggedTag);
+                        thisItemParent.getValue().getTagData().getChildren().add(indexInParent, draggedTag);
                         if (oldInParent > indexInParent) {
                             oldInParent++;
                         }
                     } else {
-                        thisItemParent.getValue().getTagInfo().getChildren().add(indexInParent + 1, draggedTag);
+                        thisItemParent.getValue().getTagData().getChildren().add(indexInParent + 1, draggedTag);
                         if (oldInParent > indexInParent+1) {
                             oldInParent++;
                         }
                     }
                     // now remove old version of dragged tag
                     if (oldInParent > 0) {
-                        thisItemParent.getValue().getTagInfo().getChildren().remove(oldInParent);
+                        thisItemParent.getValue().getTagData().getChildren().remove(oldInParent);
                     }
                 } else {
                     // add as child to target
@@ -320,7 +319,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
             assert myEditor != null;
             
             final Note dragNote = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(OwnNoteTableView.DRAG_AND_DROP));
-            final TagData thisTag = treeCell.getTreeItem().getValue().getTagInfo();
+            final TagData thisTag = treeCell.getTreeItem().getValue().getTagData();
             if (TagManager.isAnyGroupTag(thisTag)) {
                 // if group was also a tag -> remove & add
                 final TagData groupTag = TagManager.getInstance().tagForGroupName(dragNote.getGroupName(), false);
