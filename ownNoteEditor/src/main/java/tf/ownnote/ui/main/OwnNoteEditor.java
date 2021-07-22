@@ -106,6 +106,7 @@ import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
 import tf.ownnote.ui.helper.OwnNoteTabPane;
 import tf.ownnote.ui.helper.OwnNoteTableColumn;
 import tf.ownnote.ui.helper.OwnNoteTableView;
+import tf.ownnote.ui.helper.RecentNoteForGroup;
 import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteMetaDataEditor;
@@ -158,9 +159,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     private final ReadOnlyObjectWrapper<TagData> currentGroupTagProperty = new ReadOnlyObjectWrapper<>(null);
     
     private IGroupListContainer myGroupList = null;
-    
-    // TFE, 20210715: lets store the most recently selected note per group
-    private final Map<String, Note> recentNoteForGroup = new HashMap<>();
     
     // TFE, 20201203: some constants for the different columns of our gridpane
     private static final int TAGTREE_COLUMN = 0;
@@ -305,7 +303,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                 OwnNoteEditorPreferences.LAST_EDITED_GROUP.put(noteHTMLEditor.getEditedNote().getGroupName());
             }
             
-            // TODO: store recent note for group to references
+            // TFE, 20210716: store recent note for group to references
+            OwnNoteEditorPreferences.RECENT_NOTE_FOR_GROUP.put(RecentNoteForGroup.getInstance().toPreferenceString());
 
             // TFE, 20201121: tag info is now stored in a separate file
             TagManager.getInstance().saveTags();
@@ -381,7 +380,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             
         });
         
-        // TODO: get recent note for group from references
+        // TFE, 20210716: get recent note for group from references
+        RecentNoteForGroup.getInstance().fromPreferenceString(OwnNoteEditorPreferences.RECENT_NOTE_FOR_GROUP.getAsType());
     }
 
     //
@@ -814,7 +814,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             TaskManager.getInstance().resetTaskList();
             TagManager.getInstance().resetTagList();
 
-            recentNoteForGroup.clear();
+            RecentNoteForGroup.getInstance().clear();
         }
         
         // scan directory and re-populate lists
@@ -888,7 +888,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         noteHTMLEditor.editNote(curNote);
         noteMetaEditor.editNote(curNote);
         currentNoteProperty.set(curNote);
-        recentNoteForGroup.put(curNote.getGroupName(), curNote);
+        RecentNoteForGroup.getInstance().put(curNote.getGroupName(), curNote);
         
         return result;
     }
@@ -1030,8 +1030,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         notesTable.setGroupNameFilter(groupName);
         
         // TFE, 20210715: select most recent note for this group - if any
-        if (recentNoteForGroup.containsKey(groupName)) {
-            notesTable.selectNote(recentNoteForGroup.get(groupName));
+        if (RecentNoteForGroup.getInstance().containsKey(groupName)) {
+            notesTable.selectNote(RecentNoteForGroup.getInstance().get(groupName));
         }
     }
     

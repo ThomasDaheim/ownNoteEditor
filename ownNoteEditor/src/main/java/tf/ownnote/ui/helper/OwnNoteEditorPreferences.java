@@ -40,9 +40,13 @@ public enum OwnNoteEditorPreferences implements IPreferencesStore {
     RECENT_KANBAN_WINDOW_LEFT("recentKanbanWindowLeft", Double.toString(Double.NaN), Double.class),
     RECENT_KANBAN_WINDOW_TOP("recentKanbanWindowTop", Double.toString(Double.NaN), Double.class),
     // TFE, 20200907: store tab order
-    RECENT_TAB_ORDER("recentTabOrder", "", String.class);
+    RECENT_TAB_ORDER("recentTabOrder", "", String.class),
+    // TFE, 20210716: store recent note per group
+    RECENT_NOTE_FOR_GROUP("recentNoteForGroup", "", String.class);
+    
     public static final String PREF_STRING_PREFIX = "[ ";
     public static final String PREF_STRING_SUFFIX = " ]";
+    public static final String PREF_DATA_SEP = "---";
     public static final String PREF_STRING_SEP = " ::: ";
     
     private final static Preferences MYPREFERENCES = Preferences.userNodeForPackage(OwnNoteEditor.class);
