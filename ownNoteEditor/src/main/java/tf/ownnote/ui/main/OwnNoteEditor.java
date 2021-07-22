@@ -764,7 +764,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             TagManager.getInstance().groupsToTags();
         });
 
-        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v6.0", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v6.1", "https://github.com/ThomasDaheim/ownNoteEditor");
     }
     
     // do everything to show / hide tasklist
