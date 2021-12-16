@@ -34,6 +34,7 @@ import javafx.application.Application;
 import static javafx.application.Application.launch;
 import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.ListChangeListener.Change;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Rectangle2D;
@@ -195,6 +196,12 @@ public class OwnNoteEditorManager extends Application {
                 myStageY = newValue.doubleValue();
             }
         }); 
+        
+        // TFE, 20210724: track changes of number of screens to react to the scenario
+        // editor is shown on second screen, second screen is removed
+        // in this case the stage is resized to zero width & height...
+        Screen.getScreens().addListener((Change<? extends Screen> change) -> {
+        });
     }
 
     public OwnNoteEditor getController() {

@@ -94,7 +94,7 @@ dependencies {
     compile group: 'commons-codec', name: 'commons-codec', version: '1.15'
     compile group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.14'
     compile group: 'org.unbescape', name: 'unbescape', version: '1.1.6.RELEASE'
-    compile group: 'org.jfxtras', name: 'jfxtras-controls', version: '14-r1'
+    compile group: 'org.jfxtras', name: 'jfxtras-controls', version: '15-r2'
     
     // new look & feel for old code :-)
     compile group: 'org.jfxtras', name: 'jmetro', version: '11.6.14'
