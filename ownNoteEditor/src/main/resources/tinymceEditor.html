@@ -102,7 +102,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     ],
                     extended_valid_elements: "form[name|id|action|method|enctype|accept-charset|onsubmit|onreset|target],input[id|name|type|value|size|maxlength|checked|accept|src|width|height|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|onkeyup|onkeydown|required|style],textarea[id|name|rows|cols|maxlength|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|onkeyup|onkeydown|required|style],option[name|id|value|selected|style],select[id|name|type|value|size|maxlength|checked|width|height|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|multiple|style]",
                     toolbar1: "saveNote printNote searchreplace | undo redo | styleselect fontselect fontsizeselect | bold italic underline strikethrough subscript superscript | charmap emoticons",
-                    toolbar2: "forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | table insertCheckBox | link insertImage media insertdatetime hr toc | codesample | visualchars visualblocks code | help",
+                    toolbar2: "forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | table insertCheckBox | link insertImage insertdatetime hr toc | codesample | visualchars visualblocks code | help",
                     menubar: false,
                     branding: false,
                     allow_html_data_urls: true,
@@ -246,25 +246,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             contentChanged = false;
                         });
                         
-                        // TODO: icons not shown
-                        editor.ui.registry.addIcon('insertimageIcon', 
-                            '<svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32.000000 32.000000" preserveAspectRatio="xMidYMid meet"><g transform="translate(0.000000,32.000000) scale(0.100000,-0.100000)" fill="#000000" stroke="none"><path d="M50 160 l0 -110 75 0 c72 0 75 1 63 19 -10 17 -9 23 6 40 11 12 26 21 34 21 12 0 12 4 -3 20 l-18 20 -27 -25 c-14 -14 -32 -25 -40 -25 -8 0 -29 -14 -47 -32 l-33 -32 0 102 0 102 100 0 99 0 4 -57 3 -58 2 63 2 62 -110 0 -110 0 0 -110z"/><path d="M80 221 c0 -27 19 -36 37 -18 18 18 9 37 -18 37 -12 0 -19 -7 -19 -19z"/><path d="M222 94 c-11 -12 -10 -17 2 -30 15 -14 17 -14 32 0 14 14 14 18 0 31 -18 18 -18 18 -34 -1z"/></g></svg>' );
-                        editor.ui.registry.addIcon('insertcheckboxIcon', 
-                            '<svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 50.000000 50.000000" preserveAspectRatio="xMidYMid meet"><g transform="translate(0.000000,50.000000) scale(0.100000,-0.100000)" fill="#000000" stroke="none"><path d="M29 471 l-29 -29 0 -187 0 -187 29 -29 29 -29 190 0 189 0 27 26 26 27 0 189 0 190 -29 29 -29 29 -187 0 -187 0 -29 -29z m409 -23 c17 -17 17 -369 0 -386 -17 -17 -369 -17 -386 0 -8 8 -12 65 -12 189 0 148 3 180 16 193 13 13 45 16 193 16 124 0 181 -4 189 -12z"/><path d="M280 300 c-40 -60 -75 -110 -78 -110 -4 0 -23 17 -44 37 -37 36 -38 36 -58 18 -11 -10 -20 -23 -20 -29 0 -17 113 -126 131 -126 16 0 199 260 199 284 0 15 -29 36 -48 36 -5 0 -42 -49 -82 -110z"/></g></svg>' );
-
-                        // editor.addButton('insertImage', {
-                        //     image: "insertimage.png",
-                        //     tooltip: "Upload image",
-                        //     onPostRender: function() { insertImageButton = this; },
-                        //     onclick: function () {
-                        //         //console.log('JavaScript: insertImage was clicked.');
-                        //         editorCallback.insertImage();
-                        //         //console.log('JavaScript: insertImage done.');
-                        //     }
-                        // });
                         editor.ui.registry.addButton('insertImage', {
-                            image: 'insertimageIcon',
-                            text: 'Image',
+                            icon: 'image',
                             tooltip: 'Upload image',
                             onSetup: function() { insertImageButton = this; },
                             onAction: function () {
@@ -274,22 +257,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             }
                         });
                         
-                        // editor.addButton('insertCheckBox', {
-                        //     image: "insertcheckbox.png",
-                        //     tooltip: "Insert CheckBox",
-                        //     onPostRender: function() { insertCheckBoxButton = this; },
-                        //     onclick: function () {
-                        //         //console.log('JavaScript: insertCheckBox was clicked.');
-                        //         tinymce.activeEditor.execCommand("mceInsertContent", false, "<input type='checkbox'>");
-                        //         // go, tell it to the mountains... above doesn't trigger change, ...
-                        //         contentChanged = true;
-                        //         checkContentChanged()
-                        //         //console.log('JavaScript: insertCheckBox done.');
-                        //     }
-                        // });
                         editor.ui.registry.addButton('insertCheckBox', {
-                            image: "insertcheckboxIcon",
-                            text: "ChkBox",
+                            icon: 'selected',
                             tooltip: "Insert CheckBox",
                             onSetup: function() { insertCheckBoxButton = this; },
                             onAction: function () {
