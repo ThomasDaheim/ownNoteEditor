@@ -28,7 +28,19 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     Author     : Thomas Feuster <thomas@feuster.com>
 */
 
-body {
+/* update for tinymce 5
+   https://stackoverflow.com/questions/1799123/how-to-automatic-resize-tinymce/63746541#63746541 */
+html, body {
+    width    : 100%;
+    height   : 100%;
     margin: 0 !important;
     padding: 0 !important;
 }
+
+/*#editorBase {
+    display : block !important;
+    width   : 100%  !important;
+    height  : 100%  !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}*/

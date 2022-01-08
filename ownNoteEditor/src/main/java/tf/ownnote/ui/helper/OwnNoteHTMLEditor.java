@@ -58,7 +58,6 @@ import javafx.print.PrinterJob;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.ContextMenu;
-import javafx.scene.control.CustomMenuItem;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.input.Clipboard;
@@ -148,7 +147,7 @@ public class OwnNoteHTMLEditor {
     private EditorCallback editorCallback;
     
     // linked list to maintain order of callbacks
-    private List<IFileContentChangeSubscriber> changeSubscribers = new LinkedList<>();
+    private final List<IFileContentChangeSubscriber> changeSubscribers = new LinkedList<>();
     
     // TFE, 20181002: enums to support drag & drop
     // what do we need to do with a file that is dropped on us?
@@ -156,6 +155,8 @@ public class OwnNoteHTMLEditor {
         COPY,
         IMPORT
     }
+    
+    private boolean isDialogueOpen = false;
 
     // what extensions can we accept?
     private static enum AcceptableFileType {
@@ -1075,6 +1076,12 @@ public class OwnNoteHTMLEditor {
         }
     }
     
+    private void toggleDialog(final boolean isOpen) {
+        isDialogueOpen = isOpen;
+        myWebView.setContextMenuEnabled(!isDialogueOpen);
+//        System.out.println("A dialog was " + (isOpen ? "opened" : "closed"));
+    }
+    
     public static String stripHtmlTags(final String input) {
         return input.contains("<") ? TAG_PATTERN.matcher(input).replaceAll("") : input;
     }
@@ -1143,6 +1150,14 @@ public class OwnNoteHTMLEditor {
         
         public void contentChanged(final String newContent) {
             myself.contentChanged(newContent);
+        }
+        
+        public void onOpenWindow() {
+            myself.toggleDialog(true);
+        }
+        
+        public void onCloseWindow() {
+            myself.toggleDialog(false);
         }
     }
 }
