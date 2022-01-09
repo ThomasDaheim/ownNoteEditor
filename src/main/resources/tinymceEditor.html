@@ -74,12 +74,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     toolbar_sticky   : true,
                     width  : '100%',  // Note value is set as "string".
                     height : '100%',  // Note value is set as "string".
-                    resize : false,   // Suggestion: disable the statusbar resizing. :)
-                    autoresize_min_height: 10,
-                    autoresize_max_height: 10,
-                    autoresize_bottom_margin: 0,
-                    autoresize_overflow_padding: 0,
-                    autoresize_on_init: false,
+                    resize : false,
                     readonly: false,
                     forced_root_blocks : false,
                     // solution to the issue that the image added is always stored as 
@@ -89,7 +84,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     plugins: [
                             // TFE, 20210511: add image & image tools plugins
                             "codesample wordcount visualchars textcolor advlist autolink lists link charmap anchor image imagetools",
-                            "searchreplace visualblocks code insertdatetime media table contextmenu autoresize emoticons help toc hr paste"
+                            "searchreplace visualblocks code insertdatetime media table contextmenu emoticons help toc hr paste"
                     ],
                     codesample_languages: [
                         {text: 'HTML/XML', value: 'markup'},
@@ -248,7 +243,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         });
                         
                         editor.on('SetContent', function (ed) { 
-                            resizeEditor();
                             // don't return ed.content - it differs from editor.getContent()!
                             // TF, 20170415: editor.getContent() fails for images!
                             editorCallback.setContentDone(); 
@@ -586,41 +580,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 }
             }
             
-            function resizeEditor(myHeight) {
-                return;
-                // TODO: not yet working with tinymce 5.*
-                myEditor = tinymce.EditorManager.get('mytextarea');
-                
-                if (myEditor) {
-                    if (!myHeight) {            
-                        var targetHeight = window.innerHeight; // Change this to the height of your wrapper element
-                        // TF, 20170411: below code doesn't work on initial loading of text since .mce-* height values are garbage
-                        //var mce_bars_height = 0;
-                        //$('.mce-toolbar, .mce-statusbar, .mce-menubar').each(function(){
-                        //    mce_bars_height += $(this).height();
-                        //});
-                        //window.console.log('mce bars height total: ' + mce_bars_height);                          
-                        //myHeight = targetHeight - mce_bars_height - 8;  // the extra 8 is for margin added between the toolbars
-                        myHeight = targetHeight - 100 - 8;  // the extra 8 is for margin added between the toolbars
-                    }
-                    // myEditor.theme.resizeTo('100%', myHeight);  // sets the dimensions of the editable area
-
-                    console.log('resizeEditor: ' + myHeight + ', ' + window.innerHeight);
-                    $('tox-sidebar-wrap').height(myHeight);
-                    $('tox-edit-area').height(myHeight);
-                    $('#mytextarea_ifr').height(myHeight);
-                    $('.tox-editor-container').height(window.innerHeight);
-                    $('.tox-tinymce').height(window.innerHeight);
-                    $('#editorBase').height(window.innerHeight);
-                    $('body').height(window.innerHeight);
-                    
-                    $('tox-tinymce-aux').height(0);
-                    $('tox-tinymce-aux').width(0);
-                    $('tox-tinymce-aux').hide(0);
-                }
-                console.log('resizeEditor: ' + document.documentElement.innerHTML);
-            }
-            
             function checkContentChanged() {
                 if (contentChanged) {
                     //console.log('Changed content found!')
@@ -636,11 +595,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 checkContentChanged();
                 timerId = window.setTimeout(request, delay);
             }, delay);
-            
-            window.onresize = function() {
-                //console.log('Window was resized! outerWidth: ' + window.outerWidth + " outerHeight " + window.outerHeight);
-                resizeEditor();
-            };
         </script>
     </head>
 
