@@ -222,10 +222,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                 //     }
                                 // }                                
                                 
-                                editorCallback.onOpenWindow();
+                                editorCallback.toggleDialog(true)
                             });
                             editor.on('CloseWindow', function (win) { 
-                                editorCallback.onCloseWindow();
+                                editorCallback.toggleDialog(false)
                             });
                             
                             //console.log('Editor was initialized.');

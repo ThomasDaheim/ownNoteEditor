@@ -123,6 +123,7 @@ public class OwnNoteHTMLEditor {
 
     private WebView myWebView;
     private WebEngine myWebEngine;
+    // needed for use as javascriprt callback
     final private OwnNoteHTMLEditor myself = this;
     
     private HostServices myHostServices = null;
@@ -140,11 +141,6 @@ public class OwnNoteHTMLEditor {
     private OwnNoteEditor myEditor= null;
     
     private Note editedNote;
-    
-    // defy garbage collection of callback functions
-    // https://stackoverflow.com/a/41908133
-    private JavascriptLogger javascriptLogger;
-    private EditorCallback editorCallback;
     
     // linked list to maintain order of callbacks
     private final List<IFileContentChangeSubscriber> changeSubscribers = new LinkedList<>();
@@ -257,16 +253,12 @@ public class OwnNoteHTMLEditor {
                 if (newState == Worker.State.SUCCEEDED && !editorInitialized) {
                     JSObject window = (JSObject) myWebEngine.executeScript("window");
 
-                    javascriptLogger = new JavascriptLogger();
-                    window.setMember("javascriptLogger", javascriptLogger);
+                    window.setMember("editorCallback", myself);
                     wrapExecuteScript(myWebEngine, "console.log = function(message)\n" +
                         "{\n" +
-                        "    javascriptLogger.log(message);\n" +
+                        "    editorCallback.log(message);\n" +
                         "};");
                     //myWebEngine.executeScript("console.log(\"Testmessage\");");
-
-                    editorCallback = new EditorCallback();
-                    window.setMember("editorCallback", editorCallback);
                     
                     wrapExecuteScript(myWebEngine, "initEditor();");
 
@@ -377,43 +369,6 @@ public class OwnNoteHTMLEditor {
         }
     }
     
-    //
-    // javascript callbacks
-    //
-    
-    private void initEditorDone() {
-        editorInitialized = true;
-        
-        while (!myQueue.isEmpty()) {
-            myQueue.poll().run();
-        }
-    }
-
-    private void setContentDone() {
-        setContentDone = true;
-    }
-
-    private void insertMedia() {
-        //System.out.println("insertMedia");
-        final List<String> extFilter = Arrays.asList("*.jpg", "*.png", "*.gif");
-        final List<String> extValues = Arrays.asList("jpg", "png", "gif");
-
-        final FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Embed an image (Size < 1MB)");
-        fileChooser.getExtensionFilters().addAll(
-            new FileChooser.ExtensionFilter("Pictures", extFilter));
-        final File selectedFile = fileChooser.showOpenDialog(null);
-
-        if (selectedFile != null) {
-            if (extValues.contains(FilenameUtils.getExtension(selectedFile.getName()).toLowerCase())) {
-                // we really have selected a picture - now add it
-                // issue #31: we shouldn't add the link but the image data instead!
-                // see https://github.com/dipu-bd/CustomControlFX/blob/master/CustomHTMLEditor/src/org/sandsoft/components/htmleditor/CustomHTMLEditor.java
-                importMediaFile(selectedFile);
-            }                        
-        }
-    }
-    
     /**
      * Imports an image file.
      *
@@ -464,31 +419,6 @@ public class OwnNoteHTMLEditor {
             wrapExecuteScript(myWebEngine, "insertText('" + content + "');");
         } catch (IOException ex) {
             Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-    
-    private void printNote() {
-        assert (myEditor != null);
-        
-        // https://docs.oracle.com/javafx/8/webview/printing.htm
-        PrinterJob job = PrinterJob.createPrinterJob();
-        if (job != null && job.showPrintDialog(myWebView.getScene().getWindow())){
-            myWebEngine.print(job);
-            job.endJob();
-        }
-        myWebView.requestFocus();
-    }
-    
-    private void saveNote() {
-        assert (myEditor != null);
-
-        // we might not have selected a note yet... accelerator always works :-(
-        if (editedNote != null) {
-            editedNote.setNoteEditorContent(getNoteText());
-            if (myEditor.saveNote(editedNote)) {
-                // TFE, 20210224: update editor content since task metadata might have changed!
-                editNote(editedNote, editedNote.getNoteEditorContent(), true);
-            }
         }
     }
     
@@ -842,42 +772,6 @@ public class OwnNoteHTMLEditor {
     // javascript callbacks
     //
     
-    private String getClipboardContent() {
-        // TFE, 20200711: tinyMCE manages an own clipboard. Once something has been copied in tinyMCE the system clipboard is ignored during paste...
-        // https://stackoverrun.com/de/q/9359780#39265109
-        String result = "";
-
-        // We use the AWT clipboard because the FX implementation delivers funky characters when pasting from e.g. Command Prompt and images
-        try {
-            if (myClipboardFx.hasHtml()) {
-                // TFE, 20210624: change from 20210510 breaks html copy & paste...
-                result = myClipboardFx.getHtml();
-            } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
-                result = (String) myClipboardAwt.getData(DataFlavor.stringFlavor);
-                if (!isHtml(result)) {
-                    result = result.replaceAll("(\n|\r|\n\r|\r\n)", "<br />");
-                }
-            } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.imageFlavor)) {
-                // TFE, 20201012: allow pasting of images
-                // issues with images from javafx clipboard: https://bugs.openjdk.java.net/browse/JDK-8223425
-                final BufferedImage img = (BufferedImage) myClipboardAwt.getData(DataFlavor.imageFlavor); 
-                final String base64String;
-                try (ByteArrayOutputStream baos = new ByteArrayOutputStream(1000)) {
-                    ImageIO.write(img, "png", baos);
-                    baos.flush();
-                    base64String = java.util.Base64.getEncoder().encodeToString(baos.toByteArray());
-                }  
-            
-                // duplication of code with javascript method insertMedia - but we can live with that
-                result = "<img src='data:" + "image/png" + ";base64," + base64String + "' >";
-            }
-        } catch (UnsupportedFlavorException | IOException ex) {
-            Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
-        }
-
-        return result;
-    }
-    
     private void populateAttachMenu(final Menu attachMenu) {
         if (attachMenu == null) {
             return;
@@ -897,18 +791,6 @@ public class OwnNoteHTMLEditor {
                 });
                 attachMenu.getItems().add(attachItem);
             }
-        }
-    }
-    
-    private void openLinkInDefaultBrowser(final String url, final String attachment) {
-        // first load is OK :-)
-        if (myHostServices != null && editorInitialized) {
-            String realUrl = url;
-            if ("yes".equals(attachment)) {
-                // replace previous path to attachment folder with current one
-                realUrl = NoteMetaData.getAttachmentPath() + FilenameUtils.getName(url);
-            }
-            myHostServices.showDocument(realUrl);
         }
     }
     
@@ -1045,7 +927,136 @@ public class OwnNoteHTMLEditor {
         return myWebView.visibleProperty();
     }
     
-    private void checkBoxChanged(final String htmlBefore, final String htmlAfter) {
+    public static String stripHtmlTags(final String input) {
+        return input.contains("<") ? TAG_PATTERN.matcher(input).replaceAll("") : input;
+    }
+    
+    /**
+     * See: https://codereview.stackexchange.com/a/112506
+     * Verify if a string contains any HTML characters by comparing its
+     * HTML-escaped version with the original.
+     * @param input the input String
+     * @return boolean  True if the String contains HTML characters
+     */
+    public static boolean isHtml(final String input) {
+        boolean isHtml = false;
+        if (input != null) {
+            isHtml = (!input.equals(HtmlEscape.escapeHtml4(input)) && !input.equals(HtmlEscape.escapeHtml5(input)));
+        }
+        return isHtml;
+    }    
+
+    //
+    // javascript callbacks
+    //
+    
+    public void initEditorDone() {
+        editorInitialized = true;
+        
+        while (!myQueue.isEmpty()) {
+            myQueue.poll().run();
+        }
+    }
+
+    public void setContentDone() {
+        setContentDone = true;
+    }
+
+    public void insertImage() {
+        //System.out.println("insertMedia");
+        final List<String> extFilter = Arrays.asList("*.jpg", "*.png", "*.gif");
+        final List<String> extValues = Arrays.asList("jpg", "png", "gif");
+
+        final FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Embed an image (Size < 1MB)");
+        fileChooser.getExtensionFilters().addAll(
+            new FileChooser.ExtensionFilter("Pictures", extFilter));
+        final File selectedFile = fileChooser.showOpenDialog(null);
+
+        if (selectedFile != null) {
+            if (extValues.contains(FilenameUtils.getExtension(selectedFile.getName()).toLowerCase())) {
+                // we really have selected a picture - now add it
+                // issue #31: we shouldn't add the link but the image data instead!
+                // see https://github.com/dipu-bd/CustomControlFX/blob/master/CustomHTMLEditor/src/org/sandsoft/components/htmleditor/CustomHTMLEditor.java
+                importMediaFile(selectedFile);
+            }                        
+        }
+    }
+    
+    public void printNote() {
+        assert (myEditor != null);
+        
+        // https://docs.oracle.com/javafx/8/webview/printing.htm
+        PrinterJob job = PrinterJob.createPrinterJob();
+        if (job != null && job.showPrintDialog(myWebView.getScene().getWindow())){
+            myWebEngine.print(job);
+            job.endJob();
+        }
+        myWebView.requestFocus();
+    }
+    
+    public void saveNote() {
+        assert (myEditor != null);
+
+        // we might not have selected a note yet... accelerator always works :-(
+        if (editedNote != null) {
+            editedNote.setNoteEditorContent(getNoteText());
+            if (myEditor.saveNote(editedNote)) {
+                // TFE, 20210224: update editor content since task metadata might have changed!
+                editNote(editedNote, editedNote.getNoteEditorContent(), true);
+            }
+        }
+    }
+    
+    public void openLinkInDefaultBrowser(final String url, final String attachment) {
+        // first load is OK :-)
+        if (myHostServices != null && editorInitialized) {
+            String realUrl = url;
+            if ("yes".equals(attachment)) {
+                // replace previous path to attachment folder with current one
+                realUrl = NoteMetaData.getAttachmentPath() + FilenameUtils.getName(url);
+            }
+            myHostServices.showDocument(realUrl);
+        }
+    }
+    
+    public String getClipboardContent() {
+        // TFE, 20200711: tinyMCE manages an own clipboard. Once something has been copied in tinyMCE the system clipboard is ignored during paste...
+        // https://stackoverrun.com/de/q/9359780#39265109
+        String result = "";
+
+        // We use the AWT clipboard because the FX implementation delivers funky characters when pasting from e.g. Command Prompt and images
+        try {
+            if (myClipboardFx.hasHtml()) {
+                // TFE, 20210624: change from 20210510 breaks html copy & paste...
+                result = myClipboardFx.getHtml();
+            } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
+                result = (String) myClipboardAwt.getData(DataFlavor.stringFlavor);
+                if (!isHtml(result)) {
+                    result = result.replaceAll("(\n|\r|\n\r|\r\n)", "<br />");
+                }
+            } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.imageFlavor)) {
+                // TFE, 20201012: allow pasting of images
+                // issues with images from javafx clipboard: https://bugs.openjdk.java.net/browse/JDK-8223425
+                final BufferedImage img = (BufferedImage) myClipboardAwt.getData(DataFlavor.imageFlavor); 
+                final String base64String;
+                try (ByteArrayOutputStream baos = new ByteArrayOutputStream(1000)) {
+                    ImageIO.write(img, "png", baos);
+                    baos.flush();
+                    base64String = java.util.Base64.getEncoder().encodeToString(baos.toByteArray());
+                }  
+            
+                // duplication of code with javascript method insertMedia - but we can live with that
+                result = "<img src='data:" + "image/png" + ";base64," + base64String + "' >";
+            }
+        } catch (UnsupportedFlavorException | IOException ex) {
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return result;
+    }
+    
+    public void checkBoxChanged(final String htmlBefore, final String htmlAfter) {
         // send change note to all subscribes
         for (IFileContentChangeSubscriber subscriber : changeSubscribers) {
             if (!subscriber.processFileContentChange(FileContentChangeType.CHECKBOX_CHANGED, editedNote, htmlBefore, htmlAfter)) {
@@ -1054,7 +1065,7 @@ public class OwnNoteHTMLEditor {
         }
     }
     
-    private void contentChanged(final String newContent) {
+    public void contentChanged(final String newContent) {
         if (editedNote == null) {
             return;
         }
@@ -1076,88 +1087,13 @@ public class OwnNoteHTMLEditor {
         }
     }
     
-    private void toggleDialog(final boolean isOpen) {
+    public void toggleDialog(final boolean isOpen) {
         isDialogueOpen = isOpen;
         myWebView.setContextMenuEnabled(!isDialogueOpen);
 //        System.out.println("A dialog was " + (isOpen ? "opened" : "closed"));
     }
     
-    public static String stripHtmlTags(final String input) {
-        return input.contains("<") ? TAG_PATTERN.matcher(input).replaceAll("") : input;
-    }
-    
-    /**
-     * See: https://codereview.stackexchange.com/a/112506
-     * Verify if a string contains any HTML characters by comparing its
-     * HTML-escaped version with the original.
-     * @param input the input String
-     * @return boolean  True if the String contains HTML characters
-     */
-    public static boolean isHtml(final String input) {
-        boolean isHtml = false;
-        if (input != null) {
-            isHtml = (!input.equals(HtmlEscape.escapeHtml4(input)) && !input.equals(HtmlEscape.escapeHtml5(input)));
-        }
-        return isHtml;
-    }    
-
-    // https://stackoverflow.com/questions/28687640/javafx-8-webengine-how-to-get-console-log-from-javascript-to-system-out-in-ja
-    public class JavascriptLogger
-    {
-        public void log(String text) {
-            System.out.println(text);
-        }
-    }
-    
-    public class EditorCallback
-    {
-        // loading of the editor has been completed - we can run the queue
-        public void initEditorDone() {
-            myself.initEditorDone();
-        }
-        // loading of the content has been completed - we can do ???
-        public void setContentDone() {
-//            System.out.println("Java: setContentDone() called");
-            myself.setContentDone();
-//            System.out.println("Java: setContentDone() done");
-        }
-        public void insertImage() {
-//            System.out.println("Java: insertMedia() called");
-            myself.insertMedia();
-//            System.out.println("Java: insertMedia() done");
-        }
-        public void printNote() {
-//            System.out.println("Java: saveNote() called");
-            myself.printNote();
-//            System.out.println("Java: saveNote() done");
-        }
-        public void saveNote() {
-//            System.out.println("Java: saveNote() called");
-            myself.saveNote();
-//            System.out.println("Java: saveNote() done");
-        }
-        public void openLinkInDefaultBrowser(final String url, final String attachment) {
-            myself.openLinkInDefaultBrowser(url, attachment);
-        }
-        
-        public String getClipboardContent() {
-            return myself.getClipboardContent();
-        }
-        
-        public void checkBoxChanged(final String htmlBefore, final String htmlAfter) {
-            myself.checkBoxChanged(htmlBefore, htmlAfter);
-        }
-        
-        public void contentChanged(final String newContent) {
-            myself.contentChanged(newContent);
-        }
-        
-        public void onOpenWindow() {
-            myself.toggleDialog(true);
-        }
-        
-        public void onCloseWindow() {
-            myself.toggleDialog(false);
-        }
+    public void log(String text) {
+        System.out.println(text);
     }
 }
