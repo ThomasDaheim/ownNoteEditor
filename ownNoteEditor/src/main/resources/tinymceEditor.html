@@ -71,15 +71,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             function initEditor() {
                 tinymce.init({
                     selector: '#mytextarea',
-                    toolbar_sticky   : true,
-                    width  : '100%',  // Note value is set as "string".
-                    height : '100%',  // Note value is set as "string".
-                    resize : false,   // Suggestion: disable the statusbar resizing. :)
+                    toolbar_sticky: true,
+                    width: '99.8%',
                     autoresize_min_height: 10,
                     autoresize_max_height: 10,
                     autoresize_bottom_margin: 0,
                     autoresize_overflow_padding: 0,
                     autoresize_on_init: false,
+                    resize: false,
                     readonly: false,
                     forced_root_blocks : false,
                     // solution to the issue that the image added is always stored as 
@@ -88,7 +87,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     remove_script_host: false,
                     plugins: [
                             // TFE, 20210511: add image & image tools plugins
-                            "codesample wordcount visualchars textcolor advlist autolink lists link charmap anchor image imagetools",
+                            "autoresize codesample wordcount visualchars textcolor advlist autolink lists link charmap anchor image imagetools",
                             "searchreplace visualblocks code insertdatetime media table contextmenu autoresize emoticons help toc hr paste"
                     ],
                     codesample_languages: [
@@ -106,7 +105,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     toolbar2: "forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | table insertCheckBox | link insertImage insertdatetime hr toc | codesample | visualchars visualblocks code | help",
                     menubar: false,
                     branding: false,
-                    statusbar: true,
                     allow_html_data_urls: true,
                     allow_script_urls: true,
                     paste_data_images: true,
@@ -204,33 +202,25 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                 });
                                 $(document.getElementsByClassName("tox tox-silver-sink tox-tinymce-aux")).on("paste", function(el) {
                                 });
-                                
-                                
-                                // iterate dialog data...
-                                // for (const [key1, value1] of Object.entries(win)) {
-                                //     console.log(`Level #1 - ${key1}: ${value1}`);
-                                    
-                                //     if (value1 instanceof Object) {
-                                //         for (const [key2, value2] of Object.entries(value1)) {
-                                //             console.log(`  Level #2 - ${key2}: ${value2}`);
 
-                                //             if (value2 instanceof Object) {
-                                //                 for (const [key3, value3] of Object.entries(value2)) {
-                                //                     console.log(`    Level #3 - ${key3}: ${value3}`);
+                                // TFE, 20181215: for documentation purposes - scanning through all attributes to find handle to new window
+                                //Object.entries(win).forEach(entry => {
+                                //    console.log('key ' + entry[0] + ', value: ' + entry[1]);
 
-                                //                     if (value3 instanceof Object) {
+                                //    if (entry[1] instanceof Object) {
+                                //        Object.entries(entry[1]).forEach(entry => {
+                                //            console.log('  key ' + entry[0] + ', value: ' + entry[1]);
 
-                                //                     }
-                                //                 }                                
-                                //             }
-                                //         }                                
-                                //     }
-                                // }                                
-                                
-                                editorCallback.onOpenWindow();
+                                //            if (entry[1] instanceof Object) {
+                                //                Object.entries(entry[1]).forEach(entry => {
+                                //                    console.log('    key ' + entry[0] + ', value: ' + entry[1]);
+                                //                });
+                                //            }
+                                //        });
+                                //    }
+                                //});
                             });
                             editor.on('CloseWindow', function (win) { 
-                                editorCallback.onCloseWindow();
                             });
                             
                             //console.log('Editor was initialized.');
@@ -365,9 +355,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             function saveSetContent(content, keepCursorPos) {
                 //console.log('JavaScript: saveSetContent was called.');
                 
-                // TFE, 20220108: get current cursor position for later restore
-                // https://jsfiddle.net/gfullam/pv35n988/
-                var lastSelection = tinymce.activeEditor.selection.getBookmark(2, true);
+                // TFE, 20210510: get current cursor position for later restore
+                // https://drujoopress.wordpress.com/2014/08/06/find-cursor-position-inside-tinymce-editor/
+                // var selRng = tinymce.activeEditor.selection.getRng().cloneRange();
+                // var selStart = selRng.startOffset;
+                // var selStartNode = selRng.startContainer;
+                // var selEnd = selRng.endOffset;
+                // var selEndNode = selRng.endContainer;
 
                 tinymce.activeEditor.setContent(unwrapCheckboxes(content));
                 
@@ -379,7 +373,15 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 tinymce.activeEditor.undoManager.clear();
                 
                 if (keepCursorPos) {
-                    tinymce.activeEditor.selection.moveToBookmark(lastSelection);
+                    // TFE, 20210511: not yet working TODO: how to move cursor?
+                    // selRng.setStart(selStartNode, selStart);
+                    // selRng.setEnd(selEndNode, selEnd);
+                    // tinymce.activeEditor.selection.setRng(selRng);
+                    
+                    // const rightArrowKey = 39;
+                    // const event = new KeyboardEvent('keydown',{'key':rightArrowKey});
+                    // var textnode = document.getElementById('mytextarea');
+                    // textnode.dispatchEvent(event);
                 }
                 
                 contentChanged = false;
@@ -587,10 +589,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             }
             
             function resizeEditor(myHeight) {
-                return;
                 // TODO: not yet working with tinymce 5.*
-                myEditor = tinymce.EditorManager.get('mytextarea');
-                
+                return;
+                //console.log('resizeEditor: ' + tinymce.activeEditor);
+                myEditor = tinymce.get('mytextarea');
                 if (myEditor) {
                     if (!myHeight) {            
                         var targetHeight = window.innerHeight; // Change this to the height of your wrapper element
@@ -603,22 +605,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         //myHeight = targetHeight - mce_bars_height - 8;  // the extra 8 is for margin added between the toolbars
                         myHeight = targetHeight - 100 - 8;  // the extra 8 is for margin added between the toolbars
                     }
+                    //console.log('resizeEditor: ' + myHeight);
                     // myEditor.theme.resizeTo('100%', myHeight);  // sets the dimensions of the editable area
-
-                    console.log('resizeEditor: ' + myHeight + ', ' + window.innerHeight);
-                    $('tox-sidebar-wrap').height(myHeight);
-                    $('tox-edit-area').height(myHeight);
-                    $('#mytextarea_ifr').height(myHeight);
-                    $('.tox-editor-container').height(window.innerHeight);
-                    $('.tox-tinymce').height(window.innerHeight);
-                    $('#editorBase').height(window.innerHeight);
-                    $('body').height(window.innerHeight);
-                    
-                    $('tox-tinymce-aux').height(0);
-                    $('tox-tinymce-aux').width(0);
-                    $('tox-tinymce-aux').hide(0);
+                    myEditor.height = targetHeight;  // sets the dimensions of the editable area
                 }
-                console.log('resizeEditor: ' + document.documentElement.innerHTML);
             }
             
             function checkContentChanged() {
@@ -645,9 +635,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     </head>
 
     <body>
-        <form method="post" id="editorBase">
-            <textarea id="mytextarea"></textarea>
-            <iframe src='about:blank' name='dummy' height='0' width='0' hidden></iframe>
-        </form>
+        <textarea id="mytextarea"></textarea>
+        <iframe src='about:blank' name='dummy' height='0' width='0' hidden></iframe>
     </body>
 </html>
