@@ -117,7 +117,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     media_alt_source: false,
                     media_poster: false,
                     // TFE, 20210613: target of links is always default browser of system
-                    // https://andy-carter.com/blog/how-to-remove-the-link-target-options-from-tinymce
                     target_list: false,
                     default_link_target: 'dummy',
                     paste_preprocess : function(plugin, args) {
@@ -186,21 +185,16 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                 // callback to java to open in standard browser
                                 editorCallback.openLinkInDefaultBrowser($(el.target).attr('href'), $(el.target).attr('data-note-attachment'));
                             });
-
+                            // TODO: catch links from help view as well
                             editor.on('OpenWindow', function (win) { 
                                 //console.log('OpenWindow was called.');
-
-                                $(document.getElementsByClassName("tox tox-silver-sink tox-tinymce-aux")).on("click", "a", function(el) {
+                                
+                                //console.log('win: ' + document.getElementById(win.win._id).innerHTML);
+                                $(document.getElementById(win.win._id)).on("click", "a", function(el) {
                                     el.preventDefault();
 
                                     // callback to java to open in standard browser
-                                    // TFE, 20220107: bugfix: we now have 2 parameters here...
-                                    editorCallback.openLinkInDefaultBrowser($(el.target).attr('href'), "no");
-                                });
-
-                                $(document.getElementsByClassName("tox tox-silver-sink tox-tinymce-aux")).on("copy", function(el) {
-                                });
-                                $(document.getElementsByClassName("tox tox-silver-sink tox-tinymce-aux")).on("paste", function(el) {
+                                    editorCallback.openLinkInDefaultBrowser($(el.target).attr('href'));
                                 });
 
                                 // TFE, 20181215: for documentation purposes - scanning through all attributes to find handle to new window
@@ -219,8 +213,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                 //        });
                                 //    }
                                 //});
-                            });
-                            editor.on('CloseWindow', function (win) { 
                             });
                             
                             //console.log('Editor was initialized.');
@@ -264,7 +256,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         // });
                         editor.ui.registry.addButton('insertImage', {
                             image: 'insertimageIcon',
-                            text: 'Image',
+                            text: 'Upload image',
                             tooltip: 'Upload image',
                             onSetup: function() { insertImageButton = this; },
                             onAction: function () {
@@ -289,7 +281,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         // });
                         editor.ui.registry.addButton('insertCheckBox', {
                             image: "insertcheckboxIcon",
-                            text: "ChkBox",
+                            text: "Insert CheckBox",
                             tooltip: "Insert CheckBox",
                             onSetup: function() { insertCheckBoxButton = this; },
                             onAction: function () {
@@ -302,6 +294,16 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             }
                         });
                         
+                        // editor.addButton('printNote', {
+                        //     icon: 'print',
+                        //     tooltip: "Print note",
+                        //     onPostRender: function() { printNoteButton = this; },
+                        //     onclick: function () {
+                        //         //console.log('JavaScript: printNote was clicked.');
+                        //         editorCallback.printNote();
+                        //         //console.log('JavaScript: printNote done.');
+                        //     }
+                        // });
                         editor.ui.registry.addButton('printNote', {
                             icon: 'print',
                             tooltip: "Print note",
@@ -313,6 +315,16 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             }
                         });
                         
+                        // editor.addButton('saveNote', {
+                        //     icon: 'save',
+                        //     tooltip: "Save note",
+                        //     onPostRender: function() { saveNoteButton = this; },
+                        //     onclick: function () {
+                        //         //console.log('JavaScript: saveNote was clicked.');
+                        //         editorCallback.saveNote();
+                        //         //console.log('JavaScript: saveNote done.');
+                        //     }
+                        // });
                         editor.ui.registry.addButton('saveNote', {
                             icon: 'save',
                             tooltip: "Save note",
