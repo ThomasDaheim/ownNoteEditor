@@ -310,7 +310,7 @@ public class OwnNoteHTMLEditor {
         });
         myWebEngine.setUserStyleSheetLocation(OwnNoteHTMLEditor.class.getResource("/editor.min.css").toString());
 
-        final String editor_script = OwnNoteHTMLEditor.class.getResource("/tinymceEditor.html").toExternalForm();
+        final String editor_script = OwnNoteHTMLEditor.class.getResource("/tinymceEditor.min.html").toExternalForm();
         myWebView.getEngine().load(editor_script);
     }
     
