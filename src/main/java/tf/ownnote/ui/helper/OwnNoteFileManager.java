@@ -76,6 +76,10 @@ import tf.ownnote.ui.tasks.TaskManager;
 public class OwnNoteFileManager implements INoteCRMDS {
     private final static OwnNoteFileManager INSTANCE = new OwnNoteFileManager();
     
+    // TFE, 20220108: upgrade notes to full html...
+    private final static String MINIMAL_HTML_PREFIX = "<!doctype html><html lang=\"en\"><head><meta charset=utf-8><title>&lmr;</title></head><body>";
+    private final static String MINIMAL_HTML_SUFFIX = "</body>";
+    
     public final static String NOTE_EXT = "htm";
     public final static String ALL_NOTES = "*." + NOTE_EXT;
     
@@ -217,6 +221,11 @@ public class OwnNoteFileManager implements INoteCRMDS {
                     new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
             // use https://stackoverflow.com/a/19486413 to quickly read first line from file
             result = in.readLine();
+            
+            // TFE, 20220108: upgrade notes to full html...
+            if (result.startsWith(MINIMAL_HTML_PREFIX)) {
+                result = result.replaceFirst(MINIMAL_HTML_PREFIX, "");
+            }
         } catch (IOException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -390,6 +399,11 @@ public class OwnNoteFileManager implements INoteCRMDS {
     public Note readNote(final Note curNote, final boolean forceRead) {
         assert curNote != null;
         
+        // only way to debug when you have a long list of notes...
+//        if ("ownNotesWin".equals(curNote.getNoteName())) {
+//            System.out.println("Found you");
+//        }
+
         // TFE, 20201231: only read if you really have to
         if (curNote.getNoteFileContent() == null || forceRead) {
             final StringBuffer result = new StringBuffer("");
@@ -420,9 +434,19 @@ public class OwnNoteFileManager implements INoteCRMDS {
                     Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
+            
+            // TFE, 20220108: upgrade notes to full html...
+            String fullContent = result.toString();
+            if (fullContent.startsWith(MINIMAL_HTML_PREFIX)) {
+                fullContent = fullContent.replaceFirst(MINIMAL_HTML_PREFIX, "");
+            }
+            if (fullContent.endsWith(MINIMAL_HTML_SUFFIX)) {
+                assert fullContent.length() > MINIMAL_HTML_SUFFIX.length();
+                fullContent = fullContent.substring(0, fullContent.length() - MINIMAL_HTML_SUFFIX.length());
+            }
 
             // TFE; 20200814: store content in Note
-            curNote.setNoteFileContent(result.toString());
+            curNote.setNoteFileContent(fullContent);
             
             // TFE, 20210121: things get too complicated with metadata - at least check file consistency
             if (!VerifyNoteContent.getInstance().verifyNoteFileContent(curNote) && myEditor != null) {
@@ -463,7 +487,11 @@ public class OwnNoteFileManager implements INoteCRMDS {
         note.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), LocalDateTime.now()));
         // TFE, 20201217: from now on you're UTF-8
         note.getMetaData().setCharset(StandardCharsets.UTF_8);
-        final String fullContent = NoteMetaData.toHtmlComment(note.getMetaData()) + content;
+        // TFE, 20220108: upgrade notes to full html...
+        final String fullContent = 
+                MINIMAL_HTML_PREFIX + 
+                NoteMetaData.toHtmlComment(note.getMetaData()) + content +
+                MINIMAL_HTML_SUFFIX;
 
         // TFE, 20201217: make sure we write UTF-8...
 //            final Path savePath = Files.write(Paths.get(this.notesPath, newFileName), fullContent.getBytes());
