@@ -303,6 +303,9 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 System.out.println("No tag for reserved name " + tagName + " found. Initializing...");
             }
             
+            // TFE, 20220122: need to put before testing for missing tags...
+            reservedTags.put(reservedTag, tag);
+
             if (TagManager.ReservedTagName.Groups.name().equals(tag.getName())) {
                 // store for later use
                 groupTags.setAll(tag.getChildren());
@@ -335,8 +338,6 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                     createTagAtPosition(NOT_GROUPED, true, 1);
                 }
             }
-            
-            reservedTags.put(reservedTag, tag);
         }
 
         // backlink all parents recursively

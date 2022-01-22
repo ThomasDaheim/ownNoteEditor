@@ -75,6 +75,7 @@ dependencies {
 //    def javafx_version='11.0.2'
 //    def javafx_version='14'
     def javafx_version='15.0.1'
+//    def javafx_version='17.0.1'
     compile "org.openjfx:javafx-base:$javafx_version:$platform"
     compile "org.openjfx:javafx-graphics:$javafx_version:$platform"
     compile "org.openjfx:javafx-controls:$javafx_version:$platform"
@@ -95,6 +96,7 @@ dependencies {
     compile group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.14'
     compile group: 'org.unbescape', name: 'unbescape', version: '1.1.6.RELEASE'
     compile group: 'org.jfxtras', name: 'jfxtras-controls', version: '15-r2'
+    implementation group: 'org.controlsfx', name: 'controlsfx', version: '11.1.1'
     
     // new look & feel for old code :-)
     compile group: 'org.jfxtras', name: 'jmetro', version: '11.6.14'

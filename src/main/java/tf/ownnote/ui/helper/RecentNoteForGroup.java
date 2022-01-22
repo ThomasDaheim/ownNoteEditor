@@ -50,7 +50,11 @@ public class RecentNoteForGroup extends HashMap<String, Note> {
     public String toPreferenceString() {
         return OwnNoteEditorPreferences.PREF_STRING_PREFIX + 
                 entrySet().stream().map((t) -> {
-                    return t.getKey() + OwnNoteEditorPreferences.PREF_DATA_SEP + t.getValue().getNoteName();
+                    if (t.getValue() != null) {
+                        return t.getKey() + OwnNoteEditorPreferences.PREF_DATA_SEP + t.getValue().getNoteName();
+                    } else {
+                        return null;
+                    }
                 }).collect( Collectors.joining(OwnNoteEditorPreferences.PREF_STRING_SEP)) +
                 OwnNoteEditorPreferences.PREF_STRING_SUFFIX;
     }
