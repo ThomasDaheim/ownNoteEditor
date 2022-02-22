@@ -17,25 +17,25 @@ buildscript {
     }
 }
 
-//// Use a plugin (https://github.com/crotwell/gradle-macappbundle) to create a Mac OS X .app and .dmg
-plugins {
-    id "edu.sc.seis.macAppBundle" version "2.1.5"
-}
-
-macAppBundle {
-    mainClassName   = "tf.ownnote.ui.main.OwnNoteEditorManager"
-    icon            = "src/main/resources/ownNoteEditor.icns"
-    volumeName      = "ownNoteEditor"
-    dmgName         = "ownNoteEditor"
-    // TFE, 20200504: some change in Gradle now requires values for below attributes - but I have no clue what to put here...
-    backgroundImage = "TBD"
-    certIdentity    = "TBD"
-    jreHome         = "TBD"
-    keyChain        = "TBD"
-    javaProperties.put("apple.laf.useScreenMenuBar", "true")
-    // Uncomment the next line to bundle the JRE with the Mac OS X application
-    //bundleJRE     = true
-}
+// TFE, 20220122: leads to errors with gradle 7.*...
+// // Use a plugin (https://github.com/crotwell/gradle-macappbundle) to create a Mac OS X .app and .dmg
+// plugins {
+//     id "edu.sc.seis.macAppBundle" version "2.3.0"
+// }
+// macAppBundle {
+//     mainClassName   = "tf.ownnote.ui.main.OwnNoteEditorManager"
+//     icon            = "src/main/resources/ownNoteEditor.icns"
+//     volumeName      = "ownNoteEditor"
+//     dmgName         = "ownNoteEditor"
+//     // TFE, 20200504: some change in Gradle now requires values for below attributes - but I have no clue what to put here...
+//     backgroundImage = "TBD"
+//     certIdentity    = "TBD"
+//     jreHome         = "TBD"
+//     keyChain        = "TBD"
+//     javaProperties.put("apple.laf.useScreenMenuBar", "true")
+//     // Uncomment the next line to bundle the JRE with the Mac OS X application
+//     //bundleJRE     = true
+// }
 
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
@@ -76,37 +76,36 @@ dependencies {
 //    def javafx_version='14'
     def javafx_version='15.0.1'
 //    def javafx_version='17.0.1'
-    compile "org.openjfx:javafx-base:$javafx_version:$platform"
-    compile "org.openjfx:javafx-graphics:$javafx_version:$platform"
-    compile "org.openjfx:javafx-controls:$javafx_version:$platform"
-    compile "org.openjfx:javafx-fxml:$javafx_version:$platform"
-    compile "org.openjfx:javafx-swing:$javafx_version:$platform"
-    compile "org.openjfx:javafx-web:$javafx_version:$platform"
-    compile "org.openjfx:javafx-media:$javafx_version:$platform"
+    implementation "org.openjfx:javafx-base:$javafx_version:$platform"
+    implementation "org.openjfx:javafx-graphics:$javafx_version:$platform"
+    implementation "org.openjfx:javafx-controls:$javafx_version:$platform"
+    implementation "org.openjfx:javafx-fxml:$javafx_version:$platform"
+    implementation "org.openjfx:javafx-swing:$javafx_version:$platform"
+    implementation "org.openjfx:javafx-web:$javafx_version:$platform"
+    implementation "org.openjfx:javafx-media:$javafx_version:$platform"
     
     // TFE, 20200809: use our own helper library
-    compile 'tf.JavaHelper:JavaHelper:1.14'
+    implementation 'tf.JavaHelper:JavaHelper:1.14'
 
-    compile 'org.slf4j:slf4j-api:1.7.12'
-    compile 'commons-cli:commons-cli:1.4'
-    compile 'commons-io:commons-io:2.6'
-    compile 'org.apache.commons:commons-lang3:3.9'
-    compile group: 'org.apache.commons', name: 'commons-text', version: '1.8'
-    compile group: 'commons-codec', name: 'commons-codec', version: '1.15'
-    compile group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.14'
-    compile group: 'org.unbescape', name: 'unbescape', version: '1.1.6.RELEASE'
-    compile group: 'org.jfxtras', name: 'jfxtras-controls', version: '15-r2'
+    implementation 'commons-cli:commons-cli:1.5.0'
+    implementation 'commons-io:commons-io:2.11.0'
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.9'
+    implementation group: 'commons-codec', name: 'commons-codec', version: '1.15'
+    implementation group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.18'
+    implementation group: 'org.unbescape', name: 'unbescape', version: '1.1.6.RELEASE'
+    implementation group: 'org.jfxtras', name: 'jfxtras-controls', version: '15-r2'
     implementation group: 'org.controlsfx', name: 'controlsfx', version: '11.1.1'
     
     // new look & feel for old code :-)
-    compile group: 'org.jfxtras', name: 'jmetro', version: '11.6.14'
-    compile 'de.jensd:fontawesomefx:8.9'
+    implementation group: 'org.jfxtras', name: 'jmetro', version: '11.6.15'
+    implementation 'de.jensd:fontawesomefx:8.9'
 
-    testCompile "org.testfx:testfx-junit:4.0.+"
-    testCompile "org.testfx:testfx-core:4.0.+"
-    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.6.2'
+    testImplementation "org.testfx:testfx-junit:4.0.+"
+    testImplementation "org.testfx:testfx-core:4.0.+"
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.6.2'
     // TFE, 20210121: capture System.err() easily
-    testCompile group: 'com.github.stefanbirkner', name: 'system-lambda', version: '1.2.0'
+    testImplementation group: 'com.github.stefanbirkner', name: 'system-lambda', version: '1.2.0'
 }
 
 
@@ -155,6 +154,8 @@ def newArgs = [ '--add-modules', 'javafx.controls,javafx.graphics,javafx.base,ja
 // extend Netbeans Gradle "Run" task
 run {
     doFirst {
+        // show loaded jars & classes
+//        jvmArgs = jvmArgs.plus(['--module-path', classpath.asPath, '-Xlog:class+load=info:classloaded.txt',])
         jvmArgs = jvmArgs.plus(['--module-path', classpath.asPath,])
         jvmArgs = jvmArgs.plus(newArgs)
         enableAssertions = true

@@ -32,6 +32,7 @@ import javafx.scene.Cursor;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.MapValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
@@ -91,6 +92,18 @@ public class OwnNoteTableColumn {
     private void initTableColumn() {
         // default is not editable
         myTableColumn.setEditable(false);
+        
+        // TFE, 20220222: remove space for invisible columns
+        myTableColumn.visibleProperty().addListener((ov, oldValue, newValue) -> {
+            if (newValue != null & !newValue.equals(oldValue)) {
+                // remove/disable column from table
+                if (newValue) {
+                    myTableColumn.setMaxWidth(5000);
+                } else {
+                    myTableColumn.setMaxWidth(0);
+                }
+            }
+        });
     }
 
     /* Required getter and setter methods are forwarded to internal TableView */

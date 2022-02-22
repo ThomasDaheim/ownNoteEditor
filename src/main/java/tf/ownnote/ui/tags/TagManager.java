@@ -244,7 +244,6 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             // load from xml AND from current metadata
             final XStream xstream = new XStream(new PureJavaReflectionProvider(), new DomDriver("UTF-8"));
             xstream.setMode(XStream.XPATH_RELATIVE_REFERENCES);
-            XStream.setupDefaultSecurity(xstream);
             final Class<?>[] classes = new Class[] { 
                 TagData.class, 
                 ObservableListWrapper.class, 
@@ -409,7 +408,6 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         // save to xml
         final XStream xstream = new XStream(new DomDriver("UTF-8"));
         xstream.setMode(XStream.XPATH_RELATIVE_REFERENCES);
-        XStream.setupDefaultSecurity(xstream);
         final Class<?>[] classes = new Class[] { 
             TagData.class, 
             ObservableListWrapper.class, 
