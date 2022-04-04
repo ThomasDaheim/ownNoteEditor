@@ -163,18 +163,18 @@ public class TestTagManager {
 
             // change attributes
             testChangeType.clear();
-            System.out.println("\ntestGroupChangeListeners: setName of group #1");
+//            System.out.println("\ntestGroupChangeListeners: setName of group #1");
             groupTags.get(0).setName("DUMMY");
             Assert.assertEquals("Attribue has changed", "DUMMY", groupTags.get(0).getName());
             Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
             testChangeType.clear();
-            System.out.println("\ntestGroupChangeListeners: resetName of group #1");
+//            System.out.println("\ntestGroupChangeListeners: resetName of group #1");
             groupTags.get(0).setName(TagManager.ALL_GROUPS);
             Assert.assertEquals("Attribue has changed", TagManager.ALL_GROUPS, groupTags.get(0).getName());
             Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
 
             testChangeType.clear();
-            System.out.println("\ntestGroupChangeListeners: setName of group #2");
+//            System.out.println("\ntestGroupChangeListeners: setName of group #2");
             groupTags.get(1).setName("DUMMY");
             Assert.assertEquals("Attribue has changed", "DUMMY", groupTags.get(1).getName());
             Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
@@ -182,14 +182,14 @@ public class TestTagManager {
 
             // add a non-group child
             testChangeType.clear();
-            System.out.println("\ntestGroupChangeListeners: add non-group child to group #1");
+//            System.out.println("\ntestGroupChangeListeners: add non-group child to group #1");
             groupTags.get(0).getChildren().add(TagManager.getInstance().createTag("TEST_CHILD_1", false));
             // "ADDED" for children list change
             Assert.assertEquals("Children have been added", ChangeType.ADDED, testChangeType.get(0));
 
             // remove tag by deleting it -> no change triggered, since getChildren not in property extractor
             testChangeType.clear();
-            System.out.println("\ntestGroupChangeListeners: remove non-group child from group #1");
+//            System.out.println("\ntestGroupChangeListeners: remove non-group child from group #1");
             TagManager.getInstance().renameTag(groupTags.get(0).getChildren().get(0), null);
             // "REMOVED" for children
             Assert.assertEquals("Children have been removed", ChangeType.REMOVED, testChangeType.get(0));
@@ -197,7 +197,7 @@ public class TestTagManager {
 
             // add a group child -> change triggered BUT on groupTags level since its also added directly to the group root tag
             testChangeType.clear();
-            System.out.println("\ntestGroupChangeListeners: add group child to group #1");
+//            System.out.println("\ntestGroupChangeListeners: add group child to group #1");
             final TagData groupChild = TagManager.getInstance().createTag("TEST_CHILD_2", true);
             groupTags.get(1).getChildren().add(groupChild);
             // "ADDED" from add to list
@@ -211,7 +211,7 @@ public class TestTagManager {
             Assert.assertEquals("Size of group list should have increased", 6, groupTags.size());
 
             testChangeType.clear();
-            System.out.println("\ntestGroupChangeListeners: remove group child from group #1");
+//            System.out.println("\ntestGroupChangeListeners: remove group child from group #1");
             TagManager.getInstance().renameTag(groupChild, null);
             // "REMOVED" for children
             Assert.assertEquals("\"REMOVED\" 1. from implicit .remove() for new name null", ChangeType.REMOVED, testChangeType.get(0));
@@ -221,7 +221,7 @@ public class TestTagManager {
             Assert.assertTrue("No more children", groupTags.get(1).getChildren().isEmpty());
         }
         finally {
-            System.out.println("\ntestGroupChangeListeners: cleaning up after test");
+//            System.out.println("\ntestGroupChangeListeners: cleaning up after test");
             groupTags.removeListener(tagTestListener);
             groupTags.get(0).getChildren().removeListener(tagTestListener2);
             groupTags.get(1).getChildren().removeListener(tagTestListener2);
@@ -236,7 +236,7 @@ public class TestTagManager {
             
             // rebuild tag tree as from metadata
             testChangeType.clear();
-            System.out.println("\ntestLocalTagTreeListener: creating local tag tree");
+//            System.out.println("\ntestLocalTagTreeListener: creating local tag tree");
             final TagData groups = TagManager.getInstance().tagForName("LGroups", null, true);
             
             final TagData all = TagManager.getInstance().createTag("LAll", true);
@@ -254,7 +254,7 @@ public class TestTagManager {
             
             // rename group root tag
             testChangeType.clear();
-            System.out.println("\ntestLocalTagTreeListener: rename group root");
+//            System.out.println("\ntestLocalTagTreeListener: rename group root");
             groups.setName("DUMMY");
             Assert.assertEquals("Attribue has changed", "DUMMY", groups.getName());
             Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
@@ -265,14 +265,14 @@ public class TestTagManager {
             
             // change attributes
             testChangeType.clear();
-            System.out.println("\ntestLocalTagTreeListener: rename group tag #1");
+//            System.out.println("\ntestLocalTagTreeListener: rename group tag #1");
             tagsList.get(0).setName("DUMMY");
             Assert.assertEquals("Attribue has changed", "DUMMY", tagsList.get(0).getName());
             Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
             tagsList.get(0).setName("LAll");
 
             testChangeType.clear();
-            System.out.println("\ntestTagChangeListeners: rename group tag #3");
+//            System.out.println("\ntestTagChangeListeners: rename group tag #3");
             tagsList.get(1).setName("DUMMY");
             Assert.assertEquals("Attribue has changed", "DUMMY", tagsList.get(1).getName());
             Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
@@ -281,7 +281,7 @@ public class TestTagManager {
             // add a non-group child
             int tagChildren = tagsList.get(0).getChildren().size();
             testChangeType.clear();
-            System.out.println("\ntestTagChangeListeners: add non-group child to group #1");
+//            System.out.println("\ntestTagChangeListeners: add non-group child to group #1");
             TagData newChild1 = TagManager.getInstance().createTag("TEST_CHILD_1", false);
             tagsList.get(0).getChildren().add(newChild1);
             // "ADDED"
@@ -289,7 +289,7 @@ public class TestTagManager {
 
             // change attributes of created tag
             testChangeType.clear();
-            System.out.println("\ntestTagChangeListeners: rename TEST_CHILD_1");
+//            System.out.println("\ntestTagChangeListeners: rename TEST_CHILD_1");
             newChild1.setName("DUMMY");
             Assert.assertEquals("Attribue has changed", "DUMMY", newChild1.getName());
             Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
@@ -297,7 +297,7 @@ public class TestTagManager {
 
             // remove tag by deleting it -> change triggered, since getChildren in property extractor
             testChangeType.clear();
-            System.out.println("\ntestTagChangeListeners: remove non-group child from group #1");
+//            System.out.println("\ntestTagChangeListeners: remove non-group child from group #1");
             TagManager.getInstance().renameTag(newChild1, null);
             // "REMOVED"
             Assert.assertEquals("\"REMOVED\" 1. from implicit .remove() for new name null", ChangeType.REMOVED, testChangeType.get(0));
@@ -305,20 +305,20 @@ public class TestTagManager {
 
             // add a group child -> change triggered BUT on groupTags level since its also added directly to the group root tag
             testChangeType.clear();
-            System.out.println("\ntestTagChangeListeners: add group child to group #1");
+//            System.out.println("\ntestTagChangeListeners: add group child to group #1");
             TagData newChild2 = TagManager.getInstance().createTag("TEST_CHILD_2", true);
             tagsList.get(1).getChildren().add(newChild2);
             // "ADDED"
             Assert.assertEquals("\"ADDED\" 1. from .add()", ChangeType.ADDED, testChangeType.get(0));
 
             testChangeType.clear();
-            System.out.println("\ntestTagChangeListeners: remove group child from group #1");
+//            System.out.println("\ntestTagChangeListeners: remove group child from group #1");
             TagManager.getInstance().renameTag(newChild2, null);
             // "REMOVED" fourth from implicit clear to tagTestListener from flatTags.setAll
             Assert.assertEquals("\"REMOVED\" 1. from implicit .remove() for new name null", ChangeType.REMOVED, testChangeType.get(0));
         }
         finally {
-            System.out.println("\ntestTagChangeListeners: cleaning up after test");
+//            System.out.println("\ntestTagChangeListeners: cleaning up after test");
             TagManager.getInstance().removeListener(tagTestListener);
             testChangeType.clear();
         }
@@ -334,7 +334,7 @@ public class TestTagManager {
 
             // rename group root tag
             testChangeType.clear();
-            System.out.println("\ntestTagChangeListeners: rename group root");
+//            System.out.println("\ntestTagChangeListeners: rename group root");
             groupRoot.setName("DUMMY");
             Assert.assertEquals("Attribue has changed", "DUMMY", groupRoot.getName());
             Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
@@ -345,14 +345,14 @@ public class TestTagManager {
 
             // change attributes
             testChangeType.clear();
-            System.out.println("\ntestTagChangeListeners: rename group tag #1");
+//            System.out.println("\ntestTagChangeListeners: rename group tag #1");
             tagsList.get(0).setName("DUMMY");
             Assert.assertEquals("Attribue has changed", "DUMMY", tagsList.get(0).getName());
             Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
             tagsList.get(0).setName(TagManager.ALL_GROUPS);
 
             testChangeType.clear();
-            System.out.println("\ntestTagChangeListeners: rename group tag #3");
+//            System.out.println("\ntestTagChangeListeners: rename group tag #3");
             tagsList.get(1).setName("DUMMY");
             Assert.assertEquals("Attribue has changed", "DUMMY", tagsList.get(1).getName());
             Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
@@ -361,7 +361,7 @@ public class TestTagManager {
             // add a non-group child
             int tagChildren = tagsList.get(0).getChildren().size();
             testChangeType.clear();
-            System.out.println("\ntestTagChangeListeners: add non-group child to group #1");
+//            System.out.println("\ntestTagChangeListeners: add non-group child to group #1");
             TagData newChild1 = TagManager.getInstance().createTag("TEST_CHILD_1", false);
             tagsList.get(0).getChildren().add(newChild1);
             // "ADDED"
@@ -369,7 +369,7 @@ public class TestTagManager {
 
             // change attributes of created tag
             testChangeType.clear();
-            System.out.println("\ntestTagChangeListeners: rename TEST_CHILD_1");
+//            System.out.println("\ntestTagChangeListeners: rename TEST_CHILD_1");
             newChild1.setName("DUMMY");
             Assert.assertEquals("Attribue has changed", "DUMMY", newChild1.getName());
             Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
@@ -377,7 +377,7 @@ public class TestTagManager {
 
             // remove tag by deleting it -> change triggered, since getChildren in property extractor
             testChangeType.clear();
-            System.out.println("\ntestTagChangeListeners: remove non-group child from group #1");
+//            System.out.println("\ntestTagChangeListeners: remove non-group child from group #1");
             TagManager.getInstance().renameTag(newChild1, null);
             // "REMOVED"
             Assert.assertEquals("\"REMOVED\" 1. from implicit .remove() for new name null", ChangeType.REMOVED, testChangeType.get(0));
@@ -385,23 +385,66 @@ public class TestTagManager {
 
             // add a group child -> change triggered BUT on groupTags level since its also added directly to the group root tag
             testChangeType.clear();
-            System.out.println("\ntestTagChangeListeners: add group child to group #1");
+//            System.out.println("\ntestTagChangeListeners: add group child to group #1");
             TagData newChild2 = TagManager.getInstance().createTag("TEST_CHILD_2", true);
             tagsList.get(1).getChildren().add(newChild2);
             // "ADDED"
             Assert.assertEquals("\"ADDED\" 1. from .add()", ChangeType.ADDED, testChangeType.get(0));
 
             testChangeType.clear();
-            System.out.println("\ntestTagChangeListeners: remove group child from group #1");
+//            System.out.println("\ntestTagChangeListeners: remove group child from group #1");
             TagManager.getInstance().renameTag(newChild2, null);
             // "REMOVED" fourth from implicit clear to tagTestListener from flatTags.setAll
             Assert.assertEquals("\"REMOVED\" 1. from implicit .remove() for new name null", ChangeType.REMOVED, testChangeType.get(0));
         }
         finally {
-            System.out.println("\ntestTagChangeListeners: cleaning up after test");
+//            System.out.println("\ntestTagChangeListeners: cleaning up after test");
             TagManager.getInstance().removeListener(tagTestListener);
             testChangeType.clear();
         }
+    }
+    
+    @Test
+    public void testTagLevels() {
+        // TFE, 20220404: allow hierarchical group tags - now we need to keep track of each tags position in the hierarchy
+        final TagData rootTag = TagManager.getInstance().getRootTag();
+        Assert.assertEquals("Testing root level", 0, rootTag.getLevel().intValue());
+        
+        for (TagData tag: rootTag.getChildren()) {
+            Assert.assertEquals("Testing children level 1", 1, tag.getLevel().intValue());
+        }
+        
+        for (TagData tag : TagManager.getInstance().getGroupTags()) {
+            Assert.assertEquals("Testing children level 2", 2, tag.getLevel().intValue());
+        }
+
+        final TagData test3 = TagManager.getInstance().getGroupTags().get(4);
+        Assert.assertFalse(test3.getChildren().isEmpty());
+        for (TagData tag : test3.getChildren()) {
+            Assert.assertEquals("Testing children level 3", 3, tag.getLevel().intValue());
+        }
+        
+        // add child and see if automatic update works
+        TagData newChild1 = TagManager.getInstance().createTag("TEST_CHILD_1", false);
+        Assert.assertEquals("Testing new tag not yet added", 0, newChild1.getLevel().intValue());
+        test3.getChildren().add(newChild1);
+        Assert.assertEquals("Testing new tag after adding", 3, newChild1.getLevel().intValue());
+    }
+
+    
+    @Test
+    public void testTagLevelLookup() {
+        // TFE, 20220404: allow hierarchical group tags - now we need to keep track of each tags position in the hierarchy
+        final TagData rootTag = TagManager.getInstance().getRootTag();
+        final TagData grouspRootTag = rootTag.getChildren().get(0);
+        
+        Assert.assertFalse(TagManager.getInstance().isSameGroupOrChildGroup(rootTag.getName(), grouspRootTag.getName(), false));
+        // still FALSE even with hierarchy, since ROOT isn't a group itself
+        Assert.assertFalse(TagManager.getInstance().isSameGroupOrChildGroup(rootTag.getName(), grouspRootTag.getName(), true));
+
+        final TagData test3 = TagManager.getInstance().getGroupTags().get(4);
+        Assert.assertFalse(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag.getName(), test3.getName(), false));
+        Assert.assertTrue(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag.getName(), test3.getName(), true));
     }
 
     private void doAddListener(final TagData tagRoot, ListChangeListener<? super TagData> ll) {

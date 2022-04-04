@@ -185,7 +185,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
         final ClipboardContent content = new ClipboardContent();
         // store key pressed info in dragboard - no key events during drag & drop!
         // only if child tag is allowed...
-        content.put(DRAG_AND_DROP, String.valueOf(event.isShiftDown() && TagManager.childTagsAllowed(treeCell.getItem().getTagData())));
+        content.put(DRAG_AND_DROP, String.valueOf(event.isShiftDown()));
         db.setContent(content);
         db.setDragView(treeCell.snapshot(null, null));
         

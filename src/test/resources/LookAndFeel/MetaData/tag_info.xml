@@ -33,7 +33,15 @@
             </taginfo>
             <taginfo>
                 <name class="stringProperty">Test3</name>
-                <children class="listProperty"/>
+                <children class="listProperty">
+                    <taginfo>
+                        <name class="stringProperty">Level 2</name>
+                        <children class="listProperty"/>
+                        <iconName class="stringProperty">CUBES</iconName>
+                        <colorName class="stringProperty">#FF0000</colorName>
+                        <id>2b891248c1c9</id>
+                    </taginfo>
+                </children>
                 <iconName class="stringProperty">CAMERA_RETRO</iconName>
                 <colorName class="stringProperty">#99D0DF</colorName>
                 <id>b2eeee278206</id>

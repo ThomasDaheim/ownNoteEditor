@@ -171,6 +171,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                         }
                     }
                 }
+                // TFE, 20220404: allow hierarchical group tags - now we need to keep track of each tags position in the hierarchy
+                setTagLevels();
             }
         };
         
@@ -289,6 +291,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
         // deep copy tags over to real root
         ROOT_TAG.setChildren(xstreamRoot.cloneMe().getChildren());
+        // TFE, 20220404: allow hierarchical group tags - now we need to keep track of each tags position in the hierarchy
+        setTagLevels();
         tagsLoaded = true;
         
         // ensure reserved names are fixed
@@ -431,6 +435,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         xstream.aliasField("iconName", TagData.class, "iconNameProperty");
         xstream.aliasField("colorName", TagData.class, "colorNameProperty");
         
+        xstream.omitField(TagData.class, "levelProperty");
         xstream.omitField(TagData.class, "linkedNotes");
         xstream.omitField(TagData.class, "parentProperty");
 
@@ -506,12 +511,16 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         
         final TagData realStartTag = (startTag != null) ? startTag : getRootTag();
 
+        final Set<TagData> flatTags = new HashSet<>();
+        // TFE, 20220404: start tag might be the one we're looking for - not necessarily a child
+        flatTags.add(realStartTag);
+
         // flatten tagslist to set
         // http://squirrel.pl/blog/2015/03/04/walking-recursive-data-structures-using-java-8-streams/
         // https://stackoverflow.com/a/31992391
-        final Set<TagData> flatTags = realStartTag.getChildren().stream().map((t) -> {
+        flatTags.addAll(realStartTag.getChildren().stream().map((t) -> {
             return t.flattened();
-        }).flatMap(Function.identity()).collect(Collectors.toSet());
+        }).flatMap(Function.identity()).collect(Collectors.toSet()));
 
         for (String tagName : tagNames) {
             final Optional<TagData> tag = flatTags.stream().filter((t) -> {
@@ -721,11 +730,43 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 NOT_GROUPED.equals(tag.getName());
     }
     
-    public static boolean childTagsAllowed(final TagData tag) {
-        // no child tags: anything below "Groups" tag
-        return !isGroupsChildTag(tag);
+    // TFE, 20220404: allow hierarchical group tags - now we need to keep track of each tags position in the hierarchy
+    public static void setTagLevels() {
+        ROOT_TAG.setLevel(0);
+        // do the recursion
+        setChildTagLevels(ROOT_TAG.getChildren(), 1);
     }
+    public static void setChildTagLevels(final ObservableList<TagData> tags, final int level) {
+        for (TagData tag: tags) {
+            tag.setLevel(level);
+            // do the recursion
+            setChildTagLevels(tag.getChildren(), level+1);
+        }
+    }
+    
+    public boolean isSameGroupOrChildGroup(final String groupName, final String checkName, final boolean includeHierarchy) {
+        assert groupName != null;
+        assert checkName != null;
+        
+        boolean result = groupName.equals(checkName);
+        
+        if (!result && includeHierarchy) {
+            // lets do the hierarchy
+            final TagData tag = tagForGroupName(groupName, false);
+            if (tag != null && !tag.getChildren().isEmpty()) {
+                for (TagData child : tag.getChildren()) {
+                    if (isSameGroupOrChildGroup(child.getName(), checkName, includeHierarchy)) {
+                        // found it - lets get out here
+                        result = true;
+                        break;
+                    }
+                }
+            }
+        }
 
+        return result;
+    }
+    
     @Override
     public boolean createNote(String newGroupName, String newNoteName) {
         final Note newNote = OwnNoteFileManager.getInstance().getNote(newGroupName, newNoteName);

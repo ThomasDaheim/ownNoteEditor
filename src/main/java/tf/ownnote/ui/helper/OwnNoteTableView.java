@@ -463,8 +463,15 @@ public class OwnNoteTableView implements IPreferencesHolder {
         filteredData.setPredicate((Note note) -> {
             // 1. If group filter text is empty or "All": no need to check
             if (groupNameFilter != null && !groupNameFilter.isEmpty() && !groupNameFilter.equals(TagManager.ALL_GROUPS) ) {
+                // TFE, 20220404: we now have hierarchy in groups BUT groupTabs can't handle that
+                // so we need to show all notes including the ones in hierarchical groups below
+
                 // Compare group name to group filter text
-                if (!note.getGroupName().equals(groupNameFilter)) {
+                // check hierarchy as well - let manager do this
+                if (!TagManager.getInstance().isSameGroupOrChildGroup(
+                        note.getGroupName(), 
+                        groupNameFilter,
+                        OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(myEditor.getCurrentLookAndFeel()))) {
                     return false;
                 }
             }

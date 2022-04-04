@@ -136,7 +136,8 @@ public class TagTreeCellBase {
                 treeCell.setGraphic(holder);
             }
 
-            final String sibling = TagManager.isGroupsChildTag(tag) ? TagManager.NEW_GROUP : "New sibling";
+//            final String sibling = TagManager.isGroupsChildTag(tag) ? TagManager.NEW_GROUP : "New sibling";
+            final String sibling = "New sibling";
             final MenuItem newSilblingItem = new MenuItem(sibling);
             newSilblingItem.setOnAction((ActionEvent event) -> {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
@@ -145,7 +146,8 @@ public class TagTreeCellBase {
             });
 
             // only if allowed
-            final String child = TagManager.isGroupsTag(tag) ? TagManager.NEW_GROUP : "New child";
+//            final String child = TagManager.isGroupsTag(tag) ? TagManager.NEW_GROUP : "New child";
+            final String child = "New child";
             final MenuItem newChildItem = new MenuItem(child);
             newChildItem.setOnAction((ActionEvent event) -> {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
@@ -198,9 +200,7 @@ public class TagTreeCellBase {
                 // no siblings for root
                 contextMenuFull.getItems().add(newSilblingItem);
             }
-            if (TagManager.childTagsAllowed(tag)) {
-                contextMenuFull.getItems().add(newChildItem);
-            }
+            contextMenuFull.getItems().add(newChildItem);
             contextMenuFull.getItems().add(editItem1);
             contextMenuEdit.getItems().add(editItem2);
             if (!TagManager.isFixedTag(tag)) {

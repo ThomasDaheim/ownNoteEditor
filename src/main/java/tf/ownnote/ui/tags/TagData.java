@@ -30,7 +30,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
 import javafx.beans.Observable;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -53,6 +55,8 @@ public class TagData {
     private final ObjectProperty<TagData> parentProperty = new SimpleObjectProperty<>(null);
     private final StringProperty iconNameProperty = new SimpleStringProperty();
     private final StringProperty colorNameProperty = new SimpleStringProperty("");
+    // TFE, 20220404: allow hierarchical group tags - now we need to keep track of our position in the hierarchy
+    private final IntegerProperty levelProperty = new SimpleIntegerProperty(0);
     
     // link to notes with this tag - transient, will be re-created on startup
     private final ObservableList<Note> linkedNotes = FXCollections.<Note>observableArrayList();
@@ -205,6 +209,18 @@ public class TagData {
 
     public void setColorName(final String col) {
         colorNameProperty.set(col);
+    }
+
+    public IntegerProperty levelProperty() {
+        return levelProperty;
+    }
+
+    public Integer getLevel() {
+        return levelProperty.get();
+    }
+
+    public void setLevel(final int level) {
+        levelProperty.set(level);
     }
 
     public ObservableList<Note> getLinkedNotes() {
