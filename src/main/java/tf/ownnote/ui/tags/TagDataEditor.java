@@ -315,7 +315,11 @@ public class TagDataEditor extends GridPane {
     private void initValues() {
         tagName.setText(myTag.getName());
         setTagIcon(myTag.getIconName());
-        tagColor.setValue(Color.valueOf(myTag.getColorName()));
+        if (myTag.getColorName() != null && !myTag.getColorName().isEmpty()) {
+            tagColor.setValue(Color.valueOf(myTag.getColorName()));
+        } else{
+            tagColor.setValue(Color.BLACK);
+        }
         groupTag.setSelected(TagManager.isGroupsChildTag(myTag));
     }
 

@@ -74,8 +74,8 @@ dependencies {
     // JavaFX11 explicit dependencies
 //    def javafx_version='11.0.2'
 //    def javafx_version='14'
-    def javafx_version='15.0.1'
-//    def javafx_version='17.0.1'
+//    def javafx_version='15.0.1'
+    def javafx_version='17.0.1'
     implementation "org.openjfx:javafx-base:$javafx_version:$platform"
     implementation "org.openjfx:javafx-graphics:$javafx_version:$platform"
     implementation "org.openjfx:javafx-controls:$javafx_version:$platform"

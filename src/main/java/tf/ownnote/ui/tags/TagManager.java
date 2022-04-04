@@ -662,32 +662,25 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     private String getGroupColor(final TagData groupTag) {
         String groupColor = "";
 
-        if (groupTag != null) {
-            // for tagTree the color comes from the tag color - if any
-            groupColor = groupTag.getColorName();
-        }
-        
-        if (groupColor == null || groupColor.isEmpty()) {
-            final int groupIndex = getGroupTags().indexOf(groupTag);
+        final int groupIndex = getGroupTags().indexOf(groupTag);
 
-            // TF, 20170122: "All" & "Not grouped" have their own colors ("darkgrey", "lightgrey"), rest uses list of colors
-            switch (groupIndex) {
-                case 0: 
-                    groupColor = "darkgrey";
-                    break;
-                case 1: 
-                    groupColor = "lightgrey";
-                    break;
-                case -1:
-                    // no color found via tag or group - must be new
-                    groupColor = groupColors[getGroupTags().size() % groupColors.length];
-                    break;
-                default: 
-                    groupColor = groupColors[groupIndex % groupColors.length];
-                    break;
-            }
-//                System.out.println("Found group: " + groupTag + " as number: " + groupIndex + " color: " + groupColor);
+        // TF, 20170122: "All" & "Not grouped" have their own colors ("darkgrey", "lightgrey"), rest uses list of colors
+        switch (groupIndex) {
+            case 0: 
+                groupColor = "darkgrey";
+                break;
+            case 1: 
+                groupColor = "lightgrey";
+                break;
+            case -1:
+                // no color found via tag or group - must be new
+                groupColor = groupColors[getGroupTags().size() % groupColors.length];
+                break;
+            default: 
+                groupColor = groupColors[groupIndex % groupColors.length];
+                break;
         }
+//                System.out.println("Found group: " + groupTag + " as number: " + groupIndex + " color: " + groupColor);
         
         return groupColor;
     }
