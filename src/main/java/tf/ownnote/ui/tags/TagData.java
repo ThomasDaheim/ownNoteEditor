@@ -232,6 +232,23 @@ public class TagData {
         linkedNotes.addAll(notes);
     }
     
+    public int getLinkesNoteCount(final boolean includeHierarchy) {
+        if (TagManager.isGroupsTag(this)) {
+            return 0;
+        }
+
+        // TFE, 20220410: tags can have children with notes linked to them...
+        int result = linkedNotes.size();
+        
+        if (includeHierarchy) {
+            for (TagData child : children) {
+                result += child.getLinkesNoteCount(includeHierarchy);
+            }
+        }
+        
+        return result;
+    }
+    
     public ObservableList<TagData> getChildren() {
         return children;
     }

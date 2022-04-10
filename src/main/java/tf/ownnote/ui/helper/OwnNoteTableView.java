@@ -469,9 +469,9 @@ public class OwnNoteTableView implements IPreferencesHolder {
                 // Compare group name to group filter text
                 // check hierarchy as well - let manager do this
                 if (!TagManager.getInstance().isSameGroupOrChildGroup(
-                        note.getGroupName(), 
                         groupNameFilter,
-                        OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(myEditor.getCurrentLookAndFeel()))) {
+                        note.getGroupName(), 
+                        true)) {
                     return false;
                 }
             }

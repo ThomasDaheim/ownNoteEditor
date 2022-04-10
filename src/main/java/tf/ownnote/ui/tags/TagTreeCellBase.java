@@ -76,8 +76,9 @@ public class TagTreeCellBase {
         @Override
         public String toString(TagDataWrapper item) {
             final TagData tag = item.getTagData();
-            if (tag.getChildren().isEmpty()) {
-                return tag.getName() + " (" + tag.getLinkedNotes().size() + ")";
+            // TFE, 20220410: we can have notes at tag branches - not only leaves
+            if (tag.getLinkesNoteCount(true) > 0) {
+                return tag.getName() + " (" + tag.getLinkesNoteCount(true) + ")";
             } else {
                 return tag.getName();
             }
