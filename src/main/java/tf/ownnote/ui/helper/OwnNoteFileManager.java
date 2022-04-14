@@ -187,8 +187,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                 final LocalDateTime filetime = LocalDateTime.ofInstant((new Date(file.lastModified())).toInstant(), ZoneId.systemDefault());
 
                 final Note noteRow = new Note(groupName, noteName);
-                noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
-                noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
+                noteRow.setNoteModified(filetime);
                 // TFE; 20201023: set note metadata from file content
                 noteRow.setMetaData(NoteMetaData.fromHtmlComment(noteRow, getFirstLine(file)));
                 // use filename and not notename since duplicate note names can exist in different groups
@@ -375,8 +374,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
             final LocalDateTime filetime = LocalDateTime.ofInstant((new Date(newPath.toFile().lastModified())).toInstant(), ZoneId.systemDefault());
 
             final Note noteRow = new Note(groupName, noteName);
-            noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
-            noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
+            noteRow.setNoteModified(filetime);
             // TFE, 20210113: init data as well - especially charset
             noteRow.setNoteFileContent("");
             noteRow.setMetaData(new NoteMetaData(noteRow));
@@ -509,7 +507,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         final Note dataRow = notesList.get(newFileName);
         // TFE; 20200814: store content in Note
         dataRow.setNoteFileContent(content);
-        dataRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
+        dataRow.setNoteModified(filetime);
         notesList.put(newFileName, dataRow);
 
         resetFilesInProgress();

@@ -25,14 +25,21 @@
  */
 package tf.ownnote.ui.notes;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Objects;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import org.unbescape.html.HtmlEscape;
+import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.tags.TagData;
 
 /**
  *
@@ -52,13 +59,20 @@ public class Note extends HashMap<String, String> {
         noteEditorContent;
     }
     
+    // TFE, 20220412: good bye, my map... welcome properties!
+    private final StringProperty noteNameProperty = new SimpleStringProperty();
+    private final ObjectProperty<LocalDateTime> noteModifiedProperty = new SimpleObjectProperty<>();
+    private final StringProperty noteFileContentProperty = new SimpleStringProperty();
+    private final StringProperty noteEditorContentProperty = new SimpleStringProperty();
+    private final ObjectProperty<TagData> groupProperty = new SimpleObjectProperty<>();
+    
     // TFE, 20201022: store additional metadata, e.g. tags, author, ...
     private NoteMetaData myMetaData;
     
     // TFE, 20210201: know you own change status
-    private final BooleanProperty hasUnsavedNoteChanges = new SimpleBooleanProperty(false);
+    private final BooleanProperty hasUnsavedNoteChangesProperty = new SimpleBooleanProperty(false);
     // TFE, 20210219: be more user friendly
-    private final BooleanProperty hasUnsavedChanges = new SimpleBooleanProperty(false);
+    private final BooleanProperty hasUnsavedChangesProperty = new SimpleBooleanProperty(false);
     private BooleanBinding bindingHelper;
 
     private Note() {
@@ -83,8 +97,8 @@ public class Note extends HashMap<String, String> {
     }
     
     private void initNoteHasChanged() {
-        bindingHelper = Bindings.or(hasUnsavedNoteChanges, myMetaData.hasUnsavedChangesProperty());
-        hasUnsavedChanges.bind(bindingHelper);
+        bindingHelper = Bindings.or(hasUnsavedNoteChangesProperty, myMetaData.hasUnsavedChangesProperty());
+        hasUnsavedChangesProperty.bind(bindingHelper);
     }
 
     @Override
@@ -110,31 +124,51 @@ public class Note extends HashMap<String, String> {
     }
     
     public static String getNoteValueName(final int i) {
-        return NoteMapKey.values()[i].name();
+        return switch (i) {
+            case 1 -> "noteName";
+            case 2 -> "noteModifiedFormatted";
+            default -> "noteName";
+        };
     }
     
     public String getNoteName() {
-        return get(NoteMapKey.noteName.name());
+        return noteNameProperty.get();
     }
 
     public void setNoteName(final String noteName) {
-        put(NoteMapKey.noteName.name(), noteName);
+        noteNameProperty.set(noteName);
+    }
+    
+    public StringProperty noteNameProperty() {
+        return noteNameProperty;
     }
 
-    public String getNoteModified() {
-        return get(NoteMapKey.noteModified.name());
+    public LocalDateTime getNoteModified() {
+        return noteModifiedProperty.get();
+    }
+    
+    public String getNoteModifiedFormatted() {
+        return FormatHelper.getInstance().formatFileTime(getNoteModified());
     }
 
-    public void setNoteModified(final String noteModified) {
-        put(NoteMapKey.noteModified.name(), noteModified);
+    public void setNoteModified(final LocalDateTime noteModified) {
+        noteModifiedProperty.set(noteModified);
     }
-
-    public String getNoteDelete() {
-        return get(NoteMapKey.noteDelete.name());
+    
+    public ObjectProperty<LocalDateTime> noteModifiedProperty() {
+        return noteModifiedProperty;
     }
-
-    public void setNoteDelete(final String noteDelete) {
-        put(NoteMapKey.noteDelete.name(), noteDelete);
+    
+    public TagData getGroup() {
+        return groupProperty.get();
+    }
+    
+    public void setGroup(final TagData group) {
+        groupProperty.set(group);
+    }
+    
+    public ObjectProperty<TagData> groupProperty() {
+        return groupProperty;
     }
 
     public String getGroupName() {
@@ -146,30 +180,39 @@ public class Note extends HashMap<String, String> {
     }
 
     public String getNoteFileContent() {
-        return get(NoteMapKey.noteFileContent.name());
+        return noteFileContentProperty.get();
     }
 
     public void setNoteFileContent(final String content) {
         // TFE, 20201024: extract line with metadata - if any
-        put(NoteMapKey.noteFileContent.name(), NoteMetaData.removeMetaDataContent(content));
+        noteFileContentProperty.set(NoteMetaData.removeMetaDataContent(content));
         
         // set meta data - was done intially but might now have changed during editing
         if (NoteMetaData.hasMetaDataContent(content)) {
             setMetaData(NoteMetaData.fromHtmlComment(this, content));
         }
     }
+    
+    public StringProperty noteFileContentProperty() {
+        return noteFileContentProperty;
+    }
 
     public String getNoteEditorContent() {
-        return get(NoteMapKey.noteEditorContent.name());
+        return noteEditorContentProperty.get();
     }
 
     public void setNoteEditorContent(final String content) {
-        put(NoteMapKey.noteEditorContent.name(), content);
+        noteEditorContentProperty.set(content);
+        
         if (getNoteFileContent() != null && getNoteEditorContent() != null) {
-            hasUnsavedNoteChanges.set(!HtmlEscape.unescapeHtml(getNoteFileContent()).equals(HtmlEscape.unescapeHtml(getNoteEditorContent())));
+            hasUnsavedNoteChangesProperty.set(!HtmlEscape.unescapeHtml(getNoteFileContent()).equals(HtmlEscape.unescapeHtml(getNoteEditorContent())));
         } else {
-            hasUnsavedNoteChanges.set(getNoteFileContent() != getNoteEditorContent());
+            hasUnsavedNoteChangesProperty.set(!getNoteFileContent().equals(getNoteEditorContent()));
         }
+    }
+    
+    public StringProperty noteEditorContentProperty() {
+        return noteEditorContentProperty;
     }
 
     public NoteMetaData getMetaData() {
@@ -188,14 +231,14 @@ public class Note extends HashMap<String, String> {
     }
     
     public BooleanProperty hasUnsavedChangesProperty() {
-        return hasUnsavedChanges;
+        return hasUnsavedChangesProperty;
     }
     
     public boolean hasUnsavedChanges() {
-        return hasUnsavedChanges.getValue();
+        return hasUnsavedChangesProperty.getValue();
     }
     public void setUnsavedChanges(final boolean changed) {
-        hasUnsavedNoteChanges.setValue(changed);
+        hasUnsavedNoteChangesProperty.setValue(changed);
         myMetaData.setUnsavedChanges(changed);
     }
 }

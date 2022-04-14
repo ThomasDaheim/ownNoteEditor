@@ -145,8 +145,7 @@ public class TestNoteData {
         groupsList.put(TagManager.ALL_GROUPS, groupsList.get(TagManager.ALL_GROUPS)+1);
         
         final Note noteRow = new Note(groupName, noteName);
-        noteRow.setNoteModified(FormatHelper.getInstance().formatFileTime(filetime));
-        noteRow.setNoteDelete(OwnNoteFileManager.deleteString);
+        noteRow.setNoteModified(filetime);
         // use filename and not notename since duplicate note names can exist in different groups
         notesList.put(filename, noteRow);
     }

@@ -190,17 +190,17 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     @FXML
     private GridPane gridPane;
     @FXML
-    private TableView<Map<String, String>> notesTableFXML;
+    private TableView<Note> notesTableFXML;
     private OwnNoteTableView notesTable = null;
     @FXML
     private Label ownCloudPath;
     @FXML
     private Button setOwnCloudPath;
     @FXML
-    private TableColumn<Map, String> noteNameColFXML;
+    private TableColumn<Note, String> noteNameColFXML;
     private OwnNoteTableColumn noteNameCol = null;
     @FXML
-    private TableColumn<Map, String> noteModifiedColFXML;
+    private TableColumn<Note, String> noteModifiedColFXML;
     private OwnNoteTableColumn noteModifiedCol = null;
     @FXML
     private WebView noteHTMLEditorFXML;
@@ -480,8 +480,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         rightPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(paneSizes.get(TASKLIST_COLUMN).getRight()/100d));
 
         // set callback, width, value name, cursor type of columns
-        noteNameCol.setTableColumnProperties(0.65, Note.getNoteValueName(0), false);
-        noteModifiedCol.setTableColumnProperties(0.25, Note.getNoteValueName(1), false);
+        noteNameCol.setTableColumnProperties(0.65, Note::getNoteName, false);
+        noteModifiedCol.setTableColumnProperties(0.25, Note::getNoteModifiedFormatted, false);
         // see issue #42
         noteModifiedCol.setComparator(FormatHelper.getInstance().getFileTimeComparator());
 
@@ -540,7 +540,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         gridPane.getScene().getRoot().setStyle("note-selected-font-color: black");
 
         // renaming note
-        noteNameCol.setOnEditCommit((CellEditEvent<Map, String> t) -> {
+        noteNameCol.setOnEditCommit((CellEditEvent<Note, String> t) -> {
             final Note curNote = ObjectsHelper.uncheckedCast(t.getTableView().getItems().get(t.getTablePosition().getRow()));
 
             if (!t.getNewValue().equals(t.getOldValue())) {

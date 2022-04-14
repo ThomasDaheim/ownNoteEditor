@@ -82,7 +82,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor= null;
     
-    private TableView<Map<String, String>> myTableView = null;
+    private TableView<Note> myTableView = null;
     private FilteredList<Note> filteredData = null;
     
     // Issue #59: filter group names and note names
@@ -97,7 +97,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
     
     private String backgroundColor = "white";
     
-    private List<TableColumn<Map<String, String>,?>> mySortOrder;
+    private List<TableColumn<Note,?>> mySortOrder;
     
     // store selected group before changing the group lists for later re-select
     private String selectedGroupName = TagManager.ALL_GROUPS;
@@ -106,7 +106,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
         super();
     }
             
-    public OwnNoteTableView(final TableView<Map<String, String>> tableView, final OwnNoteEditor editor) {
+    public OwnNoteTableView(final TableView<Note> tableView, final OwnNoteEditor editor) {
         super();
         myTableView = tableView;
         myEditor = editor;
@@ -127,7 +127,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
         TableViewPreferences.saveTableViewPreferences(myTableView, OwnNoteEditorPreferences.RECENT_NOTESTABLE_SETTINGS.getAsType(), store);
     }
     
-    private TableView<Map<String, String>> getTableView() {
+    private TableView<Note> getTableView() {
         return myTableView;
     }
     
@@ -174,12 +174,12 @@ public class OwnNoteTableView implements IPreferencesHolder {
         newMenu.getItems().addAll(newNote2);
         myTableView.setContextMenu(newMenu);
 
-        myTableView.setRowFactory((TableView<Map<String, String>> tableView) -> {
+        myTableView.setRowFactory((p) -> {
             final BooleanProperty changeValue = new SimpleBooleanProperty();
 
-            final TableRow<Map<String, String>> row = new TableRow<Map<String, String>>() {
+            final TableRow<Note> row = new TableRow<>() {
                 @Override
-                protected void updateItem(Map<String, String> item, boolean empty) {
+                protected void updateItem(Note item, boolean empty) {
                     super.updateItem(item, empty);
 
                     if (empty) {
@@ -310,7 +310,8 @@ public class OwnNoteTableView implements IPreferencesHolder {
 
                 event.consume();
             });
-            row.setOnDragDone((DragEvent event) -> {
+
+            row.setOnDragDone((event) -> {
                 if (event.getTransferMode() == TransferMode.MOVE) {
                     // TODO: remove row from this table
                 }
@@ -388,7 +389,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
         backgroundColor = color;
     }
 
-    public ObservableList<Map<String, String>> getItems() {
+    public ObservableList<Note> getItems() {
         return myTableView.getItems();
     }
     
@@ -405,7 +406,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
         }
 
         // 2. Create sorted list
-        SortedList<Map<String, String>> sortedData = new SortedList<>(filteredData);
+        SortedList<Note> sortedData = new SortedList<>(filteredData);
 
         // 3. Bind the SortedList comparator to the TableView comparator.
         sortedData.comparatorProperty().bind(comparatorProperty());
@@ -533,7 +534,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
         myTableView.sort();  
     }
 
-    public ReadOnlyObjectProperty<Comparator<Map<String, String>>> comparatorProperty() {
+    public ReadOnlyObjectProperty<Comparator<Note>> comparatorProperty() {
         return myTableView.comparatorProperty();
     }
 }

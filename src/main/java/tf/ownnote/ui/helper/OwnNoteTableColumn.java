@@ -27,6 +27,10 @@ package tf.ownnote.ui.helper;
 
 import java.util.Comparator;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.event.EventHandler;
 import javafx.scene.Cursor;
 import javafx.scene.control.Label;
@@ -55,14 +59,14 @@ public class OwnNoteTableColumn {
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor = null;
     
-    private TableColumn<Map, String> myTableColumn = null;
+    private TableColumn<Note, String> myTableColumn = null;
     private String backgroundColor = "white";
     
     private OwnNoteTableColumn() {
         super();
     }
             
-    public OwnNoteTableColumn(final TableColumn<Map, String> tableColumn, final OwnNoteEditor editor) {
+    public OwnNoteTableColumn(final TableColumn<Note, String> tableColumn, final OwnNoteEditor editor) {
         super();    
         myTableColumn = tableColumn;
         myEditor = editor;
@@ -74,18 +78,19 @@ public class OwnNoteTableColumn {
         myTableColumn.prefWidthProperty().bind(myTableColumn.getTableView().widthProperty().multiply(percentage));
     }
     
-    public void setTableColumnProperties(final double percentage, final String valueName, final boolean linkCursor) {
+    public void setTableColumnProperties(final double percentage, final Function<Note, String> accessor, final boolean linkCursor) {
         setWidthPercentage(percentage);
-        myTableColumn.setCellValueFactory(new MapValueFactory<>(valueName));
+        myTableColumn.setCellValueFactory(
+                            (TableColumn.CellDataFeatures<Note, String> p) -> new SimpleStringProperty(accessor.apply(p.getValue())));
         myTableColumn.setCellFactory(createObjectCellFactory(linkCursor));
     }
 
-    private Callback<TableColumn<Map, String>, TableCell<Map, String>> createObjectCellFactory(final boolean linkCursor) {
+    private Callback<TableColumn<Note, String>, TableCell<Note, String>> createObjectCellFactory(final boolean linkCursor) {
         assert (myEditor != null);
-        return (TableColumn<Map, String> param) -> new ObjectCell(myEditor, this, linkCursor, new UniversalMouseEvent(myEditor));
+        return (TableColumn<Note, String> param) -> new ObjectCell(myEditor, this, linkCursor, new UniversalMouseEvent(myEditor));
     }
 
-    public TableColumn<Map, String> getTableColumn() {
+    public TableColumn<Note, String> getTableColumn() {
         return myTableColumn;
     }
     
@@ -112,7 +117,7 @@ public class OwnNoteTableColumn {
         myTableColumn.setEditable(b);
     }
     
-    public void setOnEditCommit(final EventHandler<TableColumn.CellEditEvent<Map, String>> value) {
+    public void setOnEditCommit(final EventHandler<TableColumn.CellEditEvent<Note, String>> value) {
         myTableColumn.setOnEditCommit(value);
     }
     
@@ -133,7 +138,7 @@ public class OwnNoteTableColumn {
         myTableColumn.setComparator(value);
     }
     
-    public void setCellFactory(final Callback<TableColumn<Map, String>, TableCell<Map, String>> value) {
+    public void setCellFactory(final Callback<TableColumn<Note, String>, TableCell<Note, String>> value) {
         myTableColumn.setCellFactory(value);
     }
 }
@@ -184,7 +189,7 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
     }
 };
 
-class ObjectCell extends TextFieldTableCell<Map, String> {
+class ObjectCell extends TextFieldTableCell<Note, String> {
     private static final String valueSet = "valueSet";
     
     private final TextField textField;
