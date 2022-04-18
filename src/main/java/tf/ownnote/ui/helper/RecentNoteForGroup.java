@@ -28,6 +28,7 @@ package tf.ownnote.ui.helper;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.tags.TagManager;
 
 /**
  * Map that keeps track of the most recent edited note for each group.
@@ -82,7 +83,7 @@ public class RecentNoteForGroup extends HashMap<String, Note> {
             }
             
             final String[] recentNote = pref.split(OwnNoteEditorPreferences.PREF_DATA_SEP);
-            put(recentNote[0], OwnNoteFileManager.getInstance().getNote(recentNote[0], recentNote[1]));
+            put(recentNote[0], OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName(recentNote[0], false), recentNote[1]));
         }
     }
 }

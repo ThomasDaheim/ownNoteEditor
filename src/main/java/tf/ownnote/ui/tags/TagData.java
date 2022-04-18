@@ -179,6 +179,10 @@ public class TagData {
         nameProperty.set(na);
     }
 
+    public String getExternalName() {
+        return TagManager.getInstance().getExternalName(this);
+    }
+
     public StringProperty iconNameProperty() {
         return iconNameProperty;
     }

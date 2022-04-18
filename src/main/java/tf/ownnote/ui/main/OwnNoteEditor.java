@@ -373,7 +373,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         // TFE, 20210715: if note changes, group might need to change as well
         currentNoteProperty.addListener((ov, oldNote, newNote) -> {
             if (newNote != null && !newNote.equals(oldNote)) {
-                currentGroupTagProperty.set(TagManager.getInstance().tagForGroupName(newNote.getGroupName(), false));
+                currentGroupTagProperty.set(newNote.getGroup());
             }
             
         });
@@ -941,15 +941,15 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     }
 
     @Override
-    public boolean createNote(final String newGroupName, final String newNoteName) {
-        boolean result = OwnNoteFileManager.getInstance().createNote(newGroupName, newNoteName);
+    public boolean createNote(final TagData newGroup, final String newNoteName) {
+        boolean result = OwnNoteFileManager.getInstance().createNote(newGroup, newNoteName);
 
         if (!result) {
             // error message - most likely note in "Not grouped" with same name already exists
             showAlert(AlertType.ERROR, "Error Dialog", "New note couldn't be created.", "Note with same group and name already exists.");
         } else {
             // update group tags as well
-            TagManager.getInstance().createNote(newGroupName, newNoteName);
+            TagManager.getInstance().createNote(newGroup, newNoteName);
         }
         
         return result;
@@ -974,21 +974,20 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     }
 
     @Override
-    public boolean moveNote(final Note curNote, final String newGroupName) {
-        final String oldGroupName = curNote.getGroupName();
+    public boolean moveNote(final Note curNote, final TagData newGroup) {
         final Note origNote = new Note(curNote);
         
-        boolean result = OwnNoteFileManager.getInstance().moveNote(curNote, newGroupName);
+        boolean result = OwnNoteFileManager.getInstance().moveNote(curNote, newGroup);
         
         if (!result) {
             // error message - most likely note with same name already exists
             showAlert(AlertType.ERROR, "Error Dialog", "An error occured while moving the note.", "A note with the same name already exists in the new group.");
         } else {
             //check if we just moved the current note in the editor...
-            noteHTMLEditor.doNameChange(curNote.getGroupName(), newGroupName, curNote.getNoteName(), curNote.getNoteName());
+            noteHTMLEditor.doNameChange(curNote.getGroupName(), newGroup.getName(), curNote.getNoteName(), curNote.getNoteName());
 
             // update group tags as well
-            TagManager.getInstance().moveNote(origNote, newGroupName);
+            TagManager.getInstance().moveNote(origNote, newGroup);
             
             refilterNotesList();
         }
@@ -1050,9 +1049,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             // TFE, 20201030: support re-load of last edited note
             if (currentNoteProperty.get() == null) {
                 final String lastGroupName = OwnNoteEditorPreferences.LAST_EDITED_GROUP.getAsType();
+                final TagData lastGroup = TagManager.getInstance().tagForGroupName(lastGroupName, false);
                 final String lastNoteName = OwnNoteEditorPreferences.LAST_EDITED_NOTE.getAsType();
-                if (OwnNoteFileManager.getInstance().noteExists(lastGroupName, lastNoteName)) {
-                    currentNoteProperty.set(OwnNoteFileManager.getInstance().getNote(lastGroupName, lastNoteName));
+                if (lastGroup != null && OwnNoteFileManager.getInstance().noteExists(lastGroup, lastNoteName)) {
+                    currentNoteProperty.set(OwnNoteFileManager.getInstance().getNote(lastGroup, lastNoteName));
                     
                     if (firstNoteAccess) {
                         // done, selectGroupForNote calls selectFirstOrCurrentNote() internally - BUT NO LOOPS PLEASE
@@ -1084,14 +1084,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         }
     }
     
-    public String uniqueNewNoteNameForGroup(final String groupName) {
+    public String uniqueNewNoteNameForGroup(final TagData group) {
         String result;
         int newCount = notesList.size() + 1;
         
         do {
             result = OwnNoteEditor.NEW_NOTENAME + " " + newCount;
             newCount++;
-        } while(OwnNoteFileManager.getInstance().noteExists(groupName, result));
+        } while(OwnNoteFileManager.getInstance().noteExists(group, result));
         
         return result;
     }
@@ -1113,7 +1113,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                     // delete & modify is only relevant if we're editing this note...
                     if (noteHTMLEditor.getEditedNote() != null) {
                         final Note curNote = noteHTMLEditor.getEditedNote();
-                        final String curName = OwnNoteFileManager.getInstance().buildNoteName(curNote.getGroupName(), curNote.getNoteName());
+                        final String curName = OwnNoteFileManager.getInstance().buildNoteName(curNote);
 
                         if (curName.equals(filePath.getFileName().toString())) {
                             String alertTitle;
@@ -1144,8 +1144,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                                 if (saveChanges.get().equals(buttonSaveNew)) {
                                     // save own note under new name
                                     final Note saveNote = noteHTMLEditor.getEditedNote();
-                                    final String newNoteName = uniqueNewNoteNameForGroup(saveNote.getGroupName());
-                                    if (createNote(saveNote.getGroupName(), newNoteName)) {
+                                    final String newNoteName = uniqueNewNoteNameForGroup(saveNote.getGroup());
+                                    if (createNote(saveNote.getGroup(), newNoteName)) {
                                         final Note newNote = new Note(saveNote.getGroupName(), newNoteName);
                                         newNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
                                         if (saveNote(newNote)) {

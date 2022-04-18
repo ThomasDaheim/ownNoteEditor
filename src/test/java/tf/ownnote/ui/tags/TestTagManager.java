@@ -142,8 +142,8 @@ public class TestTagManager {
     public void testTagAttributes() {
         final List<TagData> groupTags = TagManager.getInstance().getGroupTags();
         
-        Assert.assertTrue("Testing ALL group tag", TagManager.ALL_GROUPS.equals(groupTags.get(0).getName()));
-        Assert.assertTrue("Testing NOT_GROUPED group tag", TagManager.NOT_GROUPED.equals(groupTags.get(1).getName()));
+        Assert.assertTrue("Testing ALL group tag", TagManager.ALL_GROUPS_NAME.equals(groupTags.get(0).getName()));
+        Assert.assertTrue("Testing NOT_GROUPED group tag", TagManager.NOT_GROUPED_NAME.equals(groupTags.get(1).getName()));
         
         final TagData test3 = groupTags.get(4);
         Assert.assertTrue("Testing TEST3 id", "b2eeee278206".equals(test3.getId()));
@@ -169,8 +169,8 @@ public class TestTagManager {
             Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
             testChangeType.clear();
 //            System.out.println("\ntestGroupChangeListeners: resetName of group #1");
-            groupTags.get(0).setName(TagManager.ALL_GROUPS);
-            Assert.assertEquals("Attribue has changed", TagManager.ALL_GROUPS, groupTags.get(0).getName());
+            groupTags.get(0).setName(TagManager.ALL_GROUPS_NAME);
+            Assert.assertEquals("Attribue has changed", TagManager.ALL_GROUPS_NAME, groupTags.get(0).getName());
             Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
 
             testChangeType.clear();
@@ -178,7 +178,7 @@ public class TestTagManager {
             groupTags.get(1).setName("DUMMY");
             Assert.assertEquals("Attribue has changed", "DUMMY", groupTags.get(1).getName());
             Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
-            groupTags.get(1).setName(TagManager.NOT_GROUPED);
+            groupTags.get(1).setName(TagManager.NOT_GROUPED_NAME);
 
             // add a non-group child
             testChangeType.clear();
@@ -349,7 +349,7 @@ public class TestTagManager {
             tagsList.get(0).setName("DUMMY");
             Assert.assertEquals("Attribue has changed", "DUMMY", tagsList.get(0).getName());
             Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
-            tagsList.get(0).setName(TagManager.ALL_GROUPS);
+            tagsList.get(0).setName(TagManager.ALL_GROUPS_NAME);
 
             testChangeType.clear();
 //            System.out.println("\ntestTagChangeListeners: rename group tag #3");
@@ -445,6 +445,25 @@ public class TestTagManager {
         final TagData test3 = TagManager.getInstance().getGroupTags().get(4);
         Assert.assertFalse(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag.getName(), test3.getName(), false));
         Assert.assertTrue(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag.getName(), test3.getName(), true));
+
+        final TagData level2 = test3.getChildren().get(0);
+        Assert.assertFalse(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag.getName(), level2.getName(), false));
+        Assert.assertTrue(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag.getName(), level2.getName(), true));
+    }
+    
+    @Test
+    public void TestExternalName() {
+        // TFE, 20220404: allow hierarchical group tags - now we need to keep track of each tags position in the hierarchy
+        final TagData test3 = TagManager.getInstance().getGroupTags().get(4);
+        final TagData level2 = test3.getChildren().get(0);
+        
+        // 1st check: external name is built up over the hierarchy
+        Assert.assertEquals(level2.getExternalName(), TagManager.getInstance().getExternalName(level2));
+        Assert.assertEquals("Test3~Level 2", level2.getExternalName());
+        
+        // 2nd check: lookup by external name gives same object
+        final TagData newLevel2 = TagManager.getInstance().tagForExternalName(level2.getExternalName(), false);
+        Assert.assertEquals(level2, newLevel2);
     }
 
     private void doAddListener(final TagData tagRoot, ListChangeListener<? super TagData> ll) {

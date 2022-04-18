@@ -25,6 +25,8 @@
  */
 package tf.ownnote.ui.notes;
 
+import tf.ownnote.ui.tags.TagData;
+
 /**
  * Interface for handling basic actions with Notes:
  * 
@@ -37,9 +39,9 @@ package tf.ownnote.ui.notes;
  * @author thomas
  */
 public interface INoteCRMDS {
-    public boolean createNote(final String newGroupName, final String newNoteName);
+    public boolean createNote(final TagData newGroup, final String newNoteName);
     public boolean renameNote(final Note curNote, final String newValue);
-    public boolean moveNote(final Note curNote, final String newGroupName);
+    public boolean moveNote(final Note curNote, final TagData newGroup);
     public boolean deleteNote(final Note curNote);
     public boolean saveNote(final Note note);
 }

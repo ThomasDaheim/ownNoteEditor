@@ -77,7 +77,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
     private OwnNoteEditor myEditor= null;
             
     // store selected group before changing the group lists for later re-select
-    private String selectedGroupName = TagManager.ALL_GROUPS;
+    private String selectedGroupName = TagManager.ALL_GROUPS_NAME;
     
     // TFE, 20200907: keep track of group order
     private final List<String> tabOrder = new LinkedList<>();
@@ -263,7 +263,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
             assert (tab instanceof OwnNoteTab);
 
             final String tabLabel = ((OwnNoteTab) tab).getTabName();
-            if (!TagManager.isSpecialGroup(tabLabel) && !tabLabel.equals(PLUS_TAB)) {
+            if (!TagManager.isSpecialGroupName(tabLabel) && !tabLabel.equals(PLUS_TAB)) {
                 // add group name
                 tabOrder.add(tabLabel);
             }
@@ -345,7 +345,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
                 newTab.setDetachable(false);
 
                 // ALL and NOT are reserved names
-                if (!TagManager.isSpecialGroup(groupName)) {
+                if (!TagManager.isSpecialGroupName(groupName)) {
                     newTab.setProtectedTab(false);
                     newTab.setDroptarget(true);
                     newTab.setClosable(true);
@@ -402,7 +402,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
     @Override
     public void selectGroupForNote(final Note note) {
         // find tab that has group as userdata
-        final TagData curGroup = OwnNoteFileManager.getInstance().getNoteGroup(note);
+        final TagData curGroup = note.getGroup();
         
         Tab groupTab = null;
         for (Tab tab : myTabPane.getTabs()) {
@@ -432,9 +432,9 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         
             // 1. check whether new name is not "ALL" or "+"
             final String newGroupName = nameField.getText();
-            if (TagManager.ALL_GROUPS.equals(newGroupName) || PLUS_TAB.equals(newGroupName)) {
+            if (TagManager.ALL_GROUPS_NAME.equals(newGroupName) || PLUS_TAB.equals(newGroupName)) {
                 // error message
-                myEditor.showAlert(Alert.AlertType.ERROR, "Error Dialog", "New group name invalid.", "A group cannot be named '" + TagManager.ALL_GROUPS + "' or '" + PLUS_TAB + "'.");
+                myEditor.showAlert(Alert.AlertType.ERROR, "Error Dialog", "New group name invalid.", "A group cannot be named '" + TagManager.ALL_GROUPS_NAME + "' or '" + PLUS_TAB + "'.");
                 
                 return;
             }
@@ -530,7 +530,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         if (myTabPane.getSelectionModel().getSelectedItem() != null) {
             selectedGroupName = getCurrentGroup().getName();
         } else {
-            selectedGroupName = TagManager.ALL_GROUPS;
+            selectedGroupName = TagManager.ALL_GROUPS_NAME;
         }
     }
 

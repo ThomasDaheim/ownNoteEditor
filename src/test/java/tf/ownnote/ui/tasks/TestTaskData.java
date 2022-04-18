@@ -33,6 +33,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.tags.TagManager;
 
 /**
  *
@@ -81,17 +82,17 @@ public class TestTaskData {
     
     @Test
     public void testTaskDataOpenTask() {
-        final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName("Test", false), "TestTasks");
         final String noteContent = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         
         TaskData taskData = new TaskData(note, noteContent, 63);
         Assert.assertFalse(taskData.isCompleted());
-        Assert.assertEquals(" tell me, what to do!", taskData.getEventDescription());
+        Assert.assertEquals(" tell me, what to do!", taskData.getEventDescription().get());
     }
     
     @Test
     public void testTaskDataCompletedTask() {
-        final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName("Test", false), "TestTasks");
         final String noteContent = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         
         TaskData taskData = new TaskData(note, noteContent, 368);

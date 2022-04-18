@@ -81,6 +81,15 @@ public class Note extends HashMap<String, String> {
         setMetaData(new NoteMetaData(this));
     }
     
+    public Note(final TagData group, final String noteName) {
+        super();
+        
+        setGroup(group);
+        setGroupName(group.getName());
+        setNoteName(noteName);
+        setMetaData(new NoteMetaData(this));
+    }
+    
     public Note(final String groupName, final String noteName) {
         super();
         
@@ -123,14 +132,6 @@ public class Note extends HashMap<String, String> {
         return (Objects.equals(this.getGroupName(), other.getGroupName()) && Objects.equals(this.getNoteName(), other.getNoteName()));
     }
     
-    public static String getNoteValueName(final int i) {
-        return switch (i) {
-            case 1 -> "noteName";
-            case 2 -> "noteModifiedFormatted";
-            default -> "noteName";
-        };
-    }
-    
     public String getNoteName() {
         return noteNameProperty.get();
     }
@@ -165,6 +166,7 @@ public class Note extends HashMap<String, String> {
     
     public void setGroup(final TagData group) {
         groupProperty.set(group);
+        setGroupName(group.getName());
     }
     
     public ObjectProperty<TagData> groupProperty() {

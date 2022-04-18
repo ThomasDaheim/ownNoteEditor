@@ -31,6 +31,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.tags.TagManager;
 
 /**
  *
@@ -53,7 +54,7 @@ public class TestVerifyNoteContent {
     @Test
     public void testVerifyOK() throws Exception {
         final String errorString = "";
-        final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestVerify_OK");
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName("Test", false), "TestVerify_OK");
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         
         doTestNoteFileContent(note, errorString, true);
@@ -63,7 +64,7 @@ public class TestVerifyNoteContent {
     @Test
     public void testVerifyDuplicateComment() throws Exception {
         final String errorString = "Checking of Repeated Metadata failed!\n  Found --><!-- @274\n  Found --><!-- @1327\n";
-        final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestVerify_DUPL_COM");
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName("Test", false), "TestVerify_DUPL_COM");
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
 
         doTestNoteFileContent(note, "[Test] TestVerify_DUPL_COM.htm: " + errorString, false);
@@ -73,7 +74,7 @@ public class TestVerifyNoteContent {
     @Test
     public void testVerifyDuplicateId() throws Exception {
         final String errorString = "Checking of Duplicate Metadata Id failed!\n  Found 9c4fcb5f90af @882\n  Found b6b5f454856d @629\n  Found b659e1dc2728 @551\n";
-        final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestVerify_DUPL_ID");
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName("Test", false), "TestVerify_DUPL_ID");
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
 
         doTestNoteFileContent(note, "[Test] TestVerify_DUPL_ID.htm: " + errorString, false);
@@ -83,7 +84,7 @@ public class TestVerifyNoteContent {
     @Test
     public void testVerifyAdditionalAttributes() throws Exception {
         final String errorString = "Checking of Additional checkbox attributes failed!\n  Found <input type=\"checkbox\" value=\"salami\"> @519\n  Found <input name=\"zutat\" type=\"checkbox\" value=\"salami\"> @953\n  Found <input name=\"zutat\" type=\"checkbox\" value=\"salami\"> @1242\n";
-        final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestVerify_ADD_ATTR");
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName("Test", false), "TestVerify_ADD_ATTR");
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
 
         doTestNoteFileContent(note, "[Test] TestVerify_ADD_ATTR.htm: " + errorString, false);

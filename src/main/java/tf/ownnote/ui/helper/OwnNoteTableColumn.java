@@ -229,7 +229,7 @@ class ObjectCell extends TextFieldTableCell<Note, String> {
     
     @Override
     public void startEdit() {
-        if (TagManager.isSpecialGroup(getText())) {
+        if (TagManager.isSpecialGroupName(getText())) {
             return;
         }
         super.startEdit();
@@ -256,7 +256,7 @@ class ObjectCell extends TextFieldTableCell<Note, String> {
                 "noteNameColFXML".equals(getId()) && 
                 OwnNoteEditorParameters.LookAndFeel.tagTree.equals(myEditor.getCurrentLookAndFeel())) {
             final Note note = ObjectsHelper.uncheckedCast(getTableRow().getItem());
-            final String groupColor = TagManager.getInstance().tagForGroupName(note.getGroupName(), false).getColorName();
+            final String groupColor = note.getGroup().getColorName();
             graphic = new Label("    ");
             graphic.setStyle("-fx-background-color: " + groupColor + ";");
         }

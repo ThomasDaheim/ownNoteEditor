@@ -243,7 +243,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
                 // how about other tags that aren't leafs?
                 dropAllowed = !thisTag.getName().equals(dragNote.getGroupName()) && 
                         !TagManager.isGroupsTag(thisTag) && 
-                        !TagManager.ALL_GROUPS.equals(thisTag.getName());
+                        !TagManager.ALL_GROUPS_NAME.equals(thisTag.getName());
             } else {
                 dropAllowed = !dragNote.getMetaData().getTags().contains(thisTag);
             }
@@ -322,14 +322,12 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
             final TagData thisTag = treeCell.getTreeItem().getValue().getTagData();
             if (TagManager.isAnyGroupTag(thisTag)) {
                 // if group was also a tag -> remove & add
-                final TagData groupTag = TagManager.getInstance().tagForGroupName(dragNote.getGroupName(), false);
-                if (groupTag == null) {
+                if (dragNote.getGroup() == null) {
                     System.err.println("Something is wrong here! Tried to drag to group that doesn't have a tag?!?!?!");
                 }
 
                 // move note to group
-                final String oldGroupName = dragNote.getGroupName();
-                if (myEditor.moveNote(dragNote, thisTag.getName())) {
+                if (myEditor.moveNote(dragNote, thisTag)) {
                 }
             } else {
                 // add tag to note

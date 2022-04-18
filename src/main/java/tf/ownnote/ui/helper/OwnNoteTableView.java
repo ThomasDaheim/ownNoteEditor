@@ -100,7 +100,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
     private List<TableColumn<Note,?>> mySortOrder;
     
     // store selected group before changing the group lists for later re-select
-    private String selectedGroupName = TagManager.ALL_GROUPS;
+    private String selectedGroupName = TagManager.ALL_GROUPS_NAME;
 
     private OwnNoteTableView() {
         super();
@@ -162,14 +162,14 @@ public class OwnNoteTableView implements IPreferencesHolder {
         final MenuItem newNote2 = new MenuItem("New Note");
         newNote2.setOnAction((ActionEvent event) -> {
             // no note selected - above empty part of the table
-            String newGroupName = (String) getTableView().getUserData();
+            TagData newGroup = (TagData) getTableView().getUserData();
             // TF, 20160524: group name could be "All" - thats to be changed to "Not grouped"
-            if (newGroupName == null || newGroupName.equals(TagManager.ALL_GROUPS)) {
-                newGroupName = "";
+            if (newGroup == null) {
+                newGroup = TagManager.ALL_GROUPS;
             }
-            final String newNoteName = myEditor.uniqueNewNoteNameForGroup(newGroupName);
+            final String newNoteName = myEditor.uniqueNewNoteNameForGroup(newGroup);
 
-            createNoteWrapper(newGroupName, newNoteName);
+            createNoteWrapper(newGroup, newNoteName);
         });
         newMenu.getItems().addAll(newNote2);
         myTableView.setContextMenu(newMenu);
@@ -221,7 +221,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
                             assert (item instanceof Note);
 
                             // get the color for the groupname
-                            final String groupColor = TagManager.getInstance().tagForGroupName(((Note) item).getGroupName(), false).getColorName();
+                            final String groupColor = ((Note) item).getGroup().getColorName();
                             setStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": " + groupColor);
                             //System.out.println("updateItem - groupName, groupColor: " + groupName + ", " + groupColor);
                         }
@@ -239,9 +239,9 @@ public class OwnNoteTableView implements IPreferencesHolder {
             newNote1.setOnAction((ActionEvent event) -> {
                 if (myTableView.getSelectionModel().getSelectedItem() != null) {
                     final Note curNote = new Note(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
-                    final String newNoteName = myEditor.uniqueNewNoteNameForGroup(curNote.getGroupName());
+                    final String newNoteName = myEditor.uniqueNewNoteNameForGroup(curNote.getGroup());
 
-                    createNoteWrapper(curNote.getGroupName(), newNoteName);
+                    createNoteWrapper(curNote.getGroup(), newNoteName);
                 }
             });
             final MenuItem renameNote = new MenuItem("Rename Note");
@@ -334,8 +334,8 @@ public class OwnNoteTableView implements IPreferencesHolder {
         });        
     }
 
-    private void createNoteWrapper(final String newGroupName, final String newNoteName) {
-        if (myEditor.createNote(newGroupName, newNoteName)) {
+    private void createNoteWrapper(final TagData newGroup, final String newNoteName) {
+        if (myEditor.createNote(newGroup, newNoteName)) {
             myEditor.initFromDirectory(true, false);
             
             // issue 39: start editing note name
@@ -348,7 +348,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
             for (Map<String, String> noteData : getItems()) {
                 note = ObjectsHelper.uncheckedCast(noteData);
                 
-                if (newNoteName.equals(note.getNoteName()) && TagManager.isSameGroup(newGroupName, note.getGroupName())) {
+                if (newNoteName.equals(note.getNoteName()) && TagManager.isSameGroup(newGroup, note.getGroup())) {
                     selectIndex = i;
                     break;
                 }
@@ -397,12 +397,11 @@ public class OwnNoteTableView implements IPreferencesHolder {
         // 1. Wrap the ObservableList in a FilteredList (initially display all data).
         filteredData = new FilteredList<>(items, p -> true);
         // re-apply filter predicate when already set
-        final String curGroupName = (String) getTableView().getUserData();
-        if (curGroupName != null) {
-            setGroupNameFilter(curGroupName);
+        final TagData curGroup = (TagData) getTableView().getUserData();
+        if (curGroup != null) {
+            setGroupNameFilter(curGroup.getName());
         } else {
-            // only set & apply predicate to new list
-            setFilterPredicate();
+            setGroupNameFilter(TagManager.ALL_GROUPS_NAME);
         }
 
         // 2. Create sorted list
@@ -459,11 +458,11 @@ public class OwnNoteTableView implements IPreferencesHolder {
     }
     
     public void setFilterPredicate() {
-        getTableView().setUserData(groupNameFilter);
+        getTableView().setUserData(TagManager.getInstance().tagForGroupName(groupNameFilter, false));
         
         filteredData.setPredicate((Note note) -> {
             // 1. If group filter text is empty or "All": no need to check
-            if (groupNameFilter != null && !groupNameFilter.isEmpty() && !groupNameFilter.equals(TagManager.ALL_GROUPS) ) {
+            if (groupNameFilter != null && !groupNameFilter.isEmpty() && !groupNameFilter.equals(TagManager.ALL_GROUPS_NAME) ) {
                 // TFE, 20220404: we now have hierarchy in groups BUT groupTabs can't handle that
                 // so we need to show all notes including the ones in hierarchical groups below
 

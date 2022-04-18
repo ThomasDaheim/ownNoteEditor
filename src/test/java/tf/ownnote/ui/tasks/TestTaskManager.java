@@ -38,6 +38,7 @@ import org.junit.Test;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.notes.Note;
+import tf.ownnote.ui.tags.TagManager;
 
 /**
  *
@@ -58,7 +59,7 @@ public class TestTaskManager {
 
     @Test
     public void testFindAllOccurences() {
-        final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName("Test", false), "TestTasks");
         
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         Assert.assertEquals(5, TaskManager.getInstance().tasksForNote(note).size());
@@ -66,7 +67,7 @@ public class TestTaskManager {
 
     @Test
     public void testGetTaskList() {
-        final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName("Test", false), "TestTasks");
         
         // need to sort task list since other tests might have screwed with the order
         final List<TaskData> taskList = TaskManager.getInstance().tasksForNote(note).stream().sorted((o1, o2) -> {
@@ -79,13 +80,13 @@ public class TestTaskManager {
             Assert.assertEquals("TestTasks", data.getNote().getNoteName());
         }
         
-        Assert.assertEquals(" tell me, what to do!", taskList.get(0).getEventDescription());
+        Assert.assertEquals(" tell me, what to do!", taskList.get(0).getEventDescription().get());
         Assert.assertTrue(taskList.get(2).getDescription().startsWith(" of course with something special: "));
     }
     
     @Test
     public void testChangeContent1() {
-        final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName("Test", false), "TestTasks");
         
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         TaskManager.getInstance().tasksForNote(note);
@@ -172,7 +173,7 @@ public class TestTaskManager {
     
     @Test
     public void testChangeContent2() {
-        final Note note = OwnNoteFileManager.getInstance().getNote("Test", "TestTasks");
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName("Test", false), "TestTasks");
         
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         // need to sort task list since other tests might have screwed with the order

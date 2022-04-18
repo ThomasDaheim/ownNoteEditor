@@ -100,13 +100,13 @@ public class TaskDataEditor extends GridPane {
             @Override
             public void onChanged(SetChangeListener.Change<? extends TagData> change) {
                 if (change.wasRemoved()) {
-                    removeTagLabel(change.getElementRemoved().getName());
+                    removeTagLabel(change.getElementRemoved());
                 }
                 if (change.wasAdded()) {
                     // TFE, 2021012: don't ask - for some reason we need to remove first to avoid duplicates
                     // might be an issue in which order the listener is called?
-                    removeTagLabel(change.getElementAdded().getName());
-                    addTagLabel(change.getElementAdded().getName());
+                    removeTagLabel(change.getElementAdded());
+                    addTagLabel(change.getElementAdded());
                 }
             }
         };
@@ -284,10 +284,7 @@ public class TaskDataEditor extends GridPane {
         commentArea.setText(myTask.getComment());
 
         tagsBox.getChildren().clear();
-        final Set<String> tags = myTask.getTags().stream().map((e) -> {
-            return e.getName();
-        }).collect(Collectors.toSet());
-        for (String tag : tags) {
+        for (TagData tag : myTask.getTags()) {
             addTagLabel(tag);
         }
 
@@ -296,14 +293,14 @@ public class TaskDataEditor extends GridPane {
         
     }
     
-    private Node getTagLabel(final String tag) {
+    private Node getTagLabel(final TagData tag) {
         final HBox result = new HBox();
         result.getStyleClass().add("tagLabel");
         result.setAlignment(Pos.CENTER_LEFT);
         result.setPadding(new Insets(0, 2, 0, 2));
         result.setUserData(tag);
 
-        final Label tagLabel = new Label(tag);
+        final Label tagLabel = new Label(tag.getName());
         
         // add "remove" "button"
         final Label removeTag = new Label("X");
@@ -315,7 +312,7 @@ public class TaskDataEditor extends GridPane {
         
         removeTag.setOnMouseClicked((t) -> {
             // get rid of this tag in the task
-            myTask.getTags().remove(TagManager.getInstance().tagForName(tag, null, false));
+            myTask.getTags().remove(tag);
         });
         
         result.getChildren().addAll(tagLabel, removeTag);
@@ -323,15 +320,15 @@ public class TaskDataEditor extends GridPane {
         return result;
     }
 
-    private void addTagLabel(final String tag) {
+    private void addTagLabel(final TagData tag) {
         final Node tagLabel = getTagLabel(tag);
         FlowPane.setMargin(tagLabel, new Insets(0, 0, 0, 4));
         tagsBox.getChildren().add(tagLabel);
     }
     
-    private void removeTagLabel(final String tag) {
+    private void removeTagLabel(final TagData tag) {
         final List<Node> tagsList = tagsBox.getChildren().stream().filter((t) -> {
-            return ((String) t.getUserData()).equals(tag);
+            return ((TagData) t.getUserData()).equals(tag);
         }).collect(Collectors.toList());
         
         tagsBox.getChildren().removeAll(tagsList);
