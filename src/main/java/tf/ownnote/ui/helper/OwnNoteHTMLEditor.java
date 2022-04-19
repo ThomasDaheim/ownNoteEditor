@@ -85,6 +85,7 @@ import tf.helper.javafx.UsefulKeyCodes;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteMetaData;
+import tf.ownnote.ui.tags.TagData;
 import tf.ownnote.ui.tasks.TaskData;
 import tf.ownnote.ui.tasks.TaskManager;
 
@@ -897,14 +898,14 @@ public class OwnNoteHTMLEditor {
         wrapExecuteScript(myWebEngine, "tinymce.activeEditor.setDirty(false);");
     }
 
-    public void doNameChange(final String oldGroupName, final String newGroupName, final String oldNoteName, final String newNoteName) {
-        assert (oldGroupName != null);
-        assert (newGroupName != null);
+    public void doNameChange(final TagData oldGroup, final TagData newGroup, final String oldNoteName, final String newNoteName) {
+        assert (oldGroup != null);
+        assert (newGroup != null);
         assert (oldNoteName != null);
         assert (newNoteName != null);
         
         if (getEditedNote() != null) {
-            editedNote.setGroupName(newGroupName);
+            editedNote.setGroup(newGroup);
             editedNote.setNoteName(newNoteName);
         }
     }

@@ -546,10 +546,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             if (!t.getNewValue().equals(t.getOldValue())) {
                 if (!renameNote(curNote, t.getNewValue())) {
                     // TF, 20160815: restore old name in case of error
-
                     // https://stackoverflow.com/questions/20798634/restore-oldvalue-in-tableview-after-editing-the-cell-javafx
-                    t.getTableView().getColumns().get(0).setVisible(false);
-                    t.getTableView().getColumns().get(0).setVisible(true);
+//                    t.getTableView().getColumns().get(0).setVisible(false);
+//                    t.getTableView().getColumns().get(0).setVisible(true);
+                    // TFE, 20220419: hide / show doesn't work anymore...
+                    t.getTableView().refresh();
                 }
             }
         });
@@ -964,7 +965,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             showAlert(AlertType.ERROR, "Error Dialog", "An error occured while renaming the note.", "A note with the same name already exists.");
         } else {
             //check if we just moved the current note in the editor...
-            noteHTMLEditor.doNameChange(curNote.getGroupName(), curNote.getGroupName(), curNote.getNoteName(), newValue);
+            noteHTMLEditor.doNameChange(curNote.getGroup(), curNote.getGroup(), curNote.getNoteName(), newValue);
 
             // update group tags as well
             TagManager.getInstance().renameNote(curNote, newValue);
@@ -984,7 +985,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             showAlert(AlertType.ERROR, "Error Dialog", "An error occured while moving the note.", "A note with the same name already exists in the new group.");
         } else {
             //check if we just moved the current note in the editor...
-            noteHTMLEditor.doNameChange(curNote.getGroupName(), newGroup.getName(), curNote.getNoteName(), curNote.getNoteName());
+            noteHTMLEditor.doNameChange(curNote.getGroup(), newGroup, curNote.getNoteName(), curNote.getNoteName());
 
             // update group tags as well
             TagManager.getInstance().moveNote(origNote, newGroup);
@@ -1142,19 +1143,13 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                                 }
 
                                 if (saveChanges.get().equals(buttonSaveNew)) {
-                                    // save own note under new name
+                                    // save own note under new name => rename note & save
                                     final Note saveNote = noteHTMLEditor.getEditedNote();
                                     final String newNoteName = uniqueNewNoteNameForGroup(saveNote.getGroup());
-                                    if (createNote(saveNote.getGroup(), newNoteName)) {
-                                        final Note newNote = new Note(saveNote.getGroupName(), newNoteName);
-                                        newNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
-                                        if (saveNote(newNote)) {
-                                            // we effectively just renamed the note...
-                                            final String oldNoteName = saveNote.getNoteName();
-                                            saveNote.setNoteName(newNoteName);
-                                            noteHTMLEditor.doNameChange(saveNote.getGroupName(), saveNote.getGroupName(), oldNoteName, newNoteName);
-                                            // System.out.printf("User data updated\n");
-                                        }
+                                    // can't use rename to change note name since this would use the new version / deleted version in the file system
+                                    saveNote.setNoteName(newNoteName);
+                                    saveNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
+                                    if (saveNote(saveNote)) {
                                     }
                                 }
 
@@ -1165,7 +1160,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                                         final Note loadNote = noteHTMLEditor.getEditedNote();
                                         OwnNoteFileManager.getInstance().readNote(loadNote, true);
                                         noteHTMLEditor.editNote(loadNote);
-                                        noteMetaEditor.editNote(loadNote);
                                     }
                                 }
                             }

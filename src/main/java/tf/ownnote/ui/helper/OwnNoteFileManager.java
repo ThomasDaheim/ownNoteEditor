@@ -216,6 +216,11 @@ public class OwnNoteFileManager implements INoteCRMDS {
             // use https://stackoverflow.com/a/19486413 to quickly read first line from file
             result = in.readLine();
             
+            // TFE, 20220419: if we have (for some reason) an empty body, readLine() results in NULL
+            if (result == null) {
+                result = "";
+            }
+            
             // TFE, 20220108: upgrade notes to full html...
             if (result.startsWith(MINIMAL_HTML_PREFIX)) {
                 result = result.replaceFirst(MINIMAL_HTML_PREFIX, "");
@@ -304,7 +309,6 @@ public class OwnNoteFileManager implements INoteCRMDS {
     }
 
     public String buildNoteName(final TagData group, final String noteName) {
-        assert group != null;
         assert noteName != null;
         
         return buildGroupName(group) + noteName + "." + NOTE_EXT;
@@ -317,11 +321,9 @@ public class OwnNoteFileManager implements INoteCRMDS {
     }
 
     private String buildGroupName(final TagData group) {
-        assert group != null;
-        
         String result;
         
-        if (TagManager.isSpecialGroup(group)) {
+        if (group == null || TagManager.isSpecialGroup(group)) {
             // only the note name
             result = "";
         } else {
@@ -507,9 +509,13 @@ public class OwnNoteFileManager implements INoteCRMDS {
             result = false;
         }
 
-        // // TF, 20170723: update modified date of the file
+        Note dataRow = notesList.get(newFileName);
+        // TFE, 20220419: note might not yet exist in notesList!
+        if (dataRow == null) {
+            dataRow = note;
+        }
+        // TF, 20170723: update modified date of the file
         final LocalDateTime filetime = LocalDateTime.ofInstant((new Date(savePath.toFile().lastModified())).toInstant(), ZoneId.systemDefault());
-        final Note dataRow = notesList.get(newFileName);
         // TFE; 20200814: store content in Note
         dataRow.setNoteFileContent(content);
         dataRow.setNoteModified(filetime);

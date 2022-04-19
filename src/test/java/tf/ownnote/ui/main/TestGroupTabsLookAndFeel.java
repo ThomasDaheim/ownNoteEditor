@@ -90,6 +90,9 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         
         // TF, 20170205: under gradle in netbeans toFront() still leves the window in the background...
         myStage.requestFocus();
+
+        myStage.setAlwaysOnTop(true);
+        myStage.setAlwaysOnTop(false);
     }
 
     private final TestNoteData myTestdata = new TestNoteData();
@@ -382,7 +385,8 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         rightClickOn();
         push(KeyCode.DOWN);
-        push(KeyCode.DOWN);
+        // TFE, 20181003: java 9: right click selects the first menu item... so one "DOWN" less here
+        //push(KeyCode.DOWN);
         push(KeyCode.ENTER);
         // TFE, 20191220: note names can be CaSe sensitive
         write("TEST1");
@@ -392,12 +396,15 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         Note renamedNote = (Note) notesTableFXML.getSelectionModel().getSelectedItem();
         assertTrue("Check renamed note label", renamedNote.getNoteName().startsWith("TEST1"));
 
+        // TFE, 20220419: CTRL+R doesn't select the menu item any more... so we need to do WHAT? get rid fo menu entry!
+//        // #2 ------------------------------------------------------------------
+//        // rename note via right click + CTRL+R
+
         // #2 ------------------------------------------------------------------
-        // rename note via right click + CTRL+R
+        // rename note via single click
         clickOn(notesTableFXML);
         moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
-        rightClickOn();
-        push(KeyCode.CONTROL, KeyCode.R);
+        clickOn();
         write("rename2");
         push(KeyCode.ENTER);
         push(KeyCode.ENTER);

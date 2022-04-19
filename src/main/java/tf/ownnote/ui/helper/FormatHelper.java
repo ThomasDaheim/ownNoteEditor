@@ -189,9 +189,9 @@ public class FormatHelper {
         // to check for illegal chars in note & group names
         // use more restrictive windows rules to make sure notes can be stored anywhere
 
-        // TFE, 20220417: added ~ as char to hae it as group name separator
+        // TFE, 20220417: added ~ as char to have it as group name separator
         textField.setTextFormatter(new TextFormatter<>(change ->
-            (change.getControlNewText().matches("([^\u0001-\u001f<>:\"/\\\\|?*\u007f]*~)?")) ? change : null));
+            (change.getControlNewText().matches("([^\u0001-\u001f<>:\"/\\\\|?*~\u007f]*)?")) ? change : null));
 
         final Tooltip t = new Tooltip();
         final StringBuilder tooltext = new StringBuilder();
@@ -214,7 +214,7 @@ public class FormatHelper {
         textField.setTextFormatter(new TextFormatter<>(change ->
             (isValueAllowed.test(change.getControlNewText()) ? change : null)));
 
-        final Tooltip t = new Tooltip("No duplicate tag names allowed");
+        final Tooltip t = new Tooltip("No duplicate tag names on same level allowed");
         t.getStyleClass().addAll("nametooltip");
         TooltipHelper.updateTooltipBehavior(t, 0, 10000, 0, true);
 

@@ -617,8 +617,9 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             if (result) {
                 //check if we just moved the current note in the editor...
                 if (myEditor != null && myEditor.getNoteEditor().getEditedNote() != null && myEditor.getNoteEditor().getEditedNote().getGroupName().equals(oldName)) {
-                    myEditor.getNoteEditor().doNameChange(oldName, newGroupName, 
-                            myEditor.getNoteEditor().getEditedNote().getNoteName(), myEditor.getNoteEditor().getEditedNote().getNoteName());
+                    // TODO: is this still necessary?
+//                    myEditor.getNoteEditor().doNameChange(oldName, newGroupName, 
+//                            myEditor.getNoteEditor().getEditedNote().getNoteName(), myEditor.getNoteEditor().getEditedNote().getNoteName());
                 }
             } else {
                 if (newName != null) {

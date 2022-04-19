@@ -102,6 +102,9 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         
         // TF, 20170205: under gradle in netbeans toFront() still leves the window in the background...
         myStage.requestFocus();
+
+        myStage.setAlwaysOnTop(true);
+        myStage.setAlwaysOnTop(false);
     }
 
     private final TestNoteData myTestdata = new TestNoteData();
@@ -173,10 +176,11 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         notesTableFXML = (TableView<Map<String, String>>) find(".notesTable");
         tagsTreeView = (TreeView<TagData>) find(".tagsTreeView");
         
-        allTag = (TagTextFieldTreeCell) find("#" + TagManager.ALL_GROUPS_NAME);
-        test1Tag = (TagTextFieldTreeCell) find("#Test1");
-        test2Tag = (TagTextFieldTreeCell) find("#Test2");
-        test3Tag = (TagTextFieldTreeCell) find("#Test3");
+        // TFE, 20220418: we don't use name as ID anymore... see tag_info.xml for values
+        allTag = (TagTextFieldTreeCell) find("#74a9df4e657b");
+        test1Tag = (TagTextFieldTreeCell) find("#85ef2a4106ad");
+        test2Tag = (TagTextFieldTreeCell) find("#66995e6377a5");
+        test3Tag = (TagTextFieldTreeCell) find("#b2eeee278206");
 
         noteFilterText = (TextField) find(".noteFilterText");
         noteFilterCheck = (CheckBox) find(".noteFilterCheck");
@@ -379,6 +383,8 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
         rightClickOn();
         push(KeyCode.DOWN);
+        // TFE, 20181003: java 9: right click selects the first menu item... so one "DOWN" less here
+        //push(KeyCode.DOWN);
         push(KeyCode.ENTER);
         // TFE, 20191220: note names can be CaSe sensitive
         write("TEST1");
@@ -388,12 +394,15 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         Note renamedNote = (Note) notesTableFXML.getSelectionModel().getSelectedItem();
         assertTrue("Check renamed note label", renamedNote.getNoteName().startsWith("TEST1"));
 
+        // TFE, 20220419: CTRL+R doesn't select the menu item any more... so we need to do WHAT? get rid fo menu entry!
+//        // #2 ------------------------------------------------------------------
+//        // rename note via right click + CTRL+R
+
         // #2 ------------------------------------------------------------------
-        // rename note via right click + CTRL+R
+        // rename note via single click
         clickOn(notesTableFXML);
         moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
-        rightClickOn();
-        push(KeyCode.CONTROL, KeyCode.R);
+        clickOn();
         write("rename2");
         push(KeyCode.ENTER);
         push(KeyCode.ENTER);

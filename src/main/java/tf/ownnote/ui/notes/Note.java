@@ -26,7 +26,6 @@
 package tf.ownnote.ui.notes;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.Objects;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
@@ -42,23 +41,21 @@ import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.tags.TagData;
 
 /**
+ * Base class for a note shown in the editor. 
+ * 
+ * It holds the basic information of a note:
  *
+ * name
+ * group
+ * modified date
+ * file content
+ * current editor content
+ * 
+ * Add. data (as stored in the notes comment section) is stored as NoteMetaData.
+ * 
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class Note extends HashMap<String, String> {
-    // to reference the columns for notes table
-    private enum NoteMapKey {
-        noteName,
-        noteModified,
-        noteDelete,
-        groupName,
-        // TFE, 20200814: content as in file
-        // can be used for diff in FileContentChangeType event handling
-        noteFileContent,
-        // TFE, 20200814: content as in editor
-        noteEditorContent;
-    }
-    
+public class Note {
     // TFE, 20220412: good bye, my map... welcome properties!
     private final StringProperty noteNameProperty = new SimpleStringProperty();
     private final ObjectProperty<LocalDateTime> noteModifiedProperty = new SimpleObjectProperty<>();
@@ -85,7 +82,6 @@ public class Note extends HashMap<String, String> {
         super();
         
         setGroup(group);
-        setGroupName(group.getName());
         setNoteName(noteName);
         setMetaData(new NoteMetaData(this));
     }
@@ -93,13 +89,12 @@ public class Note extends HashMap<String, String> {
     public Note(final String groupName, final String noteName) {
         super();
         
-        setGroupName(groupName);
         setNoteName(noteName);
         setMetaData(new NoteMetaData(this));
     }
     
     public Note(final Note note) {
-        super(note);
+        super();
         
         myMetaData = note.myMetaData;
         initNoteHasChanged();
@@ -166,7 +161,6 @@ public class Note extends HashMap<String, String> {
     
     public void setGroup(final TagData group) {
         groupProperty.set(group);
-        setGroupName(group.getName());
     }
     
     public ObjectProperty<TagData> groupProperty() {
@@ -174,11 +168,7 @@ public class Note extends HashMap<String, String> {
     }
 
     public String getGroupName() {
-        return get(NoteMapKey.groupName.name());
-    }
-
-    public void setGroupName(final String groupName) {
-        put(NoteMapKey.groupName.name(), groupName);
+        return getGroup().getName();
     }
 
     public String getNoteFileContent() {
@@ -209,7 +199,7 @@ public class Note extends HashMap<String, String> {
         if (getNoteFileContent() != null && getNoteEditorContent() != null) {
             hasUnsavedNoteChangesProperty.set(!HtmlEscape.unescapeHtml(getNoteFileContent()).equals(HtmlEscape.unescapeHtml(getNoteEditorContent())));
         } else {
-            hasUnsavedNoteChangesProperty.set(!getNoteFileContent().equals(getNoteEditorContent()));
+            hasUnsavedNoteChangesProperty.set((getNoteFileContent() != null) || (getNoteEditorContent() != null));
         }
     }
     

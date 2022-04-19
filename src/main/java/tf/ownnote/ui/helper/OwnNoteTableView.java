@@ -27,7 +27,6 @@ package tf.ownnote.ui.helper;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -98,9 +97,6 @@ public class OwnNoteTableView implements IPreferencesHolder {
     private String backgroundColor = "white";
     
     private List<TableColumn<Note,?>> mySortOrder;
-    
-    // store selected group before changing the group lists for later re-select
-    private String selectedGroupName = TagManager.ALL_GROUPS_NAME;
 
     private OwnNoteTableView() {
         super();
@@ -164,8 +160,8 @@ public class OwnNoteTableView implements IPreferencesHolder {
             // no note selected - above empty part of the table
             TagData newGroup = (TagData) getTableView().getUserData();
             // TF, 20160524: group name could be "All" - thats to be changed to "Not grouped"
-            if (newGroup == null) {
-                newGroup = TagManager.ALL_GROUPS;
+            if (newGroup == null || newGroup.equals(TagManager.ALL_GROUPS)) {
+                newGroup = TagManager.NOT_GROUPED;
             }
             final String newNoteName = myEditor.uniqueNewNoteNameForGroup(newGroup);
 
@@ -233,9 +229,6 @@ public class OwnNoteTableView implements IPreferencesHolder {
 
             final MenuItem newNote1 = new MenuItem("New Note");
             // issue #41 - but only in groupTabs look...
-            if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(myEditor.getCurrentLookAndFeel())) {
-                newNote1.setAccelerator(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN));
-            }
             newNote1.setOnAction((ActionEvent event) -> {
                 if (myTableView.getSelectionModel().getSelectedItem() != null) {
                     final Note curNote = new Note(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
@@ -246,11 +239,8 @@ public class OwnNoteTableView implements IPreferencesHolder {
             });
             final MenuItem renameNote = new MenuItem("Rename Note");
             // issue #41 - but only in groupTabs look...
-            renameNote.setAccelerator(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN));
             renameNote.setOnAction((ActionEvent event) -> {
                 if (myTableView.getSelectionModel().getSelectedItem() != null) {
-                    final Note curNote = ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem());
-
                     startEditingName(myTableView.getSelectionModel().getSelectedIndex());
                 }
             });
@@ -342,12 +332,11 @@ public class OwnNoteTableView implements IPreferencesHolder {
             // https://stackoverflow.com/questions/28456215/tableview-edit-focused-cell
 
             // find & select new entry based on note name and group name
+
+
             int selectIndex = -1;
             int i = 0;
-            Note note;
-            for (Map<String, String> noteData : getItems()) {
-                note = ObjectsHelper.uncheckedCast(noteData);
-                
+            for (Note note : getItems()) {
                 if (newNoteName.equals(note.getNoteName()) && TagManager.isSameGroup(newGroup, note.getGroup())) {
                     selectIndex = i;
                     break;
@@ -362,7 +351,10 @@ public class OwnNoteTableView implements IPreferencesHolder {
     private void startEditingName(final int selectIndex) {
         if (selectIndex != -1) {
             // need to run layout first, otherwise edit() doesn't do anything
+
+
             myTableView.layout();
+            myTableView.refresh();
 
             selectAndFocusRow(selectIndex);
 
