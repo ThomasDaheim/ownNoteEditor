@@ -85,7 +85,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
     private FilteredList<Note> filteredData = null;
     
     // Issue #59: filter group names and note names
-    private String groupNameFilter;
+    private TagData groupFilter;
     private String noteSearchText;
     // default: don't search in files
     private Boolean noteSearchMode = false;
@@ -391,9 +391,9 @@ public class OwnNoteTableView implements IPreferencesHolder {
         // re-apply filter predicate when already set
         final TagData curGroup = (TagData) getTableView().getUserData();
         if (curGroup != null) {
-            setGroupNameFilter(curGroup.getName());
+            setGroupFilter(curGroup);
         } else {
-            setGroupNameFilter(TagManager.ALL_GROUPS_NAME);
+            setGroupFilter(TagManager.ALL_GROUPS);
         }
 
         // 2. Create sorted list
@@ -410,8 +410,10 @@ public class OwnNoteTableView implements IPreferencesHolder {
         restoreSortOrder();
     }
     
-    public void setGroupNameFilter(final String filterValue) {
-        groupNameFilter = filterValue;
+    public void setGroupFilter(final TagData group) {
+        // group is filtered by name
+        // TODO: is this still true with new group hierarchy and duplicate group names??? NO!!!
+        groupFilter = group;
         tagFilter = null;
 
         // force re-run of filtering since refilter() is a private method...
@@ -419,7 +421,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
     }
     
     public void setTagFilter(final TagData filterValue) {
-        groupNameFilter = null;
+        groupFilter = null;
         tagFilter = filterValue;
 
         // force re-run of filtering since refilter() is a private method...
@@ -450,20 +452,17 @@ public class OwnNoteTableView implements IPreferencesHolder {
     }
     
     public void setFilterPredicate() {
-        getTableView().setUserData(TagManager.getInstance().tagForGroupName(groupNameFilter, false));
+        getTableView().setUserData(groupFilter);
         
         filteredData.setPredicate((Note note) -> {
             // 1. If group filter text is empty or "All": no need to check
-            if (groupNameFilter != null && !groupNameFilter.isEmpty() && !groupNameFilter.equals(TagManager.ALL_GROUPS_NAME) ) {
+            if (groupFilter != null && !groupFilter.equals(TagManager.ALL_GROUPS) ) {
                 // TFE, 20220404: we now have hierarchy in groups BUT groupTabs can't handle that
                 // so we need to show all notes including the ones in hierarchical groups below
 
                 // Compare group name to group filter text
                 // check hierarchy as well - let manager do this
-                if (!TagManager.getInstance().isSameGroupOrChildGroup(
-                        groupNameFilter,
-                        note.getGroupName(), 
-                        true)) {
+                if (!TagManager.getInstance().isSameGroupOrChildGroup(groupFilter, note.getGroup(), true)) {
                     return false;
                 }
             }

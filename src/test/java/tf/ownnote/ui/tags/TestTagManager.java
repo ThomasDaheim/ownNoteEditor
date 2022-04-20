@@ -438,17 +438,16 @@ public class TestTagManager {
         final TagData rootTag = TagManager.getInstance().getRootTag();
         final TagData grouspRootTag = rootTag.getChildren().get(0);
         
-        Assert.assertFalse(TagManager.getInstance().isSameGroupOrChildGroup(rootTag.getName(), grouspRootTag.getName(), false));
-        // still FALSE even with hierarchy, since ROOT isn't a group itself
-        Assert.assertFalse(TagManager.getInstance().isSameGroupOrChildGroup(rootTag.getName(), grouspRootTag.getName(), true));
+        Assert.assertFalse(TagManager.getInstance().isSameGroupOrChildGroup(rootTag, grouspRootTag, false));
+        Assert.assertTrue(TagManager.getInstance().isSameGroupOrChildGroup(rootTag, grouspRootTag, true));
 
         final TagData test3 = TagManager.getInstance().getGroupTags().get(4);
-        Assert.assertFalse(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag.getName(), test3.getName(), false));
-        Assert.assertTrue(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag.getName(), test3.getName(), true));
+        Assert.assertFalse(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag, test3, false));
+        Assert.assertTrue(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag, test3, true));
 
         final TagData level2 = test3.getChildren().get(0);
-        Assert.assertFalse(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag.getName(), level2.getName(), false));
-        Assert.assertTrue(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag.getName(), level2.getName(), true));
+        Assert.assertFalse(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag, level2, false));
+        Assert.assertTrue(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag, level2, true));
     }
     
     @Test

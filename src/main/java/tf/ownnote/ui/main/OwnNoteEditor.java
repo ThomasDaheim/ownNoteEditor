@@ -1022,14 +1022,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         notesTable.setFilterPredicate();
     }
     
-    public void setGroupNameFilter(final String groupName) {
-        currentGroupTagProperty.set(TagManager.getInstance().tagForGroupName(groupName, false));
+    public void setGroupFilter(final TagData group) {
+        currentGroupTagProperty.set(group);
         
-        notesTable.setGroupNameFilter(groupName);
+        notesTable.setGroupFilter(group);
         
         // TFE, 20210715: select most recent note for this group - if any
-        if (RecentNoteForGroup.getInstance().containsKey(groupName)) {
-            notesTable.selectNote(RecentNoteForGroup.getInstance().get(groupName));
+        if (RecentNoteForGroup.getInstance().containsKey(group.getName())) {
+            notesTable.selectNote(RecentNoteForGroup.getInstance().get(group.getName()));
         }
     }
     
@@ -1170,16 +1170,12 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                 // TFE, 20210101: only initFromDirectory if anything related to note files has changed!
                 if (OwnNoteFileManager.NOTE_EXT.equals(FilenameUtils.getExtension(fileName))) {
                     // show only notes for selected group
-                    final String curGroupName = myGroupList.getCurrentGroup().getName();
-
                     initFromDirectory(true, true);
                     selectFirstOrCurrentNote();
 
                     // but only if group still exists in the list!
-                    if (TagManager.getInstance().getGroupTags().stream().map((t) -> {
-                        return t.getName();
-                    }).collect(Collectors.toList()).contains(curGroupName)) {
-                        setGroupNameFilter(curGroupName);
+                    if (TagManager.getInstance().getGroupTags().contains(myGroupList.getCurrentGroup())) {
+                        setGroupFilter(myGroupList.getCurrentGroup());
                     }
 
                     filesInProgress.remove(fileName);

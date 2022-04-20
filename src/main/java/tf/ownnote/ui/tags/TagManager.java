@@ -225,23 +225,6 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
     
     // helper methods to check for All, Not Grouped 
-    public static boolean isSpecialGroupName(final String groupName) {
-        return (isNotGroupedName(groupName) || ALL_GROUPS_NAME.equals(groupName));
-    }
-    
-    public static boolean isNotGroupedName(final String groupName) {
-        // isEmpty() happens for new notes, otherwise, group names are NOT_GROUPED from OwnNoteFileManager.initNotesPath()
-        return (groupName.isEmpty() || NOT_GROUPED_NAME.equals(groupName));
-    }
-    
-    public static boolean isSameGroupName(final String groupName1, final String groupName2) {
-        assert groupName1 != null;
-        assert groupName2 != null;
-        // either both are equal or both are part of "Not grouped"
-        return (groupName1.equals(groupName2) || isNotGroupedName(groupName1) && isNotGroupedName(groupName2));
-    }  
-    
-    // static version os the functions using tags instead of tag names
     public static boolean isSpecialGroup(final TagData group) {
         return ((isNotGrouped(group) || ALL_GROUPS.equals(group)));
     }
@@ -602,7 +585,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             return true;
         }
         // can't rename a group to ALL or NOT_GROUPED
-        if (isGroupsChildTag(tag) && isSpecialGroupName(tag.getName())) {
+        if (isGroupsChildTag(tag) && isSpecialGroup(tag)) {
             return false;
         }
 
@@ -772,24 +755,24 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
     
     public static boolean isEditableTag(final TagData tag) {
-        // editable: currently same as fixed
-        return isFixedTag(tag);
+        // editable: currently same as NOT fixed
+        return !isFixedTag(tag);
     }
 
     public static boolean isFixedTag(final TagData tag) {
         // fixed: "Groups", "All", "Not grouped" tags
         return reservedTags.containsValue(tag) ||
-                ALL_GROUPS_NAME.equals(tag.getName()) ||
-                NOT_GROUPED_NAME.equals(tag.getName());
+                ALL_GROUPS.equals(tag) ||
+                NOT_GROUPED.equals(tag);
     }
     
     // TFE, 20220404: allow hierarchical group tags - now we need to keep track of each tags position in the hierarchy
-    public static void setTagLevels() {
+    private static void setTagLevels() {
         ROOT_TAG.setLevel(0);
         // do the recursion
         setChildTagLevels(ROOT_TAG.getChildren(), 1);
     }
-    public static void setChildTagLevels(final ObservableList<TagData> tags, final int level) {
+    private static void setChildTagLevels(final ObservableList<TagData> tags, final int level) {
         for (TagData tag: tags) {
             tag.setLevel(level);
             // do the recursion
@@ -797,18 +780,18 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
     }
     
-    public boolean isSameGroupOrChildGroup(final String groupName, final String checkName, final boolean includeHierarchy) {
-        assert groupName != null;
-        assert checkName != null;
+    public boolean isSameGroupOrChildGroup(final TagData group, final TagData check, final boolean includeHierarchy) {
+        assert group != null;
+        assert check != null;
         
-        boolean result = groupName.equals(checkName);
+        boolean result = group.equals(check);
         
         if (!result && includeHierarchy) {
             // lets do the hierarchy
-            final TagData tag = tagForGroupName(groupName, false);
-            if (tag != null && !tag.getChildren().isEmpty()) {
+            final TagData tag = group;
+            if (!tag.getChildren().isEmpty()) {
                 for (TagData child : tag.getChildren()) {
-                    if (isSameGroupOrChildGroup(child.getName(), checkName, includeHierarchy)) {
+                    if (isSameGroupOrChildGroup(child, check, includeHierarchy)) {
                         // found it - lets get out here
                         result = true;
                         break;

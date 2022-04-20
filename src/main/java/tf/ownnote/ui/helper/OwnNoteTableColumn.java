@@ -229,9 +229,6 @@ class ObjectCell extends TextFieldTableCell<Note, String> {
     
     @Override
     public void startEdit() {
-        if (TagManager.isSpecialGroupName(getText())) {
-            return;
-        }
         super.startEdit();
         
         if (isEditing()) {

@@ -257,7 +257,11 @@ public class OwnNoteTab extends Tab {
     }
 
     public String getTabName() {
-        return this.tabName;
+        return tabName;
+    }
+    
+    public TagData getTabTag() {
+        return tabTag;
     }
     
     public String getTabCount() {

@@ -122,11 +122,11 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
                     if (TagManager.isGroupsTag(tag)) {
                         // "Groups" selected => similar to "All" in tabs
                         currentGroup = TagManager.ALL_GROUPS;
-                        myEditor.setGroupNameFilter(TagManager.ALL_GROUPS_NAME);
+                        myEditor.setGroupFilter(TagManager.ALL_GROUPS);
                     } else if (TagManager.isAnyGroupTag(tag)) {
                         // a tag under "Groups" selected => similar to select a tab
                         currentGroup = tag;
-                        myEditor.setGroupNameFilter(tag.getName());
+                        myEditor.setGroupFilter(tag);
                     } else {
                         // any "normal" tag has been selected - set filter on all its and childrens notes
                         final Set<Note> tagNotes = tag.flattened().map((t) -> {

@@ -137,9 +137,9 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
                     } else {
                         // select matching notes for group
                         assert (newTab.getUserData() instanceof TagData);
-                        final String groupName = ((TagData) newTab.getUserData()).getName();
+                        final TagData group = (TagData) newTab.getUserData();
 
-                        myEditor.setGroupNameFilter(groupName);
+                        myEditor.setGroupFilter(group);
                         // set color of notes table to tab color
                         myEditor.setNotesTableBackgroundColor(((OwnNoteTab) newTab).getBackgroundColor());
 
@@ -175,7 +175,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         final String tabName = "New Group " + myTabPane.getTabs().size();
         
         final TagData newTag = TagManager.getInstance().tagForGroupName(tabName, true);
-        final OwnNoteTab newTab = new OwnNoteTab(tabName, "0", null, myEditor);
+        final OwnNoteTab newTab = new OwnNoteTab(tabName, "0", newTag, myEditor);
         newTab.setClosable(true);
         newTab.setDetachable(false);
         newTab.setProtectedTab(false);
@@ -208,7 +208,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         }
         
         // set color of tab to something fancy
-        final String groupColor = TagManager.getInstance().tagForGroupName(newTab.getTabName(), false).getColorName();
+        final String groupColor = newTab.getTabTag().getColorName();
         newTab.setBackgroundColor(groupColor);
         //System.out.println("addOwnNoteTab - groupName, groupColor: " + newTab.getTabName() + ", " + groupColor);
         
@@ -262,10 +262,11 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         for (Tab tab: myTabPane.getTabs()) {
             assert (tab instanceof OwnNoteTab);
 
-            final String tabLabel = ((OwnNoteTab) tab).getTabName();
-            if (!TagManager.isSpecialGroupName(tabLabel) && !tabLabel.equals(PLUS_TAB)) {
+            final TagData tabTag = ((OwnNoteTab) tab).getTabTag();
+            final String tabName = ((OwnNoteTab) tab).getTabName();
+            if (!TagManager.isSpecialGroup(tabTag) && !tabName.equals(PLUS_TAB)) {
                 // add group name
-                tabOrder.add(tabLabel);
+                tabOrder.add(tabName);
             }
         }
         
@@ -345,7 +346,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
                 newTab.setDetachable(false);
 
                 // ALL and NOT are reserved names
-                if (!TagManager.isSpecialGroupName(groupName)) {
+                if (!TagManager.isSpecialGroup(group)) {
                     newTab.setProtectedTab(false);
                     newTab.setDroptarget(true);
                     newTab.setClosable(true);
@@ -456,7 +457,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
                 activeTab.setLabelText(newGroupName);
                 
                 // update notes list
-                myEditor.setGroupNameFilter(newGroupName);
+                myEditor.setGroupFilter(curGroup);
                 
                 // TFE, 20200907: update internal bookkeeping
                 updateTabOrder();

@@ -81,7 +81,7 @@ public class TagCheckBoxTreeCell extends CheckBoxTreeCell<TagDataWrapper> implem
         
         // check if item can be edited
         final TreeItem<TagDataWrapper> treeItem = getTreeItem();
-        if ((treeItem != null) && TagManager.isEditableTag(treeItem.getValue().getTagData())) {
+        if ((treeItem != null) && !TagManager.isEditableTag(treeItem.getValue().getTagData())) {
             return;
         }
         
