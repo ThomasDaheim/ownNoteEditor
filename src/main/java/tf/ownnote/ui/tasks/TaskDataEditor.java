@@ -30,7 +30,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.GregorianCalendar;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 import javafx.collections.SetChangeListener;
 import javafx.event.ActionEvent;
@@ -59,7 +58,6 @@ import static tf.helper.javafx.AbstractStage.INSET_TOP_BOTTOM;
 import tf.helper.javafx.EnumHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.tags.TagData;
-import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tags.TagsEditor;
 
 /**

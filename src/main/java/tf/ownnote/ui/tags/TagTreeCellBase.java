@@ -143,7 +143,8 @@ public class TagTreeCellBase {
             newSilblingItem.setOnAction((ActionEvent event) -> {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
                 final String tagName = sibling + " " + tag.getParent().getChildren().size();
-                tag.getParent().getChildren().add(TagManager.getInstance().createTag(tagName, TagManager.isGroupsChildTag(tag)));
+                tag.getParent().getChildren().add(
+                        TagManager.getInstance().createTagBelowParent(tagName, tag.getParent()));
             });
 
             // only if allowed
@@ -153,7 +154,7 @@ public class TagTreeCellBase {
             newChildItem.setOnAction((ActionEvent event) -> {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
                 final String tagName = child + " " + tag.getChildren().size();
-                tag.getChildren().add(TagManager.getInstance().createTag(tagName, TagManager.isGroupsTag(tag)));
+                tag.getChildren().add(TagManager.getInstance().createTagBelowParent(tagName, tag));
             });
 
             // TFE, 20210317: add now we have an edit dialoge for tags...
@@ -197,12 +198,14 @@ public class TagTreeCellBase {
                 TagManager.getInstance().deleteTag(tag);
             });
 
-            if (tag.getParent() != null) {
-                // no siblings for root
-                contextMenuFull.getItems().add(newSilblingItem);
+            contextMenuFull.getItems().add(newSilblingItem);
+            // TFE, 20220421: more cases, where no childs are allowed
+            // let the tagmanager decide
+            if (TagManager.childAllowed(tag)) {
+                contextMenuFull.getItems().add(newChildItem);
             }
-            contextMenuFull.getItems().add(newChildItem);
             contextMenuFull.getItems().add(editItem1);
+            
             contextMenuEdit.getItems().add(editItem2);
             if (!TagManager.isFixedTag(tag)) {
                 contextMenuFull.getItems().add(deleteItem);

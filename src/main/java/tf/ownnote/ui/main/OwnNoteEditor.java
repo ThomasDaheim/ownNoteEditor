@@ -42,7 +42,6 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
@@ -835,7 +834,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         // do the stuff in the OwnNoteTableView - thats the right place!
         notesTable.setNotes(notesList);
         
-        myGroupList.setGroups(TagManager.getInstance().getGroupTags(), updateOnly);
+        myGroupList.setGroups(TagManager.getInstance().getGroupTags(false), updateOnly);
     }
     
     public boolean checkChangedNote() {
@@ -1174,7 +1173,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                     selectFirstOrCurrentNote();
 
                     // but only if group still exists in the list!
-                    if (TagManager.getInstance().getGroupTags().contains(myGroupList.getCurrentGroup())) {
+                    if (TagManager.getInstance().getGroupTags(true).contains(myGroupList.getCurrentGroup())) {
                         setGroupFilter(myGroupList.getCurrentGroup());
                     }
 

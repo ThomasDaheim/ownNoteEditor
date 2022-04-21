@@ -37,7 +37,6 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.io.FilenameUtils;
-import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.tags.TagManager;
 
@@ -51,8 +50,9 @@ public class TestNoteData {
 
     public TestNoteData() {
         // init groupsList for know groups - ALL & NOT_GROUPED
-        groupsList.put(TagManager.ALL_GROUPS_NAME, 0);
-        groupsList.put(TagManager.NOT_GROUPED_NAME, 0);
+        groupsList.put(TagManager.ReservedTag.All.getTagName(), 0);
+        groupsList.put(TagManager.ReservedTag.NotGrouped.getTagName(), 0);
+        groupsList.put(TagManager.ReservedTag.Archive.getTagName(), 0);
     }
     
     public void copyTestFiles(final Path testpath) throws Throwable {
@@ -130,7 +130,7 @@ public class TestNoteData {
             // see pull request #44
             noteName = filename.substring(filename.indexOf("]")+2, filename.lastIndexOf("."));
         } else {
-            groupName = TagManager.NOT_GROUPED_NAME;
+            groupName = TagManager.ReservedTag.NotGrouped.getTagName();
             // see pull request #44
             noteName = filename.substring(0, filename.lastIndexOf("."));
         }
@@ -142,7 +142,7 @@ public class TestNoteData {
             groupsList.put(groupName, groupsList.get(groupName)+1);
         }
         // ALL group is always increased...
-        groupsList.put(TagManager.ALL_GROUPS_NAME, groupsList.get(TagManager.ALL_GROUPS_NAME)+1);
+        groupsList.put(TagManager.ReservedTag.All.getTagName(), groupsList.get(TagManager.ReservedTag.All.getTagName())+1);
         
         final Note noteRow = new Note(groupName, noteName);
         noteRow.setNoteModified(filetime);

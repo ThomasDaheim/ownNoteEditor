@@ -77,7 +77,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
     private OwnNoteEditor myEditor= null;
             
     // store selected group before changing the group lists for later re-select
-    private String selectedGroupName = TagManager.ALL_GROUPS_NAME;
+    private String selectedGroupName = TagManager.ReservedTag.All.getTagName();
     
     // TFE, 20200907: keep track of group order
     private final List<String> tabOrder = new LinkedList<>();
@@ -433,9 +433,12 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         
             // 1. check whether new name is not "ALL" or "+"
             final String newGroupName = nameField.getText();
-            if (TagManager.ALL_GROUPS_NAME.equals(newGroupName) || PLUS_TAB.equals(newGroupName)) {
+            if (TagManager.ReservedTag.All.getTagName().equals(newGroupName) || PLUS_TAB.equals(newGroupName)) {
                 // error message
-                myEditor.showAlert(Alert.AlertType.ERROR, "Error Dialog", "New group name invalid.", "A group cannot be named '" + TagManager.ALL_GROUPS_NAME + "' or '" + PLUS_TAB + "'.");
+                myEditor.showAlert(
+                        Alert.AlertType.ERROR, 
+                        "Error Dialog", 
+                        "New group name invalid.", "A group cannot be named '" + TagManager.ReservedTag.All.getTagName() + "' or '" + PLUS_TAB + "'.");
                 
                 return;
             }
@@ -531,7 +534,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
         if (myTabPane.getSelectionModel().getSelectedItem() != null) {
             selectedGroupName = getCurrentGroup().getName();
         } else {
-            selectedGroupName = TagManager.ALL_GROUPS_NAME;
+            selectedGroupName = TagManager.ReservedTag.All.getTagName();
         }
     }
 

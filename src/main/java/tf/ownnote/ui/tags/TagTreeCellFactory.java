@@ -238,12 +238,12 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
             // note is dragged here - only accept if it hasn't this tag / group already
             final TagData thisTag = treeCell.getTreeItem().getValue().getTagData();
             boolean dropAllowed = true;
-            if (TagManager.isAnyGroupTag(thisTag)) {
+            if (thisTag.isGroup()) {
                 // you can't drop on your own group, on "Groups" or "All" tags
                 // how about other tags that aren't leafs?
                 dropAllowed = !thisTag.getName().equals(dragNote.getGroupName()) && 
-                        !TagManager.isGroupsTag(thisTag) && 
-                        !TagManager.ALL_GROUPS_NAME.equals(thisTag.getName());
+                        !TagManager.isGroupsRootTag(thisTag) && 
+                        !TagManager.ReservedTag.All.getTag().equals(thisTag);
             } else {
                 dropAllowed = !dragNote.getMetaData().getTags().contains(thisTag);
             }
@@ -320,7 +320,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
             
             final Note dragNote = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(OwnNoteTableView.DRAG_AND_DROP));
             final TagData thisTag = treeCell.getTreeItem().getValue().getTagData();
-            if (TagManager.isAnyGroupTag(thisTag)) {
+            if (thisTag.isGroup()) {
                 // if group was also a tag -> remove & add
                 if (dragNote.getGroup() == null) {
                     System.err.println("Something is wrong here! Tried to drag to group that doesn't have a tag?!?!?!");

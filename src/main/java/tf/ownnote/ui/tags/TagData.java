@@ -30,8 +30,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
 import javafx.beans.Observable;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -60,16 +62,20 @@ public class TagData {
     
     // link to notes with this tag - transient, will be re-created on startup
     private final ObservableList<Note> linkedNotes = FXCollections.<Note>observableArrayList();
+    
+    // we don't do Group as subclass of Tag but as attribute
+    private final BooleanProperty isGroupProperty = new SimpleBooleanProperty(false);
 
     // TFE, 20201230: initialized here to always have a value but can be overwritten from parsed noteContent
     private String myId = RandomStringUtils.random(12, "0123456789abcdef"); 
     
     private TagData() {
-        this("");
+        this("", false);
     }
 
-    protected TagData(final String na) {
+    protected TagData(final String na, final boolean isGroup) {
         nameProperty.set(na);
+        isGroupProperty.set(isGroup);
         
         children.addListener((ListChangeListener.Change<? extends TagData> change) -> {
             while (change.next()) {
@@ -109,26 +115,6 @@ public class TagData {
         });
     }
     
-//    // required for deserialization by xstream
-//    private Object readResolve() {
-//        // TODO: what to do here to properly init nameProperty???
-//        System.out.println("In readResolve() of tag " + getName());
-//        
-//        String name = getName();
-//        setName("XSTREAM FORCED ME TO DO THIS");
-//        setName(name);
-//
-//        name = getColorName();
-//        setColorName("XSTREAM FORCED ME TO DO THIS");
-//        setColorName(name);
-//
-//        name = getIconName();
-//        setIconName("XSTREAM FORCED ME TO DO THIS");
-//        setIconName(name);
-//
-//        return this;
-//    }
-    
     @Override
     public boolean equals(Object o) {
         if (o == this)
@@ -148,7 +134,7 @@ public class TagData {
     }
     
     protected TagData cloneMe() {
-        final TagData clone = new TagData(getName());
+        final TagData clone = new TagData(getName(), isGroup());
         clone.myId = myId;
         clone.colorNameProperty.set(colorNameProperty.get());
         clone.iconNameProperty.set(iconNameProperty.get());
@@ -181,6 +167,18 @@ public class TagData {
 
     public String getExternalName() {
         return TagManager.getInstance().getExternalName(this);
+    }
+    
+    public Boolean isGroup() {
+        return isGroupProperty.get();
+    }
+    
+    public void setIsGroup(final boolean group) {
+        isGroupProperty.set(group);
+    }
+    
+    public BooleanProperty isGroupProperty() {
+        return isGroupProperty;
     }
 
     public StringProperty iconNameProperty() {
@@ -237,7 +235,7 @@ public class TagData {
     }
     
     public int getLinkesNoteCount(final boolean includeHierarchy) {
-        if (TagManager.isGroupsTag(this)) {
+        if (TagManager.isGroupsRootTag(this)) {
             return 0;
         }
 

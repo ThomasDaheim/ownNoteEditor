@@ -321,11 +321,15 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 
         // #1 ------------------------------------------------------------------
         // check "ALL" tag, that should have 4 entries
-        testTag(TagManager.ALL_GROUPS_NAME, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS_NAME), CheckMode.TAG_CHILDREN);
+        testTag(TagManager.ReservedTag.All.getTagName(), myTestdata.getNotesCountForGroup(TagManager.ReservedTag.All.getTagName()), CheckMode.TAG_CHILDREN);
 
         // #2 ------------------------------------------------------------------
         // check "NOT_GROUPED" tag, that should be empty
-        testTag(TagManager.NOT_GROUPED_NAME, myTestdata.getNotesCountForGroup(TagManager.NOT_GROUPED_NAME), CheckMode.TAG_CHILDREN);
+        testTag(TagManager.ReservedTag.NotGrouped.getTagName(), myTestdata.getNotesCountForGroup(TagManager.ReservedTag.NotGrouped.getTagName()), CheckMode.TAG_CHILDREN);
+
+        // #2b ------------------------------------------------------------------
+        // check "ARCHIVE" tag, that should be empty
+        testTag(TagManager.ReservedTag.Archive.getTagName(), myTestdata.getNotesCountForGroup(TagManager.ReservedTag.Archive.getTagName()), CheckMode.TAG_CHILDREN);
 
         // #3 ------------------------------------------------------------------
         // check "Test 1" tag, that should have 2 entries
@@ -521,7 +525,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         System.out.println("running testGroups()");
 
         // All, Not Grouped, Test1, Test2, Test3 => 5 tags
-        assertTrue(TagManager.getInstance().getReservedTag(TagManager.ReservedTagName.Groups).getChildren().size() == myTestdata.getGroupsList().size());
+        assertTrue(TagManager.ReservedTag.Groups.getTag().getChildren().size() == myTestdata.getGroupsList().size());
         assertTrue(tagsTreeView.getRoot().getChildren().get(0).getChildren().size() == myTestdata.getGroupsList().size());
         
 //        // #2 ------------------------------------------------------------------
@@ -550,7 +554,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         System.out.println("running testNotesFilter()");
 
         // leerer filter -> alle sichtbar
-        testTag(TagManager.ALL_GROUPS_NAME, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS_NAME), CheckMode.TABLE_ELEMENTS);
+        testTag(TagManager.ReservedTag.All.getTagName(), myTestdata.getNotesCountForGroup(TagManager.ReservedTag.All.getTagName()), CheckMode.TABLE_ELEMENTS);
         
         //////////////////////////
         // namensfilter
@@ -559,22 +563,22 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         // "Test1" als namensfilter -> 0 sichtbar
         clickOn(noteFilterText);
         write("Test1");
-        testTag(TagManager.ALL_GROUPS_NAME, myTestdata.getNotesCountForName("Test1"), CheckMode.TABLE_ELEMENTS);
+        testTag(TagManager.ReservedTag.All.getTagName(), myTestdata.getNotesCountForName("Test1"), CheckMode.TABLE_ELEMENTS);
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTag(TagManager.ALL_GROUPS_NAME, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS_NAME), CheckMode.TABLE_ELEMENTS);
+        testTag(TagManager.ReservedTag.All.getTagName(), myTestdata.getNotesCountForGroup(TagManager.ReservedTag.All.getTagName()), CheckMode.TABLE_ELEMENTS);
         
         // "SUCH" als namensfilter -> 0 sichtbar
         clickOn(noteFilterText);
         write("SUCH");
-        testTag(TagManager.ALL_GROUPS_NAME, myTestdata.getNotesCountForName("SUCH"), CheckMode.TABLE_ELEMENTS);
+        testTag(TagManager.ReservedTag.All.getTagName(), myTestdata.getNotesCountForName("SUCH"), CheckMode.TABLE_ELEMENTS);
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTag(TagManager.ALL_GROUPS_NAME, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS_NAME), CheckMode.TABLE_ELEMENTS);
+        testTag(TagManager.ReservedTag.All.getTagName(), myTestdata.getNotesCountForGroup(TagManager.ReservedTag.All.getTagName()), CheckMode.TABLE_ELEMENTS);
         
         //////////////////////////
         // inhaltsfilter
@@ -585,17 +589,17 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         // "Test1" als inhaltsfilter -> 2 sichtbar
         clickOn(noteFilterText);
         write("Test1");
-        testTag(TagManager.ALL_GROUPS_NAME, 2, CheckMode.TABLE_ELEMENTS);
+        testTag(TagManager.ReservedTag.All.getTagName(), 2, CheckMode.TABLE_ELEMENTS);
         
         // "ESC" -> alle sichtbar
         clickOn(noteFilterText);
         push(KeyCode.ESCAPE);
-        testTag(TagManager.ALL_GROUPS_NAME, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS_NAME), CheckMode.TABLE_ELEMENTS);
+        testTag(TagManager.ReservedTag.All.getTagName(), myTestdata.getNotesCountForGroup(TagManager.ReservedTag.All.getTagName()), CheckMode.TABLE_ELEMENTS);
         
         // "SUCH" als inhaltsfilter -> 1 sichtbar
         clickOn(noteFilterText);
         write("SUCH");
-        testTag(TagManager.ALL_GROUPS_NAME, 1, CheckMode.TABLE_ELEMENTS);
+        testTag(TagManager.ReservedTag.All.getTagName(), 1, CheckMode.TABLE_ELEMENTS);
         
         // reset everything, PLEASE
         clickOn(noteFilterCheck);
@@ -618,7 +622,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: add a new file to group Test1");
         
         // check new count
-        testTag(TagManager.ALL_GROUPS_NAME, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS_NAME) + 1, CheckMode.BOTH);
+        testTag(TagManager.ReservedTag.All.getTagName(), myTestdata.getNotesCountForGroup(TagManager.ReservedTag.All.getTagName()) + 1, CheckMode.BOTH);
         
         // #2 ------------------------------------------------------------------
         // delete the new file
@@ -627,7 +631,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: delete the new file");
         
         // check new count
-        testTag(TagManager.ALL_GROUPS_NAME, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS_NAME), CheckMode.BOTH);
+        testTag(TagManager.ReservedTag.All.getTagName(), myTestdata.getNotesCountForGroup(TagManager.ReservedTag.All.getTagName()), CheckMode.BOTH);
         
         // #3 ------------------------------------------------------------------
         // add a new file to a new group
@@ -656,7 +660,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify old count
-        testTag(TagManager.ALL_GROUPS_NAME, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS_NAME), CheckMode.BOTH);
+        testTag(TagManager.ReservedTag.All.getTagName(), myTestdata.getNotesCountForGroup(TagManager.ReservedTag.All.getTagName()), CheckMode.BOTH);
 
         // #5 ------------------------------------------------------------------
         // delete file in editor BUT "Save as new"
@@ -668,7 +672,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify old count
-        testTag(TagManager.ALL_GROUPS_NAME, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS_NAME), CheckMode.BOTH);
+        testTag(TagManager.ReservedTag.All.getTagName(), myTestdata.getNotesCountForGroup(TagManager.ReservedTag.All.getTagName()), CheckMode.BOTH);
         // but with new note name!
         final int newCount = myTestdata.getNotesList().size() + 1;
         final String newName = "New Note " + newCount;
@@ -686,7 +690,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 
         // verify new count
-        testTag(TagManager.ALL_GROUPS_NAME, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS_NAME) - 1, CheckMode.BOTH);
+        testTag(TagManager.ReservedTag.All.getTagName(), myTestdata.getNotesCountForGroup(TagManager.ReservedTag.All.getTagName()) - 1, CheckMode.BOTH);
         
         // create back again
         assertTrue(myTestdata.createTestFile(testpath, "[Test1] test1.htm"));
@@ -694,7 +698,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 //        System.out.println("after sleep for: create back again");
 
         // verify old count
-        testTag(TagManager.ALL_GROUPS_NAME, myTestdata.getNotesCountForGroup(TagManager.ALL_GROUPS_NAME), CheckMode.BOTH);
+        testTag(TagManager.ReservedTag.All.getTagName(), myTestdata.getNotesCountForGroup(TagManager.ReservedTag.All.getTagName()), CheckMode.BOTH);
     }
     
     private void resetForNextTest() {

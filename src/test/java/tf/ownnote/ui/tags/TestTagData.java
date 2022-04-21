@@ -100,10 +100,10 @@ public class TestTagData {
     
     @Test
     public void testPropertyExtractor() {
-        final TagData localRoot = new TagData("ROOT");
+        final TagData localRoot = new TagData("ROOT", false);
         localRoot.getChildren().addListener(tagTestListener);
         
-        final TagData localChild1 = new TagData("CHILD_1");
+        final TagData localChild1 = new TagData("CHILD_1", false);
         localChild1.getChildren().addListener(tagTestListener);
         
         testChangeType.clear();
@@ -131,8 +131,8 @@ public class TestTagData {
         Assert.assertEquals("Attribue has changed", "CHILD_1", localChild1.getName());
 
         // and now for childs of childs
-        final TagData localChildChild1 = new TagData("CHILD_CHILD_1");
-        final TagData localChildChild2 = new TagData("CHILD_CHILD_2");
+        final TagData localChildChild1 = new TagData("CHILD_CHILD_1", false);
+        final TagData localChildChild2 = new TagData("CHILD_CHILD_2", false);
         
         testChangeType.clear();
         System.out.println("testPropertyExtractor: addAll of 2 childs to child #1");
@@ -154,11 +154,11 @@ public class TestTagData {
     
     @Test
     public void testChildListenerLocal() {
-        final TagData localRoot = new TagData("ROOT");
+        final TagData localRoot = new TagData("ROOT", false);
         localRoot.getChildren().addListener(tagTestListener);
         
-        final TagData localChild1 = new TagData("CHILD_1");
-        final TagData localChild2 = new TagData("CHILD_2");
+        final TagData localChild1 = new TagData("CHILD_1", false);
+        final TagData localChild2 = new TagData("CHILD_2", false);
         
         testChangeType.clear();
         System.out.println("testChildListenerLocal: addAll of 2 childs to root");
@@ -191,10 +191,10 @@ public class TestTagData {
     @Test
     public void testChildListenerManager() {
         TagManager.getInstance().addListener(tagTestListener);
-        final TagData localRoot = TagManager.getInstance().createTag("ROOT", false);
+        final TagData localRoot = TagManager.getInstance().createTagBelowParent("ROOT", false, null);
         
-        final TagData localChild1 = TagManager.getInstance().createTag("CHILD_1", false);
-        final TagData localChild2 = TagManager.getInstance().createTag("CHILD_2", false);
+        final TagData localChild1 = TagManager.getInstance().createTagBelowParent("CHILD_1", false, localRoot);
+        final TagData localChild2 = TagManager.getInstance().createTagBelowParent("CHILD_2", false, localRoot);
         
         testChangeType.clear();
         System.out.println("testChildListenerManager: addAll of 2 childs to root");
@@ -226,11 +226,11 @@ public class TestTagData {
 
     @Test
     public void testChildListenerReuse() {
-        final TagData localRoot = new TagData("ROOT");
+        final TagData localRoot = new TagData("ROOT", false);
         localRoot.getChildren().addListener(tagTestListener);
         
-        final TagData localChild1 = new TagData("CHILD_1");
-        final TagData localChild2 = new TagData("CHILD_2");
+        final TagData localChild1 = new TagData("CHILD_1", false);
+        final TagData localChild2 = new TagData("CHILD_2", false);
         
         testChangeType.clear();
         System.out.println("testChildListenerReuse: addAll of 2 childs to root");
@@ -251,8 +251,8 @@ public class TestTagData {
         final TagData firstChild = localRoot.getChildren().get(0);
         firstChild.getChildren().addListener(tagTestListener);
 
-        final TagData localChildChild1 = new TagData("CHILD_CHILD_1");
-        final TagData localChildChild2 = new TagData("CHILD_CHILD_2");
+        final TagData localChildChild1 = new TagData("CHILD_CHILD_1", false);
+        final TagData localChildChild2 = new TagData("CHILD_CHILD_2", false);
         
         testChangeType.clear();
         System.out.println("testChildListenerReuse: addAll of 2 childs to child #1");

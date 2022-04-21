@@ -151,7 +151,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                 if (filename.startsWith("[")) {
                     groupName = filename.substring(1, filename.indexOf("]"));
                 } else {
-                    groupName = TagManager.NOT_GROUPED_NAME;
+                    groupName = TagManager.ReservedTag.NotGrouped.getTagName();
                 }
 
                 if (!groupsList.contains(groupName)) {
@@ -173,7 +173,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                     // see pull request #44
                     noteName = filename.substring(filename.indexOf("]")+2, filename.lastIndexOf("."));
                 } else {
-                    groupName = TagManager.NOT_GROUPED_NAME;
+                    groupName = TagManager.ReservedTag.NotGrouped.getTagName();
                     // see pull request #44
                     noteName = filename.substring(0, filename.lastIndexOf("."));
                 }
@@ -195,12 +195,12 @@ public class OwnNoteFileManager implements INoteCRMDS {
         }
 
         // TFE, 20210508: don't forget to add notes to group ALL as well...
-        TagManager.ALL_GROUPS.getLinkedNotes().clear();
+        TagManager.ReservedTag.All.getTag().getLinkedNotes().clear();
         for (String groupName : groupsList) {
             final Set<Note> groupNotes = getNotesForGroup(groupName);
             // add if not already present AND link notes to group tags - notes might not have the tags explicitly...
             TagManager.getInstance().tagForGroupName(groupName, true).getLinkedNotes().setAll(groupNotes);
-            TagManager.ALL_GROUPS.getLinkedNotes().addAll(groupNotes);
+            TagManager.ReservedTag.All.getTag().getLinkedNotes().addAll(groupNotes);
         }
 
         // fix #14
@@ -269,11 +269,13 @@ public class OwnNoteFileManager implements INoteCRMDS {
     private Set<Note> getNotesForGroup(final String groupName) {
         // TFE, 20210406: count thy notes...
         return notesList.values().stream().filter((t) -> {
-            return switch (groupName) {
-                case TagManager.ALL_GROUPS_NAME -> true;
-                case TagManager.NOT_GROUPED_NAME -> t.getGroupName() == null || t.getGroupName().isEmpty();
-                default -> groupName.equals(t.getGroupName());
-            };
+            if (TagManager.ReservedTag.All.getTagName().equals(groupName)) {
+                return true;
+            } else if (TagManager.ReservedTag.NotGrouped.getTagName().equals(groupName)) {
+                return t.getGroupName() == null || t.getGroupName().isEmpty();
+            } else {
+                return groupName.equals(t.getGroupName());
+            }
         }).collect(Collectors.toSet());
         
         // TFE, 20210406: its not required that you have a group tag as actual tag in the notes metadata...

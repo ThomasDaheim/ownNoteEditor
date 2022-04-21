@@ -40,7 +40,6 @@ import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import tf.helper.javafx.RecursiveTreeItem;
 import tf.ownnote.ui.helper.IGroupListContainer;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 
@@ -119,14 +118,14 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
                 if (item != null) {
                     final TagData tag = item.getValue().getTagData();
                     
-                    if (TagManager.isGroupsTag(tag)) {
+                    if (TagManager.isGroupsRootTag(tag)) {
                         // "Groups" selected => similar to "All" in tabs
-                        currentGroup = TagManager.ALL_GROUPS;
-                        myEditor.setGroupFilter(TagManager.ALL_GROUPS);
-                    } else if (TagManager.isAnyGroupTag(tag)) {
+                        currentGroup = TagManager.ReservedTag.All.getTag();
+                        myEditor.setGroupFilter(currentGroup);
+                    } else if (tag.isGroup()) {
                         // a tag under "Groups" selected => similar to select a tab
                         currentGroup = tag;
-                        myEditor.setGroupFilter(tag);
+                        myEditor.setGroupFilter(currentGroup);
                     } else {
                         // any "normal" tag has been selected - set filter on all its and childrens notes
                         final Set<Note> tagNotes = tag.flattened().map((t) -> {
@@ -187,7 +186,7 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
             break;
         }
         
-        currentGroup = TagManager.ALL_GROUPS;
+        currentGroup = TagManager.ReservedTag.All.getTag();
     }
     
     public BooleanProperty allowReorderProperty() {
@@ -228,7 +227,7 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
         inInitTreeView = true;
         // for SELECT_MODE we don't show Groups - since its handled implicitly & is connected to the group name of the notes file
         setRoot(new RecursiveTreeItem<>(new TagDataWrapper(TagManager.getInstance().getRootTag()), this::newItemConsumer, (item) -> null, TagDataWrapper::getChildren, true, (item) -> {
-            return !(WorkMode.SELECT_MODE.equals(myWorkMode) && TagManager.isGroupsTag(item.getTagData()));
+            return !(WorkMode.SELECT_MODE.equals(myWorkMode) && TagManager.isGroupsRootTag(item.getTagData()));
         }));
         inInitTreeView = false;
         

@@ -320,7 +320,7 @@ public class TagDataEditor extends GridPane {
         } else{
             tagColor.setValue(Color.BLACK);
         }
-        groupTag.setSelected(TagManager.isGroupsChildTag(myTag));
+        groupTag.setSelected(myTag.isGroup());
     }
 
     public void saveValues() {

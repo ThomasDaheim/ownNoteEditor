@@ -50,11 +50,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
-import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.StackPane;
@@ -160,8 +156,8 @@ public class OwnNoteTableView implements IPreferencesHolder {
             // no note selected - above empty part of the table
             TagData newGroup = (TagData) getTableView().getUserData();
             // TF, 20160524: group name could be "All" - thats to be changed to "Not grouped"
-            if (newGroup == null || newGroup.equals(TagManager.ALL_GROUPS)) {
-                newGroup = TagManager.NOT_GROUPED;
+            if (newGroup == null || newGroup.equals(TagManager.ReservedTag.All.getTag())) {
+                newGroup = TagManager.ReservedTag.NotGrouped.getTag();
             }
             final String newNoteName = myEditor.uniqueNewNoteNameForGroup(newGroup);
 
@@ -393,7 +389,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
         if (curGroup != null) {
             setGroupFilter(curGroup);
         } else {
-            setGroupFilter(TagManager.ALL_GROUPS);
+            setGroupFilter(TagManager.ReservedTag.All.getTag());
         }
 
         // 2. Create sorted list
@@ -456,7 +452,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
         
         filteredData.setPredicate((Note note) -> {
             // 1. If group filter text is empty or "All": no need to check
-            if (groupFilter != null && !groupFilter.equals(TagManager.ALL_GROUPS) ) {
+            if (groupFilter != null && !groupFilter.equals(TagManager.ReservedTag.All.getTag()) ) {
                 // TFE, 20220404: we now have hierarchy in groups BUT groupTabs can't handle that
                 // so we need to show all notes including the ones in hierarchical groups below
 
