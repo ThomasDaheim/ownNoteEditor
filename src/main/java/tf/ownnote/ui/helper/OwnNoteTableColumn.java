@@ -211,7 +211,7 @@ class ObjectCell extends TextFieldTableCell<Note, String> {
         // to check for illegal chars in note & group names
         textField = CellUtils.createTextField(this, getConverter());
         // TFE, 20191208: check for valid file names!
-        FormatHelper.getInstance().initNoteGroupNameTextField(textField);
+        FormatHelper.getInstance().initNoteGroupNameTextField(textField, FormatHelper.VALIDNOTEGROUPNAME);
         hbox = new HBox();
         
         if (linkCursor) {

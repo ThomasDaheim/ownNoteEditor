@@ -467,7 +467,7 @@ public class TestTagManager {
     }
     
     @Test
-    public void TestExternalName() {
+    public void testExternalName() {
         // TFE, 20220404: allow hierarchical group tags - now we need to keep track of each tags position in the hierarchy
         final TagData test3 = TagManager.getInstance().getGroupTags(true).get(4);
         final TagData level2 = test3.getChildren().get(0);
@@ -479,6 +479,55 @@ public class TestTagManager {
         // 2nd check: lookup by external name gives same object
         final TagData newLevel2 = TagManager.getInstance().tagForExternalName(level2.getExternalName(), false);
         Assert.assertEquals(level2, newLevel2);
+    }
+    
+    @Test
+    public void testIsNewChangedTagName() {
+        final TagData test2 = TagManager.getInstance().getGroupTags(true).get(3);
+        final TagData test3 = TagManager.getInstance().getGroupTags(true).get(4);
+        final TagData level2 = test3.getChildren().get(0);
+
+        // we can have "Level2" on level of test3 - "Levels" is on another level
+        Assert.assertTrue(TagManager.getInstance().isValidNewTagName(level2.getName(), test3.getParent()));
+        
+        // we can have another "Test2" on level of test3
+        Assert.assertFalse(TagManager.getInstance().isValidNewTagName(test2.getName(), test3.getParent()));
+        
+        // invalid group name
+        Assert.assertFalse(TagManager.getInstance().isValidNewTagName(level2.getName() + "~", test3.getParent()));
+        
+        // and now add a non-group tag and check it
+        final TagData nonGroupTag = TagManager.getInstance().tagForName("TestTag", null, true);
+        Assert.assertNotNull(nonGroupTag);
+        Assert.assertTrue(TagManager.getInstance().isValidNewTagName("TestTag2", nonGroupTag));
+        Assert.assertFalse(TagManager.getInstance().isValidNewTagName(level2.getName(), nonGroupTag));
+
+        // we don't care about invalid group name
+        Assert.assertTrue(TagManager.getInstance().isValidNewTagName("TestTag2~", nonGroupTag));
+    }
+
+    @Test
+    public void testIsValidChangedTagName() {
+        final TagData test2 = TagManager.getInstance().getGroupTags(true).get(3);
+        final TagData test3 = TagManager.getInstance().getGroupTags(true).get(4);
+        final TagData level2 = test3.getChildren().get(0);
+        
+        // we can't rename test3 to test 2 - thats a siblings
+        Assert.assertFalse(TagManager.getInstance().isValidChangedTagName(test2.getName(), test3));
+
+        // we can rename level2 to test 2 - thats not a siblings
+        Assert.assertTrue(TagManager.getInstance().isValidChangedTagName(test2.getName(), level2));
+
+        // invalid group name
+        Assert.assertFalse(TagManager.getInstance().isValidChangedTagName(test3.getName() + "~", test3));
+        
+        // and now add a non-group tag and check it
+        final TagData nonGroupTag = TagManager.getInstance().tagForName("TestTag", null, true);
+        Assert.assertNotNull(nonGroupTag);
+        Assert.assertFalse(TagManager.getInstance().isValidChangedTagName(test3.getName(), nonGroupTag));
+        
+        // we don't care about invalid group name
+        Assert.assertTrue(TagManager.getInstance().isValidChangedTagName(nonGroupTag.getName() + "~", nonGroupTag));
     }
 
     private void doAddListener(final TagData tagRoot, ListChangeListener<? super TagData> ll) {

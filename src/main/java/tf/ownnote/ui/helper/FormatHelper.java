@@ -29,6 +29,8 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.control.Tooltip;
@@ -43,6 +45,13 @@ public class FormatHelper {
     private final static FormatHelper INSTANCE = new FormatHelper();
     
     private final Comparator<String> fileTimeComparator;
+    
+    // provide predicate for note / group names to be used in initNoteGroupNameTextField and elsewhere
+    private final static Pattern NOTEGROUPNAMEPATTERN = Pattern.compile("([^\u0001-\u001f<>:\"/\\\\|?*~\u007f]*)?");
+    public final static Predicate<String> VALIDNOTEGROUPNAME = (t) -> {
+            final Matcher matcher = NOTEGROUPNAMEPATTERN.matcher(t);
+            return matcher.matches();
+        };
     
     private enum TimeIntervals {
         now("Right now"),
@@ -182,7 +191,7 @@ public class FormatHelper {
         return fileTimeComparator;
     }
     
-    public void initNoteGroupNameTextField(final TextField textField) {
+    public void initNoteGroupNameTextField(final TextField textField, final Predicate<String> isValueAllowed) {
         // https://stackoverflow.com/a/54552791
         // https://stackoverflow.com/a/49918923
         // https://stackoverflow.com/a/45201446
@@ -191,7 +200,7 @@ public class FormatHelper {
 
         // TFE, 20220417: added ~ as char to have it as group name separator
         textField.setTextFormatter(new TextFormatter<>(change ->
-            (change.getControlNewText().matches("([^\u0001-\u001f<>:\"/\\\\|?*~\u007f]*)?")) ? change : null));
+            (isValueAllowed.test(change.getControlNewText()) ? change : null)));
 
         final Tooltip t = new Tooltip();
         final StringBuilder tooltext = new StringBuilder();
@@ -205,12 +214,7 @@ public class FormatHelper {
     }
     
     public void initTagNameTextField(final TextField textField, final Predicate<String> isValueAllowed) {
-        // https://stackoverflow.com/a/54552791
-        // https://stackoverflow.com/a/49918923
-        // https://stackoverflow.com/a/45201446
-        // to check for illegal chars in note & group names
-        // use more restrictive windows rules to make sure notes can be stored anywhere
-
+        // let caller decide what are valid checks for a tag name (e.g. checking for duplicates
         textField.setTextFormatter(new TextFormatter<>(change ->
             (isValueAllowed.test(change.getControlNewText()) ? change : null)));
 

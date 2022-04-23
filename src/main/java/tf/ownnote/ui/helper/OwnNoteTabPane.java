@@ -425,7 +425,7 @@ public class OwnNoteTabPane implements IGroupListContainer, IPreferencesHolder  
     
     private void initNameField() {
         // TFE, 20191208: check for valid file names!
-        FormatHelper.getInstance().initNoteGroupNameTextField(nameField);
+        FormatHelper.getInstance().initNoteGroupNameTextField(nameField, FormatHelper.VALIDNOTEGROUPNAME);
 
         // change on ENTER
         nameField.setOnAction((ActionEvent event) -> {

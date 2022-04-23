@@ -73,6 +73,7 @@ import org.apache.commons.lang3.EnumUtils;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.xstreamfx.FXConverters;
 import tf.ownnote.ui.helper.FileContentChangeType;
+import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
@@ -285,6 +286,54 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         assert group2 != null;
         // either both are equal or both are part of "Not grouped"
         return (group1.equals(group2) || isNotGrouped(group1) && isNotGrouped(group2));
+    }
+    
+    public boolean isValidChangedTagName(final String newTagName, final TagData tag) {
+        // combine all checks that need to be done for a changed tag name of an existing tag
+        
+        boolean result;
+        
+        if (tag.isGroup()) {
+            // tag is group
+            // is valid as group name
+            // is unique under siblings
+            final TagData nameTag = tagForName(newTagName, tag.getParent(), false);
+            result = (FormatHelper.VALIDNOTEGROUPNAME.test(newTagName) && 
+                    // if we have a tag with that name it must be this one
+                    (nameTag == null || tag.equals(nameTag)));
+        } else {
+            // tag is no group
+            // is unqiue overall
+            final TagData nameTag = tagForName(newTagName, getRootTag(), false);
+                    // if we have a tag with that name it must be this one
+            result = (nameTag == null || tag.equals(nameTag));
+        }
+
+        return result;
+    }
+    
+    public boolean isValidNewTagName(final String newTagName, final TagData parent) {
+        // combine all checks that need to be done for a new tag name of an new tag
+        
+        boolean result;
+        
+        if (parent.isGroup()) {
+            // tag is group
+            // is valid as group name
+            // is unique under siblings
+            final TagData nameTag = tagForName(newTagName, parent, false);
+            result = (FormatHelper.VALIDNOTEGROUPNAME.test(newTagName) && 
+                    // we must not have a tag with that name with the same parent
+                    (nameTag == null || !parent.equals(nameTag.getParent())));
+        } else {
+            // tag is no group
+            // is unqiue overall
+            final TagData nameTag = tagForName(newTagName, getRootTag(), false);
+                    // we must not have a tag with that name
+            result = (nameTag == null);
+        }
+
+        return result;
     }
     
     public void resetTagList() {
@@ -650,9 +699,13 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             } else {
                 // we didn't run into that one before...
                 if (createIfNotFound) {
-                    final TagData newTag = createTagBelowParent(tagName, realStartTag);
-                    realStartTag.getChildren().add(newTag);
-                    result.add(newTag);
+                    if (!isValidNewTagName(tagName, realStartTag)) {
+                        System.err.println("Can't create new tag with invalid name: " + tagName);
+                    } else {
+                        final TagData newTag = createTagBelowParent(tagName, realStartTag);
+                        realStartTag.getChildren().add(newTag);
+                        result.add(newTag);
+                    }
                 }
             }
         }

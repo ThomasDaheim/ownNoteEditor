@@ -297,7 +297,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             // TFE, 20201030: store name of last edited note
             if (noteHTMLEditor.getEditedNote() != null) {
                 OwnNoteEditorPreferences.LAST_EDITED_NOTE.put(noteHTMLEditor.getEditedNote().getNoteName());
-                OwnNoteEditorPreferences.LAST_EDITED_GROUP.put(noteHTMLEditor.getEditedNote().getGroupName());
+                OwnNoteEditorPreferences.LAST_EDITED_GROUP.put(noteHTMLEditor.getEditedNote().getGroup().getExternalName());
             }
             
             // TFE, 20210716: store recent note for group to references
@@ -886,7 +886,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         noteHTMLEditor.editNote(curNote);
         noteMetaEditor.editNote(curNote);
         currentNoteProperty.set(curNote);
-        RecentNoteForGroup.getInstance().put(curNote.getGroupName(), curNote);
+        RecentNoteForGroup.getInstance().put(curNote.getGroup().getExternalName(), curNote);
         
         return result;
     }
@@ -1027,8 +1027,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         notesTable.setGroupFilter(group);
         
         // TFE, 20210715: select most recent note for this group - if any
-        if (RecentNoteForGroup.getInstance().containsKey(group.getName())) {
-            notesTable.selectNote(RecentNoteForGroup.getInstance().get(group.getName()));
+        if (RecentNoteForGroup.getInstance().containsKey(group.getExternalName())) {
+            notesTable.selectNote(RecentNoteForGroup.getInstance().get(group.getExternalName()));
         }
     }
     
@@ -1049,7 +1049,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             // TFE, 20201030: support re-load of last edited note
             if (currentNoteProperty.get() == null) {
                 final String lastGroupName = OwnNoteEditorPreferences.LAST_EDITED_GROUP.getAsType();
-                final TagData lastGroup = TagManager.getInstance().tagForGroupName(lastGroupName, false);
+                final TagData lastGroup = TagManager.getInstance().tagForExternalName(lastGroupName, false);
                 final String lastNoteName = OwnNoteEditorPreferences.LAST_EDITED_NOTE.getAsType();
                 if (lastGroup != null && OwnNoteFileManager.getInstance().noteExists(lastGroup, lastNoteName)) {
                     currentNoteProperty.set(OwnNoteFileManager.getInstance().getNote(lastGroup, lastNoteName));

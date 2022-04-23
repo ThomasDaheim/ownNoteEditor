@@ -322,17 +322,8 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
         }
     }
     
-    public boolean isTagNameInTreeView(final String tag) {
-        return isTagNameElsewhereInTreeView(tag, null);
-    }
-
-    public boolean isTagNameElsewhereInTreeView(final String tag, final TreeItem<TagDataWrapper> thisItem) {
-        final TreeItem<TagDataWrapper> otherItem = getTreeViewItem(getRoot(), tag);
-        return (otherItem != null && !otherItem.equals(thisItem));
-    }
-
     // TODO make a generic helper method out of it with TreeItem<T>, Function<TreeItem<T>, S> and S value
-    public static TreeItem<TagDataWrapper> getTreeViewItem(TreeItem<TagDataWrapper> item , String value) {
+    private static TreeItem<TagDataWrapper> getTreeViewItem(TreeItem<TagDataWrapper> item , String value) {
         if (item != null) {
             if (item.getValue().getTagData().getName().equals(value)) {
                 // found it!

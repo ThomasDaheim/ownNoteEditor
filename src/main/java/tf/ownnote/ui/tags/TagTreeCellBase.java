@@ -231,9 +231,10 @@ public class TagTreeCellBase {
             final TextField textField = createTextField(treeCell, tagInfoConverterForEdit);
 
             if (treeCell.getTreeView() instanceof TagsTreeView) {
+                // TODO: add check for string values for groups here as well
                 // set textformatter that checks against existing tags and disables duplicates
                 FormatHelper.getInstance().initTagNameTextField(textField, (t) -> {
-                    return !((TagsTreeView) treeCell.getTreeView()).isTagNameElsewhereInTreeView(t, treeCell.getTreeItem());
+                    return TagManager.getInstance().isValidChangedTagName(t, treeCell.getTreeItem().getValue().getTagData());
                 });
             }
             final HBox hbox = new HBox(CellUtils.TREE_VIEW_HBOX_GRAPHIC_PADDING);
