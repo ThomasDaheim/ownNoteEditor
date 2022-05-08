@@ -227,7 +227,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
             // issue #41 - but only in groupTabs look...
             newNote1.setOnAction((ActionEvent event) -> {
                 if (myTableView.getSelectionModel().getSelectedItem() != null) {
-                    final Note curNote = new Note(ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem()));
+                    final Note curNote = ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem());
                     final String newNoteName = myEditor.uniqueNewNoteNameForGroup(curNote.getGroup());
 
                     createNoteWrapper(curNote.getGroup(), newNoteName);
@@ -251,8 +251,25 @@ public class OwnNoteTableView implements IPreferencesHolder {
                     }
                 }
             });
-            fullMenu.getItems().addAll(newNote1, renameNote, deleteNote);
+            final MenuItem archiveNote = new MenuItem("Archive Note");
+            archiveNote.setOnAction((t) -> {
+                if (myTableView.getSelectionModel().getSelectedItem() != null) {
+                    final Note curNote = ObjectsHelper.uncheckedCast(myTableView.getSelectionModel().getSelectedItem());
 
+                    if(myEditor.doArchiveRestoreNote(curNote)) {
+                    }
+                }
+            });
+            row.itemProperty().addListener((ov, t, t1) -> {
+                if (t1 != null && t1.getGroup().isArchiveGroup()) {
+                    archiveNote.setText("Restore Note");
+                } else {
+                    archiveNote.setText("Archive Note");
+                }
+            });
+
+            fullMenu.getItems().addAll(newNote1, renameNote, deleteNote, archiveNote);
+            
             // Set context menu on row, but use a binding to make it only show for non-empty rows:
             row.contextMenuProperty().bind(
                     Bindings.when(row.emptyProperty())
@@ -458,7 +475,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
 
                 // Compare group name to group filter text
                 // check hierarchy as well - let manager do this
-                if (!TagManager.getInstance().isSameGroupOrChildGroup(groupFilter, note.getGroup(), true)) {
+                if (!TagManager.getInstance().compareTagsHierarchy(groupFilter, note.getGroup(), TagManager.TagCompare.BY_IDENTITY,  true)) {
                     return false;
                 }
             }

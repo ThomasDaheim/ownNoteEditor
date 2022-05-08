@@ -43,11 +43,9 @@ import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
@@ -136,31 +134,9 @@ public class OwnNoteFileManager implements INoteCRMDS {
         
         // scan directory for files and build groups & notes maps
         notesList.clear();
-        List<String> groupsList = new ArrayList<>();
 
         // iterate over all files from directory
-        DirectoryStream<Path> stream = null;
-        try {
-            stream = Files.newDirectoryStream(Paths.get(notesPath), ALL_NOTES);
-            for (Path path: stream) {
-                final File file = path.toFile();
-                final String filename = file.getName();
-                
-                String groupName;
-                // split filename to notes & group names
-                if (filename.startsWith("[")) {
-                    groupName = filename.substring(1, filename.indexOf("]"));
-                } else {
-                    groupName = TagManager.ReservedTag.NotGrouped.getTagName();
-                }
-
-                if (!groupsList.contains(groupName)) {
-                    groupsList.add(groupName);
-                }
-            }
-
-            // TFE, 20201209: decouple reading of groups from reading of notes - since we want to have group data loaded when we init the tags
-            stream = Files.newDirectoryStream(Paths.get(this.notesPath), ALL_NOTES);
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(this.notesPath), ALL_NOTES);) {
             for (Path path: stream) {
                 final File file = path.toFile();
                 final String filename = file.getName();
@@ -181,14 +157,18 @@ public class OwnNoteFileManager implements INoteCRMDS {
                 // extract info from file and fill maps accordingly
                 final LocalDateTime filetime = LocalDateTime.ofInstant((new Date(file.lastModified())).toInstant(), ZoneId.systemDefault());
 
+//                System.out.println("Creating note '" + noteName + "' in group '"+ groupName + "'");
                 // TFE, 20220414: we use group tags instead of group names
-                final Note note = new Note(TagManager.getInstance().tagForExternalName(groupName, true), noteName);
+                final Note note = new Note(TagManager.getInstance().groupForExternalName(groupName, true), noteName);
                 note.setNoteModified(filetime);
                 // TFE; 20201023: set note metadata from file content
                 note.setMetaData(NoteMetaData.fromHtmlComment(note, getFirstLine(file)));
                 // use filename and not notename since duplicate note names can exist in different groups
                 notesList.put(filename, note);
-//                System.out.println("Added note " + noteName + " for group " + groupName + " from filename " + filename);
+//                System.out.println("Added note '" + note.getNoteName() + "' for group '" + note.getGroup().getExternalName() + "' from filename '" + filename + "'");
+
+                // backlink note to group
+                note.getGroup().getLinkedNotes().add(note);
             }
         } catch (IOException | DirectoryIteratorException ex) {
             Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
@@ -196,12 +176,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
 
         // TFE, 20210508: don't forget to add notes to group ALL as well...
         TagManager.ReservedTag.All.getTag().getLinkedNotes().clear();
-        for (String groupName : groupsList) {
-            final Set<Note> groupNotes = getNotesForGroup(groupName);
-            // add if not already present AND link notes to group tags - notes might not have the tags explicitly...
-            TagManager.getInstance().tagForGroupName(groupName, true).getLinkedNotes().setAll(groupNotes);
-            TagManager.ReservedTag.All.getTag().getLinkedNotes().addAll(groupNotes);
-        }
+        TagManager.ReservedTag.All.getTag().getLinkedNotes().addAll(notesList.values());
 
         // fix #14
         // monitor directory for changes
@@ -264,30 +239,6 @@ public class OwnNoteFileManager implements INoteCRMDS {
 //        }
         
         return notesList.get(noteFileName);
-    }
-    
-    private Set<Note> getNotesForGroup(final String groupName) {
-        // TFE, 20210406: count thy notes...
-        return notesList.values().stream().filter((t) -> {
-            if (TagManager.ReservedTag.All.getTagName().equals(groupName)) {
-                return true;
-            } else if (TagManager.ReservedTag.NotGrouped.getTagName().equals(groupName)) {
-                return t.getGroupName() == null || t.getGroupName().isEmpty();
-            } else {
-                return groupName.equals(t.getGroupName());
-            }
-        }).collect(Collectors.toSet());
-        
-        // TFE, 20210406: its not required that you have a group tag as actual tag in the notes metadata...
-        // maybe this should be enforced?
-//        final Set<Note> result = new HashSet<>();
-//        
-//        final TagData groupTag = TagManager.getInstance().tagForGroupName(groupName, false);
-//        if (groupTag != null) {
-//            result.addAll(groupTag.getLinkedNotes());
-//        }
-//        
-//        return result;
     }
     
     @Override
@@ -494,6 +445,8 @@ public class OwnNoteFileManager implements INoteCRMDS {
         note.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), LocalDateTime.now()));
         // TFE, 20201217: from now on you're UTF-8
         note.getMetaData().setCharset(StandardCharsets.UTF_8);
+        // TFE, 20220505: set note version to current app version
+        note.getMetaData().setAppVersion(OwnNoteEditor.AppVersion.CURRENT.getVersionId());
         // TFE, 20220108: upgrade notes to full html...
         final String fullContent = 
                 MINIMAL_HTML_PREFIX + 

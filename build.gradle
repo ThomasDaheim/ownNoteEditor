@@ -68,6 +68,7 @@ mainClassName = 'tf.ownnote.ui.main.OwnNoteEditorManager'
 def appName='OwnNoteEditor'
 group='tf.OwnNoteEditor'
 version='6.1'
+description = 'ownNoteEditor - JavaFX html notes editor'
 
 // In this section you declare the dependencies for your production and test code
 dependencies {

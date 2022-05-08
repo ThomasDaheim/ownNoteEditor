@@ -104,22 +104,28 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     // reserved names for tags - can't be moved or edited
     // allow for hierarchy in reserved names to also have ALL, NOT_GROUPED, ARCHIVE here as well...
     public enum ReservedTag {
-        Groups("Groups", true, null, 0),
-        All("All", true, Groups, 0),
-        NotGrouped("Not grouped", true, Groups, 1),
-        Archive("Archive", true, Groups, -1);
+        Groups("Groups", true, false, null, 0),
+        All("All", true, false, Groups, 0),
+        NotGrouped("Not grouped", true, false, Groups, 1),
+        Archive("Archive", true, true, Groups, -1);
         
         private final String myTagName;
         private final boolean isGroup;
+        private final boolean isArchiveGroup;
         private final ReservedTag myParent;
         private final int myPosition;
         private TagData myTag;
 
-        ReservedTag(final String name, final boolean group, final ReservedTag parent, final int position) {
+        ReservedTag(final String name, final boolean group, final boolean archivegroup, final ReservedTag parent, final int position) {
             myTagName = name;
             isGroup = group;
+            isArchiveGroup = archivegroup;
             myParent = parent;
             myPosition = position;
+            
+            if (isArchiveGroup && !isGroup) {
+                System.err.println("Bummer! Archive group and not a group???");
+            }
         }
 
         public String getTagName() {
@@ -128,6 +134,10 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         
         public boolean isGroup() {
             return isGroup;
+        }
+        
+        public boolean isArchiveGroup() {
+            return isArchiveGroup;
         }
         
         public ReservedTag getParent() {
@@ -180,9 +190,15 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
     }
     
+    public enum TagCompare {
+        BY_NAME,
+        BY_EXTERNAL_NAME,
+        BY_IDENTITY
+    }
+    
     protected final static String ROOT_TAG_NAME = "Tags";
     // root of all tags - not saved or loaded
-    private final static TagData ROOT_TAG = new TagData(ROOT_TAG_NAME, false);
+    private final static TagData ROOT_TAG = new TagData(ROOT_TAG_NAME, false, false);
     
     // we need to keep track of changes in the tag tree to update the group tag list....
     private final ListChangeListener<TagData> tagChildrenListener;
@@ -321,17 +337,49 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             // tag is group
             // is valid as group name
             // is unique under siblings
-            final TagData nameTag = tagForName(newTagName, parent, false);
-            result = (FormatHelper.VALIDNOTEGROUPNAME.test(newTagName) && 
-                    // we must not have a tag with that name with the same parent
-                    (nameTag == null || !parent.equals(nameTag.getParent())));
+            result = FormatHelper.VALIDNOTEGROUPNAME.test(newTagName);
+            if (result) {
+                final TagData nameTag = tagForName(newTagName, parent, false, TagCompare.BY_NAME, false);
+                result = // we must not have a tag with that name with the same parent
+                        (nameTag == null || !parent.equals(nameTag.getParent()));
+            }
         } else {
             // tag is no group
             // is unqiue overall
-            final TagData nameTag = tagForName(newTagName, getRootTag(), false);
-                    // we must not have a tag with that name
+            final TagData nameTag = tagForName(newTagName, getRootTag(), false, TagCompare.BY_NAME, true);
+                    // we must not have a tag with that name AND it musn't be the dragged tag
             result = (nameTag == null);
         }
+
+        return result;
+    }
+    
+    public boolean isValidNewTagParent(final TagData tag, final TagData parent) {
+        // combine all checks that need to be done for a new tag name of an new tag
+        assert tag != null;
+        
+        boolean result = true;
+        
+        final String tagName = tag.getName();
+        TagData nameTag = null;
+        if (parent.isGroup()) {
+            // tag is group
+            // is valid as group name
+            // is unique under siblings
+            result = FormatHelper.VALIDNOTEGROUPNAME.test(tagName);
+            if (result) {
+                nameTag = tagForName(tagName, parent, false, TagCompare.BY_NAME, false);
+            }
+        } else {
+            // tag is no group
+            // is unqiue overall
+            nameTag = tagForName(tagName, getRootTag(), false, TagCompare.BY_NAME, true);
+        }
+        result = result &&
+                // we can't have groups and non-groups mixed
+                (tag.isGroup().equals(parent.isGroup())) &&
+                // we must not have a tag with that name with the same parent - except for ourselves
+                (nameTag == null || tag.equals(nameTag));
 
         return result;
     }
@@ -345,7 +393,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
     
     private void loadTags() {
-        final TagData xstreamRoot = new TagData("xstream-root", false);
+        final TagData xstreamRoot = new TagData("xstream-root", false, false);
         
         final String fileName = OwnNoteFileManager.getInstance().getNotesPath() + TAG_FILE;
         final File file = new File(fileName);
@@ -381,6 +429,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             // TFE, 20201220: we had that in for a while
             xstream.omitField(TagData.class, "fixedProperty");
             xstream.omitField(TagData.class, "isGroupProperty");
+            xstream.omitField(TagData.class, "isArchiveGroupProperty");
 
             try (
                 BufferedInputStream stdin = new BufferedInputStream(new FileInputStream(fileName));
@@ -406,7 +455,12 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             final String tagName = reservedTag.getTagName();
             TagData tag = tagForName(tagName, reservedTag.getParent() == null ? null : reservedTag.getParent().getTag(), false);
             if (tag == null) {
-                tag = createTagBelowParentAtPosition(tagName, reservedTag.isGroup(), reservedTag.getPosition(), reservedTag.getParent().getTag());
+                tag = createTagBelowParentAtPosition(
+                        tagName, 
+                        reservedTag.isGroup(), 
+                        reservedTag.isArchiveGroup(), 
+                        reservedTag.getPosition(), 
+                        reservedTag.getParent().getTag());
                 reservedTag.getParent().getTag().getChildren().add(tag);
                 
                 System.out.println("No tag for reserved name " + tagName + " found. Initializing...");
@@ -470,7 +524,17 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         backlinkParent(ROOT_TAG);
 
         ROOT_TAG.setIsGroup(false);
+        ROOT_TAG.setIsArchiveGroup(false);
         ROOT_TAG.setLevel(0);
+        
+        // set all reserved names back to their know values
+        // who knows what the ugly world out there has done to our little tags...
+        for (ReservedTag tag: ReservedTag.values()) {
+            tag.getTag().setIsGroup(tag.isGroup());
+            tag.getTag().setIsArchiveGroup(tag.isArchiveGroup());
+        }
+        
+        
         // do the recursion
         setChildTagsTransientData(ROOT_TAG, 1);
     }
@@ -479,6 +543,10 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             // all tags inherit the group status from their parents - except the "Group" and all the other reserved tags...
             if (!ReservedTag.containsName(tag.getName())) {
                 tag.setIsGroup(parent.isGroup());
+            }
+            // all tags inherit the archive group status from their parents - except the "Group" and all the other reserved tags...
+            if (!ReservedTag.containsName(tag.getName())) {
+                tag.setIsArchiveGroup(parent.isArchiveGroup());
             }
             tag.setLevel(level);
             // do the recursion
@@ -579,6 +647,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         xstream.omitField(TagData.class, "linkedNotes");
         xstream.omitField(TagData.class, "parentProperty");
         xstream.omitField(TagData.class, "isGroupProperty");
+        xstream.omitField(TagData.class, "isArchiveGroupProperty");
 
         try (
             BufferedOutputStream stdout = new BufferedOutputStream(new FileOutputStream(fileName));
@@ -630,28 +699,41 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
     }
     
-    public TagData tagForGroupName(final String groupName, final boolean createIfNotFound) {
+    public TagData groupForName(final String groupName, final boolean createIfNotFound) {
         initTags();
         // start searching under groups only
         return tagForName(groupName.isEmpty() ? ReservedTag.NotGrouped.getTagName() : groupName, ReservedTag.Groups.getTag(), createIfNotFound);
     }
     
-    public TagData tagForExternalName(final String groupName, final boolean createIfNotFound) {
+    public TagData groupForExternalName(final String groupName, final boolean createIfNotFound) {
+        initTags();
+        // start searching under groups only
+        return tagForExternalName(groupName.isEmpty() ? ReservedTag.NotGrouped.getTagName() : groupName, ReservedTag.Groups.getTag(), createIfNotFound);
+    }
+    
+    public TagData tagForExternalName(
+            final String tagName, 
+            final TagData parent, 
+            final boolean createIfNotFound) {
         initTags();
         
         // special case: no group named passed at all
-        if (groupName.isEmpty()) {
+        if (tagName.isEmpty()) {
             return tagForName(ReservedTag.NotGrouped.getTagName(), ReservedTag.Groups.getTag(), createIfNotFound);
         }
 
         // respect hierarchy in group names
-        final String[] groupNames = groupName.split(EXTERNAL_NAME_SEPARATOR);
+        final String[] tagNames = tagName.split(EXTERNAL_NAME_SEPARATOR);
         
-        TagData startTag = ReservedTag.Groups.getTag();
-        for (String name : groupNames) {
+        TagData startTag = parent;
+        if (parent == null) {
+            startTag = getRootTag();
+        }
+        for (String name : tagNames) {
             // skip empty entries in list
             if (!name.isEmpty()) {
-                startTag = tagForName(name, startTag, createIfNotFound);
+                // look only on this level and not all the way down the subtree...
+                startTag = tagForName(name, startTag, createIfNotFound, TagCompare.BY_NAME, false);
                 if (startTag == null) {
                     // we didn't find one in the hierarchy - so lets get out of here
                     break;
@@ -662,8 +744,25 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         return startTag;
     }
 
-    protected TagData tagForName(final String tagName, final TagData parent, final boolean createIfNotFound) {
-        final Set<TagData> tags = tagsForNames(new HashSet<>(Arrays.asList(tagName)), parent, createIfNotFound);
+    public Set<TagData> tagsForExternalNames(
+            final Set<String> tagNames, 
+            final TagData parent, 
+            final boolean createIfNotFound) {
+        final Set<TagData> result = new HashSet<>();
+        
+        for (String tagName : tagNames) {
+            result.add(tagForExternalName(tagName, parent, createIfNotFound));
+        }
+        
+        return result;
+    }
+
+    protected TagData tagForName(
+            final String tagName, 
+            final TagData parent, 
+            final boolean createIfNotFound) {
+        // TFE, 20220605: previous default - search by name over the whole tree of siblings
+        final Set<TagData> tags = tagsForNames(new HashSet<>(Arrays.asList(tagName)), parent, createIfNotFound, TagCompare.BY_NAME, true);
         
         if (tags.isEmpty()) {
             return null;
@@ -672,7 +771,36 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
     }
 
-    public Set<TagData> tagsForNames(final Set<String> tagNames, final TagData parent, final boolean createIfNotFound) {
+    protected TagData tagForName(
+            final String tagName, 
+            final TagData parent, 
+            final boolean createIfNotFound, 
+            // TFE, 20220506: live gets more complicated
+            final TagCompare mode, 
+            final boolean includeHierarchy) {
+        final Set<TagData> tags = tagsForNames(new HashSet<>(Arrays.asList(tagName)), parent, createIfNotFound, mode, includeHierarchy);
+        
+        if (tags.isEmpty()) {
+            return null;
+        } else {
+            return tags.iterator().next();
+        }
+    }
+
+    public Set<TagData> tagsForNames(
+            final Set<String> tagNames, 
+            final TagData parent, 
+            final boolean createIfNotFound) {
+        return tagsForNames(tagNames, parent, createIfNotFound, TagCompare.BY_NAME, true);
+    }
+
+    public Set<TagData> tagsForNames(
+            final Set<String> tagNames, 
+            final TagData parent, 
+            final boolean createIfNotFound, 
+            // TFE, 20220506: live gets more complicated
+            final TagCompare mode, 
+            final boolean includeHierarchy) {
         initTags();
         final Set<TagData> result = new HashSet<>();
         
@@ -682,16 +810,21 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         // TFE, 20220404: start tag might be the one we're looking for - not necessarily a child
         flatTags.add(realStartTag);
 
-        // flatten tagslist to set
-        // http://squirrel.pl/blog/2015/03/04/walking-recursive-data-structures-using-java-8-streams/
-        // https://stackoverflow.com/a/31992391
-        flatTags.addAll(realStartTag.getChildren().stream().map((t) -> {
-            return t.flattened();
-        }).flatMap(Function.identity()).collect(Collectors.toSet()));
+        if (includeHierarchy) {
+            // flatten tagslist to set
+            // http://squirrel.pl/blog/2015/03/04/walking-recursive-data-structures-using-java-8-streams/
+            // https://stackoverflow.com/a/31992391
+            flatTags.addAll(realStartTag.getChildren().stream().map((t) -> {
+                return t.flattened();
+            }).flatMap(Function.identity()).collect(Collectors.toSet()));
+        } else {
+            // inly use direct children
+            flatTags.addAll(realStartTag.getChildren());
+        }
 
         for (String tagName : tagNames) {
             final Optional<TagData> tag = flatTags.stream().filter((t) -> {
-                return t.getName().equals(tagName);
+                return compareTags(t, tagName, mode);
             }).findFirst();
             
             if (tag.isPresent()) {
@@ -708,6 +841,40 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                     }
                 }
             }
+        }
+        
+        return result;
+    }
+    
+    public TagData getComplementaryGroup(final TagData tag, final boolean createIfNotFound) {
+        assert tag != null;
+        assert tag.isGroup();
+        assert !ReservedTag.containsTag(tag);
+        
+        TagData result;
+        
+        if (!tag.isArchiveGroup()) {
+            // we want to have the same name - but under archive BUT with the same hierarchy
+            final String compTagName = ReservedTag.Archive.getTagName() + EXTERNAL_NAME_SEPARATOR + tag.getExternalName();
+            result = groupForExternalName(compTagName, false);
+            if (result == null && createIfNotFound) {
+                result = groupForExternalName(compTagName, createIfNotFound);
+                if (result != null) {
+                    // new archive tag - should look the same
+                    result.setIconName(tag.getIconName());
+                    result.setColorName(tag.getColorName());
+                }
+            }
+        } else {
+            // we want to have the group with the same external name minus the "Archive~" part in the beginning
+            String compTagName = tag.getExternalName().replace(ReservedTag.Archive.getTagName() + EXTERNAL_NAME_SEPARATOR, "");
+            if (compTagName.isEmpty()) {
+                // wasn't attached to a specific group before...
+                result = ReservedTag.NotGrouped.getTag();
+            } else {
+                result = groupForExternalName(compTagName, createIfNotFound);
+            }
+            
         }
         
         return result;
@@ -795,7 +962,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
     
     // helper to insert group at certain position in list
-    private TagData createTagBelowParentAtPosition(final String name, final boolean isGroup, final int position, final TagData parent) {
+    private TagData createTagBelowParentAtPosition(final String name, final boolean isGroup, final boolean isArchiveGroup, final int position, final TagData parent) {
         // does it already exist?
         TagData result = tagForName(name, parent, false);
         
@@ -805,7 +972,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             return null;
         }
         if (result == null) {
-            result = new TagData(name, isGroup);
+            result = new TagData(name, isGroup, isArchiveGroup);
             // add all listeners to the children
             doAddAllListener(result);
 
@@ -822,11 +989,17 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
 
     protected TagData createTagBelowParent(final String name, final TagData parent) {
-        return createTagBelowParent(name, parent.isGroup(), parent);
+        if (parent != null) {
+            return createTagBelowParent(name, parent.isGroup(), parent.isArchiveGroup(), parent);
+        } else {
+            // this should only happen for testing edge cases
+            return createTagBelowParent(name, false, false, parent);
+        }
     }
 
-    protected TagData createTagBelowParent(final String name, final boolean isGroup, final TagData parent) {
-        return createTagBelowParentAtPosition(name, isGroup, -1, parent);
+    protected TagData createTagBelowParent(final String name, final boolean isGroup, final boolean isArchiveGroup, final TagData parent) {
+        // this should only be used directly for testing edge cases
+        return createTagBelowParentAtPosition(name, isGroup, isArchiveGroup, -1, parent);
     }
     
     public boolean deleteTag(final TagData tag) {
@@ -893,26 +1066,58 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         return (!ReservedTag.All.getTag().equals(tag) && !ReservedTag.NotGrouped.getTag().equals(tag));
     }
     
-    public boolean isSameGroupOrChildGroup(final TagData group, final TagData check, final boolean includeHierarchy) {
-        assert group != null;
+    public boolean compareTagsHierarchy(final TagData tag, final TagData check, final TagCompare compareMode, final boolean includeHierarchy) {
+        assert tag != null;
         assert check != null;
         
-        boolean result = group.equals(check);
+        boolean result = compareTags(tag, check, compareMode);
         
         if (!result && includeHierarchy) {
             // lets do the hierarchy
-            final TagData tag = group;
-            if (!tag.getChildren().isEmpty()) {
-                for (TagData child : tag.getChildren()) {
-                    if (isSameGroupOrChildGroup(child, check, includeHierarchy)) {
-                        // found it - lets get out here
-                        result = true;
-                        break;
-                    }
+            for (TagData child : tag.getChildren()) {
+                if (compareTagsHierarchy(child, check, compareMode, includeHierarchy)) {
+                    // found it - lets get out here
+                    result = true;
+                    break;
                 }
             }
         }
 
+        return result;
+    }
+    
+    public boolean compareTags(final TagData tag, final TagData check, final TagCompare compareMode) {
+        assert tag != null;
+        assert check != null;
+
+        boolean result = false;
+        
+        switch (compareMode) {
+            case BY_NAME -> result = tag.getName().equals(check.getName());
+            case BY_EXTERNAL_NAME -> result = tag.getExternalName().equals(check.getExternalName());
+            case BY_IDENTITY -> result = tag.equals(check);
+        }
+        
+//        System.out.println("Comparing " + group.getId() + ", " + group.getExternalName() + " to " +  check.getId() + ", " + check.getExternalName() + " with result " + result);
+        
+        return result;
+    }
+    
+    public boolean compareTags(final TagData tag, final String name, final TagCompare compareMode) {
+        assert tag != null;
+        assert name != null;
+
+        boolean result = false;
+        
+        switch (compareMode) {
+            case BY_NAME -> result = tag.getName().equals(name);
+            case BY_EXTERNAL_NAME -> result = tag.getExternalName().equals(name);
+            // definitly not the same...
+            case BY_IDENTITY -> result = false;
+        }
+        
+//        System.out.println("Comparing " + group.getId() + ", " + group.getExternalName() + " to " +  check.getId() + ", " + check.getExternalName() + " with result " + result);
+        
         return result;
     }
     
@@ -937,8 +1142,19 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         // we have been called after the fact... so the linkedNotes have already been updated with the new group name
         final Note movedNote = OwnNoteFileManager.getInstance().getNote(newGroup, curNote.getNoteName());
 
-        // TFE, 20201227: allign tags and their note links as well...
         final TagData oldGroup = curNote.getGroup();
+
+        // TFE, 20220424: check if this changes the archiving status!
+        if (!oldGroup.isArchiveGroup().equals(movedNote.getGroup().isArchiveGroup())) {
+            // TODO: what ever needs to be done here...
+            if (!oldGroup.isArchiveGroup()) {
+                
+            } else {
+                
+            }
+        }
+
+        // TFE, 20201227: allign tags and their note links as well...
         if (movedNote.getMetaData().getTags().contains(oldGroup)) {
             movedNote.getMetaData().getTags().remove(oldGroup);
             movedNote.getMetaData().getTags().add(newGroup);
@@ -954,7 +1170,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
 
     @Override
     public boolean deleteNote(Note curNote) {
-        tagForGroupName(curNote.getGroupName(), false).getLinkedNotes().remove(curNote);
+        groupForName(curNote.getGroupName(), false).getLinkedNotes().remove(curNote);
         ReservedTag.All.getTag().getLinkedNotes().remove(curNote);
 
         return true;

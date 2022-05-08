@@ -489,7 +489,12 @@ public class TaskData implements ICommentDataHolder, ITagHolder, ICalendarEvent 
     @Override
     public void setFromList(ICommentDataInfo name, List<String> values) {
         if (CommentDataInfo.TAGS.equals(name)) {
-            setTags(TagManager.getInstance().tagsForNames(new HashSet<>(values), null, true));
+            if (OwnNoteEditor.AppVersion.V6_1.isHigherAppVersionThan(myNote.getMetaData().getAppVersion())) {
+                setTags(TagManager.getInstance().tagsForNames(new HashSet<>(values), null, true));
+            } else {
+                // new way of doing things with external names
+                setTags(TagManager.getInstance().tagsForExternalNames(new HashSet<>(values), null, true));
+            }
         }
     }
 
@@ -513,7 +518,13 @@ public class TaskData implements ICommentDataHolder, ITagHolder, ICalendarEvent 
     public List<String> getAsList(ICommentDataInfo name) {
         if (CommentDataInfo.TAGS.equals(name)) {
             return myTags.stream().map((t) -> {
-                return t.getName();
+                if (OwnNoteEditor.AppVersion.CURRENT.isLowerAppVersionThan(OwnNoteEditor.AppVersion.V6_1)) {
+                    // not sure how this might happen - since we invented app version with v6.1
+                    System.err.println("Reading note metadata with app version: " + OwnNoteEditor.AppVersion.CURRENT.getVersionId());
+                    return t.getName();
+                } else {
+                    return t.getExternalName();
+                }
             }).collect(Collectors.toList());
         }
         return null;

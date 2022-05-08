@@ -25,6 +25,7 @@
  */
 package tf.ownnote.ui.notes;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import javafx.beans.binding.Bindings;
@@ -86,7 +87,7 @@ public class Note {
         setMetaData(new NoteMetaData(this));
     }
     
-    public Note(final String groupName, final String noteName) {
+    protected Note(final String groupName, final String noteName) {
         super();
         
         setNoteName(noteName);
@@ -95,6 +96,14 @@ public class Note {
     
     public Note(final Note note) {
         super();
+        
+        // TFE, 20220427
+        // no map anymore - need to clone attributes manually...
+        noteNameProperty.set(note.noteNameProperty.get());
+        noteModifiedProperty.set(LocalDateTime.now());
+        noteFileContentProperty.set(note.noteFileContentProperty.get());
+        noteEditorContentProperty.set(note.noteEditorContentProperty.get());
+        groupProperty.set(note.groupProperty.get());
         
         myMetaData = note.myMetaData;
         initNoteHasChanged();

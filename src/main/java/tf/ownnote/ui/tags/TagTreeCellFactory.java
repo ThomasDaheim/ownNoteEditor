@@ -216,6 +216,13 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
                 clearDropLocation();
                 return;
             }
+            final TagData thisTag = thisItem.getValue().getTagData();
+            final TagData draggedTag = draggedItem.getValue().getTagData();
+            // check other restrictions: no duplicate external names created?
+            if (!TagManager.getInstance().isValidNewTagParent(draggedTag, thisTag)) {
+                clearDropLocation();
+                return;
+            }
 
             event.acceptTransferModes(TransferMode.MOVE);
             if (!Objects.equals(dropZone, treeCell)) {
@@ -243,6 +250,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
                 // how about other tags that aren't leafs?
                 dropAllowed = !thisTag.getName().equals(dragNote.getGroupName()) && 
                         !TagManager.isGroupsRootTag(thisTag) && 
+                        // TODO: allow archive here as well - build a check method in TagManager
                         !TagManager.ReservedTag.All.getTag().equals(thisTag);
             } else {
                 dropAllowed = !dragNote.getMetaData().getTags().contains(thisTag);
@@ -312,6 +320,8 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
                 }
             }
             treeView.getSelectionModel().select(draggedItem);
+            // TODO: check if archive status of dragged group has changed - and update attached notes accordingly
+            // HOW and WHERE????
 
             AppClipboard.getInstance().clearContent(DRAG_AND_DROP);
             event.setDropCompleted(success);

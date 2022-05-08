@@ -59,7 +59,7 @@ public class TestTaskManager {
 
     @Test
     public void testFindAllOccurences() {
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName("Test", false), "TestTasks");
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
         
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         Assert.assertEquals(5, TaskManager.getInstance().tasksForNote(note).size());
@@ -67,7 +67,7 @@ public class TestTaskManager {
 
     @Test
     public void testGetTaskList() {
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName("Test", false), "TestTasks");
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
         
         // need to sort task list since other tests might have screwed with the order
         final List<TaskData> taskList = TaskManager.getInstance().tasksForNote(note).stream().sorted((o1, o2) -> {
@@ -86,7 +86,7 @@ public class TestTaskManager {
     
     @Test
     public void testChangeContent1() {
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName("Test", false), "TestTasks");
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
         
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         TaskManager.getInstance().tasksForNote(note);
@@ -173,7 +173,7 @@ public class TestTaskManager {
     
     @Test
     public void testChangeContent2() {
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName("Test", false), "TestTasks");
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
         
         final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         // need to sort task list since other tests might have screwed with the order

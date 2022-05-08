@@ -183,7 +183,7 @@ public class TestTagManager {
             // add a non-group child
             testChangeType.clear();
 //            System.out.println("\ntestGroupChangeListeners: add non-group child to group #1");
-            groupTags.get(0).getChildren().add(TagManager.getInstance().createTagBelowParent("TEST_CHILD_1", false, groupTags.get(0)));
+            groupTags.get(0).getChildren().add(TagManager.getInstance().createTagBelowParent("TEST_CHILD_1", groupTags.get(0)));
             // "ADDED" for children list change
             Assert.assertEquals("Children have been added", ChangeType.ADDED, testChangeType.get(0));
 
@@ -198,7 +198,7 @@ public class TestTagManager {
             // add a group child -> change triggered BUT on groupTags level since its also added directly to the group root tag
             testChangeType.clear();
 //            System.out.println("\ntestGroupChangeListeners: add group child to group #1");
-            final TagData groupChild = TagManager.getInstance().createTagBelowParent("TEST_CHILD_2", true, null);
+            final TagData groupChild = TagManager.getInstance().createTagBelowParent("TEST_CHILD_2", true, false, null);
             groupTags.get(1).getChildren().add(groupChild);
             // "ADDED" from add to list
             Assert.assertEquals("\"ADDED\" 1. from .add()", ChangeType.ADDED, testChangeType.get(0));
@@ -239,15 +239,15 @@ public class TestTagManager {
 //            System.out.println("\ntestLocalTagTreeListener: creating local tag tree");
             final TagData groups = TagManager.getInstance().tagForName("LGroups", null, true);
             
-            final TagData all = TagManager.getInstance().createTagBelowParent("LAll", true, groups);
+            final TagData all = TagManager.getInstance().createTagBelowParent("LAll", groups);
             groups.getChildren().add(all);
-            final TagData notGrouped = TagManager.getInstance().createTagBelowParent("LNot grouped", true, groups);
+            final TagData notGrouped = TagManager.getInstance().createTagBelowParent("LNot grouped", groups);
             groups.getChildren().add(notGrouped);
-            final TagData test1 = TagManager.getInstance().createTagBelowParent("LTest1", true, groups);
+            final TagData test1 = TagManager.getInstance().createTagBelowParent("LTest1", groups);
             groups.getChildren().add(test1);
-            final TagData test2 = TagManager.getInstance().createTagBelowParent("LTest2", true, groups);
+            final TagData test2 = TagManager.getInstance().createTagBelowParent("LTest2", groups);
             groups.getChildren().add(test2);
-            final TagData test3 = TagManager.getInstance().createTagBelowParent("LTest3", true, groups);
+            final TagData test3 = TagManager.getInstance().createTagBelowParent("LTest3", groups);
             groups.getChildren().add(test3);
             // 18 changes for 6 new tags: ADDED + UPDATED for tag creation + ADDED to (local) tag tree
             Assert.assertEquals("A lot has happened", 18, testChangeType.size());
@@ -282,7 +282,7 @@ public class TestTagManager {
             int tagChildren = tagsList.get(0).getChildren().size();
             testChangeType.clear();
 //            System.out.println("\ntestTagChangeListeners: add non-group child to group #1");
-            TagData newChild1 = TagManager.getInstance().createTagBelowParent("TEST_CHILD_1", false, tagsList.get(0));
+            TagData newChild1 = TagManager.getInstance().createTagBelowParent("TEST_CHILD_1", tagsList.get(0));
             tagsList.get(0).getChildren().add(newChild1);
             // "ADDED"
             Assert.assertEquals("\"ADDED\" 1. from .add()", ChangeType.ADDED, testChangeType.get(0));
@@ -306,7 +306,7 @@ public class TestTagManager {
             // add a group child -> change triggered BUT on groupTags level since its also added directly to the group root tag
             testChangeType.clear();
 //            System.out.println("\ntestTagChangeListeners: add group child to group #1");
-            TagData newChild2 = TagManager.getInstance().createTagBelowParent("TEST_CHILD_2", true, tagsList.get(1));
+            TagData newChild2 = TagManager.getInstance().createTagBelowParent("TEST_CHILD_2", tagsList.get(1));
             tagsList.get(1).getChildren().add(newChild2);
             // "ADDED"
             Assert.assertEquals("\"ADDED\" 1. from .add()", ChangeType.ADDED, testChangeType.get(0));
@@ -362,7 +362,7 @@ public class TestTagManager {
             int tagChildren = tagsList.get(0).getChildren().size();
             testChangeType.clear();
 //            System.out.println("\ntestTagChangeListeners: add non-group child to group #1");
-            TagData newChild1 = TagManager.getInstance().createTagBelowParent("TEST_CHILD_1", false, tagsList.get(0));
+            TagData newChild1 = TagManager.getInstance().createTagBelowParent("TEST_CHILD_1", tagsList.get(0));
             tagsList.get(0).getChildren().add(newChild1);
             // "ADDED"
             Assert.assertEquals("\"ADDED\" 1. from .add()", ChangeType.ADDED, testChangeType.get(0));
@@ -386,7 +386,7 @@ public class TestTagManager {
             // add a group child -> change triggered BUT on groupTags level since its also added directly to the group root tag
             testChangeType.clear();
 //            System.out.println("\ntestTagChangeListeners: add group child to group #1");
-            TagData newChild2 = TagManager.getInstance().createTagBelowParent("TEST_CHILD_2", true, tagsList.get(1));
+            TagData newChild2 = TagManager.getInstance().createTagBelowParent("TEST_CHILD_2", tagsList.get(1));
             tagsList.get(1).getChildren().add(newChild2);
             // "ADDED"
             Assert.assertEquals("\"ADDED\" 1. from .add()", ChangeType.ADDED, testChangeType.get(0));
@@ -425,7 +425,7 @@ public class TestTagManager {
         }
         
         // add child and see if automatic update works
-        TagData newChild1 = TagManager.getInstance().createTagBelowParent("TEST_CHILD_1", false, test3);
+        TagData newChild1 = TagManager.getInstance().createTagBelowParent("TEST_CHILD_1", test3);
         Assert.assertEquals("Testing new tag not yet added", 0, newChild1.getLevel().intValue());
         test3.getChildren().add(newChild1);
         Assert.assertEquals("Testing new tag after adding", 3, newChild1.getLevel().intValue());
@@ -438,16 +438,16 @@ public class TestTagManager {
         final TagData rootTag = TagManager.getInstance().getRootTag();
         final TagData grouspRootTag = rootTag.getChildren().get(0);
         
-        Assert.assertFalse(TagManager.getInstance().isSameGroupOrChildGroup(rootTag, grouspRootTag, false));
-        Assert.assertTrue(TagManager.getInstance().isSameGroupOrChildGroup(rootTag, grouspRootTag, true));
+        Assert.assertFalse(TagManager.getInstance().compareTagsHierarchy(rootTag, grouspRootTag, TagManager.TagCompare.BY_IDENTITY, false));
+        Assert.assertTrue(TagManager.getInstance().compareTagsHierarchy(rootTag, grouspRootTag, TagManager.TagCompare.BY_IDENTITY, true));
 
         final TagData test3 = TagManager.getInstance().getGroupTags(true).get(4);
-        Assert.assertFalse(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag, test3, false));
-        Assert.assertTrue(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag, test3, true));
+        Assert.assertFalse(TagManager.getInstance().compareTagsHierarchy(grouspRootTag, test3, TagManager.TagCompare.BY_IDENTITY, false));
+        Assert.assertTrue(TagManager.getInstance().compareTagsHierarchy(grouspRootTag, test3, TagManager.TagCompare.BY_IDENTITY, true));
 
         final TagData level2 = test3.getChildren().get(0);
-        Assert.assertFalse(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag, level2, false));
-        Assert.assertTrue(TagManager.getInstance().isSameGroupOrChildGroup(grouspRootTag, level2, true));
+        Assert.assertFalse(TagManager.getInstance().compareTagsHierarchy(grouspRootTag, level2, TagManager.TagCompare.BY_IDENTITY, false));
+        Assert.assertTrue(TagManager.getInstance().compareTagsHierarchy(grouspRootTag, level2, TagManager.TagCompare.BY_IDENTITY, true));
     }
     
     @Test
@@ -477,7 +477,7 @@ public class TestTagManager {
         Assert.assertEquals("Test3~Level 2", level2.getExternalName());
         
         // 2nd check: lookup by external name gives same object
-        final TagData newLevel2 = TagManager.getInstance().tagForExternalName(level2.getExternalName(), false);
+        final TagData newLevel2 = TagManager.getInstance().groupForExternalName(level2.getExternalName(), false);
         Assert.assertEquals(level2, newLevel2);
     }
     
@@ -489,9 +489,12 @@ public class TestTagManager {
 
         // we can have "Level2" on level of test3 - "Levels" is on another level
         Assert.assertTrue(TagManager.getInstance().isValidNewTagName(level2.getName(), test3.getParent()));
+        Assert.assertTrue(TagManager.getInstance().isValidNewTagParent(level2, test3.getParent()));
         
-        // we can have another "Test2" on level of test3
+        // we can't have another "Test2" on level of group
         Assert.assertFalse(TagManager.getInstance().isValidNewTagName(test2.getName(), test3.getParent()));
+        // we can have "Test2" on level of group - since its the same things
+        Assert.assertTrue(TagManager.getInstance().isValidNewTagParent(test2, test3.getParent()));
         
         // invalid group name
         Assert.assertFalse(TagManager.getInstance().isValidNewTagName(level2.getName() + "~", test3.getParent()));
@@ -501,6 +504,8 @@ public class TestTagManager {
         Assert.assertNotNull(nonGroupTag);
         Assert.assertTrue(TagManager.getInstance().isValidNewTagName("TestTag2", nonGroupTag));
         Assert.assertFalse(TagManager.getInstance().isValidNewTagName(level2.getName(), nonGroupTag));
+        // can't have group tag under non group tag
+        Assert.assertFalse(TagManager.getInstance().isValidNewTagParent(level2, nonGroupTag));
 
         // we don't care about invalid group name
         Assert.assertTrue(TagManager.getInstance().isValidNewTagName("TestTag2~", nonGroupTag));
@@ -528,6 +533,27 @@ public class TestTagManager {
         
         // we don't care about invalid group name
         Assert.assertTrue(TagManager.getInstance().isValidChangedTagName(nonGroupTag.getName() + "~", nonGroupTag));
+    }
+
+    @Test
+    public void testGetComplementaryGroup() {
+        final TagData test3 = TagManager.getInstance().getGroupTags(true).get(4);
+        final TagData level2 = test3.getChildren().get(0);
+
+        // we don't have that under archive in our test data...
+        Assert.assertNull(TagManager.getInstance().getComplementaryGroup(test3, false));
+        
+        final TagData test3Archive = TagManager.getInstance().getComplementaryGroup(test3, true);
+        Assert.assertNotNull(test3Archive);
+        
+        // we are our complementaries
+        Assert.assertNotNull(TagManager.getInstance().getComplementaryGroup(test3Archive, false));
+        Assert.assertEquals(test3, TagManager.getInstance().getComplementaryGroup(test3Archive, false));
+        
+        // hierarchies are preserved in the archive sector
+        final TagData level2Archive = TagManager.getInstance().getComplementaryGroup(level2, true);
+        Assert.assertNotNull(level2Archive);
+        Assert.assertEquals(level2Archive.getParent(), test3Archive);
     }
 
     private void doAddListener(final TagData tagRoot, ListChangeListener<? super TagData> ll) {

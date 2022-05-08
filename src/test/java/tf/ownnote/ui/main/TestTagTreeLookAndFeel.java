@@ -261,7 +261,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
     
     private void testTag(final String tagName, final int tabCount, final CheckMode mode) {
         if (CheckMode.doCheckTagChildren(mode)) {
-            assertTrue("Check notes children for tag " + tagName, (TagManager.getInstance().tagForGroupName(tagName, false).getLinkedNotes().size() == tabCount));
+            assertTrue("Check notes children for tag " + tagName, (TagManager.getInstance().groupForName(tagName, false).getLinkedNotes().size() == tabCount));
         }
         if (CheckMode.doCheckTableElements(mode)) {
             assertTrue("Check table elements for tag " + tagName, (notesTableFXML.getItems().size() == tabCount));

@@ -83,7 +83,7 @@ public class RecentNoteForGroup extends HashMap<String, Note> {
             }
             
             final String[] recentNote = pref.split(OwnNoteEditorPreferences.PREF_DATA_SEP);
-            put(recentNote[0], OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForExternalName(recentNote[0], false), recentNote[1]));
+            put(recentNote[0], OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForExternalName(recentNote[0], false), recentNote[1]));
         }
     }
 }

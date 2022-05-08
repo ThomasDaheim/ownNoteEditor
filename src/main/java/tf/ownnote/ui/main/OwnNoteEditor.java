@@ -90,6 +90,7 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.Window;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import tf.helper.general.AppInfo;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AboutMenu;
 import tf.helper.javafx.TableMenuUtils;
@@ -121,6 +122,61 @@ import tf.ownnote.ui.tasks.TaskManager;
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INoteCRMDS {
+    // TFE, 20220506: keep track of app version numbers
+    // to be bale to determine any need for data migration
+    public enum AppVersion {
+        NONE(6.0),
+        V6_1(6.1),
+        CURRENT(6.1);
+        
+        private double versionId;
+        
+        private AppVersion(final double id) {
+            versionId = id;
+        }
+        
+        public double getVersionId() {
+            return versionId;
+        }
+        
+        private void setVersionId(final double id) {
+            versionId = id;
+        }
+        
+        public boolean isHigherAppVersionThan(final double other) {
+            return versionId > other;
+        }
+        public boolean isHigherAppVersionThan(final AppVersion other) {
+            assert other != null;
+            
+            return isHigherAppVersionThan(other.versionId);
+        }
+
+        public boolean isLowerAppVersionThan(final double other) {
+            return versionId < other;
+        }
+        public boolean isLowerAppVersionThan(final AppVersion other) {
+            return isLowerAppVersionThan(other.versionId);
+        }
+        
+        // simple minded version of Comparable interface
+        public int compareToAppVersion(final double other) {
+            int result = 0;
+            
+            if (isHigherAppVersionThan(other)) {
+                result = 1;
+            } else if (isLowerAppVersionThan(other)) {
+                result = -1;
+            }
+            
+            return result;
+        }
+        public int compareToAppVersion(final AppVersion other) {
+            assert other != null;
+
+            return compareToAppVersion(other.versionId);
+        }
+    }
 
     private final List<String> filesInProgress = new LinkedList<>();
 
@@ -763,6 +819,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         });
 
         AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v6.1", "https://github.com/ThomasDaheim/ownNoteEditor");
+        
+        // TFE, 20220429: get app version so that we can compare it with one from registry - to determine migration needs!
+        AppInfo.getInstance().initAppInfo(OwnNoteEditor.class, "OwnNoteEditor", "v6.1", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AppVersion.CURRENT.setVersionId(Double.valueOf(AppInfo.getInstance().getAppVersion()));
     }
     
     // do everything to show / hide tasklist
@@ -802,6 +862,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         splitPaneXML.setDividerPosition(EDITOR_TASKLIST_DIVIDER, (100d - gridPane.getColumnConstraints().get(TASKLIST_COLUMN).getPercentWidth())/100d);
 
 //        System.out.println("Done switching taskList");
+    }
+    
+    public static boolean noteVersionLower(final Note note, final AppVersion appVersion) {
+        // check note last save version against required version number
+        return appVersion.getVersionId() > note.getMetaData().getAppVersion();
     }
     
     public void initFromDirectory(final boolean updateOnly, final boolean resetTasksTags) {
@@ -1017,6 +1082,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         return result;
     }
     
+    public boolean doArchiveRestoreNote(final Note note) {
+        // its only a kind of move to another, special group...
+        return moveNote(note, TagManager.getInstance().getComplementaryGroup(note.getGroup(), true));
+    }
+    
     public void refilterNotesList() {
         notesTable.setFilterPredicate();
     }
@@ -1049,7 +1119,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             // TFE, 20201030: support re-load of last edited note
             if (currentNoteProperty.get() == null) {
                 final String lastGroupName = OwnNoteEditorPreferences.LAST_EDITED_GROUP.getAsType();
-                final TagData lastGroup = TagManager.getInstance().tagForExternalName(lastGroupName, false);
+                final TagData lastGroup = TagManager.getInstance().groupForExternalName(lastGroupName, false);
                 final String lastNoteName = OwnNoteEditorPreferences.LAST_EDITED_NOTE.getAsType();
                 if (lastGroup != null && OwnNoteFileManager.getInstance().noteExists(lastGroup, lastNoteName)) {
                     currentNoteProperty.set(OwnNoteFileManager.getInstance().getNote(lastGroup, lastNoteName));

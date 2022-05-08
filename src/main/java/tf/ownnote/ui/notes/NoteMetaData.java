@@ -34,7 +34,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -44,6 +46,7 @@ import tf.ownnote.ui.commentdata.CommentDataMapper;
 import tf.ownnote.ui.commentdata.ICommentDataHolder;
 import tf.ownnote.ui.commentdata.ICommentDataInfo;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.tags.ITagHolder;
 import tf.ownnote.ui.tags.TagData;
 import tf.ownnote.ui.tags.TagManager;
@@ -64,6 +67,9 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
     
     // info per available metadata - name & multiplicity
     private static enum CommentDataInfo implements ICommentDataInfo {
+        // TFE, 20220506: new meta data app version
+        // must be first in the list to be read first - since handling of TAGS depends on version info
+        APP_VERSION("appVersion", Multiplicity.SINGLE),
         VERSIONS("versions", Multiplicity.MULTIPLE),
         TAGS("tags", Multiplicity.MULTIPLE),
         CHARSET("charset", Multiplicity.SINGLE),
@@ -90,14 +96,16 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
 
     private final ObservableList<NoteVersion> myVersions = FXCollections.<NoteVersion>observableArrayList();
     private final ObservableSet<TagData> myTags = FXCollections.<TagData>observableSet();
-    // TFE, 20210228: know thy taskas as well
+    // TFE, 20210228: know thy tasks as well
     private final ObservableSet<TaskData> myTasks = FXCollections.<TaskData>observableSet();
     // TFE, 20201217: add charset to metadata - since we switched to UTF-8 on 17.12.2020 we need to be able to handle old notes
     private Charset myCharset = StandardCharsets.ISO_8859_1;
     // TFE, 20210101: support for note attachments
     private final ObservableList<String> myAttachments = FXCollections.<String>observableArrayList();
+    // TFE, 20220430: know thy app version - to find out if we might need to migrate stuff
+    private final DoubleProperty myAppVersionProperty = new SimpleDoubleProperty(OwnNoteEditor.AppVersion.NONE.getVersionId());
     
-    // TFE, 20210201: know you own change status
+    // TFE, 20210201: know you're own change status
     private final BooleanProperty hasUnsavedChanges = new SimpleBooleanProperty(false);
 
     private Note myNote;
@@ -232,6 +240,18 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
         myAttachments.clear();
         myAttachments.addAll(attachments);
     }
+    
+    public Double getAppVersion() {
+        return myAppVersionProperty.get();
+    }
+    
+    public void setAppVersion(final double version) {
+        myAppVersionProperty.set(version);
+    }
+    
+    public DoubleProperty appVersionProperty() {
+        return myAppVersionProperty;
+    }
 
     public static boolean hasMetaDataContent(final String htmlString) {
         if (htmlString == null) {
@@ -294,6 +314,8 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
     public void setFromString(ICommentDataInfo name, String value) {
         if (CommentDataInfo.CHARSET.equals(name)) {
             setCharset(Charset.forName(value));
+        } else if (CommentDataInfo.APP_VERSION.equals(name)) {
+            setAppVersion(Double.valueOf(value));
         }
     }
 
@@ -306,7 +328,12 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
             }
             setVersions(versions);
         } else if (CommentDataInfo.TAGS.equals(name)) {
-            setTags(TagManager.getInstance().tagsForNames(new HashSet<>(values), null, true));
+            if (OwnNoteEditor.AppVersion.V6_1.isHigherAppVersionThan(getAppVersion())) {
+                setTags(TagManager.getInstance().tagsForNames(new HashSet<>(values), null, true));
+            } else {
+                // new way of doing things with external names
+                setTags(TagManager.getInstance().tagsForExternalNames(new HashSet<>(values), null, true));
+            }
         } else if (CommentDataInfo.ATTACHMENTS.equals(name)) {
             setAttachments(values);
         }
@@ -315,7 +342,9 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
     @Override
     public String getAsString(ICommentDataInfo name) {
         if (CommentDataInfo.CHARSET.equals(name)) {
-            return myCharset.name();
+            return getCharset().name();
+        } else if (CommentDataInfo.APP_VERSION.equals(name)) {
+            return getAppVersion().toString();
         }
         return null;
     }
@@ -332,7 +361,13 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
             }
         } else if (CommentDataInfo.TAGS.equals(name)) {
             return myTags.stream().map((t) -> {
-                return t.getName();
+                if (OwnNoteEditor.AppVersion.CURRENT.isLowerAppVersionThan(OwnNoteEditor.AppVersion.V6_1)) {
+                    // not sure how this might happen - since we invented app version with v6.1
+                    System.err.println("Reading note metadata with app version: " + OwnNoteEditor.AppVersion.CURRENT.getVersionId());
+                    return t.getName();
+                } else {
+                    return t.getExternalName();
+                }
             }).collect(Collectors.toList());
         } else if (CommentDataInfo.ATTACHMENTS.equals(name)) {
             return myAttachments;

@@ -82,7 +82,7 @@ public class TestTaskData {
     
     @Test
     public void testTaskDataOpenTask() {
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName("Test", false), "TestTasks");
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
         final String noteContent = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         
         TaskData taskData = new TaskData(note, noteContent, 63);
@@ -92,7 +92,7 @@ public class TestTaskData {
     
     @Test
     public void testTaskDataCompletedTask() {
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().tagForGroupName("Test", false), "TestTasks");
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
         final String noteContent = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         
         TaskData taskData = new TaskData(note, noteContent, 368);
