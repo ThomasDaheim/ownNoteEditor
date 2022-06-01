@@ -72,7 +72,7 @@ public class CommentDataMapper {
     }
     
     public void fromComment(final ICommentDataHolder dataHolder, final String comment) {
-        final String [] data = extractData(comment);
+        final String [] data = extractData(dataHolder, comment);
         
         final ICommentDataInfo[] infos = dataHolder.getCommentDataInfo();
 
@@ -168,7 +168,7 @@ public class CommentDataMapper {
         return CommentDataMapper.COMMENT_STRING_PREFIX + stringBuffer.toString() + CommentDataMapper.COMMENT_STRING_SUFFIX;
     }
     
-    public static String [] extractData(final String content) {
+    private static String [] extractData(final ICommentDataHolder dataHolder, final String content) {
         final String contentString = content.split(COMMENT_STRING_SUFFIX)[0] + COMMENT_STRING_SUFFIX;
         String [] data = contentString.substring(COMMENT_STRING_PREFIX.length(), contentString.length()-COMMENT_STRING_SUFFIX.length()).
                 strip().split(COMMENT_DATA_SEP);
@@ -196,6 +196,7 @@ public class CommentDataMapper {
 
                     dataFound = true;
                 } catch (DataFormatException | UnsupportedEncodingException ex) {
+                    System.err.println("Exception when processing data holder: " + dataHolder.getDataHolderInfo());
                     Logger.getLogger(CommentDataMapper.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }

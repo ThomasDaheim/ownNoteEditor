@@ -39,4 +39,6 @@ public interface ICommentDataHolder {
     public abstract void setFromList(final ICommentDataInfo name, final List<String> values);
     public abstract String getAsString(final ICommentDataInfo name);
     public abstract List<String> getAsList(final ICommentDataInfo name);
+    
+    public abstract String getDataHolderInfo();
 }

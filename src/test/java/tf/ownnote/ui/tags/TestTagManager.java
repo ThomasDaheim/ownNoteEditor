@@ -232,7 +232,7 @@ public class TestTagManager {
     @Test
     public void testLocalTagTreeListener() {
         try {
-            TagManager.getInstance().addListener(tagTestListener);
+            TagManager.getInstance().addListChangeListener(tagTestListener);
             
             // rebuild tag tree as from metadata
             testChangeType.clear();
@@ -327,7 +327,7 @@ public class TestTagManager {
     @Test
     public void testTagChangeListeners() {
         try {
-            TagManager.getInstance().addListener(tagTestListener);
+            TagManager.getInstance().addListChangeListener(tagTestListener);
 //            doAddListener(TagManager.getInstance().getRootTag(), tagTestListener2);
 
             final TagData groupRoot = TagManager.getInstance().tagForName(TagManager.ReservedTag.Groups.name(), null, false);

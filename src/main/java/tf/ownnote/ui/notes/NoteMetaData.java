@@ -309,6 +309,11 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
     public ICommentDataInfo[] getCommentDataInfo() {
         return CommentDataInfo.values();
     }
+    
+    @Override
+    public String getDataHolderInfo() {
+        return "NoteMetaData: " + myNote.getNoteFileName();
+    }
 
     @Override
     public void setFromString(ICommentDataInfo name, String value) {

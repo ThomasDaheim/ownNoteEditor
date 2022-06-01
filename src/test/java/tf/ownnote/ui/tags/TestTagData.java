@@ -66,6 +66,9 @@ public class TestTagData {
                     }
                     if (change.wasUpdated()) {
                         testChangeType.add(ChangeType.UPDATED);
+//                        for (TagData tag : change.getList().subList(change.getFrom(), change.getTo())) {
+//                            System.out.println("Tag " + tag.getId() + ", " + tag.getName() + " was updated");
+//                        }
                     }
                 }
             }
@@ -190,7 +193,7 @@ public class TestTagData {
     
     @Test
     public void testChildListenerManager() {
-        TagManager.getInstance().addListener(tagTestListener);
+        TagManager.getInstance().addListChangeListener(tagTestListener);
         final TagData localRoot = TagManager.getInstance().createTagBelowParent("ROOT", null);
         
         final TagData localChild1 = TagManager.getInstance().createTagBelowParent("CHILD_1", localRoot);

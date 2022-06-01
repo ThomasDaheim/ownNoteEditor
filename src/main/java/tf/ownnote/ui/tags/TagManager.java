@@ -200,14 +200,14 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     // root of all tags - not saved or loaded
     private final static TagData ROOT_TAG = new TagData(ROOT_TAG_NAME, false, false);
     
-    // we need to keep track of changes in the tag tree to update the group tag list....
-    private final ListChangeListener<TagData> tagChildrenListener;
     // TFE, 20210405: hold list of group tags with an extractor - to be able to listen to changes of tag content
     private final ObservableList<TagData> groupTags = 
             FXCollections.<TagData>observableArrayList(p -> new Observable[]{p.nameProperty(), p.iconNameProperty(), p.colorNameProperty()});
     
+    // we need to keep track of changes in the tag tree to update the group tag list....
+    private final ListChangeListener<TagData> tagChildrenListener;
     // know thy listeners - to able to add / remove from added / removed tags
-    private final List<ListChangeListener<? super TagData>> changeListeners = new ArrayList<>();
+    private final List<ListChangeListener<? super TagData>> tagChildrenChangeListeners = new ArrayList<>();
     
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
@@ -247,8 +247,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 setTagTransientData();
             }
         };
-        
-        changeListeners.add(tagChildrenListener);
+        tagChildrenChangeListeners.add(tagChildrenListener);
     }
 
     public static TagManager getInstance() {
@@ -561,27 +560,27 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
     }
     
-    public void addListener(ListChangeListener<? super TagData> ll) {
-        changeListeners.add(ll);
-        doAddListener(getRootTag(), ll);
+    protected void addListChangeListener(ListChangeListener<? super TagData> ll) {
+        tagChildrenChangeListeners.add(ll);
+        doAddListChangeListener(getRootTag(), ll);
     }
-    private void doAddListener(final TagData tagRoot, ListChangeListener<? super TagData> ll) {
+    private void doAddListChangeListener(final TagData tagRoot, ListChangeListener<? super TagData> ll) {
         // add listener to my children and to the children of my children
 //        System.out.println("Adding listener " + ll + " to tag " + tagRoot.getName());
         tagRoot.getChildren().addListener(ll);
         for (TagData tag : tagRoot.getChildren()) {
-            doAddListener(tag, ll);
+            doAddListChangeListener(tag, ll);
         }
     }
     private void doAddAllListener(final TagData tagRoot) {
         // add all listeners to the children
-        for (ListChangeListener<? super TagData> ll : changeListeners) {
-            doAddListener(tagRoot, ll);
+        for (ListChangeListener<? super TagData> ll : tagChildrenChangeListeners) {
+            doAddListChangeListener(tagRoot, ll);
         }
     }
     
     public void removeListener(ListChangeListener<? super TagData> ll) {
-        changeListeners.remove(ll);
+        tagChildrenChangeListeners.remove(ll);
         doRemoveListener(getRootTag(), ll);
     }
     private void doRemoveListener(final TagData tagRoot, ListChangeListener<? super TagData> ll) {
@@ -594,9 +593,20 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
     private void doRemoveAllListener(final TagData tagRoot) {
         // add all listeners to the children
-        for (ListChangeListener<? super TagData> ll : changeListeners) {
+        for (ListChangeListener<? super TagData> ll : tagChildrenChangeListeners) {
             doRemoveListener(tagRoot, ll);
         }
+    }
+    
+    public void handleTagNameChange(final TagData tag, final String oldValue, final String newValue) {
+//        System.out.println("Name of tag " + tag.getId() + " with name " + tag.getName() + " was changed from " + oldValue + " to " + newValue);
+
+        // group name changes are handled elsewhere since they involve a change of the filename
+        if (tag.isGroup()) {
+            return;
+        }
+
+        // save all notes that have this tag attached in the tagslist
     }
 
     public void saveTags() {

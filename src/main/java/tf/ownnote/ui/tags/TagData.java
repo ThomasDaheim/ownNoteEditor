@@ -116,6 +116,14 @@ public class TagData {
                 }
             }
         });
+        
+        // TFE, 20220509: I can't find a way to have this outside of TagData and only in TagManager...
+        // 1) ListChangeListener with extractor doesn't give you the old value of a name change
+        // 2) a generic ChangeListener in TagManager for all TagData.nameProperty doesn't give you the tag where the name chane occured
+        // ?!?!?!?!?!?!?
+        nameProperty.addListener((ov, oldValue, newValue) -> {
+            TagManager.getInstance().handleTagNameChange(this, oldValue, newValue);
+        });
     }
     
     // TFE, 20220427: not true anymore!

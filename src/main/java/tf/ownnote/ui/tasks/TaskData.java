@@ -470,6 +470,11 @@ public class TaskData implements ICommentDataHolder, ITagHolder, ICalendarEvent 
     public ICommentDataInfo[] getCommentDataInfo() {
         return CommentDataInfo.values();
     }
+    
+    @Override
+    public String getDataHolderInfo() {
+        return "TaskData: " + myNote.getNoteFileName() + ", " + myDescription.get();
+    }
 
     @Override
     public void setFromString(ICommentDataInfo name, String value) {
