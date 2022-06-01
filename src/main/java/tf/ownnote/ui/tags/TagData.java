@@ -66,7 +66,7 @@ public class TagData {
     // we don't do Group as subclass of Tag but as attribute
     private final BooleanProperty isGroupProperty = new SimpleBooleanProperty(false);
     // lets keep track if we're aprt of the Archive special group - to avoid permanent walkthroughs of the tag tree
-    private final BooleanProperty isArchiveGroupProperty = new SimpleBooleanProperty(false);
+    private final BooleanProperty isArchivedGroupProperty = new SimpleBooleanProperty(false);
 
     // TFE, 20201230: initialized here to always have a value but can be overwritten from parsed noteContent
     private String myId = RandomStringUtils.random(12, "0123456789abcdef"); 
@@ -78,7 +78,7 @@ public class TagData {
     protected TagData(final String na, final boolean isGroup, final boolean isArchiveGroup) {
         nameProperty.set(na);
         isGroupProperty.set(isGroup);
-        isArchiveGroupProperty.set(isArchiveGroup);
+        isArchivedGroupProperty.set(isArchiveGroup);
         
         children.addListener((ListChangeListener.Change<? extends TagData> change) -> {
             while (change.next()) {
@@ -148,7 +148,7 @@ public class TagData {
 //    }
     
     protected TagData cloneMe() {
-        final TagData clone = new TagData(getName(), isGroup(), isArchiveGroup());
+        final TagData clone = new TagData(getName(), isGroup(), isArchivedGroup());
         clone.myId = myId;
         clone.colorNameProperty.set(colorNameProperty.get());
         clone.iconNameProperty.set(iconNameProperty.get());
@@ -157,7 +157,7 @@ public class TagData {
         // TFE, 20220427: additional attributes? no - all of them are transient anyways - but what the heck...
         clone.parentProperty.set(parentProperty.get());
         clone.isGroupProperty.set(isGroupProperty.get());
-        clone.isArchiveGroupProperty.set(isArchiveGroupProperty.get());
+        clone.isArchivedGroupProperty.set(isArchivedGroupProperty.get());
         
         // clone childs recursively
         for (TagData child : children) {
@@ -199,16 +199,16 @@ public class TagData {
         return isGroupProperty;
     }
 
-    public Boolean isArchiveGroup() {
-        return isArchiveGroupProperty.get();
+    public Boolean isArchivedGroup() {
+        return isArchivedGroupProperty.get();
     }
     
-    public void setIsArchiveGroup(final boolean group) {
-        isArchiveGroupProperty.set(group);
+    public void setIsArchivedGroup(final boolean group) {
+        isArchivedGroupProperty.set(group);
     }
     
-    public BooleanProperty isArchiveGroupProperty() {
-        return isArchiveGroupProperty;
+    public BooleanProperty isArchivedGroupProperty() {
+        return isArchivedGroupProperty;
     }
 
     public StringProperty iconNameProperty() {

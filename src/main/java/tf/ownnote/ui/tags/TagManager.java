@@ -523,14 +523,14 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         backlinkParent(ROOT_TAG);
 
         ROOT_TAG.setIsGroup(false);
-        ROOT_TAG.setIsArchiveGroup(false);
+        ROOT_TAG.setIsArchivedGroup(false);
         ROOT_TAG.setLevel(0);
         
         // set all reserved names back to their know values
         // who knows what the ugly world out there has done to our little tags...
         for (ReservedTag tag: ReservedTag.values()) {
             tag.getTag().setIsGroup(tag.isGroup());
-            tag.getTag().setIsArchiveGroup(tag.isArchiveGroup());
+            tag.getTag().setIsArchivedGroup(tag.isArchiveGroup());
         }
         
         
@@ -545,7 +545,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             }
             // all tags inherit the archive group status from their parents - except the "Group" and all the other reserved tags...
             if (!ReservedTag.containsName(tag.getName())) {
-                tag.setIsArchiveGroup(parent.isArchiveGroup());
+                tag.setIsArchivedGroup(parent.isArchivedGroup());
             }
             tag.setLevel(level);
             // do the recursion
@@ -863,7 +863,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         
         TagData result;
         
-        if (!tag.isArchiveGroup()) {
+        if (!tag.isArchivedGroup()) {
             // we want to have the same name - but under archive BUT with the same hierarchy
             final String compTagName = ReservedTag.Archive.getTagName() + EXTERNAL_NAME_SEPARATOR + tag.getExternalName();
             result = groupForExternalName(compTagName, false);
@@ -1000,7 +1000,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
 
     protected TagData createTagBelowParent(final String name, final TagData parent) {
         if (parent != null) {
-            return createTagBelowParent(name, parent.isGroup(), parent.isArchiveGroup(), parent);
+            return createTagBelowParent(name, parent.isGroup(), parent.isArchivedGroup(), parent);
         } else {
             // this should only happen for testing edge cases
             return createTagBelowParent(name, false, false, parent);
@@ -1059,6 +1059,14 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
         
         return ReservedTag.Groups.getTag().equals(tag);
+    }
+    
+    public static boolean isArchiveRootTag(final TagData tag) {
+        if (ReservedTag.Archive.getTag() == null) {
+            return false;
+        }
+        
+        return ReservedTag.Archive.getTag().equals(tag);
     }
     
     public static boolean isEditableTag(final TagData tag) {
@@ -1155,9 +1163,9 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         final TagData oldGroup = curNote.getGroup();
 
         // TFE, 20220424: check if this changes the archiving status!
-        if (!oldGroup.isArchiveGroup().equals(movedNote.getGroup().isArchiveGroup())) {
+        if (!oldGroup.isArchivedGroup().equals(movedNote.getGroup().isArchivedGroup())) {
             // TODO: what ever needs to be done here...
-            if (!oldGroup.isArchiveGroup()) {
+            if (!oldGroup.isArchivedGroup()) {
                 
             } else {
                 

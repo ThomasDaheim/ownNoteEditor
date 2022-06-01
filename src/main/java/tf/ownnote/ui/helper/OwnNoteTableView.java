@@ -261,7 +261,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
                 }
             });
             row.itemProperty().addListener((ov, t, t1) -> {
-                if (t1 != null && t1.getGroup().isArchiveGroup()) {
+                if (t1 != null && t1.getGroup().isArchivedGroup()) {
                     archiveNote.setText("Restore Note");
                 } else {
                     archiveNote.setText("Archive Note");

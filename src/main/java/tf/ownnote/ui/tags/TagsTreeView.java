@@ -241,30 +241,34 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
     
     private void newItemConsumer(final TreeItem<TagDataWrapper> newItem) {
         assert myEditor != null;
+        
+        final TagDataWrapper wrapper = newItem.getValue();
+        final TagData tag = wrapper.getTagData();
 
-        newItem.getValue().selectedProperty().addListener((obs, oldValue, newValue) -> {
+        wrapper.selectedProperty().addListener((obs, oldValue, newValue) -> {
             changeAction(newItem, oldValue, newValue);
         });
         
-        newItem.getValue().getTagData().nameProperty().addListener((obs, oldValue, newValue) -> {
+        wrapper.getTagData().nameProperty().addListener((obs, oldValue, newValue) -> {
             refresh();
         });
 
         // refresh on change of linked notes - is part of the group name...
-        newItem.getValue().getTagData().getLinkedNotes().addListener((ListChangeListener.Change<? extends Note> change) -> {
+        wrapper.getTagData().getLinkedNotes().addListener((ListChangeListener.Change<? extends Note> change) -> {
             refresh();
         });
 
-        final TagDataWrapper tag = newItem.getValue();
-        if (tag != null) {
-            if (initialTags.contains(tag.getTagData())) {
-                tag.setSelected(true);
-                selectedItems.add(tag.getTagData());
-            } else {
-                tag.setSelected(false);
-                selectedItems.remove(tag.getTagData());
-            }
+        if (initialTags.contains(tag)) {
+            wrapper.setSelected(true);
+            selectedItems.add(tag);
+        } else {
+            wrapper.setSelected(false);
+            selectedItems.remove(tag);
         }
+        
+        // TFE, 20220601: don't expand tags under archive
+        // TODO: keep track of expand/colapse state per tag and store as metadata
+        newItem.setExpanded(!TagManager.isArchiveRootTag(tag));
     }
     
     private void changeAction(final TreeItem<TagDataWrapper> item, final Boolean oldValue, final Boolean newValue) {
