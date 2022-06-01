@@ -842,12 +842,14 @@ public class OwnNoteHTMLEditor {
     
     public void scrollToCheckBox(final int textPos, final String htmlText, final String taskId) {
         // call tinymce to set the cursor
-        wrapExecuteScript(myWebEngine, "scrollToCheckBox(" + textPos + ", '" + htmlText + "', '" + taskId + "');");
+        // TFE, 20220601: escape check box text for editor - might contain e.g. "'"
+        wrapExecuteScript(myWebEngine, "scrollToCheckBox(" + textPos + ", '" + replaceForEditor(htmlText) + "', '" + taskId + "');");
     }
     
     public void scrollToAndToggleCheckBox(final int textPos, final String htmlText, final String taskId, final boolean newStatus) {
         // call tinymce to change the checkbox
-        wrapExecuteScript(myWebEngine, "scrollToAndToggleCheckBox(" + textPos + ", '" + htmlText + "', '" + taskId + "', " + newStatus + ");");
+        // TFE, 20220601: escape check box text for editor - might contain e.g. "'"
+        wrapExecuteScript(myWebEngine, "scrollToAndToggleCheckBox(" + textPos + ", '" + replaceForEditor(htmlText) + "', '" + taskId + "', " + newStatus + ");");
     }
 
     public String getNoteText() {
