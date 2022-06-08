@@ -35,6 +35,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
+import javafx.collections.SetChangeListener;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
@@ -130,7 +131,7 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
                         // any "normal" tag has been selected - set filter on all its and childrens notes
                         final Set<Note> tagNotes = tag.flattened().map((t) -> {
                             return t.getLinkedNotes();
-                        }).flatMap(List::stream).collect(Collectors.toSet());
+                        }).flatMap(Set::stream).collect(Collectors.toSet());
                         
                         myEditor.setTagFilter(tag);
                     }
@@ -254,7 +255,7 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
         });
 
         // refresh on change of linked notes - is part of the group name...
-        wrapper.getTagData().getLinkedNotes().addListener((ListChangeListener.Change<? extends Note> change) -> {
+        wrapper.getTagData().getLinkedNotes().addListener((SetChangeListener.Change<? extends Note> change) -> {
             refresh();
         });
 

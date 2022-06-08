@@ -219,18 +219,23 @@ public class NoteMetaDataEditor {
     }
     
     public void editNote(final Note note) {
-        if (note == null) {
-            return;
-        }
-        
         if (editorNote != null) {
             // remove listeners from old note
             editorNote.getMetaData().getTags().removeListener(tagListener);
             editorNote.getMetaData().getAttachments().removeListener(attachListener);
         }
-        editorNote = note;
         
         versions.getItems().clear();
+        tagsBox.getChildren().clear();
+        attachments.getMenus().get(0).getItems().setAll(addAttachment);
+
+        // TFE, 20220608: clean up in any case!
+        if (note == null) {
+            return;
+        }
+        
+        editorNote = note;
+
         // set labels & fields with note data
         if (editorNote.getMetaData().getVersions().isEmpty()) {
             editorNote.getMetaData().addVersion(new NoteVersion(System.getProperty("user.name"), LocalDateTime.now()));
@@ -242,7 +247,6 @@ public class NoteMetaDataEditor {
         versions.getItems().setAll(versionList);
         versions.getSelectionModel().selectFirst();
         
-        tagsBox.getChildren().clear();
         for (TagData tag : editorNote.getMetaData().getTags()) {
             addTagLabel(tag);
         }
@@ -250,7 +254,6 @@ public class NoteMetaDataEditor {
         // change listener as well
         editorNote.getMetaData().getTags().addListener(tagListener);
         
-        attachments.getMenus().get(0).getItems().setAll(addAttachment);
         for (String attach : editorNote.getMetaData().getAttachments()) {
             addAttachMenu(attach);
         }

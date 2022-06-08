@@ -41,6 +41,8 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.collections.ObservableSet;
+import javafx.collections.SetChangeListener;
 import javafx.scene.control.Label;
 import org.apache.commons.lang3.RandomStringUtils;
 import tf.ownnote.ui.notes.Note;
@@ -61,7 +63,7 @@ public class TagData {
     private final IntegerProperty levelProperty = new SimpleIntegerProperty(0);
     
     // link to notes with this tag - transient, will be re-created on startup
-    private final ObservableList<Note> linkedNotes = FXCollections.<Note>observableArrayList();
+    private final ObservableSet<Note> linkedNotes = FXCollections.<Note>observableSet();
     
     // we don't do Group as subclass of Tag but as attribute
     private final BooleanProperty isGroupProperty = new SimpleBooleanProperty(false);
@@ -101,19 +103,13 @@ public class TagData {
             }
         });
 
-        linkedNotes.addListener((ListChangeListener.Change<? extends Note> change) -> {
-            while (change.next()) {
-                if (change.wasAdded()) {
-                    for (Note note: change.getAddedSubList()) {
-//                        System.out.println("Setting linked note " + note.getNoteName() + " for tag " + getName() + ", " + this + ", linked notes count " + linkedNotes.size());
-                    }
-                }
+        linkedNotes.addListener((SetChangeListener.Change<? extends Note> change) -> {
+            if (change.wasAdded()) {
+//                        System.out.println("Setting linked note " + change.getElementAdded().getNoteName() + " for tag " + getName() + ", " + this + ", linked notes count " + linkedNotes.size());
+            }
 
-                if (change.wasRemoved()) {
-                    for (Note note: change.getRemoved()) {
-//                        System.out.println("Removing linked note " + note.getNoteName() + " for tag " + getName() + ", " + this + ", linked notes count " + linkedNotes.size());
-                    }
-                }
+            if (change.wasRemoved()) {
+//                        System.out.println("Removing linked note " + change.getElementRemoved().getNoteName() + " for tag " + getName() + ", " + this + ", linked notes count " + linkedNotes.size());
             }
         });
         
@@ -122,7 +118,7 @@ public class TagData {
         // 2) a generic ChangeListener in TagManager for all TagData.nameProperty doesn't give you the tag where the name chane occured
         // ?!?!?!?!?!?!?
         nameProperty.addListener((ov, oldValue, newValue) -> {
-            TagManager.getInstance().handleTagNameChange(this, oldValue, newValue);
+            TagManager.getInstance().processTagNameChange(this, oldValue, newValue);
         });
     }
     
@@ -153,7 +149,8 @@ public class TagData {
         clone.colorNameProperty.set(colorNameProperty.get());
         clone.iconNameProperty.set(iconNameProperty.get());
         // list copied directly
-        clone.linkedNotes.setAll(linkedNotes);
+        clone.linkedNotes.clear();
+        clone.linkedNotes.addAll(linkedNotes);
         // TFE, 20220427: additional attributes? no - all of them are transient anyways - but what the heck...
         clone.parentProperty.set(parentProperty.get());
         clone.isGroupProperty.set(isGroupProperty.get());
@@ -255,8 +252,23 @@ public class TagData {
         levelProperty.set(level);
     }
 
-    public ObservableList<Note> getLinkedNotes() {
+    public ObservableSet<Note> getLinkedNotes() {
         return linkedNotes;
+    }
+    
+    private ObservableSet<Note> getLinkedNotes(final boolean includeHierarchy) {
+        if (!includeHierarchy) {
+            return linkedNotes;
+        } else {
+            final ObservableSet<Note> notes = FXCollections.<Note>observableSet();
+            notes.addAll(linkedNotes);
+            
+            for (TagData child : getChildren()) {
+                notes.addAll(child.getLinkedNotes(includeHierarchy));
+            }
+            
+            return notes;
+        }
     }
 
     public void setLinkedNotes(final Set<Note> notes) {
@@ -269,16 +281,7 @@ public class TagData {
             return 0;
         }
 
-        // TFE, 20220410: tags can have children with notes linked to them...
-        int result = linkedNotes.size();
-        
-        if (includeHierarchy) {
-            for (TagData child : children) {
-                result += child.getLinkesNoteCount(includeHierarchy);
-            }
-        }
-        
-        return result;
+        return getLinkedNotes(includeHierarchy).size();
     }
     
     public ObservableList<TagData> getChildren() {

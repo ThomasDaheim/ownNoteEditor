@@ -243,8 +243,10 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                         }
                     }
                 }
-                // TFE, 20220404: allow hierarchical group tags - now we need to keep track of each tags position in the hierarchy
-                setTagTransientData();
+                if (!tagsLoaded) {
+                    // TFE, 20220404: allow hierarchical group tags - now we need to keep track of each tags position in the hierarchy
+                    setTagTransientData();
+                }
             }
         };
         tagChildrenChangeListeners.add(tagChildrenListener);
@@ -428,7 +430,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             // TFE, 20201220: we had that in for a while
             xstream.omitField(TagData.class, "fixedProperty");
             xstream.omitField(TagData.class, "isGroupProperty");
-            xstream.omitField(TagData.class, "isArchiveGroupProperty");
+            xstream.omitField(TagData.class, "isArchivedGroupProperty");
 
             try (
                 BufferedInputStream stdin = new BufferedInputStream(new FileInputStream(fileName));
@@ -454,13 +456,18 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             final String tagName = reservedTag.getTagName();
             TagData tag = tagForName(tagName, reservedTag.getParent() == null ? null : reservedTag.getParent().getTag(), false);
             if (tag == null) {
+                // TFE, 20220602: Group has no parent reserved tag
+                TagData parent = ROOT_TAG;
+                if (reservedTag.getParent() != null) {
+                    parent = reservedTag.getParent().getTag();
+                }
                 tag = createTagBelowParentAtPosition(
                         tagName, 
                         reservedTag.isGroup(), 
                         reservedTag.isArchiveGroup(), 
                         reservedTag.getPosition(), 
-                        reservedTag.getParent().getTag());
-                reservedTag.getParent().getTag().getChildren().add(tag);
+                        parent);
+                parent.getChildren().add(tag);
                 
                 System.out.println("No tag for reserved name " + tagName + " found. Initializing...");
             }
@@ -598,15 +605,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
     }
     
-    public void handleTagNameChange(final TagData tag, final String oldValue, final String newValue) {
-//        System.out.println("Name of tag " + tag.getId() + " with name " + tag.getName() + " was changed from " + oldValue + " to " + newValue);
-
-        // group name changes are handled elsewhere since they involve a change of the filename
-        if (tag.isGroup()) {
-            return;
-        }
-
-        // save all notes that have this tag attached in the tagslist
+    public void processTagNameChange(final TagData tag, final String oldValue, final String newValue) {
+        // nothing to do here! we already have renameTag!
     }
 
     public void saveTags() {
@@ -657,7 +657,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         xstream.omitField(TagData.class, "linkedNotes");
         xstream.omitField(TagData.class, "parentProperty");
         xstream.omitField(TagData.class, "isGroupProperty");
-        xstream.omitField(TagData.class, "isArchiveGroupProperty");
+        xstream.omitField(TagData.class, "isArchivedGroupProperty");
 
         try (
             BufferedOutputStream stdout = new BufferedOutputStream(new FileOutputStream(fileName));
@@ -930,17 +930,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             }
         }
         
-        final List<Note> notesList = OwnNoteFileManager.getInstance().getNotesList();
-        final List<Note> changedNotes = new ArrayList<>();
-        for (Note note : notesList) {
-            if (note.getMetaData().getTags().contains(tag)) {
-                if (!note.equals(myEditor.getEditedNote())) {
-                    // read note - only if not currently in editor!
-                    OwnNoteFileManager.getInstance().readNote(note, false);
-                }
-                changedNotes.add(note);
-            }
-        }
+        final List<Note> changedNotes = new ArrayList<>(tag.getLinkedNotes());
         
         // now we have loaded all notes, time to rename/remove the tag...
         if (newName == null) {
@@ -964,7 +954,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             } else {
                 // tell the world, the note metadata has changed (implicitly)
                 // so that any interesting party can listen to the change
-                note.getMetaData().setUnsavedChanges(true);
+                note.setUnsavedChanges(true);
             }
         }
         
@@ -989,7 +979,10 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             if (isGroup) {
                 // TFE, 20210307: add it to the list as well - dummy
                 if (position != -1) {
-                    ReservedTag.Groups.getTag().getChildren().add(position, result);
+                    // TFE, 20220602: during bootstrap this might be the "Groups" tag itself!
+                    if (ReservedTag.Groups.getTag() != null) {
+                        ReservedTag.Groups.getTag().getChildren().add(position, result);
+                    }
                 }
                 initGroupTag(result);
             }
