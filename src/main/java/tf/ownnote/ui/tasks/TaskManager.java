@@ -238,8 +238,14 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             // rescan text for tasks and update tasklist accordingly
             final Set<TaskData> newTasks = tasksFromNote(note, newContent);
 //            System.out.println(" newTasks found: " + Instant.now());
+            for (TaskData newTask: new ArrayList<>(newTasks)) {
+                System.out.println("newTask: " + newTask.getId() + ", " + newTask.getEventDescription());
+            }
             final Set<TaskData> oldTasks = tasksForNote(note);
 //            System.out.println(" oldTasks found: " + Instant.now());
+            for (TaskData oldTask: new ArrayList<>(oldTasks)) {
+                System.out.println("oldTask: " + oldTask.getId() + ", " + oldTask.getEventDescription());
+            }
             
             // compare old a new to minimize change impact on observable list
             // 1: same description = only pos & selected might have changed
@@ -253,7 +259,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 // fallback: find by text
                 if (oldnew.isEmpty()) {
                     oldnew = oldTasks.stream().filter((t) -> {
-                        return t.getEventDescription().equals(newTask.getEventDescription());
+                        return t.getEventDescription().get().equals(newTask.getEventDescription().get());
                     }).findFirst();
                 }
                 
