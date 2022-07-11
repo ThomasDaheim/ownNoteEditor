@@ -144,7 +144,7 @@ public class TagTreeCellBase {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
                 final String tagName = sibling + " " + tag.getParent().getChildren().size();
                 tag.getParent().getChildren().add(
-                        TagManager.getInstance().createTagBelowParent(tagName, tag.getParent()));
+                        TagManager.getInstance().createTagWithParent(tagName, tag.getParent()));
             });
 
             // only if allowed
@@ -154,7 +154,7 @@ public class TagTreeCellBase {
             newChildItem.setOnAction((ActionEvent event) -> {
                 // act on tag lists - RecursiveTreeItem will take care of the rest
                 final String tagName = child + " " + tag.getChildren().size();
-                tag.getChildren().add(TagManager.getInstance().createTagBelowParent(tagName, tag));
+                tag.getChildren().add(TagManager.getInstance().createTagWithParent(tagName, tag));
             });
 
             // TFE, 20210317: add now we have an edit dialoge for tags...

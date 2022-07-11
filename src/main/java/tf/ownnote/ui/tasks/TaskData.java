@@ -495,7 +495,7 @@ public class TaskData implements ICommentDataHolder, ITagHolder, ICalendarEvent 
     public void setFromList(ICommentDataInfo name, List<String> values) {
         if (CommentDataInfo.TAGS.equals(name)) {
             if (OwnNoteEditor.AppVersion.V6_1.isHigherAppVersionThan(myNote.getMetaData().getAppVersion())) {
-                setTags(TagManager.getInstance().tagsForNames(new HashSet<>(values), null, true));
+                setTags(TagManager.getInstance().tagsForNames(new HashSet<>(values), null, true, true));
             } else {
                 // new way of doing things with external names
                 setTags(TagManager.getInstance().tagsForExternalNames(new HashSet<>(values), null, true));

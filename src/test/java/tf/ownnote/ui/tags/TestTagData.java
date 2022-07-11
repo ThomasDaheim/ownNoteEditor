@@ -194,10 +194,10 @@ public class TestTagData {
     @Test
     public void testChildListenerManager() {
         TagManager.getInstance().addListChangeListener(tagTestListener);
-        final TagData localRoot = TagManager.getInstance().createTagBelowParent("ROOT", null);
+        final TagData localRoot = TagManager.getInstance().createTagWithParent("ROOT", null);
         
-        final TagData localChild1 = TagManager.getInstance().createTagBelowParent("CHILD_1", localRoot);
-        final TagData localChild2 = TagManager.getInstance().createTagBelowParent("CHILD_2", localRoot);
+        final TagData localChild1 = TagManager.getInstance().createTagWithParent("CHILD_1", localRoot);
+        final TagData localChild2 = TagManager.getInstance().createTagWithParent("CHILD_2", localRoot);
         
         testChangeType.clear();
         System.out.println("testChildListenerManager: addAll of 2 childs to root");

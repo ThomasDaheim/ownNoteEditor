@@ -334,7 +334,7 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
             setVersions(versions);
         } else if (CommentDataInfo.TAGS.equals(name)) {
             if (OwnNoteEditor.AppVersion.V6_1.isHigherAppVersionThan(getAppVersion())) {
-                setTags(TagManager.getInstance().tagsForNames(new HashSet<>(values), null, true));
+                setTags(TagManager.getInstance().tagsForNames(new HashSet<>(values), null, true, true));
             } else {
                 // new way of doing things with external names
                 setTags(TagManager.getInstance().tagsForExternalNames(new HashSet<>(values), null, true));
