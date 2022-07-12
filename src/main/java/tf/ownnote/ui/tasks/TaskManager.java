@@ -120,13 +120,13 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     private void initNoteTasks(final Note note) {
         final String noteContent = OwnNoteFileManager.getInstance().readNote(note, false).getNoteFileContent();
 
-        final Set<TaskData> tasks = tasksFromNote(note, noteContent);
+        final Set<TaskData> tasks = tasksForNoteAndContent(note, noteContent);
         note.getMetaData().setTasks(tasks);
         taskList.addAll(tasks);
     }
     
     // noteContent as separate parm since it could be called from change within the editor before save
-    private Set<TaskData> tasksFromNote(final Note note, final String noteContent) {
+    protected Set<TaskData> tasksForNoteAndContent(final Note note, final String noteContent) {
 //        System.out.println("tasksFromNote started: " + Instant.now());
         final Set<TaskData> result = new HashSet<>();
 
@@ -236,16 +236,16 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         inFileChange = true;
         if (FileContentChangeType.CONTENT_CHANGED.equals(changeType)) {
             // rescan text for tasks and update tasklist accordingly
-            final Set<TaskData> newTasks = tasksFromNote(note, newContent);
+            final Set<TaskData> newTasks = tasksForNoteAndContent(note, newContent);
 //            System.out.println(" newTasks found: " + Instant.now());
-            for (TaskData newTask: new ArrayList<>(newTasks)) {
-                System.out.println("newTask: " + newTask.getId() + ", " + newTask.getEventDescription());
-            }
+//            for (TaskData newTask: new ArrayList<>(newTasks)) {
+//                System.out.println("newTask: " + newTask.getId() + ", " + newTask.getEventDescription());
+//            }
             final Set<TaskData> oldTasks = tasksForNote(note);
 //            System.out.println(" oldTasks found: " + Instant.now());
-            for (TaskData oldTask: new ArrayList<>(oldTasks)) {
-                System.out.println("oldTask: " + oldTask.getId() + ", " + oldTask.getEventDescription());
-            }
+//            for (TaskData oldTask: new ArrayList<>(oldTasks)) {
+//                System.out.println("oldTask: " + oldTask.getId() + ", " + oldTask.getEventDescription());
+//            }
             
             // compare old a new to minimize change impact on observable list
             // 1: same description = only pos & selected might have changed
@@ -259,17 +259,18 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 // fallback: find by text
                 if (oldnew.isEmpty()) {
                     oldnew = oldTasks.stream().filter((t) -> {
-                        return t.getEventDescription().get().equals(newTask.getEventDescription().get());
+                        return t.getDescription().equals(newTask.getDescription());
                     }).findFirst();
                 }
                 
                 if (oldnew.isPresent()) {
-                    oldnew.get().setTextPos(newTask.getTextPos());
-                    oldnew.get().setCompleted(newTask.isCompleted());
+                    final TaskData oldTask = oldnew.get();
+                    oldTask.setTextPos(newTask.getTextPos());
+                    oldTask.setCompleted(newTask.isCompleted());
                     // TFE, 20210119: we also have raw text now as well!
-                    oldnew.get().setRawText(newTask.getRawText());
+                    oldTask.setRawText(newTask.getRawText());
                     // set escapedText and description as well
-                    oldnew.get().setHtmlText(newTask.getHtmlText());
+                    oldTask.setHtmlText(newTask.getHtmlText());
                     
                     // nothing more to be done here
                     newTasks.remove(newTask);
@@ -282,19 +283,21 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             // takes care of all changes inside task
             for (TaskData newTask: new ArrayList<>(newTasks)) {
                 Optional<TaskData> oldnew = oldTasks.stream().filter((t) -> {
-                    return (t.getId().equals(newTask.getId()) || t.getTextPos() == newTask.getTextPos());
+                    // TFE, 20220712: id already checked under #1
+                    return (t.getTextPos() == newTask.getTextPos());
                 }).findFirst();
                 
                 if (oldnew.isPresent()) {
-                    oldnew.get().setCompleted(newTask.isCompleted());
+                    final TaskData oldTask = oldnew.get();
+                    oldTask.setCompleted(newTask.isCompleted());
                     // TFE, 20210119: we also have raw text now as well!
-                    oldnew.get().setRawText(newTask.getRawText());
+                    oldTask.setRawText(newTask.getRawText());
                     // set escapedText and description as well
-                    oldnew.get().setHtmlText(newTask.getHtmlText());
+                    oldTask.setHtmlText(newTask.getHtmlText());
                     
                     // nothing more to be done here
                     newTasks.remove(newTask);
-                    oldTasks.remove(oldnew.get());
+                    oldTasks.remove(oldTask);
                 }
             }
 //            System.out.println(" same position checked: " + Instant.now());
@@ -662,6 +665,33 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         }).collect(Collectors.toCollection(LinkedHashSet::new));
     }
     
+    protected boolean resolveDuplicateTaskIds(final List<TaskData> tasks) {
+        // find the duplicate ids first
+        // https://mkyong.com/java8/java-8-find-duplicate-elements-in-a-stream/
+        final Set<String> taskIDs = new HashSet<>();
+        final Set<String> duplicates = tasks.stream()
+                .filter(n -> !taskIDs.add(n.getId())).map((t) -> {
+                    return t.getId();
+                })
+                .collect(Collectors.toSet());
+        // and now find the tasks for the duplicate ids
+        for (String duplicateId: duplicates) {
+            // find all "other" tasks that have the same id except for the first one
+            final Set<TaskData> duplicateTasks = tasks.stream().filter((t) -> {
+                return t.getId().equals(duplicateId);
+            }).skip(1).collect(Collectors.toSet());
+
+            // we should have at least one match
+            assert !duplicateTasks.isEmpty();
+            for (TaskData duplicateTask: new ArrayList<>(duplicateTasks)) {
+                // update task id
+                duplicateTask.randomId();
+            }
+        }
+        
+        return true;
+    }
+    
     public void replaceTaskDataInNote(final Note note, final boolean suppressMessages) {
 //        System.out.println("replaceTaskDataInNote: " + note.getNoteName());
 
@@ -672,10 +702,13 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         }
 
         // need to go through tasks from end to start of note - otherwise textpos gets messed up...
-        final List<TaskData> tasks = tasksForNote(note).stream().sorted((o1, o2) -> {
+        final List<TaskData> tasks = tasksForNoteAndContent(note, content).stream().sorted((o1, o2) -> {
             return Integer.compare(o1.getTextPos(), o2.getTextPos());
         }).collect(Collectors.toList());
         Collections.reverse(tasks);
+        
+        // TFE, 20220712: make sure we have unique task ids
+        resolveDuplicateTaskIds(tasks);
         
         for (TaskData task : tasks) {
             // replace text after checkbox and insert/replace taskid

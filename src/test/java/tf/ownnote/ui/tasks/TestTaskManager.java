@@ -208,4 +208,38 @@ public class TestTaskManager {
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, newContent, content);
         Assert.assertFalse(firstTask.isCompleted());
     }
+    
+    @Test
+    public void testChangeContent3() {
+        // add checkbox id twice to make sure second gets a new value
+        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
+        
+        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
+        // need to sort task list since other tests might have screwed with the order
+        final List<TaskData> taskList = TaskManager.getInstance().tasksForNote(note).stream().sorted((o1, o2) -> {
+            return Integer.compare(o1.getTextPos(), o2.getTextPos());
+        }).collect(Collectors.toList());
+        Assert.assertEquals(5, taskList.size());
+        
+        // change an existing checkbox to see if updated works
+        final TaskData firstTask = taskList.get(0);
+        final String firstRawText = firstTask.getRawText();
+
+        // add checkbox twice at the end
+        String newContent = content + " /// " + firstRawText + " /// " + firstRawText;
+        TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, content, newContent);
+
+        // get new task list
+        final List<TaskData> newTaskList = TaskManager.getInstance().tasksForNoteAndContent(note, newContent).stream().sorted((o1, o2) -> {
+            return Integer.compare(o1.getTextPos(), o2.getTextPos());
+        }).collect(Collectors.toList());
+        // should be 2 tasks longer
+        Assert.assertEquals(7, newTaskList.size());
+        
+        // new tasks should have different id than first one
+        Assert.assertFalse(firstTask.getId().equals(newTaskList.get(5).getId()));
+        Assert.assertFalse(firstTask.getId().equals(newTaskList.get(6).getId()));
+        // and different from each other
+        Assert.assertFalse(newTaskList.get(5).getId().equals(newTaskList.get(6).getId()));
+    }
 }

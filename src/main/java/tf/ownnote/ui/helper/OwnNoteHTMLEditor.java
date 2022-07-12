@@ -139,7 +139,7 @@ public class OwnNoteHTMLEditor {
     private boolean setContentDone = false;
     
     // callback to OwnNoteEditor required for e.g. delete & rename
-    private OwnNoteEditor myEditor= null;
+    private OwnNoteEditor myEditor = null;
     
     private Note editedNote;
     

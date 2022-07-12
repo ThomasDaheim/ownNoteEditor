@@ -12,6 +12,9 @@ Note on Java 11: After various tweaks to build.gradle this now also runs under J
 V 6.1
 
 * Upgraded tinymce to 5.10.1
+* "Archiving" of notes: moving to the same group name but under new special group "Archive"
+* Various updates and fixes to deal with hierarchical group names (as required for Archiving)
+* Various bugfixes
 
 V 6.0: Getting rid of old stuff
 

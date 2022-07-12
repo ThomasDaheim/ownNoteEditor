@@ -165,8 +165,7 @@ public class TaskData implements ICommentDataHolder, ITagHolder, ICalendarEvent 
     private final ObjectProperty<TaskStatus> myStatus = new SimpleObjectProperty<>(TaskStatus.OPEN);
     private final ObjectProperty<TaskPriority> myPriority = new SimpleObjectProperty<>(TaskPriority.LOW);
     
-    // TFE, 20201230: initialized here to always have a value but can be overwritten from parsed noteContent
-    private String myId = RandomStringUtils.random(12, "0123456789abcdef"); 
+    private String myId; 
 
     // TFE, 20210308: tasks can have their own tags!
     private final ObservableSet<TagData> myTags = FXCollections.<TagData>observableSet();
@@ -182,6 +181,9 @@ public class TaskData implements ICommentDataHolder, ITagHolder, ICalendarEvent 
         if (note == null) {
             throw new IllegalArgumentException("Note is null");
         }
+        
+        // TFE, 20201230: initialized here to always have a value but can be overwritten from parsed noteContent
+        randomId();
 
         myNote = note;
         myTextPos = textPos;
@@ -404,6 +406,10 @@ public class TaskData implements ICommentDataHolder, ITagHolder, ICalendarEvent 
     
     public String getId() {
         return myId;
+    }
+    
+    protected void randomId() {
+        myId = RandomStringUtils.random(12, "0123456789abcdef");
     }
 
     public ObjectProperty<LocalDateTime> dueDateProperty() {
