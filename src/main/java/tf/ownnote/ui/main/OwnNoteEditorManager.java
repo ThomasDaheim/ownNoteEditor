@@ -202,21 +202,38 @@ public class OwnNoteEditorManager extends Application {
         // in this case the stage is resized to zero width & height...
         Screen.getScreens().addListener((Change<? extends Screen> change) -> {
             // check if stage can still be shown on screens
-            if (Screen.getScreensForRectangle(myStage.getX(), myStage.getY(), myStage.getWidth(), myStage.getHeight()).isEmpty()) {
-                System.out.println("Can't find a screen for me anymore... Going back to first screen!");
-                // find a new place...
-                final Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
+            // TFE, 20220715: only due something if not anyways on primary screen
+            if (!isOnPrimaryScreen() && 
+                    Screen.getScreensForRectangle(myStage.getX(), myStage.getY(), myStage.getWidth(), myStage.getHeight()).isEmpty()) {
+                Platform.runLater(() -> {
+                    System.out.println("Can't find a screen for me anymore... Going back to first screen!");
+                    // find a new place...
+                    final Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
 
-                myStage.setX((primScreenBounds.getWidth() - 1200.0) / 2.0);
-                myStage.setY((primScreenBounds.getHeight() - 600.0) / 2.0);
-                myStage.setWidth(1200.0);
-                myStage.setHeight(600.0);
+                    myStage.setX((primScreenBounds.getWidth() - 1200.0) / 2.0);
+                    myStage.setY((primScreenBounds.getHeight() - 600.0) / 2.0);
+                    myStage.setWidth(1200.0);
+                    myStage.setHeight(600.0);
+                });
             }
         });
     }
 
     public OwnNoteEditor getController() {
         return controller;
+    }
+    
+    public boolean isOnPrimaryScreen() {
+        boolean result = true;
+        
+        final Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
+        
+        // upper left corner on primary?
+        result = primScreenBounds.contains(myStage.getX(), myStage.getY());
+        // lower right corner on primary?
+        result &= primScreenBounds.contains(myStage.getX()+myStage.getWidth(), myStage.getY()+myStage.getHeight());
+        
+        return result;
     }
     
     /**
