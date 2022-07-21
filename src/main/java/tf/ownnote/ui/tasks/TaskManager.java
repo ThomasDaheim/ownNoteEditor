@@ -701,8 +701,10 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             content = note.getNoteFileContent();
         }
 
+        // TFE: we should use the list of tasks already attached to the note! Otherwise, e.g. changes to the due date in the task editor get lost...
         // need to go through tasks from end to start of note - otherwise textpos gets messed up...
-        final List<TaskData> tasks = tasksForNoteAndContent(note, content).stream().sorted((o1, o2) -> {
+//        final List<TaskData> tasks = tasksForNoteAndContent(note, content).stream().sorted((o1, o2) -> {
+        final List<TaskData> tasks = note.getMetaData().getTasks().stream().sorted((o1, o2) -> {
             return Integer.compare(o1.getTextPos(), o2.getTextPos());
         }).collect(Collectors.toList());
         Collections.reverse(tasks);

@@ -363,7 +363,7 @@ public class TaskData implements ICommentDataHolder, ITagHolder, ICalendarEvent 
         return myRawText;
     }
     
-    public void setRawText(final String text) {
+    protected void setRawText(final String text) {
         // TODO: should somehow also set html text...
         myRawText = text;
     }
@@ -376,7 +376,7 @@ public class TaskData implements ICommentDataHolder, ITagHolder, ICalendarEvent 
         return isCompleted() ? CHECKED_BOXES_2 + myHtmlText : UNCHECKED_BOXES_2 + myHtmlText;
     }
     
-    public void setHtmlText(final String text) {
+    protected void setHtmlText(final String text) {
         myHtmlText = text;
         
         setEscapedText(OwnNoteHTMLEditor.stripHtmlTags(myHtmlText));
@@ -421,6 +421,7 @@ public class TaskData implements ICommentDataHolder, ITagHolder, ICalendarEvent 
     }
 
     public void setDueDate(final LocalDateTime dueDate) {
+        // TODO: should somehow also set html text...
         myDueDate.set(dueDate);
     }
 
