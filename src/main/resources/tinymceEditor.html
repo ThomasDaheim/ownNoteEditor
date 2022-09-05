@@ -330,7 +330,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             }
 
             function insertText(content) {
-                console.log('insertText ' + content);
+                //console.log('insertText ' + content);
                 tinymce.activeEditor.execCommand("mceInsertContent", false, content);
                 contentChanged = true;
             }
@@ -533,11 +533,11 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 // go from back to front through the file - since we want to have the very last instance of endsWith(htmlText)
                 // https://stackoverflow.com/a/7843947
                 $($(tinymce.activeEditor.getBody()).find(':checkbox').get().reverse()).each(function() {
-                    console.log('  findCheckBox, checking checkbox: ' + this.outerHTML);
+                    //console.log('  findCheckBox, checking checkbox: ' + this.outerHTML);
                     checkbox = this;
                     // since we need to check the text of the checkbox we need to iterate the parents content
                     $($(this).parent().contents().get().reverse()).each(function() {
-                        console.log('    findCheckBox, checking content: ' + $(this).attr('type') + ', ' + + this.innerHTML + ', ' + this.nodeType + ', ' + this.nodeValue);
+                        //console.log('    findCheckBox, checking content: ' + $(this).attr('type') + ', ' + + this.innerHTML + ', ' + this.nodeType + ', ' + this.nodeValue);
                         // we could have more than one checkbox in the parents content... 
                         if ("checkbox" === $(this).attr('type')) {
                             checkbox = this;
@@ -545,10 +545,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
                         // check text nodes - if text has been set
                         if (this.nodeType === 3) {
-                            console.log('    CONTENTS.nodeValue: "' + this.nodeValue + '"');
-                            console.log('    PARENT.textContent: "' + this.parentNode.textContent + '"');
+                            //console.log('    CONTENTS.nodeValue: "' + this.nodeValue + '"');
+                            //console.log('    PARENT.textContent: "' + this.parentNode.textContent + '"');
                             if (this.nodeValue === htmlText || this.parentNode.textContent.endsWith(htmlText)) {
-                                console.log('    findCheckBox, found text!');
+                                //console.log('    findCheckBox, found text!');
                                 checkboxFound = true;
                                 
                                 // make sure we highlight the correct thing...
