@@ -30,6 +30,7 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -75,6 +76,9 @@ import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
 import javax.imageio.ImageIO;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Document;
+import javax.swing.text.rtf.RTFEditorKit;
 import netscape.javascript.JSObject;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
@@ -110,6 +114,8 @@ public class OwnNoteHTMLEditor {
     
     private static final List<String> COPY_SELECTION = List.of("Copy", "Kopieren");
     private static final List<String> COPY_TEXT_SELECTION = List.of("Copy as text", "Kopieren als Text");
+    private static final List<String> PASTE = List.of("Paste", "Einf\u00fcgen");
+    private static final List<String> PASTE_TEXT = List.of("Paste as text", "Einf\u00fcgen als Text");
     private static final List<String> SAVE_NOTE = List.of("Save", "Speichern");
     // TFE, 20210304: add context menu to insert attachment link into note
     private static final List<String> ATTACHMENT_LINK = List.of("Insert attachment link", "Anhang-Link einf\u00fcgen");
@@ -303,7 +309,7 @@ public class OwnNoteHTMLEditor {
         });
         myWebEngine.setUserStyleSheetLocation(OwnNoteHTMLEditor.class.getResource("/editor.min.css").toString());
 
-        final String editor_script = OwnNoteHTMLEditor.class.getResource("/tinymceEditor.min.html").toExternalForm();
+        final String editor_script = OwnNoteHTMLEditor.class.getResource("/tinymceEditor.html").toExternalForm();
         myWebView.getEngine().load(editor_script);
     }
     
@@ -607,6 +613,8 @@ public class OwnNoteHTMLEditor {
                             // check for "Reload page", ... entry and remove it...
                             int index = 0;
                             int copyIndex = -1;
+                            // TFE, 20221106: paste as text as well, please
+                            int pasteIndex = -1;
                             List<Node> deleteMenuItems = new ArrayList<>();
                             for (Node n: itemsContainer.getChildren()) {
                                 assert n instanceof ContextMenuContent.MenuItemContainer;
@@ -623,8 +631,20 @@ public class OwnNoteHTMLEditor {
                                     });
                                     
                                     copyIndex = index;
+                                    
+                                    if (pasteIndex != -1) {
+                                        copyIndex++;
+                                    }
                                 }
                                 
+                                if (PASTE.contains(item.getItem().getText())) {
+                                    pasteIndex = index;
+                                    
+                                    if (copyIndex != -1) {
+                                        pasteIndex++;
+                                    }
+                                }
+
                                 index++;
                             }
                             
@@ -637,6 +657,16 @@ public class OwnNoteHTMLEditor {
 
                                 // add new item
                                 itemsContainer.getChildren().add(copyIndex+1, cmc.new MenuItemContainer(copyPlain));
+                            }
+
+                            if (pasteIndex != -1) {
+                                final MenuItem pastePlain = new MenuItem(PASTE_TEXT.get(getLanguage()));
+                                pastePlain.setOnAction((ActionEvent event) -> {
+                                    pasteFromClipboard(true, false);
+                                });
+
+                                // add new item
+                                itemsContainer.getChildren().add(pasteIndex+1, cmc.new MenuItemContainer(pastePlain));
                             }
 
                             if (!deleteMenuItems.isEmpty()) {
@@ -764,9 +794,35 @@ public class OwnNoteHTMLEditor {
         }
     }
     
-    
     private void doPasteFromClipboard(final boolean pasteFullHTML) {
-        System.out.println("doPasteFromClipboard reached");
+        String selection = "";
+        if (myClipboardFx.hasHtml()) {
+            // remove all html tags
+            selection = myClipboardFx.getHtml().replaceAll("\\<.*?>","");
+        } else if (myClipboardFx.hasUrl()) {
+            System.out.println(myClipboardFx.getUrl());
+        } else if (myClipboardFx.hasRtf()) {
+            try {
+                final RTFEditorKit rtfParser = new RTFEditorKit();
+                final Document document = rtfParser.createDefaultDocument();
+                rtfParser.read(new ByteArrayInputStream(myClipboardFx.getRtf().getBytes()), document, 0);
+                selection = document.getText(0, document.getLength());
+            } catch (IOException | BadLocationException ex) {
+                Logger.getLogger(OwnNoteHTMLEditor.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
+            try {
+                selection = (String) myClipboardAwt.getData(DataFlavor.stringFlavor);
+            } catch (UnsupportedFlavorException | IOException ex) {
+                Logger.getLogger(OwnNoteHTMLEditor.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+
+        // anything left to insert?
+        if (!selection.isEmpty()) {
+            selection = selection.replaceAll("(\n\r|\r\n|\n|\r)", "<br />");
+            wrapExecuteScript(myWebEngine, "insertText('" + replaceForEditor(selection) + "');");
+        }
     }
 
     //
@@ -1036,7 +1092,7 @@ public class OwnNoteHTMLEditor {
             } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
                 result = (String) myClipboardAwt.getData(DataFlavor.stringFlavor);
                 if (!isHtml(result)) {
-                    result = result.replaceAll("(\n|\r|\n\r|\r\n)", "<br />");
+                    result = result.replaceAll("(\n\r|\r\n|\n|\r)", "<br />");
                 }
             } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.imageFlavor)) {
                 // TFE, 20201012: allow pasting of images
