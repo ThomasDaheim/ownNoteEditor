@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2014 Thomas Feuster
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+3. The name of the author may not be used to endorse or promote products
+   derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+<html>
+    <head>
+        <script>
+            // https://stackoverflow.com/a/10556743
+            window.onerror = function(msg, url, line, col, error) {
+               // Note that col & error are new to the HTML 5 spec and may not be 
+               // supported in every browser.  It worked for me in Chrome.
+               var extra = !col ? '' : '\ncolumn: ' + col;
+               extra += !error ? '' : '\nerror: ' + error;
+
+               // You can view the information in an alert to see things working like this:
+               alert("Error: " + msg + "\nurl: " + url + "\nline: " + line + extra);
+               console.log("Error: " + msg + "\nurl: " + url + "\nline: " + line + extra);
+
+               var suppressErrorAlert = true;
+               // If you return true, then error alerts (like in older versions of 
+               // Internet Explorer) will be suppressed.
+               return suppressErrorAlert;
+            };
+        </script>
+
+        <link rel="stylesheet" type="text/css" href="./editor.min.css">
+        <script src='./tinymce/jquery-3.6.0.slim.min.js'></script>
+        <script src='./tinymce/tinymce.min.js'></script>
+        <script>
+            var insertImageButton;
+            var insertCheckBoxButton;
+            var printNoteButton;
+            var saveNoteButton;
+            var emptyRegExp = new RegExp('<p>&nbsp;</p>', 'g');
+            var ANY_BOXES = '<input type=\"checkbox\"';
+            var UNCHECKED_BOXES_1 = '<input type=\"checkbox\" />';
+            var CHECKED_BOXES_1 = '<input type=\"checkbox\" checked=\"checked\" />';
+            var UNCHECKED_BOXES_2 = '<input type=\"checkbox\">';
+            var CHECKED_BOXES_2 = '<input type=\"checkbox\" checked=\"checked\">';
+            
+            // TFE, 20200711: tinyMCE manages an own clipboard. Once something has been copied in tinyMCE the system clipboard is ignored during paste...
+            // https://stackoverrun.com/de/q/9359780#39265109
+            var regularPaste = false;
+            
+            // TFE, 20201219: don't send a contentChanged on every change - performance nightmare for long notes
+            // better: mark that a change has occured and check every 10secs...
+            var contentChanged = false;
+            
+            function initEditor() {
+                tinymce.init({
+                    selector: '#mytextarea',
+                    toolbar_sticky   : true,
+                    width  : '100%',  // Note value is set as "string".
+                    height : '100%',  // Note value is set as "string".
+                    resize : false,
+                    readonly: false,
+                    forced_root_blocks : false,
+                    // solution to the issue that the image added is always stored as 
+                    // <img src="blob:jar:///ef5feeab-a950-4630-b11e-6e1fa903c3ef">
+                    relative_urls: false,
+                    remove_script_host: false,
+                    plugins: [
+                            // TFE, 20210511: add image & image tools plugins
+                            "codesample wordcount visualchars textcolor advlist autolink lists link charmap anchor image imagetools",
+                            "searchreplace visualblocks code insertdatetime media table contextmenu emoticons help toc hr paste"
+                    ],
+                    codesample_languages: [
+                        {text: 'HTML/XML', value: 'markup'},
+                        {text: 'JavaScript', value: 'javascript'},
+                        {text: 'CSS', value: 'css'},
+                        {text: 'PHP', value: 'php'},
+                        {text: 'Java', value: 'java'},
+                        {text: 'C', value: 'c'},
+                        {text: 'C#', value: 'csharp'},
+                        {text: 'C++', value: 'cpp'}
+                    ],
+                    extended_valid_elements: "form[name|id|action|method|enctype|accept-charset|onsubmit|onreset|target],input[id|name|type|value|size|maxlength|checked|accept|src|width|height|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|onkeyup|onkeydown|required|style],textarea[id|name|rows|cols|maxlength|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|onkeyup|onkeydown|required|style],option[name|id|value|selected|style],select[id|name|type|value|size|maxlength|checked|width|height|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|multiple|style]",
+                    toolbar1: "saveNote printNote searchreplace | undo redo | styleselect fontselect fontsizeselect | bold italic underline strikethrough subscript superscript | charmap emoticons",
+                    toolbar2: "forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | table insertCheckBox | link insertImage insertdatetime hr toc | codesample | visualchars visualblocks code | help",
+                    menubar: false,
+                    branding: false,
+                    statusbar: true,
+                    allow_html_data_urls: true,
+                    allow_script_urls: true,
+                    paste_data_images: true,
+                    // TFE, 20181203: we only want to have the content...
+                    paste_as_text: true,
+                    content_style: "body {padding: 0px; margin: 0px;} .mce-content-body {font-size: 10pt;}",
+                    // https://github.com/angular-ui/ui-tinymce/issues/260
+                    save_enablewhendirty: false,
+                    media_live_embeds: true,
+                    media_alt_source: false,
+                    media_poster: false,
+                    // TFE, 20210613: target of links is always default browser of system
+                    // https://andy-carter.com/blog/how-to-remove-the-link-target-options-from-tinymce
+                    target_list: false,
+                    default_link_target: 'dummy',
+                    paste_preprocess : function(plugin, args) {
+                        if(!regularPaste) {
+                            args.content = ""; // Ignore what TinyMCE think it should insert
+
+                            regularPaste = true;
+
+                            var clipboardData = editorCallback.getClipboardContent();
+
+                            tinymce.activeEditor.execCommand('mceInsertClipboardContent', false, {
+                                content: clipboardData
+                            }); // This will call paste_preprocess again
+                        }
+
+                        regularPaste = false;
+                    },
+                    save_onsavecallback: function () { 
+                        //console.log('Save was pressed.');
+                        editorCallback.saveNote();
+                    },
+                    setup: function (editor) {
+                        //http://archive.tinymce.com/wiki.php/api4:class.tinymce.ContentEvent
+                        editor.on('init', function (ed) { 
+                            // support for check boxes and such...
+                            // https://stackoverflow.com/a/38653970
+                            $(editor.getBody()).on("change", "[type=checkbox]", function(el){
+                                // TFE, 20210122: use the content change way to send this back
+                                // two complex logic implementations are too much to control & test
+
+                                // see https://stackoverflow.com/questions/6003819/what-is-the-difference-between-properties-and-attributes-in-html
+                                // for the difference between HTML properties and DOM attributes
+                                if(el.target.checked){
+                                    $(el.target).attr('checked', 'checked');
+                                }else{
+                                    $(el.target).removeAttr('checked');
+                                }
+                                // don't wait for timer in this case to speed up syncing of task list
+                                contentChanged = true;
+                                checkContentChanged();
+                            });
+                            // Radiobuttons
+                            $(editor.getBody()).on("change", "[type=radio]", function(el){
+                                var name =  'input:radio[name="'+el.target.name+'"]';
+                                $(editor.getBody()).find(name).removeAttr('checked');
+                                $(el.target).attr('checked', 'checked');
+                                $(el.target).prop('checked',true);
+                            });
+                            // Selects
+                            $(editor.getBody()).on("change", "select", function(el){
+                                $(el.target).children('option').each(function(index) {
+                                    if(this.selected){
+                                        $(this).attr('selected', 'selected');
+                                    }else{
+                                        $(this).removeAttr('selected');
+                                    }
+                                });
+                            });
+                            
+                            // links
+                            $(editor.getBody()).on("click", "a", function(el) {
+                                // TFE, 20210613: https://stackoverflow.com/a/26396587
+                                el.preventDefault();
+                                el.stopPropagation();
+
+                                // callback to java to open in standard browser
+                                editorCallback.openLinkInDefaultBrowser($(el.target).attr('href'), $(el.target).attr('data-note-attachment'));
+                            });
+
+                            editor.on('OpenWindow', function (win) { 
+                                //console.log('OpenWindow was called.');
+
+                                $(document.getElementsByClassName("tox tox-silver-sink tox-tinymce-aux")).on("click", "a", function(el) {
+                                    el.preventDefault();
+
+                                    // callback to java to open in standard browser
+                                    // TFE, 20220107: bugfix: we now have 2 parameters here...
+                                    editorCallback.openLinkInDefaultBrowser($(el.target).attr('href'), "no");
+                                });
+
+                                $(document.getElementsByClassName("tox tox-silver-sink tox-tinymce-aux")).on("copy", function(el) {
+                                });
+                                $(document.getElementsByClassName("tox tox-silver-sink tox-tinymce-aux")).on("paste", function(el) {
+                                });
+                                
+                                
+                                // iterate dialog data...
+                                // for (const [key1, value1] of Object.entries(win)) {
+                                //     console.log(`Level #1 - ${key1}: ${value1}`);
+                                    
+                                //     if (value1 instanceof Object) {
+                                //         for (const [key2, value2] of Object.entries(value1)) {
+                                //             console.log(`  Level #2 - ${key2}: ${value2}`);
+
+                                //             if (value2 instanceof Object) {
+                                //                 for (const [key3, value3] of Object.entries(value2)) {
+                                //                     console.log(`    Level #3 - ${key3}: ${value3}`);
+
+                                //                     if (value3 instanceof Object) {
+
+                                //                     }
+                                //                 }                                
+                                //             }
+                                //         }                                
+                                //     }
+                                // }                                
+                                
+                                editorCallback.toggleDialog(true)
+                            });
+                            editor.on('CloseWindow', function (win) { 
+                                editorCallback.toggleDialog(false)
+                            });
+                            
+                            //console.log('Editor was initialized.');
+                            editorCallback.initEditorDone();
+                        });
+
+                        editor.on('Paste Change input Undo Redo', function (ed) {
+                            // this is want needs to be done if you want to track all changes
+                            // https://stackoverflow.com/a/49530340
+                            contentChanged = true;
+                        });
+                        
+                        editor.on('GetContent', function (ed) { 
+                            //console.log('GetContent done.');
+                        });
+                        
+                        editor.on('SetContent', function (ed) { 
+                            // don't return ed.content - it differs from editor.getContent()!
+                            // TF, 20170415: editor.getContent() fails for images!
+                            editorCallback.setContentDone(); 
+                            //console.log('JavaScript: SetContent done.');
+                            contentChanged = false;
+                        });
+                        
+                        editor.ui.registry.addButton('insertImage', {
+                            icon: 'image',
+                            tooltip: 'Upload image',
+                            onSetup: function() { insertImageButton = this; },
+                            onAction: function () {
+                                //console.log('JavaScript: insertImage was clicked.');
+                                editorCallback.insertImage();
+                                //console.log('JavaScript: insertImage done.');
+                            }
+                        });
+                        
+                        editor.ui.registry.addButton('insertCheckBox', {
+                            icon: 'selected',
+                            tooltip: "Insert CheckBox",
+                            onSetup: function() { insertCheckBoxButton = this; },
+                            onAction: function () {
+                                //console.log('JavaScript: insertCheckBox was clicked.');
+                                tinymce.activeEditor.execCommand("mceInsertContent", false, "<input type='checkbox'>");
+                                // go, tell it to the mountains... above doesn't trigger change, ...
+                                contentChanged = true;
+                                checkContentChanged()
+                                //console.log('JavaScript: insertCheckBox done.');
+                            }
+                        });
+                        
+                        editor.ui.registry.addButton('printNote', {
+                            icon: 'print',
+                            tooltip: "Print note",
+                            onSetup: function() { printNoteButton = this; },
+                            onAction: function () {
+                                //console.log('JavaScript: printNote was clicked.');
+                                editorCallback.printNote();
+                                //console.log('JavaScript: printNote done.');
+                            }
+                        });
+                        
+                        editor.ui.registry.addButton('saveNote', {
+                            icon: 'save',
+                            tooltip: "Save note",
+                            onSetup: function() { saveNoteButton = this; },
+                            onAction: function () {
+                                //console.log('JavaScript: saveNote was clicked.');
+                                editorCallback.saveNote();
+                                //console.log('JavaScript: saveNote done.');
+                            }
+                        });
+                    }
+                });
+            }
+            
+            // Helper: find all locations of toSearch in str and return as array
+            // indexof: http://stackoverflow.com/questions/3365902/search-for-all-instances-of-a-string-inside-a-string/20968478#20968478
+            //function allIndicesOf(str, toSearch) {
+            //    var indices = [];
+            //    for(var pos = str.indexOf(toSearch); pos !== -1; pos = str.indexOf(toSearch, pos + 1)) {
+            //        indices.push(pos);
+            //    }
+            //    return indices;
+            //}
+            // regexp: https://translate.googleusercontent.com/translate_c?depth=1&hl=de&prev=search&rurl=translate.google.de&sl=en&sp=nmt4&u=https://jsperf.com/javascript-find-all&usg=ALkJrhibd28b-l4QHJgA0etgl5aMEj68yw
+            function allIndicesOf(str, toSearch)  {
+                var regex = new RegExp (toSearch, "g" );
+                var result;
+                var indices = [];
+                while ((result = regex.exec(str))) {
+                    indices.push(result.index);
+                }
+
+                return indices;
+            } 
+    
+            function insertMedia(mediaType, mediaData) {
+                //console.log('insertImage ' + imgData);
+                var mediaString = "<img src='data:" + mediaType + ";base64," + mediaData + "' >";
+
+                tinymce.activeEditor.execCommand("mceInsertContent", false, mediaString);
+                contentChanged = true;
+            }
+
+            function insertText(content) {
+                //console.log('insertText ' + content);
+                tinymce.activeEditor.execCommand("mceInsertContent", false, content);
+                contentChanged = true;
+            }
+            
+            function insertLinkToNoteAttachment(link, linktext) {
+                var hyperLink = "<a href='" + link + "' data-note-attachment='yes' target='dummy'>" + linktext + "</a>";
+
+                tinymce.activeEditor.execCommand("mceInsertContent", false, hyperLink);
+                contentChanged = true;
+            }
+
+            function unwrapCheckboxes(content) {
+                // TFE, 20201102: remove all text decorations from checkboxs, otherwise checkChanged won't find any tasks
+                // since decorations can come in any combination, we need to repeat N unwraps N times to make sure to get them all...
+                // https://stackoverflow.com/questions/20132174/reverse-of-jquery-parsehtml
+                return $('<div />').append(
+                        $(content).find("[type=checkbox]")
+                        .unwrap("strong").unwrap("span").unwrap("em").unwrap("sub").unwrap("sup")
+                        .unwrap("strong").unwrap("span").unwrap("em").unwrap("sub").unwrap("sup")
+                        .unwrap("strong").unwrap("span").unwrap("em").unwrap("sub").unwrap("sup")
+                        .unwrap("strong").unwrap("span").unwrap("em").unwrap("sub").unwrap("sup")
+                        .unwrap("strong").unwrap("span").unwrap("em").unwrap("sub").unwrap("sup")
+                        .end()).html();
+            }
+
+            function saveSetContent(content, keepCursorPos) {
+                //console.log('JavaScript: saveSetContent was called.');
+                
+                // TFE, 20220108: get current cursor position for later restore
+                // https://jsfiddle.net/gfullam/pv35n988/
+                var lastSelection = tinymce.activeEditor.selection.getBookmark(2, true);
+
+                tinymce.activeEditor.setContent(unwrapCheckboxes(content));
+                
+                // https://www.tinymce.com/docs/advanced/events/#dirty
+                tinymce.activeEditor.setDirty(false);
+
+                // TFE, 20181203: reset undo history since it would re-create previous note text...
+                // https://community.tiny.cloud/communityQuestion?id=9066100000097T2AAI
+                tinymce.activeEditor.undoManager.clear();
+                
+                if (keepCursorPos) {
+                    tinymce.activeEditor.selection.moveToBookmark(lastSelection);
+                }
+                
+                contentChanged = false;
+                //console.log('JavaScript: saveSetContent done.');
+            }
+
+            // try getContent() and if fails use tinymce.activeEditor.getBody().innerHTML AND replace img blobs by real base64 data
+            function saveGetContent(unwrap, checkChanged) {
+                //console.log('JavaScript: saveGetContent was called: ' + unwrap + ', ' + checkChanged);
+                // TFE, 20210114: make sure we have done all callbacks before...
+                if (checkChanged) {
+                    checkContentChanged();
+                }
+                
+                var content = "";
+                content = tinymce.activeEditor.getContent();
+
+                // and now check for any remaining tinymce tags and get rid of them...
+
+                // <p>&nbsp;</p> => <p></p>
+                //console.log('content: ' + content);
+                content = content.replace(emptyRegExp, '<p></p>');
+                //console.log('content: ' + content);
+                        
+                //console.log('JavaScript: saveGetContent done.');
+                // TFE, 20201218: unwrap is a slow function - can't be done for every change callback but only in the end (its also done during saveSetContent()...)
+                if (unwrap) {
+                    // console.log('JavaScript: unwrapCheckboxes');
+                    content = unwrapCheckboxes(content);
+                }
+                
+                contentChanged = false;
+                return content;
+            }
+            
+            // similar to saveGetContent() - only for current selection
+            function saveGetSelection() {
+                //console.log('JavaScript: saveGetSelection was called. ');
+                // TFE, 20210114: make sure we have done all callbacks before...
+                checkContentChanged();
+
+                var content = "";
+                
+                // TODO: check, if code window is shown
+                // if yes, get selection from there
+                // https://github.com/tinymce/tinymce-dist/blob/master/tinymce.js
+                // https://github.com/tinymce/tinymce-dist/blob/master/plugins/code/plugin.js
+                // NOT WORKING: tinymce.activeEditor.windowManager.getTopDialog().selection.getContent(); THERE IS NO getTopDialog()
+                
+                content = tinymce.activeEditor.selection.getContent();
+
+                // and now check for any remaining tinymce tags and get rid of them...
+
+                // <p>&nbsp;</p> => <p></p>
+                //console.log('content: ' + content);
+                content = content.replace(emptyRegExp, '<p></p>');
+                //console.log('content: ' + content);
+                        
+                //console.log('JavaScript: saveGetSelection done.');
+                return content;
+            }
+            
+            function scrollToCheckBox(textPos, htmlText, taskId) {
+                //console.log('JavaScript: scrollToCheckBox start. ' + textPos + ', ' + htmlText + ', ' + taskId);
+                var element = findCheckBox(textPos, htmlText, taskId);
+                
+                if (element && element.checkbox) {
+                    //console.log('checkbox found');
+                    element.checkbox.scrollIntoView({block: "center", inline: "nearest"});
+                    
+                    tinymce.activeEditor.selection.select(element.content);
+                    
+                    return element;
+                } else {
+                    return null;
+                }
+            }
+            
+            function scrollToAndToggleCheckBox(textPos, htmlText, taskId, newStatus) {
+                //console.log('JavaScript: scrollToAndToggleCheckBox start. ' + textPos + ', ' + htmlText + ', ' + taskId + ', ' + newStatus);
+                var element = scrollToCheckBox(textPos, htmlText, taskId);
+                
+                if (element && element.checkbox && element.checkbox.checked !== newStatus) {
+                    //console.log('  checkbox found: "' + element.checkbox + '", "' + element.checkbox.outerHTML + '", "' + element.checkbox.parentNode.innerHTML + '"');
+                    element.checkbox.checked = newStatus;
+                    //console.log('  toggeling!');
+                    // see https://stackoverflow.com/questions/6003819/what-is-the-difference-between-properties-and-attributes-in-html
+                    // for the difference between HTML properties and DOM attributes
+                    if (newStatus) {
+                        element.checkbox.setAttribute('checked', "checked");
+                    } else {
+                        element.checkbox.removeAttribute('checked');
+                    }
+                    
+                    contentChanged = true;
+                    //console.log('checkbox toggled: "' + element.checkbox + '", "' + element.checkbox.outerHTML + '", "' + element.checkbox.parentNode.innerHTML + '"');
+                }
+            }
+            
+            function findCheckBox(textPos, htmlText, taskId) {
+                //console.log('findCheckBox start: ' + textPos + ', ' + htmlText + ', ' + taskId);
+                var checkbox;
+                var content;
+                var checkboxFound = false;
+                var checkId = 'id="' + taskId + '"';
+                
+                // iterate over checkboxes to find the one with id
+                $(tinymce.activeEditor.getBody()).find(':checkbox').each(function() {
+                    //console.log('  findCheckBox, checking checkbox: ' + this.outerHTML);
+                    checkbox = this;
+                    // since we need to check the comment of the checkbox we need to iterate the parents content
+                    $(this).parent().contents().each(function() {
+                        //console.log('    findCheckBox, checking comment: ' + $(this).attr('type') + ', ' + + this.innerHTML + ', ' + this.nodeType + ', ' + this.nodeValue);
+                        // we could have more than one checkbox in the parents content... 
+                        if ("checkbox" === $(this).attr('type')) {
+                            if (!checkboxFound) {
+                                // another checkbox in the parents content - maybe this is the right one
+                                checkbox = this;
+                            } else {
+                                // we have found the checkbox but no text - and now its the next checkbox => lets get out of here
+                                return false;
+                            }
+                        }
+                        
+                        // check comments & ids
+                        if (this.nodeType === 8 && !checkboxFound) {
+                            //console.log('    COMMENT.nodeValue:  "' + this.nodeValue + '"');
+                            if (this.nodeValue.includes(checkId)) {
+                                //console.log('    findCheckBox, found comment!');
+                                checkboxFound = true;
+                                // content is the next text node! so wait for that
+                                content = checkbox;
+                            }
+                        }
+                        if (this.nodeType === 3 && checkboxFound) {
+                            //console.log('    findCheckBox, found text for comment!');
+                            // this is the matching text content
+                            content = this;
+                            
+                            // done, end loop prematurely
+                            return false;
+                        }
+                    });
+                    
+                    if (checkboxFound) {
+                        // done, end loop prematurely
+                        return false;
+                    }
+                });
+                
+                if (checkboxFound) {
+                    return { checkbox: checkbox, content: content };
+                }
+                
+                // iterate over checkboxes to find the one with text following
+                // needs to be done the other way around! find text node with content and change previous content result
+                // go from back to front through the file - since we want to have the very last instance of endsWith(htmlText)
+                // https://stackoverflow.com/a/7843947
+                $($(tinymce.activeEditor.getBody()).find(':checkbox').get().reverse()).each(function() {
+                    //console.log('  findCheckBox, checking checkbox: ' + this.outerHTML);
+                    checkbox = this;
+                    // since we need to check the text of the checkbox we need to iterate the parents content
+                    $($(this).parent().contents().get().reverse()).each(function() {
+                        //console.log('    findCheckBox, checking content: ' + $(this).attr('type') + ', ' + + this.innerHTML + ', ' + this.nodeType + ', ' + this.nodeValue);
+                        // we could have more than one checkbox in the parents content... 
+                        if ("checkbox" === $(this).attr('type')) {
+                            checkbox = this;
+                        }
+
+                        // check text nodes - if text has been set
+                        if (this.nodeType === 3) {
+                            //console.log('    CONTENTS.nodeValue: "' + this.nodeValue + '"');
+                            //console.log('    PARENT.textContent: "' + this.parentNode.textContent + '"');
+                            if (this.nodeValue === htmlText || this.parentNode.textContent.endsWith(htmlText)) {
+                                //console.log('    findCheckBox, found text!');
+                                checkboxFound = true;
+                                
+                                // make sure we highlight the correct thing...
+                                if (this.nodeValue === htmlText) {
+                                    content = this;
+                                } else {
+                                    // this highlights the whole line in case of text before the checkbox...
+                                    // TODO: a good idea to "shrink" this to the correct text
+                                    content = this.parentNode;
+                                }
+
+                                // done, end loop prematurely
+                                return false;
+                            }
+                        }
+                    });
+                    
+                    if (checkboxFound) {
+                        // done, end loop prematurely
+                        return false;
+                    }
+                });
+                
+                if (checkboxFound) {
+                    return { checkbox: checkbox, content: content };
+                } else {
+                    //console.log('  findCheckBox, nothing found!');
+                    return { checkbox: null, content: null };
+                }
+            }
+            
+            function checkContentChanged() {
+                if (contentChanged) {
+                    //console.log('Changed content found!')
+                    editorCallback.contentChanged(saveGetContent(true, false));
+                    contentChanged = false;
+                }
+            }
+
+            // https://javascript.info/settimeout-setinterval
+            var delay = 1000;
+            var timerId = window.setTimeout(function request() {
+                //console.log('Checking for changed content')
+                checkContentChanged();
+                timerId = window.setTimeout(request, delay);
+            }, delay);
+        </script>
+    </head>
+
+    <body>
+        <form method="post" id="editorBase">
+            <textarea id="mytextarea"></textarea>
+            <iframe src='about:blank' name='dummy' height='0' width='0' hidden></iframe>
+        </form>
+    </body>
+</html>

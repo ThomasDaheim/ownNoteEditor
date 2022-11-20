@@ -9,6 +9,14 @@ Note on v5.0: A lot has happened since the initial version of the editor. ownNot
 
 Note on Java 11: After various tweaks to build.gradle this now also runs under Java 11. See e.g. https://github.com/kelemen/netbeans-gradle-project/issues/403 an some of the discussion that where required to get there... Unfortunately, there is one issue with the TestFX framework when trying to drag & drop notes. Since I wasn't able to fix this I had to disable the "testDragNote()" test step.
 
+V 6.1
+
+* Upgraded tinymce to 5.10.1
+* "Archiving" of notes: moving to the same group name but under new special group "Archive"
+* Paste as Text
+* Various updates and fixes to deal with hierarchical group names (as required for Archiving)
+* Various bugfixes
+
 V 6.0: Getting rid of old stuff
 
 * Removed "classic" look & feel
@@ -196,15 +204,21 @@ Of course, such a project depends on the results of many others! I've tried to a
 
 Explicit dependencies:
 
-* tf.JavaHelper:JavaHelper:1.12 https://github.com/ThomasDaheim/JavaHelper, not available via maven <- any help appreciated on how to best include as sub/meta/... repository
-* 'org.slf4j:slf4j-api:1.7.12'
-* 'commons-cli:commons-cli:1.4'
-* 'commons-io:commons-io:2.6'
-* 'org.apache.commons:commons-lang3:3.9'
-* 'org.apache.commons:commons-text:1.8'
+* tf.JavaHelper:JavaHelper:1.15 https://github.com/ThomasDaheim/JavaHelper, not available via maven <- any help appreciated on how to best include as sub/meta/... repository
+
+* 'commons-cli:commons-cli:1.5.0'
+* 'commons-io:commons-io:2.11.0'
+* 'org.apache.commons:commons-lang3:3.12.0'
+* 'org.apache.commons:commons-text:1.10.0'
 * 'commons-codec:commons-codec:1.15'
-* 'com.thoughtworks.xstream:xstream:1.4.14'
-* 'org.jfxtras:jmetro:11.6.14'
+* 'com.thoughtworks.xstream:xstream:1.4.19'
+* 'org.unbescape:unbescape:1.1.6.RELEASE'
+* 'org.jfxtras:jfxtras-controls:1.4.19'
+* 'org.jfxtras:jmetro:11.6.16'
+* 'org.controlsfx:1.4.19'
+* 'de.jensd:fontawesomefx:8.9'
+
 * 'org.testfx:testfx-junit:4.0.+'
 * 'org.testfx:testfx-core:4.0.+'
-* 'org.junit.jupiter:junit-jupiter-api:5.6.2'
+* 'org.junit.jupiter:junit-jupiter-api:5.9.1'
+* 'com.github.stefanbirkner:system-lambda:3.2.1'

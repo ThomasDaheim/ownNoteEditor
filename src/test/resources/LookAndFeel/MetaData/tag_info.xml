@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<listProperty>
+    <taginfo>
+        <name class="stringProperty">Groups</name>
+        <children class="listProperty">
+            <taginfo>
+                <name class="stringProperty">All</name>
+                <children class="listProperty"/>
+                <iconName class="stringProperty"></iconName>
+                <colorName class="stringProperty">darkgrey</colorName>
+                <id>74a9df4e657b</id>
+            </taginfo>
+            <taginfo>
+                <name class="stringProperty">Not grouped</name>
+                <children class="listProperty"/>
+                <iconName class="stringProperty"></iconName>
+                <colorName class="stringProperty">lightgrey</colorName>
+                <id>e22b19773370</id>
+            </taginfo>
+            <taginfo>
+                <name class="stringProperty">Test1</name>
+                <children class="listProperty"/>
+                <iconName class="stringProperty">KEYBOARD_ALT</iconName>
+                <colorName class="stringProperty">#B4AFDF</colorName>
+                <id>85ef2a4106ad</id>
+            </taginfo>
+            <taginfo>
+                <name class="stringProperty">Test2</name>
+                <children class="listProperty"/>
+                <iconName class="stringProperty">CODE</iconName>
+                <colorName class="stringProperty">#A2D07F</colorName>
+                <id>66995e6377a5</id>
+            </taginfo>
+            <taginfo>
+                <name class="stringProperty">Test3</name>
+                <children class="listProperty">
+                    <taginfo>
+                        <name class="stringProperty">Level 2</name>
+                        <children class="listProperty"/>
+                        <iconName class="stringProperty">CUBES</iconName>
+                        <colorName class="stringProperty">#FF0000</colorName>
+                        <id>2b891248c1c9</id>
+                    </taginfo>
+                </children>
+                <iconName class="stringProperty">CAMERA_RETRO</iconName>
+                <colorName class="stringProperty">#99D0DF</colorName>
+                <id>b2eeee278206</id>
+            </taginfo>
+        </children>
+        <iconName class="stringProperty">BARS</iconName>
+        <colorName class="stringProperty"></colorName>
+        <id>e89cc659391a</id>
+    </taginfo>
+</listProperty>
