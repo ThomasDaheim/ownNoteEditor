@@ -123,11 +123,12 @@ import tf.ownnote.ui.tasks.TaskManager;
  */
 public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INoteCRMDS {
     // TFE, 20220506: keep track of app version numbers
-    // to be bale to determine any need for data migration
+    // to be able to determine any need for data migration
     public enum AppVersion {
         NONE(6.0),
         V6_1(6.1),
-        CURRENT(6.1);
+        V6_2(6.2),
+        CURRENT(6.2);
         
         private double versionId;
         
@@ -818,10 +819,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             TagManager.getInstance().groupsToTags();
         });
 
-        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v6.1", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v6.2", "https://github.com/ThomasDaheim/ownNoteEditor");
         
         // TFE, 20220429: get app version so that we can compare it with one from registry - to determine migration needs!
-        AppInfo.getInstance().initAppInfo(OwnNoteEditor.class, "OwnNoteEditor", "v6.1", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AppInfo.getInstance().initAppInfo(OwnNoteEditor.class, "OwnNoteEditor", "v6.2", "https://github.com/ThomasDaheim/ownNoteEditor");
         AppVersion.CURRENT.setVersionId(Double.valueOf(AppInfo.getInstance().getAppVersion()));
     }
     
