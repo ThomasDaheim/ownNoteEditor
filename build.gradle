@@ -10,10 +10,17 @@
 // support for javafx11 - see https://openjfx.io/openjfx-docs/#gradle
 buildscript {
     repositories {
+        mavenLocal()
         mavenCentral()
+        maven {
+          url "https://plugins.gradle.org/m2/"
+        }
     }
     dependencies {
-        classpath 'com.google.gradle:osdetector-gradle-plugin:1.6.0'
+        classpath 'com.google.gradle:osdetector-gradle-plugin:1.7.1'
+        // https://github.com/ben-manes/gradle-versions-plugin
+        // task: dependencyUpdates
+        classpath 'com.github.ben-manes:gradle-versions-plugin:0.44.0'
     }
 }
 
@@ -41,6 +48,7 @@ buildscript {
 apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'com.google.osdetector'
+apply plugin: 'com.github.ben-manes.versions' // provides dependencyUpdates command
 
 ext.platform = osdetector.os == 'osx' ? 'mac' : osdetector.os == 'windows' ? 'win' : osdetector.os
 
@@ -86,27 +94,27 @@ dependencies {
     implementation "org.openjfx:javafx-media:$javafx_version:$platform"
     
     // TFE, 20200809: use our own helper library
-    implementation 'tf.JavaHelper:JavaHelper:1.14'
+    implementation 'tf.JavaHelper:JavaHelper:1.15'
 
     implementation 'commons-cli:commons-cli:1.5.0'
     implementation 'commons-io:commons-io:2.11.0'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
-    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.9'
+    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.10.0'
     implementation group: 'commons-codec', name: 'commons-codec', version: '1.15'
-    implementation group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.18'
+    implementation group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.19'
     implementation group: 'org.unbescape', name: 'unbescape', version: '1.1.6.RELEASE'
     implementation group: 'org.jfxtras', name: 'jfxtras-controls', version: '15-r2'
-    implementation group: 'org.controlsfx', name: 'controlsfx', version: '11.1.1'
+    implementation group: 'org.controlsfx', name: 'controlsfx', version: '11.1.2'
     
     // new look & feel for old code :-)
-    implementation group: 'org.jfxtras', name: 'jmetro', version: '11.6.15'
+    implementation group: 'org.jfxtras', name: 'jmetro', version: '11.6.16'
     implementation 'de.jensd:fontawesomefx:8.9'
 
     testImplementation "org.testfx:testfx-junit:4.0.+"
     testImplementation "org.testfx:testfx-core:4.0.+"
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.6.2'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.9.1'
     // TFE, 20210121: capture System.err() easily
-    testImplementation group: 'com.github.stefanbirkner', name: 'system-lambda', version: '1.2.0'
+    testImplementation group: 'com.github.stefanbirkner', name: 'system-lambda', version: '1.2.1'
 }
 
 
