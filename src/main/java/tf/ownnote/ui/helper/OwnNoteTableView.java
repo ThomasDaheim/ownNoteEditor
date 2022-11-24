@@ -364,8 +364,6 @@ public class OwnNoteTableView implements IPreferencesHolder {
     private void startEditingName(final int selectIndex) {
         if (selectIndex != -1) {
             // need to run layout first, otherwise edit() doesn't do anything
-
-
             myTableView.layout();
             myTableView.refresh();
 

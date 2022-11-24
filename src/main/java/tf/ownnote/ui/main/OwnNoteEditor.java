@@ -600,14 +600,12 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             final Note curNote = ObjectsHelper.uncheckedCast(t.getTableView().getItems().get(t.getTablePosition().getRow()));
 
             if (!t.getNewValue().equals(t.getOldValue())) {
-                if (!renameNote(curNote, t.getNewValue())) {
-                    // TF, 20160815: restore old name in case of error
-                    // https://stackoverflow.com/questions/20798634/restore-oldvalue-in-tableview-after-editing-the-cell-javafx
-//                    t.getTableView().getColumns().get(0).setVisible(false);
-//                    t.getTableView().getColumns().get(0).setVisible(true);
-                    // TFE, 20220419: hide / show doesn't work anymore...
-                    t.getTableView().refresh();
-                }
+                renameNote(curNote, t.getNewValue());
+                
+                // TFE, 20221124: always init
+                // rename failed: restore previous name
+                // rename worked: update sort order
+                initFromDirectory(true, false);
             }
         });
             
