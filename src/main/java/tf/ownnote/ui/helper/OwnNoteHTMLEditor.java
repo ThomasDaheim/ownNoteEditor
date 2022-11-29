@@ -46,6 +46,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
@@ -90,6 +91,7 @@ import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteMetaData;
 import tf.ownnote.ui.tags.TagData;
+import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tasks.TaskData;
 import tf.ownnote.ui.tasks.TaskManager;
 
@@ -119,12 +121,16 @@ public class OwnNoteHTMLEditor {
     private static final List<String> SAVE_NOTE = List.of("Save", "Speichern");
     // TFE, 20210304: add context menu to insert attachment link into note
     private static final List<String> ATTACHMENT_LINK = List.of("Insert attachment link", "Anhang-Link einf\u00fcgen");
+    private static final List<String> NOTE_LINK = List.of("Insert note link", "Note-Link einf\u00fcgen");
     private static final List<String> COMPRESS_IMAGES = List.of("Compress images", "Bilder komprimieren");
     private static final List<String> REPLACE_CHECKEDBOXES = List.of("Checked box -> " + TaskData.ARCHIVED_BOX, "Checked Box -> " + TaskData.ARCHIVED_BOX);
     private static final List<String> REPLACE_CHECKMARKS = List.of(TaskData.ARCHIVED_BOX + " -> Checked box", TaskData.ARCHIVED_BOX + " -> Checked Box");
 
     // complete list of menu items for language check
     private static final List<List<String>> TINYMCE_MENUES =  List.of(COPY_SELECTION, RELOAD_PAGE, OPEN_FRAME_NEW_WINDOW, OPEN_LINK, OPEN_LINK_NEW_WINDOW);
+    
+    // prefix for links to other notes
+    private final static String NOTE_HTML_LINK_TYPE = "file:///";
     
     private int language = -1;
 
@@ -592,6 +598,11 @@ public class OwnNoteHTMLEditor {
                     populateAttachMenu(attachMenu);
                     cm.getItems().add(attachMenu);
 
+                    // add attachment links - fill menu items for each edited note individually
+                    final Menu notesMenu = new Menu(NOTE_LINK.get(getLanguage()));
+                    populateNotesMenu(notesMenu);
+                    cm.getItems().add(notesMenu);
+
                     // access to context menu content
                     if (!root.getChildrenUnmodifiable().isEmpty()) {
                         final Node popup = root.getChildrenUnmodifiable().get(0);
@@ -851,6 +862,29 @@ public class OwnNoteHTMLEditor {
         }
     }
     
+    private void populateNotesMenu(final Menu notesMenu) {
+        if (notesMenu == null) {
+            return;
+        }
+        
+        notesMenu.getItems().clear();
+        
+        // no link to notes in archive!
+        final List<Note> notesList = OwnNoteFileManager.getInstance().getNotesList().stream().filter((t) -> {
+            return !t.getGroup().isArchivedGroup();
+        }).collect(Collectors.toList());
+        
+        for (Note note : notesList) {
+            final String noteName = FilenameUtils.getBaseName(note.getNoteFileName());
+            final MenuItem noteItem = new MenuItem(noteName);
+            noteItem.setOnAction((ActionEvent event) -> {
+                wrapExecuteScript(myWebEngine, "insertLinkToNote('" + NOTE_HTML_LINK_TYPE + note.getNoteFileName() + "', '" + noteName + "');");
+            });
+            notesMenu.getItems().add(noteItem);
+        }
+    }
+        
+
     private void startTask(final Runnable task) {
         if (!editorInitialized) {
             myQueue.add(task);
@@ -1067,15 +1101,23 @@ public class OwnNoteHTMLEditor {
         }
     }
     
-    public void openLinkInDefaultBrowser(final String url, final String attachment) {
+    public void openLinkInDefaultBrowser(final String url, final String attachment, final String note) {
         // first load is OK :-)
-        if (myHostServices != null && editorInitialized) {
+        if (editorInitialized) {
             String realUrl = url;
-            if ("yes".equals(attachment)) {
-                // replace previous path to attachment folder with current one
-                realUrl = NoteMetaData.getAttachmentPath() + FilenameUtils.getName(url);
+            if ("yes".equals(note)) {
+                realUrl = realUrl.substring(NOTE_HTML_LINK_TYPE.length());
+                // TFE, 20221126: allow links to other notes
+                myEditor.editNote(realUrl);
+            } else {
+                if (myHostServices != null) {
+                    if ("yes".equals(attachment)) {
+                        // replace previous path to attachment folder with current one
+                        realUrl = NoteMetaData.getAttachmentPath() + FilenameUtils.getName(url);
+                    }
+                    myHostServices.showDocument(realUrl);
+                }
             }
-            myHostServices.showDocument(realUrl);
         }
     }
     

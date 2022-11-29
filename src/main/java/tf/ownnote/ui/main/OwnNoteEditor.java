@@ -105,6 +105,7 @@ import tf.ownnote.ui.helper.OwnNoteTabPane;
 import tf.ownnote.ui.helper.OwnNoteTableColumn;
 import tf.ownnote.ui.helper.OwnNoteTableView;
 import tf.ownnote.ui.helper.RecentNoteForGroup;
+import tf.ownnote.ui.links.LinkManager;
 import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteMetaDataEditor;
@@ -609,7 +610,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             }
         });
             
-        // TFE, 20201204: new column to the left for tagtree layout
+        // TFE, 2022118: merge grid cells with tagTree and editor for noteEditorFXML look & feel
         if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
         }
         
@@ -629,6 +630,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         TaskManager.getInstance().setCallback(this);
         TagsEditor.getInstance().setCallback(this);
         TagManager.getInstance().setCallback(this);
+        LinkManager.getInstance().setCallback(this);
         
         // run layout to have everything set up
         splitPaneXML.applyCss();
@@ -883,11 +885,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         OwnNoteFileManager.getInstance().initNotesPath(ownCloudPath.textProperty().getValue());
 
         if (resetTasksTags) {
-            taskList.populateTaskList();
             // TFE, 20201206: re-populate tags treeview as well - if shown
             if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
                 tagsTreeView.fillTreeView(TagsTreeView.WorkMode.LIST_MODE, null);
             }
+            
+            Platform.runLater(() -> {
+                taskList.populateTaskList();
+            });
         }
         
         // add new table entries & disable & enable accordingly
@@ -932,11 +937,15 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         return result;
     }
     
-    public boolean editNote(final Note curNote) {
+    public boolean editNote(final String noteName) {
+        return editNote(OwnNoteFileManager.getInstance().getNote(noteName));
+    }
+
+    public boolean editNote(final Note note) {
         boolean result = false;
         
         // TFE, 20210102: are we already editing that note? than we're done here...
-        if (curNote.equals(noteHTMLEditor.getEditedNote()) || !checkChangedNote()) {
+        if (note.equals(noteHTMLEditor.getEditedNote()) || !checkChangedNote()) {
             return result;
         }
         
@@ -944,13 +953,13 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         showNoteEditor();
 
         // 2. show content of file in editor
-        if (curNote.getNoteFileContent() == null) {
-            OwnNoteFileManager.getInstance().readNote(curNote, true);
+        if (note.getNoteFileContent() == null) {
+            OwnNoteFileManager.getInstance().readNote(note, true);
         }
-        noteHTMLEditor.editNote(curNote);
-        noteMetaEditor.editNote(curNote);
-        currentNoteProperty.set(curNote);
-        RecentNoteForGroup.getInstance().put(curNote.getGroup().getExternalName(), curNote);
+        noteHTMLEditor.editNote(note);
+        noteMetaEditor.editNote(note);
+        currentNoteProperty.set(note);
+        RecentNoteForGroup.getInstance().put(note.getGroup().getExternalName(), note);
         
         return result;
     }
@@ -999,6 +1008,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         } else {
             // update group tags as well
             TagManager.getInstance().deleteNote(curNote);
+
+            LinkManager.getInstance().deleteNote(curNote);
         }
         
         return result;
@@ -1014,6 +1025,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         } else {
             // update group tags as well
             TagManager.getInstance().createNote(newGroup, newNoteName);
+
+            LinkManager.getInstance().createNote(newGroup, newNoteName);
         }
         
         return result;
@@ -1032,6 +1045,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
             // update group tags as well
             TagManager.getInstance().renameNote(curNote, newValue);
+            
+            LinkManager.getInstance().renameNote(curNote, newValue);
         }
         
         return result;
@@ -1053,6 +1068,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             // update group tags as well
             TagManager.getInstance().moveNote(origNote, newGroup);
             
+            LinkManager.getInstance().moveNote(origNote, newGroup);
+
             refilterNotesList();
         }
         
@@ -1073,6 +1090,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
             // update group tags as well
             TagManager.getInstance().saveNote(note);
+
+            LinkManager.getInstance().saveNote(note);
         } else {
             // error message - most likely note in "Not grouped" with same name already exists
             showAlert(AlertType.ERROR, "Error Dialog", "Note couldn't be saved.", null);
