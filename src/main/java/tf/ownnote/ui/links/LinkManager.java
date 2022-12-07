@@ -28,11 +28,18 @@ package tf.ownnote.ui.links;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javafx.application.Platform;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
@@ -46,7 +53,13 @@ import tf.ownnote.ui.tags.TagData;
 public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileContentChangeSubscriber {
     private final static LinkManager INSTANCE = new LinkManager();
 
+    // "<a data-note='yes' target='dummy' href='" + link + "'>"
+    private final static String ANY_LINK = "<a target=['\"]dummy['\"] data-note=['\"]yes['\"] href=['\"]";
+    private final static Pattern LINK_PATTERN = Pattern.compile(ANY_LINK);
+    private final int linkOffset = "<a data-note='yes' target='dummy' href='".length() + OwnNoteHTMLEditor.NOTE_HTML_LINK_TYPE.length();
+
     private boolean inFileChange = false;
+    private boolean noteLinksInitialized = false;
     
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
@@ -65,6 +78,68 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
         // now we can register everywhere
         OwnNoteFileManager.getInstance().subscribe(INSTANCE);
         myEditor.getNoteEditor().subscribe(INSTANCE);
+    }
+    
+    public void findNoteLinks() {
+        if (!noteLinksInitialized) {
+            // lazy loading
+            initNotesWithLinks();
+            
+            noteLinksInitialized = true;
+        }
+    }
+    
+    private void initNotesWithLinks() {
+        // find all notes containing checkbox and parse to create TaskData for them
+        final Set<Note> linkedNotes = OwnNoteFileManager.getInstance().getNotesWithText(ANY_LINK);
+        
+        for (Note note : linkedNotes) {
+            initNoteLinks(note);
+        }
+    }
+    
+    private void initNoteLinks(final Note note) {
+        final String noteContent = OwnNoteFileManager.getInstance().readNote(note, false).getNoteFileContent();
+
+        final Set<Note> notes = linkedNotesForNoteAndContent(note, noteContent);
+        note.getMetaData().setLinkedNotes(notes);
+    }
+    
+    
+    // noteContent as separate parm since it could be called from change within the editor before save
+    protected Set<Note> linkedNotesForNoteAndContent(final Note note, final String noteContent) {
+        final Set<Note> result = new HashSet<>();
+
+        // iterate over all matches and read Notes
+        final List<Integer> textPossssss = findAllOccurences(noteContent);
+        for (int textPos : textPossssss) {
+            // note ref is directly after the ANY_LINK text AND ends with "."NOTE_EXT
+            textPos += linkOffset;
+            if (textPos + 1 + OwnNoteFileManager.NOTE_EXT.length() < noteContent.length()) {
+                final int linkEnd = noteContent.indexOf(OwnNoteFileManager.NOTE_EXT, textPos) - 1;
+                if (linkEnd > 0) {
+                    final String linkName = noteContent.substring(textPos, linkEnd) + "." + OwnNoteFileManager.NOTE_EXT;
+                    result.add(OwnNoteFileManager.getInstance().getNote(linkName));
+                }
+            }
+        }
+        
+        return result;
+    }
+    
+    private List<Integer> findAllOccurences(final String text) {
+        final List<Integer> result = new LinkedList<>();
+        
+        if (text.isEmpty()) {
+            return result;
+        }
+        
+        final Matcher matcher = LINK_PATTERN.matcher(text);
+        while (matcher.find()) {
+            result.add(matcher.start());
+        }
+        
+        return result;
     }
     
     private boolean updateExistingLinks(final String oldNoteName, final String newNoteName) {

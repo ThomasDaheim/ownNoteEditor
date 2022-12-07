@@ -192,7 +192,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
                                     // callback to java to open in standard browser
                                     // TFE, 20220107: bugfix: we now have 2 parameters here...
-                                    editorCallback.openLinkInDefaultBrowser($(el.target).attr('href'), "no");
+                                    // TFE, 20221207: we now have 3 parameters here...
+                                    editorCallback.openLinkInDefaultBrowser($(el.target).attr('href'), "no", "no");
                                 });
 
                                 $(document.getElementsByClassName("tox tox-silver-sink tox-tinymce-aux")).on("copy", function(el) {
@@ -343,7 +344,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             }
             
             function insertLinkToNote(link, linktext) {
-                var hyperLink = "<a href='" + link + "' data-note='yes' target='dummy'>" + linktext + "</a>";
+                var hyperLink = "<a data-note='yes' target='dummy' href='" + link + "'>" + linktext + "</a>";
 
                 tinymce.activeEditor.execCommand("mceInsertContent", false, hyperLink);
                 contentChanged = true;

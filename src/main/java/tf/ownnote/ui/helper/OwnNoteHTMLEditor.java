@@ -91,7 +91,6 @@ import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteMetaData;
 import tf.ownnote.ui.tags.TagData;
-import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tasks.TaskData;
 import tf.ownnote.ui.tasks.TaskManager;
 
@@ -130,7 +129,7 @@ public class OwnNoteHTMLEditor {
     private static final List<List<String>> TINYMCE_MENUES =  List.of(COPY_SELECTION, RELOAD_PAGE, OPEN_FRAME_NEW_WINDOW, OPEN_LINK, OPEN_LINK_NEW_WINDOW);
     
     // prefix for links to other notes
-    private final static String NOTE_HTML_LINK_TYPE = "file:///";
+    public final static String NOTE_HTML_LINK_TYPE = "file:///";
     
     private int language = -1;
 

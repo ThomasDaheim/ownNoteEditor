@@ -351,7 +351,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             // TFE, 20201204: store tag tree width only for this look & feel
             if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
                 OwnNoteEditorPreferences.RECENT_TAGTREE_WIDTH.put(tagTreeWidth);
-            }
+            } 
             OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH.put(groupTabsGroupWidth);
             // TFE, 20201203: taskList can be hidden (and therefore have column has width 0)
             if (tasklistVisible.get()) {
@@ -417,6 +417,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         tagTreeWidth = limit(tagTreeWidth, paneSizes.get(TAGTREE_COLUMN).getLeft(), paneSizes.get(TAGTREE_COLUMN).getRight());
         groupTabsGroupWidth = limit(groupTabsGroupWidth, paneSizes.get(NOTE_GROUP_COLUMN).getLeft(), paneSizes.get(NOTE_GROUP_COLUMN).getRight());
         taskListWidth = limit(taskListWidth, paneSizes.get(TASKLIST_COLUMN).getLeft(), paneSizes.get(TASKLIST_COLUMN).getRight());
+        tasklistVisible.set(OwnNoteEditorPreferences.RECENT_TASKLIST_VISIBLE.getAsType());
         
         // init ownCloudPath to parameter or nothing
         pathLabel.setMinWidth(Region.USE_PREF_SIZE);
@@ -659,7 +660,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         // #1 tagtree is easy - use own percentage
         splitPaneXML.setDividerPosition(TAGTREE_NOTE_GROUP_DIVIDER, tagTreeWidth/100d);
         // #2 note/group is easy - use percentage of tagtree + own percentage
-        splitPaneXML.setDividerPosition(NOTE_GROUP_EDITOR_DIVIDER, (tagTreeWidth + groupTabsGroupWidth)/100d);
+        if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+            splitPaneXML.setDividerPosition(NOTE_GROUP_EDITOR_DIVIDER, (tagTreeWidth + groupTabsGroupWidth)/100d);
+        } else {
+            splitPaneXML.setDividerPosition(NOTE_GROUP_EDITOR_DIVIDER, groupTabsGroupWidth/100d);
+        }
         // #4 tasklist is easy - use 100 - own percentage
         splitPaneXML.setDividerPosition(EDITOR_TASKLIST_DIVIDER, (100d - taskListWidth)/100d);
         
@@ -684,6 +689,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             // only do magic once the window is showing to avoid initial layout pass
             if (newValue != null && (Math.abs(newValue.doubleValue() - oldValue.doubleValue()) > 0.001)) {
                 groupTabsGroupWidth = newValue.doubleValue() * 100d;
+                if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+                    groupTabsGroupWidth -= tagTreeWidth;
+                }
             }
         });
 
@@ -866,6 +874,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             
             Platform.runLater(() -> {
                 taskList.populateTaskList();
+                
+                LinkManager.getInstance().findNoteLinks();
             });
         }
         
