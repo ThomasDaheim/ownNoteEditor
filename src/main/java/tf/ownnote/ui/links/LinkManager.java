@@ -28,9 +28,11 @@ package tf.ownnote.ui.links;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -53,13 +55,16 @@ import tf.ownnote.ui.tags.TagData;
 public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileContentChangeSubscriber {
     private final static LinkManager INSTANCE = new LinkManager();
 
-    // "<a data-note='yes' target='dummy' href='" + link + "'>"
-    private final static String ANY_LINK = "<a target=['\"]dummy['\"] data-note=['\"]yes['\"] href=['\"]";
+    // "<a href='" + link + "' data-note='yes' target='dummy'>"
+    private final static String ANY_LINK = "<a href=['\"](.*)htm['\"] target=['\"]dummy['\"] data-note=['\"]yes['\"]>";
     private final static Pattern LINK_PATTERN = Pattern.compile(ANY_LINK);
-    private final int linkOffset = "<a data-note='yes' target='dummy' href='".length() + OwnNoteHTMLEditor.NOTE_HTML_LINK_TYPE.length();
+    private final int linkOffset = "<a href='".length() + OwnNoteHTMLEditor.NOTE_HTML_LINK_TYPE.length();
 
     private boolean inFileChange = false;
     private boolean noteLinksInitialized = false;
+    
+    // keep track of all links here: to speed up things and for further functions (link-graph, ...)
+    private final Map<Note, Set<Note>> linkList = new HashMap<>();
     
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
@@ -82,6 +87,7 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
     
     public void findNoteLinks() {
         if (!noteLinksInitialized) {
+            linkList.clear();
             // lazy loading
             initNotesWithLinks();
             
@@ -103,6 +109,8 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
 
         final Set<Note> notes = linkedNotesForNoteAndContent(note, noteContent);
         note.getMetaData().setLinkedNotes(notes);
+        
+        linkList.put(note, notes);
     }
     
     
@@ -143,15 +151,67 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
     }
     
     private boolean updateExistingLinks(final String oldNoteName, final String newNoteName) {
-        // TODO update existing links
+        boolean result = true;
 
-        return true;
+        // find all notes with the old link
+        final Set<Note> linkedNotes = findNotesWithLink(newNoteName);
+        
+        // update content to point to the new link
+        for (Note note : linkedNotes) {
+            if (note.equals(myEditor.getEditedNote())) {
+                // the currently edited note - let htmleditor do the work
+                myEditor.replaceNoteLinks(oldNoteName, newNoteName);
+            } else {
+                OwnNoteFileManager.getInstance().readNote(note, false);
+                String content = note.getNoteFileContent();
+                
+                content = replaceNoteLinks(content, oldNoteName, newNoteName);
+
+                // set back content - also to editor content for next editing of note
+                note.setNoteFileContent(content);
+                if (note.getNoteEditorContent() != null) {
+                    note.setNoteEditorContent(content);
+                }
+
+                // suppress messages since we won't find all check boxes anymore
+                if (!OwnNoteFileManager.getInstance().saveNote(note, true)) {
+                    result = false;
+                    break;
+                }
+            }
+        }
+
+        return result;
     }
 
     private boolean invalidateExistingLinks(final String noteName) {
-        // TODO invalidate existing links
+        // find all notes with the old link
+        final Set<Note> linkedNotes = findNotesWithLink(noteName);
+
+        // update content to replace link by name
 
         return true;
+    }
+    
+    public static String replaceNoteLinks(final String content, final String oldNoteName, final String newNoteName) {
+        // TODO: do the work!
+        return content;
+    }
+    
+    private Set<Note> findNotesWithLink(final String noteName) {
+        final Set<Note> linkedNotes = new HashSet<>();
+        for (Note note : linkList.keySet()) {
+            final long linkCount = note.getMetaData().getLinkedNotes().stream().filter((t) -> {
+                // we're called after the fact - linked note already has a new name...
+                return (t != null) && (t.getNoteFileName().equals(noteName));
+            }).count();
+            
+            if (linkCount > 0) {
+                linkedNotes.add(note);
+            }
+        }
+        
+        return linkedNotes;
     }
 
     @Override
@@ -161,7 +221,9 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
     }
 
     @Override
-    public boolean renameNote(Note curNote, String newValue) {
+    public boolean renameNote(Note curNote, String newName) {
+        final String newValue = OwnNoteFileManager.getInstance().buildNoteName(curNote.getGroup(), newName);
+
         return updateExistingLinks(curNote.getNoteFileName(), newValue);
     }
 
@@ -175,7 +237,6 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
 
     @Override
     public boolean deleteNote(Note curNote) {
-        // TODO invalidate existing links
         return invalidateExistingLinks(curNote.getNoteFileName());
     }
 

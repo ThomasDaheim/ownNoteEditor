@@ -344,7 +344,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             }
             
             function insertLinkToNote(link, linktext) {
-                var hyperLink = "<a data-note='yes' target='dummy' href='" + link + "'>" + linktext + "</a>";
+                var hyperLink = "<a href='" + link + "' data-note='yes' target='dummy'>" + linktext + "</a>";
 
                 tinymce.activeEditor.execCommand("mceInsertContent", false, hyperLink);
                 contentChanged = true;

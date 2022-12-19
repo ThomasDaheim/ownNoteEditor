@@ -1018,6 +1018,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
     @Override
     public boolean renameNote(final Note curNote, final String newValue) {
+        final Note origNote = new Note(curNote);
+        
         boolean result = OwnNoteFileManager.getInstance().renameNote(curNote, newValue);
         
         if (!result) {
@@ -1028,9 +1030,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             noteHTMLEditor.doNameChange(curNote.getGroup(), curNote.getGroup(), curNote.getNoteName(), newValue);
 
             // update group tags as well
-            TagManager.getInstance().renameNote(curNote, newValue);
+            TagManager.getInstance().renameNote(origNote, newValue);
             
-            LinkManager.getInstance().renameNote(curNote, newValue);
+            LinkManager.getInstance().renameNote(origNote, newValue);
         }
         
         return result;
@@ -1313,6 +1315,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     // not to confuse with the static method in TaskManager - this does the bookkeeping for the current node as well
     public void replaceCheckmarks() {
         noteHTMLEditor.replaceCheckmarks();
+    }
+    
+    // not to confuse with the static method in ListkManager - this does the bookkeeping for the current node as well
+    public void replaceNoteLinks(final String oldNoteName, final String newNoteName) {
+        noteHTMLEditor.replaceNoteLinks(oldNoteName, newNoteName);
     }
     
     // and now everyone can listen to note selection changes...

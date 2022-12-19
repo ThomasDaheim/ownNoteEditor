@@ -87,6 +87,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.unbescape.html.HtmlEscape;
 import tf.helper.general.ImageHelper;
 import tf.helper.javafx.UsefulKeyCodes;
+import tf.ownnote.ui.links.LinkManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteMetaData;
@@ -443,6 +444,13 @@ public class OwnNoteHTMLEditor {
     
     public void replaceCheckmarks() {
         final String content = TaskManager.replaceCheckmarks(getNoteText());
+        
+        contentChanged(content);
+        editNote(editedNote, content, true);
+    }
+    
+    public void replaceNoteLinks(final String oldNoteName, final String newNoteName) {
+        final String content = LinkManager.replaceNoteLinks(getNoteText(), oldNoteName, newNoteName);
         
         contentChanged(content);
         editNote(editedNote, content, true);
@@ -996,6 +1004,7 @@ public class OwnNoteHTMLEditor {
         assert (newNoteName != null);
         
         if (getEditedNote() != null) {
+            // TODO: check if the edited note is the one that has been changed!!!
             editedNote.setGroup(newGroup);
             editedNote.setNoteName(newNoteName);
         }
