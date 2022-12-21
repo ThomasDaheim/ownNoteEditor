@@ -456,6 +456,13 @@ public class OwnNoteHTMLEditor {
         editNote(editedNote, content, true);
     }
     
+    public void invalidateNoteLinks(final String noteName) {
+        final String content = LinkManager.invalidateNoteLinks(getNoteText(), noteName);
+        
+        contentChanged(content);
+        editNote(editedNote, content, true);
+    }
+    
     private void compressImages() {
         assert (myEditor != null);
         

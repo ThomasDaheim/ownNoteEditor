@@ -56,9 +56,12 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
     private final static LinkManager INSTANCE = new LinkManager();
 
     // "<a href='" + link + "' data-note='yes' target='dummy'>"
-    private final static String ANY_LINK = "<a href=['\"](.*)htm['\"] target=['\"]dummy['\"] data-note=['\"]yes['\"]>";
+    private final static String ANY_LINK_PREFIX = "<a href=['\"]" + OwnNoteHTMLEditor.NOTE_HTML_LINK_TYPE;
+    private final static String ANY_LINK_LINK = "(.*)htm";
+    private final static String ANY_LINK_POSTFIX = "['\"] target=['\"]dummy['\"] data-note=['\"]yes['\"]>";
+    private final static String ANY_LINK = ANY_LINK_PREFIX + ANY_LINK_LINK + ANY_LINK_POSTFIX;
     private final static Pattern LINK_PATTERN = Pattern.compile(ANY_LINK);
-    private final int linkOffset = "<a href='".length() + OwnNoteHTMLEditor.NOTE_HTML_LINK_TYPE.length();
+    private final static int LINK_OFFSET = ANY_LINK_PREFIX.length() - 3;
 
     private boolean inFileChange = false;
     private boolean noteLinksInitialized = false;
@@ -119,15 +122,18 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
         final Set<Note> result = new HashSet<>();
 
         // iterate over all matches and read Notes
-        final List<Integer> textPossssss = findAllOccurences(noteContent);
+        final List<Integer> textPossssss = findAllOccurences(noteContent, LINK_PATTERN);
         for (int textPos : textPossssss) {
             // note ref is directly after the ANY_LINK text AND ends with "."NOTE_EXT
-            textPos += linkOffset;
+            textPos += LINK_OFFSET;
             if (textPos + 1 + OwnNoteFileManager.NOTE_EXT.length() < noteContent.length()) {
                 final int linkEnd = noteContent.indexOf(OwnNoteFileManager.NOTE_EXT, textPos) - 1;
                 if (linkEnd > 0) {
                     final String linkName = noteContent.substring(textPos, linkEnd) + "." + OwnNoteFileManager.NOTE_EXT;
-                    result.add(OwnNoteFileManager.getInstance().getNote(linkName));
+                    final Note linkedNote = OwnNoteFileManager.getInstance().getNote(linkName);
+                    if (linkedNote != null) {
+                        result.add(OwnNoteFileManager.getInstance().getNote(linkName));
+                    }
                 }
             }
         }
@@ -135,14 +141,14 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
         return result;
     }
     
-    private List<Integer> findAllOccurences(final String text) {
+    private static List<Integer> findAllOccurences(final String text, final Pattern pattern) {
         final List<Integer> result = new LinkedList<>();
         
         if (text.isEmpty()) {
             return result;
         }
         
-        final Matcher matcher = LINK_PATTERN.matcher(text);
+        final Matcher matcher = pattern.matcher(text);
         while (matcher.find()) {
             result.add(matcher.start());
         }
@@ -154,6 +160,7 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
         boolean result = true;
 
         // find all notes with the old link
+        // we're called after the fact - linked note already has a new name...
         final Set<Note> linkedNotes = findNotesWithLink(newNoteName);
         
         // update content to point to the new link
@@ -185,24 +192,61 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
     }
 
     private boolean invalidateExistingLinks(final String noteName) {
+        boolean result = true;
+
         // find all notes with the old link
+        // we're called after the fact - linked note has gone away...
         final Set<Note> linkedNotes = findNotesWithLink(noteName);
 
         // update content to replace link by name
+        for (Note note : linkedNotes) {
+            if (note.equals(myEditor.getEditedNote())) {
+                // the currently edited note - let htmleditor do the work
+                myEditor.invalidateNoteLinks(noteName);
+            } else {
+                OwnNoteFileManager.getInstance().readNote(note, false);
+                String content = note.getNoteFileContent();
+                
+                content = invalidateNoteLinks(content, noteName);
 
-        return true;
+                // set back content - also to editor content for next editing of note
+                note.setNoteFileContent(content);
+                if (note.getNoteEditorContent() != null) {
+                    note.setNoteEditorContent(content);
+                }
+
+                // suppress messages since we won't find all check boxes anymore
+                if (!OwnNoteFileManager.getInstance().saveNote(note, true)) {
+                    result = false;
+                    break;
+                }
+            }
+        }
+
+        return result;
     }
     
-    public static String replaceNoteLinks(final String content, final String oldNoteName, final String newNoteName) {
-        // TODO: do the work!
-        return content;
+    public static String replaceNoteLinks(final String noteContent, final String oldNoteName, final String newNoteName) {
+        // we need to replace the link and the text of the link
+        // AND we might have multiple occurences of the link...
+        // SO replace everything - even if it might also not be used as a link...
+        String oldNote = oldNoteName.replace("." + OwnNoteFileManager.NOTE_EXT, "").replace("[", "\\[").replace("]", "\\]");
+        String newNote = newNoteName.replace("." + OwnNoteFileManager.NOTE_EXT, "");
+        
+        return noteContent.replaceAll(oldNote, newNote);
+    }
+    
+    public static String invalidateNoteLinks(final String noteContent, final String noteName) {
+        // we need to remove the link BUT leave the text of the link
+        final String THIS_LINK = ANY_LINK_PREFIX + noteName.replace("[", "\\[").replace("]", "\\]") + ANY_LINK_POSTFIX;
+        
+        return noteContent.replaceAll(THIS_LINK, "");
     }
     
     private Set<Note> findNotesWithLink(final String noteName) {
         final Set<Note> linkedNotes = new HashSet<>();
         for (Note note : linkList.keySet()) {
             final long linkCount = note.getMetaData().getLinkedNotes().stream().filter((t) -> {
-                // we're called after the fact - linked note already has a new name...
                 return (t != null) && (t.getNoteFileName().equals(noteName));
             }).count();
             

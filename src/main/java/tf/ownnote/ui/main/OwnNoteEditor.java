@@ -1317,9 +1317,14 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         noteHTMLEditor.replaceCheckmarks();
     }
     
-    // not to confuse with the static method in ListkManager - this does the bookkeeping for the current node as well
+    // not to confuse with the static method in ListManager - this does the bookkeeping for the current node as well
     public void replaceNoteLinks(final String oldNoteName, final String newNoteName) {
         noteHTMLEditor.replaceNoteLinks(oldNoteName, newNoteName);
+    }
+    
+    // not to confuse with the static method in ListManager - this does the bookkeeping for the current node as well
+    public void invalidateNoteLinks(final String noteName) {
+        noteHTMLEditor.invalidateNoteLinks(noteName);
     }
     
     // and now everyone can listen to note selection changes...
