@@ -1123,7 +1123,7 @@ public class OwnNoteHTMLEditor {
             if ("yes".equals(note)) {
                 realUrl = realUrl.substring(NOTE_HTML_LINK_TYPE.length());
                 // TFE, 20221126: allow links to other notes
-                myEditor.editNote(realUrl);
+                myEditor.selectNote(realUrl);
             } else {
                 if (myHostServices != null) {
                     if ("yes".equals(attachment)) {

@@ -514,6 +514,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
         // init our wrappers to FXML classes...
         noteHTMLEditor = new OwnNoteHTMLEditor(noteHTMLEditorFXML, this);
+        noteHTMLEditor.setVisible(true);
+        noteHTMLEditor.setDisable(false);
         noteMetaEditor = new NoteMetaDataEditor(noteMetaEditorFXML, this);
         
         // taskListBoxFXML: as high as possible
@@ -921,10 +923,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         return result;
     }
     
-    public boolean editNote(final String noteName) {
-        return editNote(OwnNoteFileManager.getInstance().getNote(noteName));
-    }
-
     public boolean editNote(final Note note) {
         boolean result = false;
         
@@ -933,9 +931,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             return result;
         }
         
-        // 1. switch views: replace NoteTable with htmlEditor
-        showNoteEditor();
-
         // 2. show content of file in editor
         if (note.getNoteFileContent() == null) {
             OwnNoteFileManager.getInstance().readNote(note, true);
@@ -952,6 +947,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         return noteHTMLEditor.getEditedNote();
     }
     
+    public void selectNote(final String noteName) {
+        selectNote(OwnNoteFileManager.getInstance().getNote(noteName));
+    }
+
     private void selectNote(final Note note) {
         // need to distinguish between views to select group
         myGroupList.selectGroupForNote(note);
@@ -973,11 +972,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         noteHTMLEditor.scrollToAndToggleCheckBox(textPos, htmlText, taskId, isChecked);
     }
 
-    private void showNoteEditor() {
-        noteHTMLEditor.setDisable(false);
-        noteHTMLEditor.setVisible(true);
-    }
-    
     public OwnNoteHTMLEditor getNoteEditor() {
         return noteHTMLEditor;
     }
