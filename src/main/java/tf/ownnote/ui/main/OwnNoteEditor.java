@@ -952,6 +952,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     }
 
     private void selectNote(final Note note) {
+        // clear any filters to make sure group & note can be shown
+        noteFilterText.setText("");
+        noteFilterCheck.setSelected(false);
+
         // need to distinguish between views to select group
         myGroupList.selectGroupForNote(note);
         
