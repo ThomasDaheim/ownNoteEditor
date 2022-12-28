@@ -38,8 +38,10 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
@@ -884,9 +886,14 @@ public class OwnNoteHTMLEditor {
         notesMenu.getItems().clear();
         
         // no link to notes in archive!
-        final List<Note> notesList = OwnNoteFileManager.getInstance().getNotesList().stream().filter((t) -> {
+        // TFE, 20221228: and why on earth not???
+        // lets sort archived groups to the end - thats OK with me
+        final LinkedHashSet<Note> notesList = OwnNoteFileManager.getInstance().getNotesList().stream().filter((t) -> {
             return !t.getGroup().isArchivedGroup();
-        }).collect(Collectors.toList());
+        }).collect(Collectors.toCollection(LinkedHashSet::new));
+        notesList.addAll(OwnNoteFileManager.getInstance().getNotesList().stream().filter((t) -> {
+            return t.getGroup().isArchivedGroup();
+        }).collect(Collectors.toCollection(LinkedHashSet::new)));
         
         for (Note note : notesList) {
             final String noteName = FilenameUtils.getBaseName(note.getNoteFileName());
