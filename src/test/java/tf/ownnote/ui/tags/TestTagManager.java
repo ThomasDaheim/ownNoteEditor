@@ -473,7 +473,7 @@ public class TestTagManager {
         final TagData level2 = test3.getChildren().get(0);
         
         // 1st check: external name is built up over the hierarchy
-        Assert.assertEquals(level2.getExternalName(), TagManager.getInstance().getExternalName(level2));
+        Assert.assertEquals(level2.getExternalName(), TagManager.getExternalName(level2));
         Assert.assertEquals("Test3~Level 2", level2.getExternalName());
         
         // 2nd check: lookup by external name gives same object

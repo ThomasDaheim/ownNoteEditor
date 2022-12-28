@@ -181,7 +181,7 @@ public class TagData {
     }
 
     public String getExternalName() {
-        return TagManager.getInstance().getExternalName(this);
+        return TagManager.getExternalName(this);
     }
     
     public Boolean isGroup() {

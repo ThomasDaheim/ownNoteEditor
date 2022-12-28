@@ -282,7 +282,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         } else {
             // group name upfront
             // TFE, 20220414: we now can have subgroups and need to combine all group names with a separator
-            result = "[" + TagManager.getInstance().getExternalName(group) + "] ";
+            result = "[" + TagManager.getExternalName(group) + "] ";
         }
         
         return result;

@@ -50,6 +50,7 @@ import java.nio.file.WatchEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -1226,7 +1227,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         return result;
     }
     
-    public String getExternalName(final TagData tag) {
+    public static String getExternalName(final TagData tag) {
         final StringBuffer result = new StringBuffer(tag.getName());
         
         // and now go upwards in the hierarchy til root or "Groups" tag
@@ -1243,6 +1244,27 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
         
         return result.toString();
+    }
+    
+    public static LinkedList<TagData> getTagHierarchyAsList(final TagData tag) {
+        final LinkedList<TagData> result = new LinkedList<>();
+        
+        // lets start with ourselves
+        result.add(tag);
+        
+        TagData parent = tag.getParent();
+        for (int i = tag.getLevel(); i > 0; i--) {
+            if (isGroupsRootTag(parent)) {
+                // we don't need to go all the way up to root...
+                break;
+            }
+            // add upfront so that order ing is like for external name
+            result.add(0, parent);
+            
+            parent = parent.getParent();
+        }
+
+        return result;
     }
     
     // ===========================================================================
