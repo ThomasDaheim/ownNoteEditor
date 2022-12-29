@@ -98,6 +98,27 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
         }
     }
     
+    public Set<Note> getLinkedNotesForNote(final Note note) {
+        assert note != null;
+        
+        return linkList.get(note);
+    }
+    
+    public Set<Note> getNotesLinkingToNote(final Note note) {
+        assert note != null;
+
+        final Set<Note> result = new HashSet<>();
+        
+        // backlink: all keys that have links to the given note
+        for (Note keyNote : linkList.keySet()) {
+            if (linkList.get(keyNote).contains(note)) {
+                result.add(keyNote);
+            }
+        }
+        
+        return result;
+    }
+    
     private void initNotesWithLinks() {
         // find all notes containing checkbox and parse to create TaskData for them
         final Set<Note> linkedNotes = OwnNoteFileManager.getInstance().getNotesWithText(ANY_LINK);
@@ -187,6 +208,10 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
                 }
             }
         }
+        
+        // init everything here...
+        noteLinksInitialized = false;
+        findNoteLinks();
 
         return result;
     }
@@ -222,6 +247,10 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
                 }
             }
         }
+
+        // init everything here...
+        noteLinksInitialized = false;
+        findNoteLinks();
 
         return result;
     }
