@@ -113,6 +113,9 @@ dependencies {
     testImplementation "org.testfx:testfx-junit:4.0.+"
     testImplementation "org.testfx:testfx-core:4.0.+"
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.9.1'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.9.1'
+    // TFE, 20221231: build a test suite for all non-UI tests
+    testImplementation group: 'org.junit.platform', name: 'junit-platform-suite-engine', version: '1.9.1'
     // TFE, 20210121: capture System.err() easily
     testImplementation group: 'com.github.stefanbirkner', name: 'system-lambda', version: '1.2.1'
 }
@@ -176,6 +179,7 @@ test {
     doFirst {
         jvmArgs = jvmArgs.plus(['-Dtestfx.robot=awt'])
     }
+    useJUnitPlatform()
 }
 
 // extend Netbeans Gradle "Debug" task

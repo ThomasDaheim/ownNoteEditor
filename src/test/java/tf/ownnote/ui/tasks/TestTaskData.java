@@ -25,12 +25,10 @@
  */
 package tf.ownnote.ui.tasks;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.tags.TagManager;
@@ -40,44 +38,38 @@ import tf.ownnote.ui.tags.TagManager;
  * @author thomas
  */
 public class TestTaskData {
-    @Rule
-    public ExpectedException exceptionRule = ExpectedException.none();
-
-    @Before
+    @BeforeEach
     public void setUp() {
         OwnNoteFileManager.getInstance().setCallback(null);
         OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/");
     }
     
-    @After
+    @AfterEach
     public void tearDown() {
     }
 
     @Test
     public void testTaskData_Exceptions1() {
-        exceptionRule.expect(IllegalArgumentException.class);
-        
-        exceptionRule.expectMessage("Note is null");
-        new TaskData(null, "", -1);
+        final Exception assertThrows = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            final TaskData test = new TaskData(null, "", -1);
+        }, "Note is null");
     }
     
     @Test
     public void testTaskData_Exceptions2() {
-        exceptionRule.expect(IllegalArgumentException.class);
-        
-        exceptionRule.expectMessage("TextPos can't be smaller than 0:");
         final Note note = OwnNoteFileManager.getInstance().getNotesList().get(0);
-        new TaskData(note, "", -1);
+        final Exception assertThrows = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            final TaskData test = new TaskData(note, "", -1);
+        }, "TextPos can't be smaller than 0:");
     }
     
     @Test
     public void testTaskData_Exceptions3() {
-        exceptionRule.expect(IllegalArgumentException.class);
-        
         final Note note = OwnNoteFileManager.getInstance().getNotesList().get(0);
         final String noteContent = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
-        exceptionRule.expectMessage("Text not starting with checkbox pattern: " + noteContent.split("\\n")[0]);
-        new TaskData(note, noteContent, 0);
+        final Exception assertThrows = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            final TaskData test = new TaskData(note, noteContent, -1);
+        }, "Text not starting with checkbox pattern: " + noteContent.split("\\n")[0]);
     }
     
     @Test
@@ -86,8 +78,8 @@ public class TestTaskData {
         final String noteContent = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         
         TaskData taskData = new TaskData(note, noteContent, 63);
-        Assert.assertFalse(taskData.isCompleted());
-        Assert.assertEquals(" tell me, what to do!", taskData.getEventDescription().get());
+        Assertions.assertFalse(taskData.isCompleted());
+        Assertions.assertEquals(" tell me, what to do!", taskData.getEventDescription().get());
     }
     
     @Test
@@ -96,8 +88,8 @@ public class TestTaskData {
         final String noteContent = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
         
         TaskData taskData = new TaskData(note, noteContent, 368);
-        Assert.assertTrue(taskData.isCompleted());
+        Assertions.assertTrue(taskData.isCompleted());
         // feel free to figure out how ? is handled correctly in all this string business
-        Assert.assertTrue(taskData.getDescription().startsWith(" of course with something special: "));
+        Assertions.assertTrue(taskData.getDescription().startsWith(" of course with something special: "));
     }
 }

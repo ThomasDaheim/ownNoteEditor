@@ -26,10 +26,10 @@
 package tf.ownnote.ui.helper;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.*;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.tags.TagManager;
 
@@ -41,13 +41,13 @@ public class TestVerifyNoteContent {
     private Boolean resultBool;
     private String resultErr;
     
-    @Before
+    @BeforeEach
     public void setUp() {
         OwnNoteFileManager.getInstance().setCallback(null);
         OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/");
     }
     
-    @After
+    @AfterEach
     public void tearDown() {
     }
 
@@ -135,15 +135,15 @@ public class TestVerifyNoteContent {
         resultErr = tapSystemErrNormalized(() -> {
             resultBool = VerifyNoteContent.getInstance().verifyNoteFileContent(note);
           });
-        Assert.assertTrue(errorBool == resultBool);
-        Assert.assertEquals(errorString, resultErr);
+        Assertions.assertTrue(errorBool == resultBool);
+        Assertions.assertEquals(errorString, resultErr);
     }
 
     private void doTestNoteContent(final String content, final String errorString, final boolean errorBool) throws Exception {
         resultErr = tapSystemErrNormalized(() -> {
             resultBool = VerifyNoteContent.getInstance().verifyNoteContent(content);
           });
-        Assert.assertTrue(errorBool == resultBool);
-        Assert.assertEquals(errorString, resultErr);
+        Assertions.assertTrue(errorBool == resultBool);
+        Assertions.assertEquals(errorString, resultErr);
     }
 }
