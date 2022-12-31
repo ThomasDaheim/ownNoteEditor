@@ -106,6 +106,7 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
     private final DoubleProperty myAppVersionProperty = new SimpleDoubleProperty(OwnNoteEditor.AppVersion.NONE.getVersionId());
     // TFE, 20221207: notes can have links to other notes
     private final ObservableSet<Note> myLinkedNotes = FXCollections.<Note>observableSet();
+    private final ObservableSet<Note> myLinkingNotes = FXCollections.<Note>observableSet();
     
     // TFE, 20210201: know you're own change status
     private final BooleanProperty hasUnsavedChanges = new SimpleBooleanProperty(false);
@@ -262,6 +263,15 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
     public void setLinkedNotes(final Set<Note> notes) {
         myLinkedNotes.clear();
         myLinkedNotes.addAll(notes);
+    }
+    
+    public ObservableSet<Note> getLinkingNotes() {
+        return myLinkingNotes;
+    }
+    
+    public void setLinkingNotes(final Set<Note> notes) {
+        myLinkingNotes.clear();
+        myLinkingNotes.addAll(notes);
     }
     
     // ===============================================================

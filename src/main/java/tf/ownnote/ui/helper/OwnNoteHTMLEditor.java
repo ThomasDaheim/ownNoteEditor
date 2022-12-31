@@ -616,7 +616,7 @@ public class OwnNoteHTMLEditor {
 
                     // add attachment links - fill menu items for each edited note individually
                     final Menu notesMenu = new Menu(NOTE_LINK.get(getLanguage()));
-                    populateNotesMenu(notesMenu);
+                    populateLinksMenu(notesMenu);
                     cm.getItems().add(notesMenu);
 
                     // access to context menu content
@@ -878,12 +878,12 @@ public class OwnNoteHTMLEditor {
         }
     }
     
-    private void populateNotesMenu(final Menu notesMenu) {
-        if (notesMenu == null) {
+    private void populateLinksMenu(final Menu linksMenu) {
+        if (linksMenu == null) {
             return;
         }
         
-        notesMenu.getItems().clear();
+        linksMenu.getItems().clear();
         
         // no link to notes in archive!
         // TFE, 20221228: and why on earth not???
@@ -900,8 +900,9 @@ public class OwnNoteHTMLEditor {
             final MenuItem noteItem = new MenuItem(noteName);
             noteItem.setOnAction((ActionEvent event) -> {
                 wrapExecuteScript(myWebEngine, "insertLinkToNote('" + NOTE_HTML_LINK_TYPE + note.getNoteFileName() + "', '" + noteName + "');");
+                // processFileContentChange will update the link lists
             });
-            notesMenu.getItems().add(noteItem);
+            linksMenu.getItems().add(noteItem);
         }
     }
         

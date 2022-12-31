@@ -68,6 +68,7 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
     
     // keep track of all links here: to speed up things and for further functions (link-graph, ...)
     private final Map<Note, Set<Note>> linkList = new HashMap<>();
+    private final Map<Note, Set<Note>> backlinkList = new HashMap<>();
     
     // callback to OwnNoteEditor
     private OwnNoteEditor myEditor;
@@ -90,7 +91,6 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
     
     public void findNoteLinks() {
         if (!noteLinksInitialized) {
-            linkList.clear();
             // lazy loading
             initNotesWithLinks();
             
@@ -106,35 +106,59 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
     
     public Set<Note> getNotesLinkingToNote(final Note note) {
         assert note != null;
-
-        final Set<Note> result = new HashSet<>();
         
-        // backlink: all keys that have links to the given note
-        for (Note keyNote : linkList.keySet()) {
-            if (linkList.get(keyNote).contains(note)) {
-                result.add(keyNote);
-            }
-        }
-        
-        return result;
+        return backlinkList.get(note);
     }
     
     private void initNotesWithLinks() {
         // find all notes containing checkbox and parse to create TaskData for them
-        final Set<Note> linkedNotes = OwnNoteFileManager.getInstance().getNotesWithText(ANY_LINK);
+        final Set<Note> notesWithLinks = OwnNoteFileManager.getInstance().getNotesWithText(ANY_LINK);
         
-        for (Note note : linkedNotes) {
-            initNoteLinks(note);
+        linkList.clear();
+        for (Note note : notesWithLinks) {
+            initNoteLinks(note, OwnNoteFileManager.getInstance().readNote(note, false).getNoteFileContent());
+        }
+
+        // and now find all other notes...
+        List<Note> notesWithoutLinks = OwnNoteFileManager.getInstance().getNotesList();
+        notesWithoutLinks.removeAll(notesWithLinks);
+        for (Note note : notesWithoutLinks) {
+            note.getMetaData().getLinkedNotes().clear();
+        }
+        
+        initBacklinks();
+    }
+
+    private void initBacklinks() {
+        backlinkList.clear();
+        // backlink: all keys that have links to the given note
+        for (Note note : linkList.keySet()) {
+            final Set<Note> backlinks = new HashSet<>();
+
+            for (Note keyNote : linkList.keySet()) {
+                if (linkList.get(keyNote).contains(note)) {
+                    backlinks.add(keyNote);
+                }
+            }
+            
+            backlinkList.put(note, backlinks);
+        }
+
+        // and now find all other notes...
+        List<Note> notesWithoutBacklinks = OwnNoteFileManager.getInstance().getNotesList();
+        notesWithoutBacklinks.removeAll(backlinkList.keySet());
+        for (Note note : notesWithoutBacklinks) {
+            note.getMetaData().getLinkingNotes().clear();
         }
     }
     
-    private void initNoteLinks(final Note note) {
-        final String noteContent = OwnNoteFileManager.getInstance().readNote(note, false).getNoteFileContent();
-
-        final Set<Note> notes = linkedNotesForNoteAndContent(note, noteContent);
-        note.getMetaData().setLinkedNotes(notes);
+    private boolean initNoteLinks(final Note note, final String noteContent) {
+        final Set<Note> linkedNotes = linkedNotesForNoteAndContent(note, noteContent);
+        note.getMetaData().setLinkedNotes(linkedNotes);
         
-        linkList.put(note, notes);
+        final Set<Note> prevLinkedNotes = linkList.put(note, linkedNotes);
+        
+        return !linkedNotes.equals(prevLinkedNotes);
     }
     
     
@@ -347,7 +371,18 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
 
     @Override
     public boolean processFileContentChange(FileContentChangeType changeType, Note note, String oldContent, String newContent) {
-        // TODO not sure what we would need to do here?
+        if (inFileChange) {
+            return true;
+        }
+
+        inFileChange = true;
+        // check if links have changed
+        if (initNoteLinks(note, newContent)) {
+            // links have changed - now update any backlinks
+            initBacklinks();
+        }
+        inFileChange = false;
+        
         return true;
     }
 }
