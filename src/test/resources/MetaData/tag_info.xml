@@ -24,6 +24,13 @@
 				<colorName class="stringProperty">darkgrey</colorName>
 				<id>e5699f358d92</id>
 			</taginfo>
+			<taginfo>
+				<name class="stringProperty">Archive</name>
+				<children class="listProperty"/>
+				<iconName class="stringProperty"/>
+				<colorName class="stringProperty">#F4A6A6</colorName>
+				<id>53675d0a4b68</id>
+			</taginfo>
 		</children>
 		<iconName class="stringProperty"></iconName>
 		<colorName class="stringProperty"></colorName>

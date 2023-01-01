@@ -110,6 +110,12 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
         return backlinkList.get(note);
     }
     
+    protected void resetLinkList() {
+        noteLinksInitialized = false;
+        linkList.clear();
+        backlinkList.clear();
+    }
+    
     private void initNotesWithLinks() {
         // find all notes containing checkbox and parse to create TaskData for them
         final Set<Note> notesWithLinks = OwnNoteFileManager.getInstance().getNotesWithText(ANY_LINK);
@@ -131,8 +137,16 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
 
     private void initBacklinks() {
         backlinkList.clear();
-        // backlink: all keys that have links to the given note
-        for (Note note : linkList.keySet()) {
+
+        // 1) get all notes that are linked to another note
+        // = keyset for backlink list
+        final Set<Note> linkingNotes = new HashSet<>();
+        linkList.values().stream().forEach((t) -> {
+            linkingNotes.addAll(t);
+        });
+        
+        // 2) backlink: all keys that have links to the given note
+        for (Note note : linkingNotes) {
             final Set<Note> backlinks = new HashSet<>();
 
             for (Note keyNote : linkList.keySet()) {
@@ -142,6 +156,7 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
             }
             
             backlinkList.put(note, backlinks);
+            note.getMetaData().getLinkingNotes().addAll(backlinks);
         }
 
         // and now find all other notes...

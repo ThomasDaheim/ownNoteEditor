@@ -896,13 +896,16 @@ public class OwnNoteHTMLEditor {
         }).collect(Collectors.toCollection(LinkedHashSet::new)));
         
         for (Note note : notesList) {
-            final String noteName = FilenameUtils.getBaseName(note.getNoteFileName());
-            final MenuItem noteItem = new MenuItem(noteName);
-            noteItem.setOnAction((ActionEvent event) -> {
-                wrapExecuteScript(myWebEngine, "insertLinkToNote('" + NOTE_HTML_LINK_TYPE + note.getNoteFileName() + "', '" + noteName + "');");
-                // processFileContentChange will update the link lists
-            });
-            linksMenu.getItems().add(noteItem);
+            // no links to self, please!
+            if (!editedNote.equals(note)) {
+                final String noteName = FilenameUtils.getBaseName(note.getNoteFileName());
+                final MenuItem noteItem = new MenuItem(noteName);
+                noteItem.setOnAction((ActionEvent event) -> {
+                    wrapExecuteScript(myWebEngine, "insertLinkToNote('" + NOTE_HTML_LINK_TYPE + note.getNoteFileName() + "', '" + noteName + "');");
+                    // processFileContentChange will update the link lists
+                });
+                linksMenu.getItems().add(noteItem);
+            }
         }
     }
         
