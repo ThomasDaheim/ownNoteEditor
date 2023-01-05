@@ -225,7 +225,7 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
         
         // update content to point to the new link
         for (Note note : linkedNotes) {
-            if (note.equals(myEditor.getEditedNote())) {
+            if (myEditor != null && note.equals(myEditor.getEditedNote())) {
                 // the currently edited note - let htmleditor do the work
                 myEditor.replaceNoteLinks(oldNoteName, newNoteName);
             } else {
@@ -374,9 +374,9 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
             // only act for files not currently shown - that will come via FileContentChange...
             if (StandardWatchEventKinds.ENTRY_DELETE.equals(eventKind) || StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                 // file deleted -> remove any links
+                // unfortunately, the java watcher implementation doesn't provide a "before" and "after" in the case of modify - so we can only try to delete as well
                 invalidateExistingLinks(filePath.getFileName().toString());
             }
-            // modify is delete + add :-)
 
             inFileChange = false;
         });

@@ -691,6 +691,10 @@ public class OwnNoteFileManager implements INoteCRMDS {
         
         final Set<Note> result = new HashSet<>();
         
+        // TFE, 20230103: bugfix to match also patterns once content has been loaded
+        // so it uses patterns as well in both cases
+        final Pattern searchPattern = Pattern.compile(searchText);
+        
         // iterate over all file and check context for searchText
         for (Map.Entry<String, Note> note : notesList.entrySet()) {
             // TFE, 20201024: if we already have the note text we don't need the scanner
@@ -700,7 +704,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                     content = note.getValue().getNoteFileContent();
                 }
                 
-                if (content.contains(searchText)) {
+                if (searchPattern.matcher(content).find()) {
                     result.add(note.getValue());
                 }
             } else {
