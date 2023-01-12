@@ -504,7 +504,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
         // noteEditorFXML: as high as possible
         // noteHTMLEditorFXML: as high as possible, always above
-        // noteMetaEditorFXML: standard hight, always below
+        // noteMetaEditorFXML: standard height, always below
         VBox.setVgrow(noteEditorFXML, Priority.ALWAYS);
         VBox.setVgrow(noteHTMLEditorFXML, Priority.ALWAYS);
         // error when trying this in the fxml: "java.lang.IllegalArgumentException: Unable to coerce noteHTMLEditor to interface java.util.Collection."

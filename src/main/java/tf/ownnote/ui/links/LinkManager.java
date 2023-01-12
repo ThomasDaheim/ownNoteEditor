@@ -110,7 +110,7 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
         return backlinkList.get(note);
     }
     
-    protected void resetLinkList() {
+    public void resetLinkList() {
         noteLinksInitialized = false;
         linkList.clear();
         backlinkList.clear();

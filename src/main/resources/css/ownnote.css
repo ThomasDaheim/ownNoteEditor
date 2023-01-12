@@ -197,9 +197,12 @@
 }
 
 /* styling for note metdata hbox */
-.noteEditor, .noteMetaEditor {
+.noteEditor {
     -fx-padding: 0;
     -fx-margin: 0;
+}
+.noteMetaEditor {
+    -fx-padding: 2;
 }
 
 .tagsPane {
@@ -232,7 +235,7 @@
     -fx-background-color: white;
 }
 
-.attachment-menu {
+.metadata-menu {
     button_background_color: #cccccc;
     background_pressed_color: #999999;
 
@@ -259,16 +262,16 @@
     -fx-text-fill: text_color;
 }
 
-.attachment-menu:hover {
+.metadata-menu:hover {
     -fx-border-color: border_hover_color;
 }
 
-.attachment-menu:pressed {
+.metadata-menu:pressed {
     -fx-border-color: background_pressed_color;
     -fx-background-color: background_pressed_color;
 }
 
-.attachment-menu:focused {
+.metadata-menu:focused {
     -fx-border-color: transparent, focus_ring_border_color;
     -fx-border-width: 1, 1;
     /*noinspection CssInvalidFunction*/
@@ -277,8 +280,8 @@
     -fx-border-insets: 1 1 1 1, 0;
 }
 
-.attachment-menu:disabled,
-.attachment-menu:default:disabled {
+.metadata-menu:disabled,
+.metadata-menu:default:disabled {
     -fx-opacity: 0.4;
     -fx-background-color: button_background_color;
     -fx-text-fill: text_color;

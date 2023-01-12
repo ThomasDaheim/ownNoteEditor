@@ -217,7 +217,9 @@ sourceSets {
         resources { 
             // only use minified files
             exclude { 
-                FileTreeElement elem -> ((elem.name.contains('.js') || elem.name.contains('.css')) && !elem.name.contains('.min.')) 
+                // TFE, 20230105: minify command in netbeans not working at the moment - so we need to keep normal css
+                // FileTreeElement elem -> ((elem.name.contains('.js') || elem.name.contains('.css')) && !elem.name.contains('.min.')) 
+                FileTreeElement elem -> (elem.name.contains('.js') && !elem.name.contains('.min.')) 
             }
         } 
     }  
