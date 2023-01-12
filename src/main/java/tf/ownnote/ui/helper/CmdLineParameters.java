@@ -8,10 +8,10 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-public class OwnNoteEditorParameters {
+public class CmdLineParameters {
     // this is a singleton for everyones use
     // http://www.javaworld.com/article/2073352/core-java/simply-singleton.html
-    private final static OwnNoteEditorParameters INSTANCE = new OwnNoteEditorParameters();
+    private final static CmdLineParameters INSTANCE = new CmdLineParameters();
 
     // list of command line parameters we can understand
     public static enum CmdOps {
@@ -32,25 +32,23 @@ public class OwnNoteEditorParameters {
     // value for lookAndFeel, if set
     private LookAndFeel lookAndFeel = null;
     
-    private OwnNoteEditorParameters() {
+    private CmdLineParameters() {
         // Exists only to defeat instantiation.
     }
 
-    public static OwnNoteEditorParameters getInstance() {
+    public static CmdLineParameters getInstance() {
         return INSTANCE;
     }
     
     public void init(final String [ ] args) {
         // thats all options we can handle
         Options options = new Options();
-        options.addOption(
-                OwnNoteEditorParameters.CmdOps.lookAndFeel.toString(), 
-                OwnNoteEditorParameters.CmdOps.lookAndFeel.toString(), 
+        options.addOption(CmdLineParameters.CmdOps.lookAndFeel.toString(), 
+                CmdLineParameters.CmdOps.lookAndFeel.toString(), 
                 true, 
                 "Layout to use - <arg> can be \"groupTabs\" or \"tagTree\"");
-        options.addOption(
-                OwnNoteEditorParameters.CmdOps.ownCloudDir.toString(), 
-                OwnNoteEditorParameters.CmdOps.ownCloudDir.toString(), 
+        options.addOption(CmdLineParameters.CmdOps.ownCloudDir.toString(), 
+                CmdLineParameters.CmdOps.ownCloudDir.toString(), 
                 true, 
                 "Path of ownCloud Notes directory");
 
@@ -60,14 +58,14 @@ public class OwnNoteEditorParameters {
             CommandLine command = parser.parse(options, args);
             
             // get path to owncloud notes directory
-            if (command.hasOption(OwnNoteEditorParameters.CmdOps.ownCloudDir.toString())) {
-                ownCloudDir = command.getOptionValue(OwnNoteEditorParameters.CmdOps.ownCloudDir.toString());
+            if (command.hasOption(CmdLineParameters.CmdOps.ownCloudDir.toString())) {
+                ownCloudDir = command.getOptionValue(CmdLineParameters.CmdOps.ownCloudDir.toString());
                 // System.out.println("Option ownCloudDir found: " + ownCloudDir);
             }
             
             String value = "";
-            if (command.hasOption(OwnNoteEditorParameters.CmdOps.lookAndFeel.toString())) {
-                value = command.getOptionValue(OwnNoteEditorParameters.CmdOps.lookAndFeel.toString());
+            if (command.hasOption(CmdLineParameters.CmdOps.lookAndFeel.toString())) {
+                value = command.getOptionValue(CmdLineParameters.CmdOps.lookAndFeel.toString());
 
                 switch (value) {
                     case "groupTabs":
@@ -84,7 +82,7 @@ public class OwnNoteEditorParameters {
             }
             
         } catch (ParseException|NumberFormatException ex) {
-            //Logger.getLogger(OwnNoteEditorParameters.class.getName()).log(Level.SEVERE, null, ex);
+            //Logger.getLogger(CmdLineParameters.class.getName()).log(Level.SEVERE, null, ex);
             // fix for issue #19: add usage screen in case of incorrect options
             help(options);
         }

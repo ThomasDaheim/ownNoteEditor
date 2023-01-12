@@ -25,15 +25,12 @@
  */
 package tf.ownnote.ui.links;
 
-import java.io.File;
-import java.io.IOException;
-import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tf.ownnote.ui.helper.FileContentChangeType;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.notes.Note;
 
 /**
@@ -46,8 +43,8 @@ public class TestLinkManager {
     @BeforeEach
     public void setUp() {
         LinkManager.getInstance().resetLinkList();
-        OwnNoteFileManager.getInstance().setCallback(null);
-        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources");
+        FileManager.getInstance().setCallback(null);
+        FileManager.getInstance().initNotesPath("src/test/resources");
         LinkManager.getInstance().findNoteLinks();
     }
     
@@ -57,7 +54,7 @@ public class TestLinkManager {
     
     @Test
     public void testNoteWithLinks() {
-        final Note note = OwnNoteFileManager.getInstance().getNote("[Test] TestLinks.htm");
+        final Note note = FileManager.getInstance().getNote("[Test] TestLinks.htm");
         Assertions.assertNotNull(note);
         
         Assertions.assertEquals(2, note.getMetaData().getLinkedNotes().size(), "You have two links");
@@ -66,7 +63,7 @@ public class TestLinkManager {
     
     @Test
     public void testNoteWithBacklinks() {
-        final Note note = OwnNoteFileManager.getInstance().getNote("[Test] TestVerify_OK.htm");
+        final Note note = FileManager.getInstance().getNote("[Test] TestVerify_OK.htm");
         Assertions.assertNotNull(note);
         
         Assertions.assertEquals(0, note.getMetaData().getLinkedNotes().size(), "You have no links");
@@ -75,10 +72,10 @@ public class TestLinkManager {
 
     @Test
     public void testAddingAndRemoveLink() {
-        final Note note = OwnNoteFileManager.getInstance().getNote("[Test] TestLinks.htm");
-        final String originalContent = OwnNoteFileManager.getInstance().readNote(note, false).getNoteFileContent();
+        final Note note = FileManager.getInstance().getNote("[Test] TestLinks.htm");
+        final String originalContent = FileManager.getInstance().readNote(note, false).getNoteFileContent();
         
-        final Note linkedNote = OwnNoteFileManager.getInstance().getNote("[Test] TestVerify_ADD_ATTR.htm");
+        final Note linkedNote = FileManager.getInstance().getNote("[Test] TestVerify_ADD_ATTR.htm");
         Assertions.assertEquals(0, linkedNote.getMetaData().getLinkedNotes().size(), "You have no links");
         Assertions.assertEquals(0, linkedNote.getMetaData().getLinkingNotes().size(), "You have no backlinks");
 
@@ -116,11 +113,11 @@ public class TestLinkManager {
         // IN THAT CASE UNDO MANUALLY:
         // NOTE NAME MUST BE "[Test] TestVerify_OK.htm" AND NOT "[Test] TestVerify_NEW_OK.htm"
         // NOTE CONTENT OF "[Test] TestLinks.htm" MUST LINK TO "[Test] TestVerify_OK.htm" AND NOT "[Test] TestVerify_NEW_OK.htm"
-        final Note note = OwnNoteFileManager.getInstance().getNote("[Test] TestLinks.htm");
-        final Note linkedNote = OwnNoteFileManager.getInstance().getNote("[Test] TestVerify_OK.htm");
+        final Note note = FileManager.getInstance().getNote("[Test] TestLinks.htm");
+        final Note linkedNote = FileManager.getInstance().getNote("[Test] TestVerify_OK.htm");
         
         Note origNote = new Note(linkedNote);
-        boolean result = OwnNoteFileManager.getInstance().renameNote(linkedNote, "TestVerify_NEW_OK");
+        boolean result = FileManager.getInstance().renameNote(linkedNote, "TestVerify_NEW_OK");
         if (!result) {
             System.err.println("Moving of test note \"[Test] TestVerify_OK.htm\" failed!!!" );
         } else {
@@ -134,7 +131,7 @@ public class TestLinkManager {
 
             // undo rename before testing - to avoid messing up the file system in case assertion fails
             origNote = new Note(linkedNote);
-            result = OwnNoteFileManager.getInstance().renameNote(linkedNote, "TestVerify_OK");
+            result = FileManager.getInstance().renameNote(linkedNote, "TestVerify_OK");
             if (!result) {
                 System.err.println("Restoring of test note \"[Test] TestVerify_OK.htm\" failed!!!" );
             }

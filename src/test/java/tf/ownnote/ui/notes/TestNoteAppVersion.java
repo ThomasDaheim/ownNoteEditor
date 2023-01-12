@@ -29,7 +29,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.tags.TagManager;
 
@@ -41,8 +41,8 @@ public class TestNoteAppVersion {
     @BeforeEach
     public void setUp() {
         TagManager.getInstance().resetTagList();
-        OwnNoteFileManager.getInstance().setCallback(null);
-        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/LookAndFeel");
+        FileManager.getInstance().setCallback(null);
+        FileManager.getInstance().initNotesPath("src/test/resources/LookAndFeel");
     }
     
     @AfterEach
@@ -52,13 +52,13 @@ public class TestNoteAppVersion {
     @Test
     public void testAppVersionExistingNote() {
         // this one should have no app version
-        Note testNote = OwnNoteFileManager.getInstance().getNote("[Test1] test1.htm");
+        Note testNote = FileManager.getInstance().getNote("[Test1] test1.htm");
         
         Assertions.assertNotNull(testNote);
         Assertions.assertEquals(OwnNoteEditor.AppVersion.NONE.getVersionId(), testNote.getMetaData().getAppVersion(), 0.1);
 
         // this one should have 6.1
-        testNote = OwnNoteFileManager.getInstance().getNote("[Test3] test1.htm");
+        testNote = FileManager.getInstance().getNote("[Test3] test1.htm");
         
         Assertions.assertNotNull(testNote);
         Assertions.assertEquals(OwnNoteEditor.AppVersion.V6_1.getVersionId(), testNote.getMetaData().getAppVersion(), 0.1);

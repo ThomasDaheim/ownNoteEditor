@@ -23,7 +23,7 @@
  *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  *  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package tf.ownnote.ui.helper;
+package tf.ownnote.ui.editor;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,6 +62,7 @@ import javafx.stage.FileChooser;
 import org.apache.commons.io.FileUtils;
 import tf.helper.javafx.AbstractStage;
 import tf.helper.javafx.ShowAlerts;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.NoteMetaData;
@@ -80,7 +81,7 @@ import tf.ownnote.ui.tasks.TaskManager;
  * 3) Tasks: show counts (open / closed / total)
  * @author thomas
  */
-public class OwnNoteMetaDataEditor {
+public class NoteMetaDataEditor {
     private HBox myHBox;
     
     // callback to OwnNoteEditor required for e.g. delete & rename
@@ -99,11 +100,11 @@ public class OwnNoteMetaDataEditor {
     private SetChangeListener<TagData> tagListener;
     private ListChangeListener<String> attachListener;
 
-    private OwnNoteMetaDataEditor() {
+    private NoteMetaDataEditor() {
         super();
     }
     
-    public OwnNoteMetaDataEditor(final HBox hBox, final OwnNoteEditor editor) {
+    public NoteMetaDataEditor(final HBox hBox, final OwnNoteEditor editor) {
         super();
 
         myEditor = editor;
@@ -332,7 +333,7 @@ public class OwnNoteMetaDataEditor {
         
         removeAttach.setOnMouseClicked((t) -> {
             // get rid of this attachment in the note and in the Attachments folder...
-            final String fileName = OwnNoteFileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR + File.separator + attach;
+            final String fileName = FileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR + File.separator + attach;
             final File file = new File(fileName);
 
             // TODO: check if used in some other note
@@ -347,7 +348,7 @@ public class OwnNoteMetaDataEditor {
         menu.setOnAction((t) -> {
             // open attachment with standard os handler
             if (myHostServices != null) {
-                myHostServices.showDocument(OwnNoteFileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR + File.separator + attach);
+                myHostServices.showDocument(FileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR + File.separator + attach);
             }
         });
         
@@ -369,9 +370,9 @@ public class OwnNoteMetaDataEditor {
 
         if (selectedFile != null) {
             try {
-                FileUtils.forceMkdir(new File(OwnNoteFileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR));
+                FileUtils.forceMkdir(new File(FileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR));
             } catch (IOException ex) {
-                Logger.getLogger(OwnNoteMetaDataEditor.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(NoteMetaDataEditor.class.getName()).log(Level.SEVERE, null, ex);
                 return;
             }
             final String fileName = NoteMetaData.getAttachmentPath() + selectedFile.getName();
@@ -393,7 +394,7 @@ public class OwnNoteMetaDataEditor {
                 editorNote.getMetaData().getAttachments().add(file.getName());
                 attachments.getMenus().get(0).show();
             } catch (IOException ex) {
-                Logger.getLogger(OwnNoteMetaDataEditor.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(NoteMetaDataEditor.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }

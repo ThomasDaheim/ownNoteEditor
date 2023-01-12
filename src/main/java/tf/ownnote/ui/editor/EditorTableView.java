@@ -23,7 +23,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package tf.ownnote.ui.helper;
+package tf.ownnote.ui.editor;
 
 import java.util.Comparator;
 import java.util.List;
@@ -62,6 +62,8 @@ import tf.helper.javafx.AppClipboard;
 import tf.helper.javafx.StyleHelper;
 import tf.helper.javafx.TableMenuUtils;
 import tf.helper.javafx.TableViewPreferences;
+import tf.ownnote.ui.helper.CmdLineParameters;
+import tf.ownnote.ui.helper.EditorPreferences;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.tags.TagData;
@@ -71,7 +73,7 @@ import tf.ownnote.ui.tags.TagManager;
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class OwnNoteTableView implements IPreferencesHolder {
+public class EditorTableView implements IPreferencesHolder {
     public static final DataFormat DRAG_AND_DROP = new DataFormat("application/ownnoteeditor-ownnotetableview-dnd");
 
     // callback to OwnNoteEditor required for e.g. delete & rename
@@ -94,11 +96,11 @@ public class OwnNoteTableView implements IPreferencesHolder {
     
     private List<TableColumn<Note,?>> mySortOrder;
 
-    private OwnNoteTableView() {
+    private EditorTableView() {
         super();
     }
             
-    public OwnNoteTableView(final TableView<Note> tableView, final OwnNoteEditor editor) {
+    public EditorTableView(final TableView<Note> tableView, final OwnNoteEditor editor) {
         super();
         myTableView = tableView;
         myEditor = editor;
@@ -108,15 +110,15 @@ public class OwnNoteTableView implements IPreferencesHolder {
 
     @Override
     public void loadPreferences(final IPreferencesStore store) {
-//            setSortOrder(TableSortHelper.fromString(store.get(OwnNoteEditorPreferences.RECENT_NOTESTABLE_SORTORDER, "")));
-        TableViewPreferences.loadTableViewPreferences(myTableView, OwnNoteEditorPreferences.RECENT_NOTESTABLE_SETTINGS.getAsType(), store);
+//            setSortOrder(TableSortHelper.fromString(store.get(EditorPreferences.RECENT_NOTESTABLE_SORTORDER, "")));
+        TableViewPreferences.loadTableViewPreferences(myTableView, EditorPreferences.RECENT_NOTESTABLE_SETTINGS.getAsType(), store);
         setSortOrder();
     }
     
     @Override
     public void savePreferences(final IPreferencesStore store) {
-//            store.put(OwnNoteEditorPreferences.RECENT_NOTESTABLE_SORTORDER, TableSortHelper.toString(getSortOrder()));
-        TableViewPreferences.saveTableViewPreferences(myTableView, OwnNoteEditorPreferences.RECENT_NOTESTABLE_SETTINGS.getAsType(), store);
+//            store.put(EditorPreferences.RECENT_NOTESTABLE_SORTORDER, TableSortHelper.toString(getSortOrder()));
+        TableViewPreferences.saveTableViewPreferences(myTableView, EditorPreferences.RECENT_NOTESTABLE_SETTINGS.getAsType(), store);
     }
     
     private TableView<Note> getTableView() {
@@ -201,7 +203,7 @@ public class OwnNoteTableView implements IPreferencesHolder {
                     }
 
                     // issue #36 - but only for "groupTabs" look & feel
-                    if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(myEditor.getCurrentLookAndFeel())) {
+                    if (CmdLineParameters.LookAndFeel.groupTabs.equals(myEditor.getCurrentLookAndFeel())) {
                         if (empty) {
                             // reset background to default
                             setStyle(OwnNoteEditor.GROUP_COLOR_CSS + ": none");

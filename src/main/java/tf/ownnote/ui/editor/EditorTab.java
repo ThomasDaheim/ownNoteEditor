@@ -1,4 +1,4 @@
-package tf.ownnote.ui.helper;
+package tf.ownnote.ui.editor;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -38,7 +38,7 @@ import tf.ownnote.ui.tags.TagData;
  * <p>
  * @author Michael Berry
  */
-public class OwnNoteTab extends Tab {
+public class EditorTab extends Tab {
 
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor= null;
@@ -79,7 +79,7 @@ public class OwnNoteTab extends Tab {
      * @param tag the corresponding tag
      * @param editor reference to the OwnNoteEditor
      */
-    public OwnNoteTab(final String text, final String count, final TagData tag, final OwnNoteEditor editor) {
+    public EditorTab(final String text, final String count, final TagData tag, final OwnNoteEditor editor) {
         nameLabel.setPadding(new Insets(5));
         
         myEditor = editor;
@@ -137,7 +137,7 @@ public class OwnNoteTab extends Tab {
                 if(!t.isStillSincePress()) {
                     Point2D screenPoint = new Point2D(t.getScreenX(), t.getScreenY());
                     TabPane oldTabPane = getTabPane();
-                    int oldIndex = oldTabPane.getTabs().indexOf(OwnNoteTab.this);
+                    int oldIndex = oldTabPane.getTabs().indexOf(EditorTab.this);
                     tabPanes.add(oldTabPane);
                     InsertData insertData = getInsertData(screenPoint);
                     if(insertData != null) {
@@ -145,7 +145,7 @@ public class OwnNoteTab extends Tab {
                         if(oldTabPane == insertData.getInsertPane() && oldTabPane.getTabs().size() == 1) {
                             return;
                         }
-                        oldTabPane.getTabs().remove(OwnNoteTab.this);
+                        oldTabPane.getTabs().remove(EditorTab.this);
                         callbackOwnNoteTabPane(oldTabPane);
                         if(oldIndex < addIndex && oldTabPane == insertData.getInsertPane()) {
                             addIndex--;
@@ -155,7 +155,7 @@ public class OwnNoteTab extends Tab {
                         }
                         
                         final TabPane newPane = insertData.getInsertPane();
-                        newPane.getTabs().add(addIndex, OwnNoteTab.this);
+                        newPane.getTabs().add(addIndex, EditorTab.this);
                         newPane.selectionModelProperty().get().select(addIndex);
                         callbackOwnNoteTabPane(newPane);
                         return;
@@ -169,8 +169,8 @@ public class OwnNoteTab extends Tab {
                     newStage.setOnHiding((WindowEvent t1) -> {
                         tabPanes.remove(pane);
                     });
-                    getTabPane().getTabs().remove(OwnNoteTab.this);
-                    pane.getTabs().add(OwnNoteTab.this);
+                    getTabPane().getTabs().remove(EditorTab.this);
+                    pane.getTabs().add(EditorTab.this);
                     pane.getTabs().addListener((ListChangeListener.Change<? extends Tab> change) -> {
                         if(pane.getTabs().isEmpty()) {
                             newStage.hide();
@@ -191,7 +191,7 @@ public class OwnNoteTab extends Tab {
         nameLabel.setOnDragOver((DragEvent event) -> {
             // accept only if dragged from a notesTable row
             // and if not the "ALL" group...
-            if (event.getDragboard().hasContent(OwnNoteTableView.DRAG_AND_DROP) &&
+            if (event.getDragboard().hasContent(EditorTableView.DRAG_AND_DROP) &&
                     droptarget) {
                 event.acceptTransferModes(TransferMode.MOVE);
             }
@@ -200,7 +200,7 @@ public class OwnNoteTab extends Tab {
         });
 
         nameLabel.setOnDragEntered((DragEvent event) -> {
-            if (event.getDragboard().hasContent(OwnNoteTableView.DRAG_AND_DROP)) {
+            if (event.getDragboard().hasContent(EditorTableView.DRAG_AND_DROP)) {
                 //nameLabel.setFill(Color.GREEN);
             }
             
@@ -208,7 +208,7 @@ public class OwnNoteTab extends Tab {
         });
 
         nameLabel.setOnDragExited((DragEvent event) -> {
-            if (event.getDragboard().hasContent(OwnNoteTableView.DRAG_AND_DROP)) {
+            if (event.getDragboard().hasContent(EditorTableView.DRAG_AND_DROP)) {
                 //nameLabel.setFill(Color.GREEN);
             }
             
@@ -221,7 +221,7 @@ public class OwnNoteTab extends Tab {
             Dragboard db = event.getDragboard();
             boolean success = false;
 
-            final Note dragNote = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(OwnNoteTableView.DRAG_AND_DROP));
+            final Note dragNote = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(EditorTableView.DRAG_AND_DROP));
             // 1. rename note to new group name
             if (myEditor.moveNote(dragNote, tabTag)) {
                 // 2. focus on this tab
@@ -240,8 +240,8 @@ public class OwnNoteTab extends Tab {
     
     private void callbackOwnNoteTabPane(final TabPane tabPane) {
         // TFE, 20200907: warning, ugly hack coming up...
-        if ((tabPane.getUserData() != null) && (tabPane.getUserData() instanceof OwnNoteTabPane)) {
-            ((OwnNoteTabPane) tabPane.getUserData()).updateTabOrder();
+        if ((tabPane.getUserData() != null) && (tabPane.getUserData() instanceof EditorTabPane)) {
+            ((EditorTabPane) tabPane.getUserData()).updateTabOrder();
         }
     }
             
@@ -365,7 +365,7 @@ public class OwnNoteTab extends Tab {
                         for(int i = 2; i < tabPane.getTabs().size() - 2; i++) {
                             Tab leftTab = tabPane.getTabs().get(i);
                             Tab rightTab = tabPane.getTabs().get(i + 1);
-                            if(leftTab instanceof OwnNoteTab && rightTab instanceof OwnNoteTab) {
+                            if(leftTab instanceof EditorTab && rightTab instanceof EditorTab) {
                                 Rectangle2D leftTabRect = getAbsoluteRect(leftTab);
                                 Rectangle2D rightTabRect = getAbsoluteRect(rightTab);
                                 if(betweenX(leftTabRect, rightTabRect, screenPoint.getX())) {
@@ -390,7 +390,7 @@ public class OwnNoteTab extends Tab {
     }
 
     private Rectangle2D getAbsoluteRect(Tab tab) {
-        Node node = ((OwnNoteTab) tab).getLabel();
+        Node node = ((EditorTab) tab).getLabel();
         // loop 2 upwards to TabPaneSkin
         node = node.getParent().getParent();
         return getAbsoluteRect(node);

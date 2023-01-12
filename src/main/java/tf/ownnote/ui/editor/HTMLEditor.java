@@ -23,7 +23,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package tf.ownnote.ui.helper;
+package tf.ownnote.ui.editor;
 
 import com.sun.javafx.scene.control.ContextMenuContent;
 import java.awt.Toolkit;
@@ -41,7 +41,6 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
@@ -89,6 +88,9 @@ import org.apache.commons.io.FilenameUtils;
 import org.unbescape.html.HtmlEscape;
 import tf.helper.general.ImageHelper;
 import tf.helper.javafx.UsefulKeyCodes;
+import tf.ownnote.ui.helper.FileContentChangeType;
+import tf.ownnote.ui.helper.FileManager;
+import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
 import tf.ownnote.ui.links.LinkManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
@@ -101,7 +103,7 @@ import tf.ownnote.ui.tasks.TaskManager;
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class OwnNoteHTMLEditor {
+public class HTMLEditor {
     // TFE, 20201216: speed up searching in long notes
     private final static Pattern TAG_PATTERN = Pattern.compile("\\<.*?\\>");
     private final static Pattern IMAGE_PATTERN = Pattern.compile("img src=['\"]data:image");
@@ -139,7 +141,7 @@ public class OwnNoteHTMLEditor {
     private WebView myWebView;
     private WebEngine myWebEngine;
     // needed for use as javascriprt callback
-    final private OwnNoteHTMLEditor myself = this;
+    final private HTMLEditor myself = this;
     
     private HostServices myHostServices = null;
     
@@ -199,11 +201,11 @@ public class OwnNoteHTMLEditor {
         }
     }
     
-    private OwnNoteHTMLEditor() {
+    private HTMLEditor() {
         super();
     }
     
-    public OwnNoteHTMLEditor(final WebView webView, final OwnNoteEditor editor) {
+    public HTMLEditor(final WebView webView, final OwnNoteEditor editor) {
         super();
 
         myEditor = editor;
@@ -247,7 +249,7 @@ public class OwnNoteHTMLEditor {
             //System.out.println("script: " + script);
             result = engine.executeScript(script);
         } catch (Exception ex) {
-            Logger.getLogger(OwnNoteHTMLEditor.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(HTMLEditor.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         return result;
@@ -315,9 +317,9 @@ public class OwnNoteHTMLEditor {
                 }
             }
         });
-        myWebEngine.setUserStyleSheetLocation(OwnNoteHTMLEditor.class.getResource("/editor.min.css").toString());
+        myWebEngine.setUserStyleSheetLocation(HTMLEditor.class.getResource("/editor.min.css").toString());
 
-        final String editor_script = OwnNoteHTMLEditor.class.getResource("/tinymceEditor.html").toExternalForm();
+        final String editor_script = HTMLEditor.class.getResource("/tinymceEditor.html").toExternalForm();
         myWebView.getEngine().load(editor_script);
     }
     
@@ -835,13 +837,13 @@ public class OwnNoteHTMLEditor {
                 rtfParser.read(new ByteArrayInputStream(myClipboardFx.getRtf().getBytes()), document, 0);
                 selection = document.getText(0, document.getLength());
             } catch (IOException | BadLocationException ex) {
-                Logger.getLogger(OwnNoteHTMLEditor.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(HTMLEditor.class.getName()).log(Level.SEVERE, null, ex);
             }
         } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
             try {
                 selection = (String) myClipboardAwt.getData(DataFlavor.stringFlavor);
             } catch (UnsupportedFlavorException | IOException ex) {
-                Logger.getLogger(OwnNoteHTMLEditor.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(HTMLEditor.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
 
@@ -888,10 +890,10 @@ public class OwnNoteHTMLEditor {
         // no link to notes in archive!
         // TFE, 20221228: and why on earth not???
         // lets sort archived groups to the end - thats OK with me
-        final LinkedHashSet<Note> notesList = OwnNoteFileManager.getInstance().getNotesList().stream().filter((t) -> {
+        final LinkedHashSet<Note> notesList = FileManager.getInstance().getNotesList().stream().filter((t) -> {
             return !t.getGroup().isArchivedGroup();
         }).collect(Collectors.toCollection(LinkedHashSet::new));
-        notesList.addAll(OwnNoteFileManager.getInstance().getNotesList().stream().filter((t) -> {
+        notesList.addAll(FileManager.getInstance().getNotesList().stream().filter((t) -> {
             return t.getGroup().isArchivedGroup();
         }).collect(Collectors.toCollection(LinkedHashSet::new)));
         

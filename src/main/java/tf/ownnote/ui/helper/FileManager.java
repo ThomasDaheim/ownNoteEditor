@@ -63,7 +63,6 @@ import org.apache.commons.io.FileUtils;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.notes.NoteMetaData;
 import tf.ownnote.ui.notes.NoteVersion;
 import tf.ownnote.ui.tags.TagData;
 import tf.ownnote.ui.tags.TagManager;
@@ -73,8 +72,8 @@ import tf.ownnote.ui.tasks.TaskManager;
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class OwnNoteFileManager implements INoteCRMDS {
-    private final static OwnNoteFileManager INSTANCE = new OwnNoteFileManager();
+public class FileManager implements INoteCRMDS {
+    private final static FileManager INSTANCE = new FileManager();
     
     // TFE, 20220108: upgrade notes to full html...
     private final static String MINIMAL_HTML_PREFIX = "<!doctype html><html lang=\"en\"><head><meta charset=utf-8><title>&lmr;</title></head><body>";
@@ -90,19 +89,19 @@ public class OwnNoteFileManager implements INoteCRMDS {
     private OwnNoteEditor myEditor;
     
     // monitor for changes using java Watcher service
-    private final OwnNoteDirectoryMonitor myDirMonitor = new OwnNoteDirectoryMonitor();
+    private final DirectoryMonitor myDirMonitor = new DirectoryMonitor();
 
     private String notesPath;
     
     private final Map<String, Note> notesList = new LinkedHashMap<>();
     
-    private OwnNoteFileManager() {
+    private FileManager() {
         super();
 
         myEditor = null;
     }
 
-    public static OwnNoteFileManager getInstance() {
+    public static FileManager getInstance() {
         return INSTANCE;
     }
 
@@ -112,12 +111,12 @@ public class OwnNoteFileManager implements INoteCRMDS {
         myDirMonitor.subscribe(editor);
     }
 
-    // convinience to forward to OwnNoteDirectoryMonitor
+    // convinience to forward to DirectoryMonitor
     public void subscribe(final IFileChangeSubscriber subscriber) {
         myDirMonitor.subscribe(subscriber);
     }
     
-    // convinience to forward to OwnNoteDirectoryMonitor
+    // convinience to forward to DirectoryMonitor
     public void unsubscribe(final IFileChangeSubscriber subscriber) {
         myDirMonitor.unsubscribe(subscriber);
     }
@@ -171,7 +170,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                 note.getGroup().getLinkedNotes().add(note);
             }
         } catch (IOException | DirectoryIteratorException ex) {
-            Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         // TFE, 20210508: don't forget to add notes to group ALL as well...
@@ -201,7 +200,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                 result = result.replaceFirst(MINIMAL_HTML_PREFIX, "");
             }
         } catch (IOException ex) {
-            Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
         }
         
         return result;
@@ -253,7 +252,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         try {
             Files.delete(Paths.get(notesPath, noteFileName));
         } catch (IOException ex) {
-            Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = false;
         }
         
@@ -345,7 +344,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
             // save metadata
             saveNote(noteRow);
         } catch (IOException ex) {
-            Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = false;
         }
 
@@ -370,7 +369,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                 try {
                     result.append(Files.readAllBytes(readPath));
                 } catch (IOException ex) {
-                    Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
                 }
             } else {
                 try (final BufferedReader reader = 
@@ -388,7 +387,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                         firstLine = false;
                     }
                 } catch (IOException ex) {
-                    Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
             
@@ -459,7 +458,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
              BufferedWriter writer = new BufferedWriter(fw)) {
             writer.write(fullContent);
         } catch (IOException ex) {
-            Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = false;
         }
 
@@ -526,7 +525,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                 dataRow.setNoteName(newNoteName);
                 notesList.put(newFileName, dataRow);
             } catch (IOException ex) {
-                Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
                 result = false;
             }
         }
@@ -561,7 +560,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                 dataRow.setGroup(newGroup);
                 notesList.put(newFileName, dataRow);
             } catch (IOException ex) {
-                Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
                 result = false;
             }
         }
@@ -617,7 +616,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                     }
                }
             } catch (IOException | DirectoryIteratorException ex) {
-                Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
                 result = false;
             }
         }
@@ -648,13 +647,13 @@ public class OwnNoteFileManager implements INoteCRMDS {
 
                     } catch (IOException ex) {
                         // and now we're royaly screwed since we would need to do a rollback for the already renamed files...
-                        Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                        Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
                         result = false;
                         break;
                    }
                }
             } catch (IOException | DirectoryIteratorException ex) {
-                Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
                 result = false;
             }
         }
@@ -715,7 +714,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                         result.add(note.getValue());
                     }
                 } catch (FileNotFoundException ex) {
-                    Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
         }
@@ -732,7 +731,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         try {
             FileUtils.forceMkdir(new File(getNotesPath() + BACKUP_DIR));
         } catch (IOException ex) {
-            Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
             result = false;
         }
 
@@ -751,7 +750,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                     // System.out.printf("Time %s: Added files\n", getCurrentTimeStamp());
                     Files.copy(curFile, backupFile, StandardCopyOption.COPY_ATTRIBUTES);
                 } catch (IOException ex) {
-                    Logger.getLogger(OwnNoteFileManager.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
                     result = false;
                 }
             }

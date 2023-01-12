@@ -55,7 +55,7 @@ import tf.helper.javafx.calendarview.CalendarView;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 
@@ -124,13 +124,13 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         myEditor = editor;
 
         // now we can register everywhere
-        OwnNoteFileManager.getInstance().subscribe(INSTANCE);
+        FileManager.getInstance().subscribe(INSTANCE);
         myEditor.getNoteEditor().subscribe(INSTANCE);
     }
     
     private void initTaskList() {
         // find all notes containing checkbox and parse to create TaskData for them
-        final Set<Note> taskNotes = OwnNoteFileManager.getInstance().getNotesWithText(TaskData.ANY_BOXES);
+        final Set<Note> taskNotes = FileManager.getInstance().getNotesWithText(TaskData.ANY_BOXES);
         
         for (Note note : taskNotes) {
             initNoteTasks(note);
@@ -138,7 +138,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
     }
     
     private void initNoteTasks(final Note note) {
-        final String noteContent = OwnNoteFileManager.getInstance().readNote(note, false).getNoteFileContent();
+        final String noteContent = FileManager.getInstance().readNote(note, false).getNoteFileContent();
 
         final Set<TaskData> tasks = tasksForNoteAndContent(note, noteContent);
         note.getMetaData().setTasks(tasks);
@@ -215,7 +215,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         }
 
         final Note curNote = myEditor.getEditedNote();
-        if (curNote != null && OwnNoteFileManager.getInstance().buildNoteName(curNote).equals(filePath.getFileName().toString())) {
+        if (curNote != null && FileManager.getInstance().buildNoteName(curNote).equals(filePath.getFileName().toString())) {
             return true;
         }
         
@@ -225,12 +225,12 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
             if (StandardWatchEventKinds.ENTRY_DELETE.equals(eventKind) || StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                 // file with tasks deleted -> remove tasks from own list
                 taskList.removeIf((t) -> {
-                    return OwnNoteFileManager.getInstance().buildNoteName(t.getNote()).equals(filePath.getFileName().toString());
+                    return FileManager.getInstance().buildNoteName(t.getNote()).equals(filePath.getFileName().toString());
                 });
             }
             if (StandardWatchEventKinds.ENTRY_CREATE.equals(eventKind) || StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                 // new file -> scan for tasks and update own list (similar to #2)
-                final Note note = OwnNoteFileManager.getInstance().getNote(filePath.getFileName().toString());
+                final Note note = FileManager.getInstance().getNote(filePath.getFileName().toString());
                 // TFE, 20201027: make sure we don't try to work on temp files which have been deleted in the meantime...
                 if (note != null) {
                     initNoteTasks(note);
@@ -377,7 +377,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
 //            // fallback: find by text
 //            if (changedTask == null) {
 //                // TFE, 20201216: this must be done in sync with TaskData changes to make sure text match works
-//                oldHtmlText = OwnNoteHTMLEditor.stripHtmlTags(oldHtmlText);
+//                oldHtmlText = HTMLEditor.stripHtmlTags(oldHtmlText);
 //
 //                for (TaskData task : taskList) {
 //                    if (task.getNote().equals(note) && task.getEscapedText().equals(oldHtmlText)) {
@@ -458,7 +458,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         } else {
             // handling of read & save note / select note
             // who could we end up if the note of the task hasn't been read???
-//            OwnNoteFileManager.getInstance().readNote(task.getNote(), false);
+//            FileManager.getInstance().readNote(task.getNote(), false);
             if (task.getNote().getNoteFileContent() == null) {
                 System.err.println("Task status changed without note loaded! Task: " + task.getHtmlText() + ", Note: " + task.getNote().getNoteFileName());
                 return false;
@@ -494,7 +494,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 task.getNote().setNoteEditorContent(content);
             }
 
-            result = OwnNoteFileManager.getInstance().saveNote(task.getNote(), suppressMessages);
+            result = FileManager.getInstance().saveNote(task.getNote(), suppressMessages);
         }
         inStatusChange = false;
         
@@ -533,7 +533,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                     return false;
                 }
 
-                result = OwnNoteFileManager.getInstance().saveNote(task.getNote(), suppressMessages);
+                result = FileManager.getInstance().saveNote(task.getNote(), suppressMessages);
             }
         }
 
@@ -553,7 +553,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         // replace all checkboxes with \u2611 - as is done in html editor for current node
         for (Note note : notes) {
             // do backup in cse of mass-updates
-            OwnNoteFileManager.getInstance().backupNote(note, backupSuffix);
+            FileManager.getInstance().backupNote(note, backupSuffix);
             
             // sort in reverse textpos order since we're modifying the content
 //            final Set<TaskData> noteTasks = tasks.stream().filter((t) -> {
@@ -568,7 +568,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 // this changes all instances without further checking!
                 myEditor.replaceCheckedBoxes();
             } else {
-                OwnNoteFileManager.getInstance().readNote(note, false);
+                FileManager.getInstance().readNote(note, false);
                 String content = note.getNoteFileContent();
                 
                 // TFE, 20210118: lets changed all like for the edited note
@@ -596,7 +596,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 }
 
                 // suppress messages since we won't find all check boxes anymore
-                if (!OwnNoteFileManager.getInstance().saveNote(note, true)) {
+                if (!FileManager.getInstance().saveNote(note, true)) {
                     result = false;
                     break;
                 }
@@ -611,13 +611,13 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
         boolean result = true;
         
         // iterate over notes to avoid multiple saveNote() calls
-        final Set<Note> notes = OwnNoteFileManager.getInstance().getNotesWithText(TaskData.ARCHIVED_BOX);
+        final Set<Note> notes = FileManager.getInstance().getNotesWithText(TaskData.ARCHIVED_BOX);
         
         final String backupSuffix = "_restore_" + DATE_FORMAT.format(new Date());
         // replace all checkboxes with \u2611 - as is done in html editor for current node
         for (Note note : notes) {
             // do backup in case of mass-updates
-            OwnNoteFileManager.getInstance().backupNote(note, backupSuffix);
+            FileManager.getInstance().backupNote(note, backupSuffix);
             
             System.out.println("Restoring tasks in note: " + note.getNoteFileName());
             if (note.equals(myEditor.getEditedNote())) {
@@ -625,7 +625,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 // this changes all instances without further checking!
                 myEditor.replaceCheckmarks();
             } else {
-                OwnNoteFileManager.getInstance().readNote(note, false);
+                FileManager.getInstance().readNote(note, false);
                 String content = note.getNoteFileContent();
                 
                 content = replaceCheckmarks(content);
@@ -640,7 +640,7 @@ public class TaskManager implements IFileChangeSubscriber, IFileContentChangeSub
                 }
 
                 // suppress messages since we won't find all check boxes anymore
-                if (!OwnNoteFileManager.getInstance().saveNote(note, true)) {
+                if (!FileManager.getInstance().saveNote(note, true)) {
                     result = false;
                     break;
                 }

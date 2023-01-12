@@ -36,7 +36,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tf.ownnote.ui.helper.FileContentChangeType;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.tags.TagManager;
 
@@ -47,8 +47,8 @@ import tf.ownnote.ui.tags.TagManager;
 public class TestTaskManager {
     @BeforeEach
     public void setUp() {
-        OwnNoteFileManager.getInstance().setCallback(null);
-        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/");
+        FileManager.getInstance().setCallback(null);
+        FileManager.getInstance().initNotesPath("src/test/resources/");
         
         TaskManager.getInstance().resetTaskList();
     }
@@ -59,15 +59,15 @@ public class TestTaskManager {
 
     @Test
     public void testFindAllOccurences() {
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
+        final Note note = FileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
         
-        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
+        final String content = FileManager.getInstance().readNote(note, true).getNoteFileContent();
         Assertions.assertEquals(5, TaskManager.getInstance().tasksForNote(note).size());
     }
 
     @Test
     public void testGetTaskList() {
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
+        final Note note = FileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
         
         // need to sort task list since other tests might have screwed with the order
         final List<TaskData> taskList = TaskManager.getInstance().tasksForNote(note).stream().sorted((o1, o2) -> {
@@ -86,9 +86,9 @@ public class TestTaskManager {
     
     @Test
     public void testChangeContent1() {
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
+        final Note note = FileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
         
-        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
+        final String content = FileManager.getInstance().readNote(note, true).getNoteFileContent();
         TaskManager.getInstance().tasksForNote(note);
         final ObservableSet<TaskData> taskList = note.getMetaData().getTasks();
         Assertions.assertEquals(5, taskList.size());
@@ -173,9 +173,9 @@ public class TestTaskManager {
     
     @Test
     public void testChangeContent2() {
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
+        final Note note = FileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
         
-        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
+        final String content = FileManager.getInstance().readNote(note, true).getNoteFileContent();
         // need to sort task list since other tests might have screwed with the order
         final List<TaskData> taskList = TaskManager.getInstance().tasksForNote(note).stream().sorted((o1, o2) -> {
             return Integer.compare(o1.getTextPos(), o2.getTextPos());
@@ -212,9 +212,9 @@ public class TestTaskManager {
     @Test
     public void testChangeContent3() {
         // add checkbox id twice to make sure second gets a new value
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
+        final Note note = FileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
         
-        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
+        final String content = FileManager.getInstance().readNote(note, true).getNoteFileContent();
         // need to sort task list since other tests might have screwed with the order
         final List<TaskData> taskList = TaskManager.getInstance().tasksForNote(note).stream().sorted((o1, o2) -> {
             return Integer.compare(o1.getTextPos(), o2.getTextPos());

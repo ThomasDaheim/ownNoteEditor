@@ -13,10 +13,10 @@ import tf.helper.general.IPreferencesStore;
 import tf.helper.general.ObjectsHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 
-public enum OwnNoteEditorPreferences implements IPreferencesStore {
+public enum EditorPreferences implements IPreferencesStore {
     INSTANCE("instance", "", String.class),
     RECENT_OWNCLOUDPATH("recentOwnCloudPath", "", String.class),
-    RECENT_LOOKANDFEEL("recentLookAndFeel", OwnNoteEditorParameters.LookAndFeel.groupTabs.name(), OwnNoteEditorParameters.LookAndFeel.class), 
+    RECENT_LOOKANDFEEL("recentLookAndFeel", CmdLineParameters.LookAndFeel.groupTabs.name(), CmdLineParameters.LookAndFeel.class), 
     // issue #30 store percentage for group column width
     RECENT_GROUPTABS_GROUPWIDTH("recentGroupTabsGroupWidth", Double.toString(30.0), Double.class),
     RECENT_TASKLIST_WIDTH("recentTaskListWidth", Double.toString(15.0), Double.class),
@@ -55,7 +55,7 @@ public enum OwnNoteEditorPreferences implements IPreferencesStore {
     private final String myDefaultValue;
     private final Class myClass;
 
-    private OwnNoteEditorPreferences(final String key, final String defaultValue, final Class classP) {
+    private EditorPreferences(final String key, final String defaultValue, final Class classP) {
         myPrefKey = key;
         myDefaultValue = defaultValue;
         myClass = classP;
@@ -93,7 +93,7 @@ public enum OwnNoteEditorPreferences implements IPreferencesStore {
         try {
             result= MYPREFERENCES.get(key, defaultValue);
         } catch (SecurityException ex) {
-            Logger.getLogger(OwnNoteEditorPreferences.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Preferences.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         return result;
@@ -115,7 +115,7 @@ public enum OwnNoteEditorPreferences implements IPreferencesStore {
         try {
             MYPREFERENCES.clear();
         } catch (BackingStoreException ex) {
-            Logger.getLogger(OwnNoteEditorPreferences.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Preferences.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     @Override
@@ -135,7 +135,7 @@ public enum OwnNoteEditorPreferences implements IPreferencesStore {
         try {
             MYPREFERENCES.exportSubtree(os);
         } catch (BackingStoreException | IOException ex) {
-            Logger.getLogger(OwnNoteEditorPreferences.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Preferences.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     @Override
@@ -147,7 +147,7 @@ public enum OwnNoteEditorPreferences implements IPreferencesStore {
         try {
             Preferences.importPreferences(is);
         } catch (InvalidPreferencesFormatException | IOException ex) {
-            Logger.getLogger(OwnNoteEditorPreferences.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Preferences.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     @Override

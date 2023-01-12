@@ -29,7 +29,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.tags.TagManager;
 
@@ -40,8 +40,8 @@ import tf.ownnote.ui.tags.TagManager;
 public class TestTaskData {
     @BeforeEach
     public void setUp() {
-        OwnNoteFileManager.getInstance().setCallback(null);
-        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/");
+        FileManager.getInstance().setCallback(null);
+        FileManager.getInstance().initNotesPath("src/test/resources/");
     }
     
     @AfterEach
@@ -57,7 +57,7 @@ public class TestTaskData {
     
     @Test
     public void testTaskData_Exceptions2() {
-        final Note note = OwnNoteFileManager.getInstance().getNotesList().get(0);
+        final Note note = FileManager.getInstance().getNotesList().get(0);
         final Exception assertThrows = Assertions.assertThrows(IllegalArgumentException.class, () -> {
             final TaskData test = new TaskData(note, "", -1);
         }, "TextPos can't be smaller than 0:");
@@ -65,8 +65,8 @@ public class TestTaskData {
     
     @Test
     public void testTaskData_Exceptions3() {
-        final Note note = OwnNoteFileManager.getInstance().getNotesList().get(0);
-        final String noteContent = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
+        final Note note = FileManager.getInstance().getNotesList().get(0);
+        final String noteContent = FileManager.getInstance().readNote(note, true).getNoteFileContent();
         final Exception assertThrows = Assertions.assertThrows(IllegalArgumentException.class, () -> {
             final TaskData test = new TaskData(note, noteContent, -1);
         }, "Text not starting with checkbox pattern: " + noteContent.split("\\n")[0]);
@@ -74,8 +74,8 @@ public class TestTaskData {
     
     @Test
     public void testTaskDataOpenTask() {
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
-        final String noteContent = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
+        final Note note = FileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
+        final String noteContent = FileManager.getInstance().readNote(note, true).getNoteFileContent();
         
         TaskData taskData = new TaskData(note, noteContent, 63);
         Assertions.assertFalse(taskData.isCompleted());
@@ -84,8 +84,8 @@ public class TestTaskData {
     
     @Test
     public void testTaskDataCompletedTask() {
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
-        final String noteContent = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
+        final Note note = FileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
+        final String noteContent = FileManager.getInstance().readNote(note, true).getNoteFileContent();
         
         TaskData taskData = new TaskData(note, noteContent, 368);
         Assertions.assertTrue(taskData.isCompleted());

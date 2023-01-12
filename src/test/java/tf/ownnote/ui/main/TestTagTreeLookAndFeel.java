@@ -56,8 +56,8 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import org.testfx.api.FxRobot;
 import org.testfx.framework.junit.ApplicationTest;
-import tf.ownnote.ui.helper.OwnNoteEditorParameters;
-import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
+import tf.ownnote.ui.helper.CmdLineParameters;
+import tf.ownnote.ui.helper.EditorPreferences;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.TestNoteData;
 import tf.ownnote.ui.tags.TagData;
@@ -115,7 +115,7 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
     private String lastGroupName;
     private String lastNoteName;
     
-    private OwnNoteEditorParameters.LookAndFeel currentLookAndFeel;
+    private CmdLineParameters.LookAndFeel currentLookAndFeel;
 
     @Override
     public void init() throws Exception {
@@ -123,13 +123,13 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 
         // get current look & feel and notes path
         try {
-            currentLookAndFeel = OwnNoteEditorPreferences.RECENT_LOOKANDFEEL.getAsType();
+            currentLookAndFeel = EditorPreferences.RECENT_LOOKANDFEEL.getAsType();
 
-            currentPath = OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH.getAsType();
+            currentPath = EditorPreferences.RECENT_OWNCLOUDPATH.getAsType();
 //            System.out.println("currentPath: " + currentPath);
 
-            lastGroupName = OwnNoteEditorPreferences.LAST_EDITED_GROUP.getAsType();
-            lastNoteName = OwnNoteEditorPreferences.LAST_EDITED_NOTE.getAsType();
+            lastGroupName = EditorPreferences.LAST_EDITED_GROUP.getAsType();
+            lastNoteName = EditorPreferences.LAST_EDITED_NOTE.getAsType();
         } catch (SecurityException ex) {
             Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
         }        
@@ -147,10 +147,10 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         }
         
         // set look & feel and notes path name
-        OwnNoteEditorPreferences.RECENT_LOOKANDFEEL.put(OwnNoteEditorParameters.LookAndFeel.tagTree);
-        OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH.put(testpath.toString());
-        OwnNoteEditorPreferences.LAST_EDITED_GROUP.put("");
-        OwnNoteEditorPreferences.LAST_EDITED_NOTE.put("");
+        EditorPreferences.RECENT_LOOKANDFEEL.put(CmdLineParameters.LookAndFeel.tagTree);
+        EditorPreferences.RECENT_OWNCLOUDPATH.put(testpath.toString());
+        EditorPreferences.LAST_EDITED_GROUP.put("");
+        EditorPreferences.LAST_EDITED_NOTE.put("");
         //System.out.println("testpath: " + testpath.toString());
     }
 
@@ -203,19 +203,19 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         
         // set look & feel to old value
         if (currentLookAndFeel != null) {
-            OwnNoteEditorPreferences.RECENT_LOOKANDFEEL.put(currentLookAndFeel);
+            EditorPreferences.RECENT_LOOKANDFEEL.put(currentLookAndFeel);
         }
         
         // set path name to old value
         if (currentPath != null) {
-            OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH.put(currentPath);
+            EditorPreferences.RECENT_OWNCLOUDPATH.put(currentPath);
         }
         
         if (lastGroupName != null) {
-            OwnNoteEditorPreferences.LAST_EDITED_GROUP.put(lastGroupName);
+            EditorPreferences.LAST_EDITED_GROUP.put(lastGroupName);
         }
         if (lastNoteName != null) {
-            OwnNoteEditorPreferences.LAST_EDITED_NOTE.put(lastNoteName);
+            EditorPreferences.LAST_EDITED_NOTE.put(lastNoteName);
         }
         
         try {

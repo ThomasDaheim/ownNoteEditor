@@ -57,7 +57,7 @@ import tf.helper.javafx.calendarview.CalenderViewOptions;
 import tf.helper.javafx.calendarview.GermanHolidayProvider;
 import tf.helper.javafx.calendarview.HolidayProviderFactory;
 import tf.helper.javafx.calendarview.ICalendarEvent;
-import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
+import tf.ownnote.ui.helper.EditorPreferences;
 import tf.ownnote.ui.main.OwnNoteEditorManager;
 
 /**
@@ -90,14 +90,14 @@ public class TaskBoard extends AbstractStage {
         setMinWidth(400.0);
         setMinHeight(200.0);
 
-        Double recentWindowWidth = OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_WIDTH.getAsType();
-        Double recentWindowHeigth = OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_HEIGTH.getAsType();
+        Double recentWindowWidth = EditorPreferences.RECENT_KANBAN_WINDOW_WIDTH.getAsType();
+        Double recentWindowHeigth = EditorPreferences.RECENT_KANBAN_WINDOW_HEIGTH.getAsType();
         final Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
-        Double recentWindowLeft = OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_LEFT.getAsType();
+        Double recentWindowLeft = EditorPreferences.RECENT_KANBAN_WINDOW_LEFT.getAsType();
         if (Double.isNaN(recentWindowLeft)) {
             recentWindowLeft = (primScreenBounds.getWidth() - recentWindowWidth) / 2.0;
         }
-        Double recentWindowTop = OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_TOP.getAsType();
+        Double recentWindowTop = EditorPreferences.RECENT_KANBAN_WINDOW_TOP.getAsType();
         if (Double.isNaN(recentWindowTop)) {
             recentWindowTop = (primScreenBounds.getHeight() - recentWindowHeigth) / 2.0;
         }
@@ -116,10 +116,10 @@ public class TaskBoard extends AbstractStage {
         
         setOnCloseRequest((t) -> {
             if (!isMaximized() && !isIconified()) {
-                OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_WIDTH.put(getWidth());
-                OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_HEIGTH.put(getHeight());
-                OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_LEFT.put(getX());
-                OwnNoteEditorPreferences.RECENT_KANBAN_WINDOW_TOP.put(getY());
+                EditorPreferences.RECENT_KANBAN_WINDOW_WIDTH.put(getWidth());
+                EditorPreferences.RECENT_KANBAN_WINDOW_HEIGTH.put(getHeight());
+                EditorPreferences.RECENT_KANBAN_WINDOW_LEFT.put(getX());
+                EditorPreferences.RECENT_KANBAN_WINDOW_TOP.put(getY());
             }
         });
         

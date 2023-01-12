@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.helper.FileManager;
 
 /**
  *
@@ -89,8 +89,8 @@ public class TestTagData {
     @BeforeEach
     public void setUp() {
         TagManager.getInstance().resetTagList();
-        OwnNoteFileManager.getInstance().setCallback(null);
-        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/LookAndFeel");
+        FileManager.getInstance().setCallback(null);
+        FileManager.getInstance().initNotesPath("src/test/resources/LookAndFeel");
     }
     
     @AfterEach

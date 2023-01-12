@@ -61,10 +61,9 @@ import javafx.scene.layout.Region;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.FileChooser;
 import org.apache.commons.io.FileUtils;
-import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AbstractStage;
 import tf.helper.javafx.ShowAlerts;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.tags.TagData;
 import tf.ownnote.ui.tags.TagsEditor;
@@ -382,7 +381,7 @@ public class NoteMetaDataEditor {
         
         removeAttach.setOnMouseClicked((t) -> {
             // get rid of this attachment in the note and in the Attachments folder...
-            final String fileName = OwnNoteFileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR + File.separator + attach;
+            final String fileName = FileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR + File.separator + attach;
             final File file = new File(fileName);
 
             // TODO: check if used in some other note
@@ -397,7 +396,7 @@ public class NoteMetaDataEditor {
         menu.setOnAction((t) -> {
             // open attachment with standard os handler
             if (myHostServices != null) {
-                myHostServices.showDocument(OwnNoteFileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR + File.separator + attach);
+                myHostServices.showDocument(FileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR + File.separator + attach);
             }
         });
         
@@ -420,7 +419,7 @@ public class NoteMetaDataEditor {
 
         if (selectedFile != null) {
             try {
-                FileUtils.forceMkdir(new File(OwnNoteFileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR));
+                FileUtils.forceMkdir(new File(FileManager.getInstance().getNotesPath() + NoteMetaData.ATTACHMENTS_DIR));
             } catch (IOException ex) {
                 Logger.getLogger(NoteMetaDataEditor.class.getName()).log(Level.SEVERE, null, ex);
                 return;

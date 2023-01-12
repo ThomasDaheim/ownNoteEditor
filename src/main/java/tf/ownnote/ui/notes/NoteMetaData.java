@@ -45,7 +45,7 @@ import javafx.collections.SetChangeListener;
 import tf.ownnote.ui.commentdata.CommentDataMapper;
 import tf.ownnote.ui.commentdata.ICommentDataHolder;
 import tf.ownnote.ui.commentdata.ICommentDataInfo;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.tags.ITagHolder;
 import tf.ownnote.ui.tags.TagData;
@@ -416,6 +416,6 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
     }
     
     public static String getAttachmentPath() {
-        return OwnNoteFileManager.getInstance().getNotesPath() + ATTACHMENTS_DIR + File.separator;
+        return FileManager.getInstance().getNotesPath() + ATTACHMENTS_DIR + File.separator;
     }
 }

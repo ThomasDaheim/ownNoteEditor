@@ -40,8 +40,8 @@ import javafx.application.Platform;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
-import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
+import tf.ownnote.ui.helper.FileManager;
+import tf.ownnote.ui.editor.HTMLEditor;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
@@ -56,7 +56,7 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
     private final static LinkManager INSTANCE = new LinkManager();
 
     // "<a href='" + link + "' data-note='yes' target='dummy'>"
-    private final static String ANY_LINK_PREFIX = "<a href=['\"]" + OwnNoteHTMLEditor.NOTE_HTML_LINK_TYPE;
+    private final static String ANY_LINK_PREFIX = "<a href=['\"]" + HTMLEditor.NOTE_HTML_LINK_TYPE;
     private final static String ANY_LINK_LINK = "(.*)htm";
     private final static String ANY_LINK_POSTFIX = "['\"] target=['\"]dummy['\"] data-note=['\"]yes['\"]>";
     private final static String ANY_LINK = ANY_LINK_PREFIX + ANY_LINK_LINK + ANY_LINK_POSTFIX;
@@ -85,7 +85,7 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
         myEditor = editor;
 
         // now we can register everywhere
-        OwnNoteFileManager.getInstance().subscribe(INSTANCE);
+        FileManager.getInstance().subscribe(INSTANCE);
         myEditor.getNoteEditor().subscribe(INSTANCE);
     }
     
@@ -118,15 +118,15 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
     
     private void initNotesWithLinks() {
         // find all notes containing checkbox and parse to create TaskData for them
-        final Set<Note> notesWithLinks = OwnNoteFileManager.getInstance().getNotesWithText(ANY_LINK);
+        final Set<Note> notesWithLinks = FileManager.getInstance().getNotesWithText(ANY_LINK);
         
         linkList.clear();
         for (Note note : notesWithLinks) {
-            initNoteLinks(note, OwnNoteFileManager.getInstance().readNote(note, false).getNoteFileContent());
+            initNoteLinks(note, FileManager.getInstance().readNote(note, false).getNoteFileContent());
         }
 
         // and now find all other notes...
-        List<Note> notesWithoutLinks = OwnNoteFileManager.getInstance().getNotesList();
+        List<Note> notesWithoutLinks = FileManager.getInstance().getNotesList();
         notesWithoutLinks.removeAll(notesWithLinks);
         for (Note note : notesWithoutLinks) {
             note.getMetaData().getLinkedNotes().clear();
@@ -160,7 +160,7 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
         }
 
         // and now find all other notes...
-        List<Note> notesWithoutBacklinks = OwnNoteFileManager.getInstance().getNotesList();
+        List<Note> notesWithoutBacklinks = FileManager.getInstance().getNotesList();
         notesWithoutBacklinks.removeAll(backlinkList.keySet());
         for (Note note : notesWithoutBacklinks) {
             note.getMetaData().getLinkingNotes().clear();
@@ -186,13 +186,13 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
         for (int textPos : textPossssss) {
             // note ref is directly after the ANY_LINK text AND ends with "."NOTE_EXT
             textPos += LINK_OFFSET;
-            if (textPos + 1 + OwnNoteFileManager.NOTE_EXT.length() < noteContent.length()) {
-                final int linkEnd = noteContent.indexOf(OwnNoteFileManager.NOTE_EXT, textPos) - 1;
+            if (textPos + 1 + FileManager.NOTE_EXT.length() < noteContent.length()) {
+                final int linkEnd = noteContent.indexOf(FileManager.NOTE_EXT, textPos) - 1;
                 if (linkEnd > 0) {
-                    final String linkName = noteContent.substring(textPos, linkEnd) + "." + OwnNoteFileManager.NOTE_EXT;
-                    final Note linkedNote = OwnNoteFileManager.getInstance().getNote(linkName);
+                    final String linkName = noteContent.substring(textPos, linkEnd) + "." + FileManager.NOTE_EXT;
+                    final Note linkedNote = FileManager.getInstance().getNote(linkName);
                     if (linkedNote != null) {
-                        result.add(OwnNoteFileManager.getInstance().getNote(linkName));
+                        result.add(FileManager.getInstance().getNote(linkName));
                     }
                 }
             }
@@ -229,7 +229,7 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
                 // the currently edited note - let htmleditor do the work
                 myEditor.replaceNoteLinks(oldNoteName, newNoteName);
             } else {
-                OwnNoteFileManager.getInstance().readNote(note, false);
+                FileManager.getInstance().readNote(note, false);
                 String content = note.getNoteFileContent();
                 
                 content = replaceNoteLinks(content, oldNoteName, newNoteName);
@@ -241,7 +241,7 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
                 }
 
                 // suppress messages since we won't find all check boxes anymore
-                if (!OwnNoteFileManager.getInstance().saveNote(note, true)) {
+                if (!FileManager.getInstance().saveNote(note, true)) {
                     result = false;
                     break;
                 }
@@ -268,7 +268,7 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
                 // the currently edited note - let htmleditor do the work
                 myEditor.invalidateNoteLinks(noteName);
             } else {
-                OwnNoteFileManager.getInstance().readNote(note, false);
+                FileManager.getInstance().readNote(note, false);
                 String content = note.getNoteFileContent();
                 
                 content = invalidateNoteLinks(content, noteName);
@@ -280,7 +280,7 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
                 }
 
                 // suppress messages since we won't find all check boxes anymore
-                if (!OwnNoteFileManager.getInstance().saveNote(note, true)) {
+                if (!FileManager.getInstance().saveNote(note, true)) {
                     result = false;
                     break;
                 }
@@ -298,8 +298,8 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
         // we need to replace the link and the text of the link
         // AND we might have multiple occurences of the link...
         // SO replace everything - even if it might also not be used as a link...
-        String oldNote = oldNoteName.replace("." + OwnNoteFileManager.NOTE_EXT, "").replace("[", "\\[").replace("]", "\\]");
-        String newNote = newNoteName.replace("." + OwnNoteFileManager.NOTE_EXT, "");
+        String oldNote = oldNoteName.replace("." + FileManager.NOTE_EXT, "").replace("[", "\\[").replace("]", "\\]");
+        String newNote = newNoteName.replace("." + FileManager.NOTE_EXT, "");
         
         return noteContent.replaceAll(oldNote, newNote);
     }
@@ -334,7 +334,7 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
 
     @Override
     public boolean renameNote(Note curNote, String newName) {
-        final String newValue = OwnNoteFileManager.getInstance().buildNoteName(curNote.getGroup(), newName);
+        final String newValue = FileManager.getInstance().buildNoteName(curNote.getGroup(), newName);
 
         return updateExistingLinks(curNote.getNoteFileName(), newValue);
     }
@@ -342,7 +342,7 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
     @Override
     public boolean moveNote(Note curNote, TagData newGroup) {
         // what is the name of the note after moving to the new group?
-        final String newValue = OwnNoteFileManager.getInstance().buildNoteName(newGroup, curNote.getNoteName());
+        final String newValue = FileManager.getInstance().buildNoteName(newGroup, curNote.getNoteName());
 
         return updateExistingLinks(curNote.getNoteFileName(), newValue);
     }
@@ -365,7 +365,7 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
         }
 
         final Note curNote = myEditor.getEditedNote();
-        if (curNote != null && OwnNoteFileManager.getInstance().buildNoteName(curNote).equals(filePath.getFileName().toString())) {
+        if (curNote != null && FileManager.getInstance().buildNoteName(curNote).equals(filePath.getFileName().toString())) {
             return true;
         }
         

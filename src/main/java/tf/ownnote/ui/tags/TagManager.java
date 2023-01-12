@@ -78,7 +78,7 @@ import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
@@ -267,7 +267,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         myEditor = editor;
 
         // now we can register everywhere
-        OwnNoteFileManager.getInstance().subscribe(INSTANCE);
+        FileManager.getInstance().subscribe(INSTANCE);
         myEditor.getNoteEditor().subscribe(INSTANCE);
     }
 
@@ -405,7 +405,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         
         final TagData xstreamRoot = new TagData("xstream-root", false, false);
         
-        final String fileName = OwnNoteFileManager.getInstance().getNotesPath() + TAG_FILE;
+        final String fileName = FileManager.getInstance().getNotesPath() + TAG_FILE;
         final File file = new File(fileName);
         if (file.exists() && !file.isDirectory() && file.canRead()) {
             // load from xml AND from current metadata
@@ -639,12 +639,12 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
 
         try {
-            FileUtils.forceMkdir(new File(OwnNoteFileManager.getInstance().getNotesPath() + TAG_DIR));
+            FileUtils.forceMkdir(new File(FileManager.getInstance().getNotesPath() + TAG_DIR));
         } catch (IOException ex) {
             Logger.getLogger(TagManager.class.getName()).log(Level.SEVERE, null, ex);
             return;
         }
-        final String fileName = OwnNoteFileManager.getInstance().getNotesPath() + TAG_FILE;
+        final String fileName = FileManager.getInstance().getNotesPath() + TAG_FILE;
         final File file = new File(fileName);
         if (file.exists() && (file.isDirectory() || !file.canWrite())) {
             return;
@@ -713,20 +713,20 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         // check all notes if they already have a tag with their group name
         // if not add such a tag
         // probably only used once for "migration" to tag metadata
-        for (Note note : OwnNoteFileManager.getInstance().getNotesList()) {
+        for (Note note : FileManager.getInstance().getNotesList()) {
             // lets not store a "Not grouped" tag...
             if (!isNotGrouped(note.getGroup())) {
                 final TagData groupInfo = note.getGroup();
                 if (note.getMetaData().getTags().contains(groupInfo)) {
                     System.out.println("Removing tag " + note.getGroupName() + " from note " + note.getNoteName());
-                    OwnNoteFileManager.getInstance().readNote(note, false);
+                    FileManager.getInstance().readNote(note, false);
                     note.getMetaData().getTags().remove(groupInfo);
-                    OwnNoteFileManager.getInstance().saveNote(note);
+                    FileManager.getInstance().saveNote(note);
                 } else {
                     System.out.println("Adding tag " + note.getGroupName() + " to note " + note.getNoteName());
-                    OwnNoteFileManager.getInstance().readNote(note, false);
+                    FileManager.getInstance().readNote(note, false);
                     note.getMetaData().getTags().add(groupInfo);
-                    OwnNoteFileManager.getInstance().saveNote(note);
+                    FileManager.getInstance().saveNote(note);
                 }
             }
         }
@@ -942,7 +942,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         // if groupTag rename group (and with it note file) as well
         if (tag.isGroup()) {
             final String newGroupName = newName != null ? newName : ReservedTag.NotGrouped.getTagName();
-            result = OwnNoteFileManager.getInstance().renameGroup(tag, newGroupName);
+            result = FileManager.getInstance().renameGroup(tag, newGroupName);
 
             if (result) {
                 //check if we just moved the current note in the editor...
@@ -984,7 +984,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         // save the notes (except for the one currently in the editor
         for (Note note : changedNotes) {
             if (!note.equals(myEditor.getEditedNote())) {
-                OwnNoteFileManager.getInstance().saveNote(note);
+                FileManager.getInstance().saveNote(note);
             } else {
                 // tell the world, the note metadata has changed (implicitly)
                 // so that any interesting party can listen to the change
@@ -1159,7 +1159,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     public boolean createNote(final TagData newGroup, final String newNoteName) {
         // this is called after the fact that a new note has been created
         // so we only need to back-link notes to groups
-        final Note newNote = OwnNoteFileManager.getInstance().getNote(newGroup, newNoteName);
+        final Note newNote = FileManager.getInstance().getNote(newGroup, newNoteName);
         newNote.getGroup().getLinkedNotes().add(newNote);
         ReservedTag.All.getTag().getLinkedNotes().add(newNote);
 
@@ -1174,7 +1174,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     @Override
     public boolean moveNote(final Note curNote, final TagData newGroup) {
         // we have been called after the fact... so the linkedNotes have already been updated with the new group name
-        final Note movedNote = OwnNoteFileManager.getInstance().getNote(newGroup, curNote.getNoteName());
+        final Note movedNote = FileManager.getInstance().getNote(newGroup, curNote.getNoteName());
 
         final TagData oldGroup = curNote.getGroup();
 

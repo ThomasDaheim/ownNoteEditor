@@ -23,7 +23,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package tf.ownnote.ui.helper;
+package tf.ownnote.ui.editor;
 
 import java.util.Comparator;
 import java.util.function.Function;
@@ -42,6 +42,8 @@ import javafx.util.converter.DefaultStringConverter;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.CellUtils;
 import tf.helper.javafx.StyleHelper;
+import tf.ownnote.ui.helper.CmdLineParameters;
+import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 
@@ -49,18 +51,18 @@ import tf.ownnote.ui.notes.Note;
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class OwnNoteTableColumn {
+public class EditorTableColumn {
     // callback to OwnNoteEditor required for e.g. delete & rename
     private OwnNoteEditor myEditor = null;
     
     private TableColumn<Note, String> myTableColumn = null;
     private String backgroundColor = "white";
     
-    private OwnNoteTableColumn() {
+    private EditorTableColumn() {
         super();
     }
             
-    public OwnNoteTableColumn(final TableColumn<Note, String> tableColumn, final OwnNoteEditor editor) {
+    public EditorTableColumn(final TableColumn<Note, String> tableColumn, final OwnNoteEditor editor) {
         super();    
         myTableColumn = tableColumn;
         myEditor = editor;
@@ -194,10 +196,10 @@ class ObjectCell extends TextFieldTableCell<Note, String> {
     // store link back to the controller of the scene for callback
     private final OwnNoteEditor myEditor;
     
-    private final OwnNoteTableColumn myTableColumn;
+    private final EditorTableColumn myTableColumn;
     
     public ObjectCell(final OwnNoteEditor editor,
-            final OwnNoteTableColumn tableColumn, 
+            final EditorTableColumn tableColumn, 
             final boolean linkCursor, 
             final EventHandler<MouseEvent> mouseEvent) {
         super(new DefaultStringConverter());
@@ -245,7 +247,7 @@ class ObjectCell extends TextFieldTableCell<Note, String> {
         graphic = null;
         if (item != null && getTableRow().getItem() != null &&
                 "noteNameColFXML".equals(getId()) && 
-                OwnNoteEditorParameters.LookAndFeel.tagTree.equals(myEditor.getCurrentLookAndFeel())) {
+                CmdLineParameters.LookAndFeel.tagTree.equals(myEditor.getCurrentLookAndFeel())) {
             final Note note = ObjectsHelper.uncheckedCast(getTableRow().getItem());
             final String groupColor = note.getGroup().getColorName();
             graphic = new Label("    ");

@@ -49,41 +49,41 @@ public class RecentNoteForGroup extends HashMap<String, Note> {
     }
 
     public String toPreferenceString() {
-        return OwnNoteEditorPreferences.PREF_STRING_PREFIX + 
+        return EditorPreferences.PREF_STRING_PREFIX + 
                 entrySet().stream().map((t) -> {
                     if (t.getValue() != null) {
-                        return t.getKey() + OwnNoteEditorPreferences.PREF_DATA_SEP + t.getValue().getNoteName();
+                        return t.getKey() + EditorPreferences.PREF_DATA_SEP + t.getValue().getNoteName();
                     } else {
                         return null;
                     }
-                }).collect( Collectors.joining(OwnNoteEditorPreferences.PREF_STRING_SEP)) +
-                OwnNoteEditorPreferences.PREF_STRING_SUFFIX;
+                }).collect( Collectors.joining(EditorPreferences.PREF_STRING_SEP)) +
+                EditorPreferences.PREF_STRING_SUFFIX;
     }
     
     public void fromPreferenceString(final String prefString) {
         // not long enough to be a valid preference string
-        if (prefString.length() < (OwnNoteEditorPreferences.PREF_STRING_PREFIX + OwnNoteEditorPreferences.PREF_STRING_SUFFIX).length()) {
+        if (prefString.length() < (EditorPreferences.PREF_STRING_PREFIX + EditorPreferences.PREF_STRING_SUFFIX).length()) {
             return;
         }
-        if (!prefString.startsWith(OwnNoteEditorPreferences.PREF_STRING_PREFIX)) {
+        if (!prefString.startsWith(EditorPreferences.PREF_STRING_PREFIX)) {
             return;
         }
-        if (!prefString.endsWith(OwnNoteEditorPreferences.PREF_STRING_SUFFIX)) {
+        if (!prefString.endsWith(EditorPreferences.PREF_STRING_SUFFIX)) {
             return;
         }
         
         // list of key - value pairs (as single string) for the map
-        final String [] prefs = prefString.substring(OwnNoteEditorPreferences.PREF_STRING_PREFIX.length(), prefString.length()-OwnNoteEditorPreferences.PREF_STRING_SUFFIX.length()).
-                    strip().split(OwnNoteEditorPreferences.PREF_STRING_SEP); 
+        final String [] prefs = prefString.substring(EditorPreferences.PREF_STRING_PREFIX.length(), prefString.length()-EditorPreferences.PREF_STRING_SUFFIX.length()).
+                    strip().split(EditorPreferences.PREF_STRING_SEP); 
         
         for (String pref : prefs) {
             // no two elements in preference string
-            if (pref.split(OwnNoteEditorPreferences.PREF_DATA_SEP).length != 2) {
+            if (pref.split(EditorPreferences.PREF_DATA_SEP).length != 2) {
                 continue;
             }
             
-            final String[] recentNote = pref.split(OwnNoteEditorPreferences.PREF_DATA_SEP);
-            put(recentNote[0], OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForExternalName(recentNote[0], false), recentNote[1]));
+            final String[] recentNote = pref.split(EditorPreferences.PREF_DATA_SEP);
+            put(recentNote[0], FileManager.getInstance().getNote(TagManager.getInstance().groupForExternalName(recentNote[0], false), recentNote[1]));
         }
     }
 }

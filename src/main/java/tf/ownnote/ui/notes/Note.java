@@ -25,7 +25,6 @@
  */
 package tf.ownnote.ui.notes;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.Set;
@@ -40,7 +39,7 @@ import javafx.beans.property.StringProperty;
 import org.unbescape.html.HtmlEscape;
 import tf.ownnote.ui.helper.FileContentChangeType;
 import tf.ownnote.ui.helper.FormatHelper;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.links.LinkManager;
 import tf.ownnote.ui.tags.TagData;
 
@@ -255,7 +254,7 @@ public class Note {
     }
     
     public String getNoteFileName() {
-        return OwnNoteFileManager.getInstance().buildNoteName(this);
+        return FileManager.getInstance().buildNoteName(this);
     }
     
     public BooleanProperty hasUnsavedChangesProperty() {

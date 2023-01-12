@@ -43,14 +43,14 @@ import tf.helper.general.ObjectsHelper;
  *
  * @author Thomas Feuster <thomas@feuster.com>
  */
-public class OwnNoteDirectoryMonitor {
+public class DirectoryMonitor {
     private ThreadWatcher fileWatcher = null;
     private Thread watchThread = null;
     
     // linked list to maintain order of callbacks
     private List<IFileChangeSubscriber> changeSubscribers = new LinkedList<>();
 
-    public OwnNoteDirectoryMonitor() {
+    public DirectoryMonitor() {
         super();
     }
 
@@ -83,8 +83,11 @@ public class OwnNoteDirectoryMonitor {
                 fileWatcher.terminate();
                 watchThread.join();
             } catch (InterruptedException | ClosedWatchServiceException ex) {
-                Logger.getLogger(OwnNoteDirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(DirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
             }
+            // System.out.printf("Time %s: Done stopping\n", myEditor.getCurrentTimeStamp());
+            
+            // System.out.printf("Time %s: Done stopping\n", myEditor.getCurrentTimeStamp());
             // System.out.printf("Time %s: Done stopping\n", myEditor.getCurrentTimeStamp());
             
             // System.out.printf("Time %s: Done stopping\n", myEditor.getCurrentTimeStamp());
@@ -155,7 +158,7 @@ public class OwnNoteDirectoryMonitor {
                             StandardWatchEventKinds.ENTRY_MODIFY);
 
                 } catch (IOException ex) {
-                    Logger.getLogger(OwnNoteDirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(DirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
 
@@ -177,8 +180,10 @@ public class OwnNoteDirectoryMonitor {
                     watcher = null;
                     watchPath = null;
                 } catch (IOException | InterruptedException ex) {
-                    Logger.getLogger(OwnNoteDirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(DirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
                 }
+
+                // System.out.printf("Time %s: Disabled watcher\n", myEditor.getCurrentTimeStamp());
 
                 // System.out.printf("Time %s: Disabled watcher\n", myEditor.getCurrentTimeStamp());
             }
@@ -198,7 +203,7 @@ public class OwnNoteDirectoryMonitor {
                     try {
                         Thread.sleep(250);
                     } catch (InterruptedException ex) {
-                        Logger.getLogger(OwnNoteDirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
+                        Logger.getLogger(DirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
                     }
                     
                     try {
@@ -208,7 +213,7 @@ public class OwnNoteDirectoryMonitor {
                         }
                     } catch (ClosedWatchServiceException ex) {
                         // System.out.printf("Time %s: Exception\n", myEditor.getCurrentTimeStamp());
-                        Logger.getLogger(OwnNoteDirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
+                        Logger.getLogger(DirectoryMonitor.class.getName()).log(Level.SEVERE, null, ex);
                         key = null;
                     }
                     

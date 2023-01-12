@@ -47,8 +47,8 @@ import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import jfxtras.styles.jmetro.JMetro;
 import jfxtras.styles.jmetro.Style;
-import tf.ownnote.ui.helper.OwnNoteEditorParameters;
-import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
+import tf.ownnote.ui.helper.CmdLineParameters;
+import tf.ownnote.ui.helper.EditorPreferences;
 
 /**
  *
@@ -56,7 +56,7 @@ import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
  */
 public class OwnNoteEditorManager extends Application {
 
-    private final static OwnNoteEditorParameters parameters = OwnNoteEditorParameters.getInstance();
+    private final static CmdLineParameters parameters = CmdLineParameters.getInstance();
     private OwnNoteEditor controller;
 
     private Stage myStage = null;
@@ -109,15 +109,15 @@ public class OwnNoteEditorManager extends Application {
         FXMLLoader fxmlLoader = null;
         try {
             // issue #30: store width and height of window as well - but here so that the scene can be created accordingly
-            Double recentWindowWidth = OwnNoteEditorPreferences.RECENT_WINDOW_WIDTH.getAsType();
-            Double recentWindowHeigth = OwnNoteEditorPreferences.RECENT_WINDOW_HEIGTH.getAsType();
+            Double recentWindowWidth = EditorPreferences.RECENT_WINDOW_WIDTH.getAsType();
+            Double recentWindowHeigth = EditorPreferences.RECENT_WINDOW_HEIGTH.getAsType();
             // TFE, 20201020: store left & top as well
             final Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
-            Double recentWindowLeft = OwnNoteEditorPreferences.RECENT_WINDOW_LEFT.getAsType();
+            Double recentWindowLeft = EditorPreferences.RECENT_WINDOW_LEFT.getAsType();
             if (Double.isNaN(recentWindowLeft)) {
                 recentWindowLeft = (primScreenBounds.getWidth() - recentWindowWidth) / 2.0;
             }
-            Double recentWindowTop = OwnNoteEditorPreferences.RECENT_WINDOW_TOP.getAsType();
+            Double recentWindowTop = EditorPreferences.RECENT_WINDOW_TOP.getAsType();
             if (Double.isNaN(recentWindowTop)) {
                 recentWindowTop = (primScreenBounds.getHeight() - recentWindowHeigth) / 2.0;
             }
@@ -329,10 +329,10 @@ public class OwnNoteEditorManager extends Application {
         if (productiveRun) {
             // TF, 20170904: maximized gives wrong values for width & height - surely same with minimized...
             if (!myStage.isMaximized() && !myStage.isIconified()) {
-                OwnNoteEditorPreferences.RECENT_WINDOW_WIDTH.put(myStage.getScene().getWidth());
-                OwnNoteEditorPreferences.RECENT_WINDOW_HEIGTH.put(myStage.getScene().getHeight());
-                OwnNoteEditorPreferences.RECENT_WINDOW_LEFT.put(myStage.getX());
-                OwnNoteEditorPreferences.RECENT_WINDOW_TOP.put(myStage.getY());
+                EditorPreferences.RECENT_WINDOW_WIDTH.put(myStage.getScene().getWidth());
+                EditorPreferences.RECENT_WINDOW_HEIGTH.put(myStage.getScene().getHeight());
+                EditorPreferences.RECENT_WINDOW_LEFT.put(myStage.getX());
+                EditorPreferences.RECENT_WINDOW_TOP.put(myStage.getY());
             }
         }
         
