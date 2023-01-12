@@ -61,6 +61,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.FileChooser;
 import org.apache.commons.io.FileUtils;
+import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AbstractStage;
 import tf.helper.javafx.ShowAlerts;
 import tf.ownnote.ui.helper.OwnNoteFileManager;
@@ -76,10 +77,15 @@ import tf.ownnote.ui.tasks.TaskManager;
  * 2) Tags: show & edit in a fancy way
  *    - show each tag as label with cross to remove
  *    - show label "add or create" that open small dialog with the list of known tags and a create option
- * 3) Tasks: show counts (open / closed / total)
+ * 3) Attachments: show with option to add & delete
+ * 4) Links: show with option to click
+ * 5) Tasks: show counts (open / closed / total)
  * @author thomas
  */
 public class NoteMetaDataEditor {
+    private final static String LINK_FROM = "\u2190 ";
+    private final static String LINK_TO = "\u2192 ";
+            
     private HBox myHBox;
     
     // callback to OwnNoteEditor required for e.g. delete & rename
@@ -92,11 +98,16 @@ public class NoteMetaDataEditor {
     private Label taskstxt;
     private final FlowPane tagsBox = new FlowPane();
     
+    // TFE, 20230105: we now alos have notes between links
+    private final MenuBar links = new MenuBar();
+    
     private Note editorNote;
 
     // TFE, 20210305: make sure we only attach listener once and it can be removed afterwards
     private SetChangeListener<TagData> tagListener;
     private ListChangeListener<String> attachListener;
+    private SetChangeListener<Note> linkedListener;
+    private SetChangeListener<Note> linkingListener;
     
     private NoteMetaDataEditor() {
         super();
@@ -142,6 +153,20 @@ public class NoteMetaDataEditor {
             }
         };
 
+        linkedListener = new SetChangeListener<>() {
+            @Override
+            public void onChanged(SetChangeListener.Change<? extends Note> change) {
+                buildLinkMenus();
+            }
+        };
+        
+        linkingListener = new SetChangeListener<>() {
+            @Override
+            public void onChanged(SetChangeListener.Change<? extends Note> change) {
+                buildLinkMenus();
+            }
+        };
+        
         initEditor();
     }
     
@@ -190,10 +215,10 @@ public class NoteMetaDataEditor {
         });
 
         final Menu attachmentsMenu = new Menu("Attachments");
-        attachmentsMenu.getStyleClass().add("attachment-menu");
+        attachmentsMenu.getStyleClass().add("metadata-menu");
         attachmentsMenu.getStyleClass().add("menu-as-list");
         attachments.getMenus().add(attachmentsMenu);
-        attachments.getStyleClass().add("attachment-menu");
+        attachments.getStyleClass().add("metadata-menu");
         attachments.getStyleClass().add("menu-as-list");
         
         addAttachment.setUserData("+");
@@ -203,6 +228,16 @@ public class NoteMetaDataEditor {
         });
         attachments.getMenus().get(0).getItems().setAll(addAttachment);
         HBox.setMargin(attachments, AbstractStage.INSET_SMALL);
+        
+        // TFE, 20230105: links are here!
+        final Menu linksMenu = new Menu("Links");
+        linksMenu.getStyleClass().add("metadata-menu");
+        linksMenu.getStyleClass().add("menu-as-list");
+
+        links.getMenus().add(linksMenu);
+        links.getStyleClass().add("metadata-menu");
+        links.getStyleClass().add("menu-as-list");
+        HBox.setMargin(links, AbstractStage.INSET_SMALL);
 
         final Region region1 = new Region();
         HBox.setHgrow(region1, Priority.ALWAYS);
@@ -215,7 +250,7 @@ public class NoteMetaDataEditor {
         taskstxt.setTooltip(t);
         HBox.setMargin(taskstxt, new Insets(0, 8, 0, 0));
         
-        myHBox.getChildren().addAll(authorsLbl, versions, tagsLbl, tagsScroll, tagsButton, attachments, region1, tasksLbl, taskstxt);
+        myHBox.getChildren().addAll(authorsLbl, versions, tagsLbl, tagsScroll, tagsButton, attachments, links, region1, tasksLbl, taskstxt);
     }
     
     public void editNote(final Note note) {
@@ -223,6 +258,8 @@ public class NoteMetaDataEditor {
             // remove listeners from old note
             editorNote.getMetaData().getTags().removeListener(tagListener);
             editorNote.getMetaData().getAttachments().removeListener(attachListener);
+            editorNote.getMetaData().getLinkingNotes().removeListener(linkedListener);
+            editorNote.getMetaData().getLinkedNotes().removeListener(linkingListener);
         }
         
         versions.getItems().clear();
@@ -251,15 +288,20 @@ public class NoteMetaDataEditor {
             addTagLabel(tag);
         }
         
-        // change listener as well
         editorNote.getMetaData().getTags().addListener(tagListener);
         
+        // fill attachments menu
         for (String attach : editorNote.getMetaData().getAttachments()) {
             addAttachMenu(attach);
         }
         
-        // change listener as well
         editorNote.getMetaData().getAttachments().addListener(attachListener);
+        
+        // fill links menu
+        buildLinkMenus();
+        
+        editorNote.getMetaData().getLinkingNotes().addListener(linkedListener);
+        editorNote.getMetaData().getLinkedNotes().addListener(linkingListener);
         
         final TaskCount taskCount = TaskManager.getInstance().getTaskCount(note);
         taskstxt.setText(taskCount.getCount(TaskCount.TaskType.OPEN) + " / " + taskCount.getCount(TaskCount.TaskType.CLOSED) + " / " + taskCount.getCount(TaskCount.TaskType.TOTAL));
@@ -405,5 +447,33 @@ public class NoteMetaDataEditor {
                 Logger.getLogger(NoteMetaDataEditor.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+    }
+    
+    private void buildLinkMenus() {
+        // start from scratch: clear and add all links and backlinks
+        links.getMenus().get(0).getItems().clear();
+        
+        for (Note note : editorNote.getMetaData().getLinkedNotes()) {
+            links.getMenus().get(0).getItems().add(buildLinkMenu(LINK_TO, note.getNoteFileName()));
+        }
+        
+        for (Note note : editorNote.getMetaData().getLinkingNotes()) {
+            links.getMenus().get(0).getItems().add(buildLinkMenu(LINK_FROM, note.getNoteFileName()));
+        }
+        
+        // show hide based on number of menu items
+        links.setVisible(!links.getMenus().get(0).getItems().isEmpty());
+        links.setDisable(links.getMenus().get(0).getItems().isEmpty());
+    }
+    
+    private CustomMenuItem buildLinkMenu(final String direction, final String noteName) {
+        final CustomMenuItem menu = new CustomMenuItem(new Label(direction + noteName));
+        menu.getStyleClass().add("menu-as-list");
+        menu.setUserData(noteName);
+        menu.setOnAction((t) -> {
+            myEditor.selectNote(noteName);
+        });
+
+        return menu;
     }
 }

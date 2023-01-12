@@ -162,7 +162,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
                 final Note note = new Note(TagManager.getInstance().groupForExternalName(groupName, true), noteName);
                 note.setNoteModified(filetime);
                 // TFE; 20201023: set note metadata from file content
-                note.setMetaData(NoteMetaData.fromHtmlComment(note, getFirstLine(file)));
+                note.setMetaDataFromHtmlComment(getFirstLine(file));
                 // use filename and not notename since duplicate note names can exist in different groups
                 notesList.put(filename, note);
 //                System.out.println("Added note '" + note.getNoteName() + "' for group '" + note.getGroup().getExternalName() + "' from filename '" + filename + "'");
@@ -337,7 +337,6 @@ public class OwnNoteFileManager implements INoteCRMDS {
             noteRow.setNoteModified(filetime);
             // TFE, 20210113: init data as well - especially charset
             noteRow.setNoteFileContent("");
-            noteRow.setMetaData(new NoteMetaData(noteRow));
             noteRow.getMetaData().setCharset(StandardCharsets.UTF_8);
 
             // use filename and not notename since duplicate note names can exist in diffeent groups
@@ -450,7 +449,7 @@ public class OwnNoteFileManager implements INoteCRMDS {
         // TFE, 20220108: upgrade notes to full html...
         final String fullContent = 
                 MINIMAL_HTML_PREFIX + 
-                NoteMetaData.toHtmlComment(note.getMetaData()) + content +
+                note.getMetaDataAsHtmlComment() + content +
                 MINIMAL_HTML_SUFFIX;
 
         // TFE, 20201217: make sure we write UTF-8...

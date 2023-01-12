@@ -304,7 +304,7 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
         return result;
     }
     
-    public static NoteMetaData fromHtmlComment(final Note note, final String htmlString) {
+    protected static NoteMetaData fromHtmlComment(final Note note, final String htmlString) {
         final NoteMetaData result = new NoteMetaData(note);
 
         // parse html string
@@ -320,7 +320,7 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
         return result;
     }
     
-    public static String toHtmlComment(final NoteMetaData data) {
+    protected static String toHtmlComment(final NoteMetaData data) {
         if (data == null) {
             return "";
         }

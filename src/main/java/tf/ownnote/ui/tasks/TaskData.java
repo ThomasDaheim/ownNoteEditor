@@ -335,7 +335,7 @@ public class TaskData implements ICommentDataHolder, ITagHolder, ICalendarEvent 
         }
     }
     
-    public String toHtmlComment() {
+    protected String toHtmlComment() {
         return CommentDataMapper.getInstance().toComment(this);
     }
     
