@@ -270,6 +270,10 @@ public class HTMLEditor {
                 if (newState == Worker.State.SUCCEEDED && !editorInitialized) {
                     JSObject window = (JSObject) myWebEngine.executeScript("window");
 
+                    // TFE, 20230130: lets try firebug once again
+                    // https://stackoverflow.com/a/73124798
+//                    wrapExecuteScript(myWebEngine, "var firebug=document.createElement('script');firebug.setAttribute('src','https://lupatec.eu/getfirebug/firebug-lite-compressed.js');document.body.appendChild(firebug);(function(){if(window.firebug.version){firebug.init();}else{setTimeout(arguments.callee);}})();void(firebug);");
+
                     window.setMember("editorCallback", myself);
                     wrapExecuteScript(myWebEngine, "console.log = function(message)\n" +
                         "{\n" +
