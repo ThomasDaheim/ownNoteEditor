@@ -279,7 +279,7 @@ public class HTMLEditor {
                         "{\n" +
                         "    editorCallback.log(message);\n" +
                         "};");
-                    //myWebEngine.executeScript("console.log(\"Testmessage\");");
+//                    myWebEngine.executeScript("console.log(\"Testmessage\");");
                     
                     wrapExecuteScript(myWebEngine, "initEditor();");
 
@@ -323,7 +323,8 @@ public class HTMLEditor {
         });
         myWebEngine.setUserStyleSheetLocation(HTMLEditor.class.getResource("/editor.min.css").toString());
 
-        final String editor_script = HTMLEditor.class.getResource("/tinymceEditor.html").toExternalForm();
+        final String editor_script = HTMLEditor.class.getResource("/tinymceEditor.min.html").toExternalForm();
+//        final String editor_script = HTMLEditor.class.getResource("/testBrowser.min.html").toExternalForm();
         myWebView.getEngine().load(editor_script);
     }
     
