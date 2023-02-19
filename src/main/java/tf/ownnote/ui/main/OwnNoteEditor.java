@@ -453,6 +453,17 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         
         // TFE, 20210716: get recent note for group from references
         RecentNoteForGroup.getInstance().fromPreferenceString(EditorPreferences.RECENT_NOTE_FOR_GROUP.getAsType());
+        
+        // TFE, 20230213: add about menu as the very last since all dependencies should have been loaded before
+        Platform.runLater(() -> {
+            AboutMenu.getInstance().addAboutMenu(
+                    OwnNoteEditor.class, 
+                    borderPane.getScene().getWindow(), 
+                    menuBar, 
+                    "OwnNoteEditor", 
+                    "v6.2", 
+                    "https://github.com/ThomasDaheim/ownNoteEditor");
+        });
     }
 
     //
@@ -800,8 +811,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         menuGroups2Tags.setOnAction((t) -> {
             TagManager.getInstance().groupsToTags();
         });
-
-        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v6.2", "https://github.com/ThomasDaheim/ownNoteEditor");
         
         // TFE, 20220429: get app version so that we can compare it with one from registry - to determine migration needs!
         AppInfo.getInstance().initAppInfo(OwnNoteEditor.class, "OwnNoteEditor", "v6.2", "https://github.com/ThomasDaheim/ownNoteEditor");
