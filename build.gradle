@@ -17,10 +17,10 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.google.gradle:osdetector-gradle-plugin:1.7.1'
+        classpath 'com.google.gradle:osdetector-gradle-plugin:1.7.3'
         // https://github.com/ben-manes/gradle-versions-plugin
         // task: dependencyUpdates
-        classpath 'com.github.ben-manes:gradle-versions-plugin:0.44.0'
+        classpath 'com.github.ben-manes:gradle-versions-plugin:0.45.0'
     }
 }
 
@@ -102,7 +102,7 @@ dependencies {
     implementation 'org.apache.commons:commons-lang3:3.12.0'
     implementation group: 'org.apache.commons', name: 'commons-text', version: '1.10.0'
     implementation group: 'commons-codec', name: 'commons-codec', version: '1.15'
-    implementation group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.19'
+    implementation group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.20'
     implementation group: 'org.unbescape', name: 'unbescape', version: '1.1.6.RELEASE'
     implementation group: 'org.jfxtras', name: 'jfxtras-controls', version: '15-r2'
     implementation group: 'org.controlsfx', name: 'controlsfx', version: '11.1.2'
@@ -113,10 +113,10 @@ dependencies {
 
     testImplementation "org.testfx:testfx-junit:4.0.+"
     testImplementation "org.testfx:testfx-core:4.0.+"
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.9.1'
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.9.1'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.9.2'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.9.2'
     // TFE, 20221231: build a test suite for all non-UI tests
-    testImplementation group: 'org.junit.platform', name: 'junit-platform-suite-engine', version: '1.9.1'
+    testImplementation group: 'org.junit.platform', name: 'junit-platform-suite-engine', version: '1.9.2'
     // TFE, 20210121: capture System.err() easily
     testImplementation group: 'com.github.stefanbirkner', name: 'system-lambda', version: '1.2.1'
 }
