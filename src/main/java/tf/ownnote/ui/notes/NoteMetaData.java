@@ -97,6 +97,8 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
     private final ObservableList<NoteVersion> myVersions = FXCollections.<NoteVersion>observableArrayList();
     private final ObservableSet<TagData> myTags = FXCollections.<TagData>observableSet();
     // TFE, 20210228: know thy tasks as well
+    // TFE, 20230309: use property extractor to able to react to task status changes as well
+    // not supported for sets ?!?!?!?! https://stackoverflow.com/a/42494026
     private final ObservableSet<TaskData> myTasks = FXCollections.<TaskData>observableSet();
     // TFE, 20201217: add charset to metadata - since we switched to UTF-8 on 17.12.2020 we need to be able to handle old notes
     private Charset myCharset = StandardCharsets.ISO_8859_1;

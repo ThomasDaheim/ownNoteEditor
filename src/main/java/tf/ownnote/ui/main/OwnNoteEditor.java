@@ -107,7 +107,7 @@ import tf.ownnote.ui.helper.RecentNoteForGroup;
 import tf.ownnote.ui.links.LinkManager;
 import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.notes.NoteMetaDataEditor;
+import tf.ownnote.ui.editor.NoteMetaDataEditor;
 import tf.ownnote.ui.tags.TagData;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tags.TagsEditor;
