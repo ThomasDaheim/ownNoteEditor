@@ -1233,6 +1233,20 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         // and now go upwards in the hierarchy til root or "Groups" tag
         TagData parent = tag.getParent();
         for (int i = tag.getLevel(); i > 0; i--) {
+            if (parent == null) {
+                // TFE, 20230213: occasional exception: Cannot invoke "tf.ownnote.ui.tags.TagData.getName()" because "parent" is null
+                // this shouldn't happen! levels says we need to go up the chain but the chain isn't long enough?
+                System.err.println("Tag '" + tag.getName() + "' has incorrect parent hierarchy!");
+                System.err.println("Expected: " + tag.getLevel() + " parents, chain ended on level " + i);
+                System.err.println("Actual tag hierarchy:");
+                TagData dump = tag;
+                int j = 0;
+                do {
+                    System.err.println("  Tag " + j + ": '" + dump.getName() + "' on level " + dump.getLevel());
+
+                    dump = dump.getParent();
+                } while (dump != null);
+            }
             if (isGroupsRootTag(parent)) {
                 // we don't need to go all the way up to root...
                 break;
