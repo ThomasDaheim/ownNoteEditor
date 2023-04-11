@@ -151,6 +151,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
         
         public TagData getTag() {
+            // TFE, 20230411: We might not yet have loaded the tags! Happens e.g. on first call on new machine...
+            TagManager.getInstance().initTags();
             return myTag;
         }
 
