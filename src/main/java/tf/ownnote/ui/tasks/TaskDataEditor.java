@@ -77,6 +77,8 @@ public class TaskDataEditor extends GridPane {
     
     private final Label idLbl = new Label(); 
     private final Label descLbl = new Label(); 
+    // TE, 20230416: show note as well
+    private final Label noteLbl = new Label(); 
     private final ChoiceBox<TaskData.TaskStatus> statusBox = 
             EnumHelper.getInstance().createChoiceBox(TaskData.TaskStatus.class, TaskData.TaskStatus.OPEN);
     private final ChoiceBox<TaskData.TaskPriority> prioBox = 
@@ -138,6 +140,18 @@ public class TaskDataEditor extends GridPane {
         
         getGridPane().add(descLbl, 1, rowNum, 1, 1);
         GridPane.setMargin(descLbl, INSET_TOP);
+
+        rowNum++;
+        // note
+        t = new Tooltip("Note of this task");
+        final Label lblnote = new Label("Note:");
+        lblnote.setTooltip(t);
+        getGridPane().add(lblnote, 0, rowNum, 1, 1);
+        GridPane.setValignment(lblnote, VPos.CENTER);
+        GridPane.setMargin(lblnote, INSET_TOP);
+        
+        getGridPane().add(noteLbl, 1, rowNum, 1, 1);
+        GridPane.setMargin(noteLbl, INSET_TOP);
 
         rowNum++;
         // status
@@ -262,6 +276,7 @@ public class TaskDataEditor extends GridPane {
         Tooltip t = new Tooltip(myTask.getDescription());
         descLbl.setTooltip(t);
         descLbl.setText(myTask.getDescription()); 
+        noteLbl.setText(myTask.getNote().getNoteFileName());
         EnumHelper.getInstance().selectEnum(statusBox, myTask.getTaskStatus());
         EnumHelper.getInstance().selectEnum(prioBox, myTask.getTaskPriority());
         if (myTask.getDueDate()!= null) {
@@ -277,8 +292,6 @@ public class TaskDataEditor extends GridPane {
         } else {
             duedateTimeTxt.setText("");
         }
-        t = new Tooltip(myTask.getComment());
-        commentArea.setTooltip(t);
         commentArea.setText(myTask.getComment());
 
         tagsBox.getChildren().clear();

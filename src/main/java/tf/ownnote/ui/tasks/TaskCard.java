@@ -61,6 +61,8 @@ import tf.ownnote.ui.main.OwnNoteEditor;
 public class TaskCard extends GridPane {
     private final TaskData myTask;
     
+    // TFE, 202300416: show note as well on the card
+    private final Label noteLbl = new Label(); 
     private final Label descLbl = new Label(); 
     private final static String DUEDATE_LABEL = "\u23F0 "; //"\uD83D\uDCC5 "
     private final Label dueDateLbl = new Label(); 
@@ -124,6 +126,12 @@ public class TaskCard extends GridPane {
         descLbl.getStyleClass().add("taskdata");
         getGridPane().add(descLbl, 0, rowNum, 2, 1);
         GridPane.setMargin(descLbl, AbstractStage.INSET_TOP);
+
+        rowNum++;
+        // note
+        noteLbl.getStyleClass().add("taskdata");
+        getGridPane().add(noteLbl, 0, rowNum, 2, 1);
+        GridPane.setMargin(noteLbl, AbstractStage.INSET_TOP);
 
         rowNum++;
         //  priority & due date
@@ -203,12 +211,15 @@ public class TaskCard extends GridPane {
     
     private void initValues() {
         Tooltip t = new Tooltip(myTask.getDescription());
-        descLbl.setTooltip(t);
+        Tooltip.install(this, t);
+
         descLbl.textProperty().bind(myTask.descriptionProperty()); 
         if (inFirstInit) {
             myTask.isCompletedProperty().addListener(completeListener);
         }
         setPseudoClass();
+        
+        noteLbl.setText(myTask.getNote().getNoteFileName());
 
         prioLbl.textProperty().bind(Bindings.concat(PRIO_LABEL, myTask.taskPriorityProperty()));
         if (inFirstInit) {

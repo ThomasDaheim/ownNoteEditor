@@ -1247,6 +1247,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                     System.err.println("  Tag " + j + ": '" + dump.getName() + "' on level " + dump.getLevel());
 
                     dump = dump.getParent();
+                    j++;
                 } while (dump != null);
             }
             if (isGroupsRootTag(parent)) {

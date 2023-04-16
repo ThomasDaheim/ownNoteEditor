@@ -67,7 +67,8 @@ public class TaskList {
         final StringConverter<TaskData> converter = new StringConverter<TaskData>() {
             @Override
             public String toString(TaskData task) {
-                return task.getDescription() + System.lineSeparator() + TaskCard.getPriorityText(task) + "\t\t" + TaskCard.getDueDateText(task);
+                return  task.getDescription() + System.lineSeparator() +
+                        TaskCard.getPriorityText(task) + "\t\t" + TaskCard.getDueDateText(task);
             }
 
             // not actually used by CheckBoxListCell
@@ -102,6 +103,8 @@ public class TaskList {
                         tooltip.getStyleClass().add("taskdata-popup");
                         tooltip.setOnShowing((t) -> {
                             final StringBuilder text = new StringBuilder();
+                            text.append(item.getDescription());
+                            text.append(System.lineSeparator());
                             text.append(item.getNote().getNoteFileName());
                             text.append(System.lineSeparator());
                             text.append("Prio: ");
