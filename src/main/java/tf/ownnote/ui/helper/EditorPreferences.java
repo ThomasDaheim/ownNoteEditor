@@ -42,7 +42,9 @@ public enum EditorPreferences implements IPreferencesStore {
     // TFE, 20200907: store tab order
     RECENT_TAB_ORDER("recentTabOrder", "", String.class),
     // TFE, 20210716: store recent note per group
-    RECENT_NOTE_FOR_GROUP("recentNoteForGroup", "", String.class);
+    RECENT_NOTE_FOR_GROUP("recentNoteForGroup", "", String.class),
+    // TFE, 20230423: show / hide notes from sub groups
+    SHOW_NOTES_FROM_SUB_GROUPS("showNotesFromSubGroups", Boolean.toString(true), Boolean.class);
     
     public static final String PREF_STRING_PREFIX = "[ ";
     public static final String PREF_STRING_SUFFIX = " ]";

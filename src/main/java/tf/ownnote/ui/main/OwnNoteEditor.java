@@ -323,6 +323,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     @FXML
     private MenuItem menuTaskboard;
 
+    // TFE, 20230423: show / hide notes from subgroups
+    @FXML
+    private CheckMenuItem menuShowNotesFromSubGroups;
+
     public OwnNoteEditor() {
     }
     
@@ -810,6 +814,12 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         });
         menuGroups2Tags.setOnAction((t) -> {
             TagManager.getInstance().groupsToTags();
+        });
+        
+        menuShowNotesFromSubGroups.setSelected(EditorPreferences.SHOW_NOTES_FROM_SUB_GROUPS.getAsType());
+        menuShowNotesFromSubGroups.selectedProperty().addListener((ObservableValue<? extends Boolean> ov, Boolean t, Boolean t1) -> {
+            EditorPreferences.SHOW_NOTES_FROM_SUB_GROUPS.put(menuShowNotesFromSubGroups.isSelected());
+            notesTable.setFilterPredicate();
         });
         
         // TFE, 20220429: get app version so that we can compare it with one from registry - to determine migration needs!

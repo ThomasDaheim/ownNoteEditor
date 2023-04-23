@@ -475,7 +475,12 @@ public class EditorTableView implements IPreferencesHolder {
 
                 // Compare group name to group filter text
                 // check hierarchy as well - let manager do this
-                if (!TagManager.getInstance().compareTagsHierarchy(groupFilter, note.getGroup(), TagManager.TagCompare.BY_IDENTITY,  true)) {
+                // TFE, 20230423: use preference to include notes from sub groups
+                if (!TagManager.getInstance().compareTagsHierarchy(
+                        groupFilter, 
+                        note.getGroup(), 
+                        TagManager.TagCompare.BY_IDENTITY,  
+                        EditorPreferences.SHOW_NOTES_FROM_SUB_GROUPS.getAsType())) {
                     return false;
                 }
             }
