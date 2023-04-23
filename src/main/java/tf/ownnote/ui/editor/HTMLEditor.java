@@ -129,6 +129,7 @@ public class HTMLEditor {
     private static final List<String> COMPRESS_IMAGES = List.of("Compress images", "Bilder komprimieren");
     private static final List<String> REPLACE_CHECKEDBOXES = List.of("Checked box -> " + TaskData.ARCHIVED_BOX, "Checked Box -> " + TaskData.ARCHIVED_BOX);
     private static final List<String> REPLACE_CHECKMARKS = List.of(TaskData.ARCHIVED_BOX + " -> Checked box", TaskData.ARCHIVED_BOX + " -> Checked Box");
+    private static final List<String> COLLAPSE_SELECTION = List.of("Collapse selection", "Auswahl einklappen");
 
     // complete list of menu items for language check
     private static final List<List<String>> TINYMCE_MENUES =  List.of(COPY_SELECTION, RELOAD_PAGE, OPEN_FRAME_NEW_WINDOW, OPEN_LINK, OPEN_LINK_NEW_WINDOW);
@@ -595,6 +596,10 @@ public class HTMLEditor {
         editNote(editedNote, content, true);
     }
     
+    private void collapseSelection() {
+            wrapExecuteScript(myWebEngine, "collapseSelection();");
+    }
+
     private void initPopupWindow() {
         final ObservableList<Window> windows = Window.getWindows();
 
@@ -734,8 +739,15 @@ public class HTMLEditor {
                                 compressImages();
                             });
 
+                            // collapse selection
+                            final MenuItem collapseSelectionMenu = new MenuItem(COLLAPSE_SELECTION.get(getLanguage()));
+                            collapseSelectionMenu.setOnAction((ActionEvent event) -> {
+                                collapseSelection();
+                            });
+
                             // add new items:
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(saveMenu));
+                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(collapseSelectionMenu));
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(compressImagesMenu));
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(replaceCheckedBoxesMenu));
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(replaceCheckmarksMenu));

@@ -600,6 +600,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     contentChanged = false;
                 }
             }
+            
+            function collapseSelection() {
+                console.log('Collapsing current selection')
+                tinymce.activeEditor.selection.collapse(true);
+                console.log('Done collapsing')
+            }
 
             // https://javascript.info/settimeout-setinterval
             var delay = 1000;
