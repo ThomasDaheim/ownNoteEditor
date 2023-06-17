@@ -62,6 +62,10 @@
     -fx-font-style: italic;
 }
 
+.table-view.notesTable .column-header .label {
+    -fx-font-weight: normal;
+}
+
 /* note name in bold */
 .noteNameCol {
     -fx-alignment: CENTER_LEFT;
