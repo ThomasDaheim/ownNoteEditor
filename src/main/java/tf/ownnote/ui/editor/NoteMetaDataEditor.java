@@ -188,10 +188,10 @@ public class NoteMetaDataEditor {
             @Override
             public void onChanged(SetChangeListener.Change<? extends TaskData> change) {
                 if (change.wasRemoved()) {
-                    change.getElementAdded().isCompletedProperty().removeListener(taskStatusListener);
+                    change.getElementRemoved().isCompletedProperty().removeListener(taskStatusListener);
                 }
                 if (change.wasAdded()) {
-                    change.getElementRemoved().isCompletedProperty().addListener(taskStatusListener);
+                    change.getElementAdded().isCompletedProperty().addListener(taskStatusListener);
                 }
                 updateTaskCount();
             }
