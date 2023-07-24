@@ -63,6 +63,7 @@ import javafx.scene.Parent;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.image.Image;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.ContextMenuEvent;
@@ -740,14 +741,14 @@ public class HTMLEditor {
                             });
 
                             // collapse selection
-                            final MenuItem collapseSelectionMenu = new MenuItem(COLLAPSE_SELECTION.get(getLanguage()));
-                            collapseSelectionMenu.setOnAction((ActionEvent event) -> {
-                                collapseSelection();
-                            });
+//                            final MenuItem collapseSelectionMenu = new MenuItem(COLLAPSE_SELECTION.get(getLanguage()));
+//                            collapseSelectionMenu.setOnAction((ActionEvent event) -> {
+//                                collapseSelection();
+//                            });
 
                             // add new items:
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(saveMenu));
-                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(collapseSelectionMenu));
+//                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(collapseSelectionMenu));
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(compressImagesMenu));
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(replaceCheckedBoxesMenu));
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(replaceCheckmarksMenu));
@@ -845,8 +846,8 @@ public class HTMLEditor {
         if (myClipboardFx.hasHtml()) {
             // remove all html tags
             selection = myClipboardFx.getHtml().replaceAll("\\<.*?>","");
-        } else if (myClipboardFx.hasUrl()) {
-            System.out.println(myClipboardFx.getUrl());
+//        } else if (myClipboardFx.hasUrl()) {
+//            System.out.println(myClipboardFx.getUrl());
         } else if (myClipboardFx.hasRtf()) {
             try {
                 final RTFEditorKit rtfParser = new RTFEditorKit();
