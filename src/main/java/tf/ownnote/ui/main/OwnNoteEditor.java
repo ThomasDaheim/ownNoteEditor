@@ -657,12 +657,13 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         splitPaneXML.applyCss();
         splitPaneXML.requestLayout();
         
+        // TFE, 20230617: can't hide header - its the only way to sort & show/hide columns
         // hide notesTableFXML header
-        final Pane header = (Pane) notesTableFXML.lookup("TableHeaderRow");
-        header.setMinHeight(0);
-        header.setPrefHeight(0);
-        header.setMaxHeight(0);
-        header.setVisible(false);
+//        final Pane header = (Pane) notesTableFXML.lookup("TableHeaderRow");
+//        header.setMinHeight(0);
+//        header.setPrefHeight(0);
+//        header.setMaxHeight(0);
+//        header.setVisible(false);
 
         // 1st column: tag tree
         ColumnConstraints column1 = new ColumnConstraints();

@@ -24,7 +24,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.web.WebView?>
 
-<BorderPane fx:id="borderPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="400.0" minWidth="600.0" prefHeight="600.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tf.ownnote.ui.main.OwnNoteEditor">
+<BorderPane fx:id="borderPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="400.0" minWidth="600.0" prefHeight="600.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tf.ownnote.ui.main.OwnNoteEditor">
    <top>
       <MenuBar fx:id="menuBar" BorderPane.alignment="CENTER">
          <menus>
@@ -100,7 +100,7 @@
                         </HBox>
                         <TableView fx:id="notesTableFXML" prefHeight="200.0" prefWidth="200.0" styleClass="notesTable">
                           <columns>
-                            <TableColumn fx:id="noteNameColFXML" editable="false" prefWidth="75.0" styleClass="noteNameCol" text="Name" />
+                            <TableColumn fx:id="noteNameColFXML" editable="false" prefWidth="75.0" styleClass="noteNameCol" text="Notes" />
                             <TableColumn fx:id="noteModifiedColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteModifiedCol" text="Modified" />
                           </columns>
                         </TableView>
