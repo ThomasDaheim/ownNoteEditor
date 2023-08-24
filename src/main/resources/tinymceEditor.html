@@ -84,7 +84,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     plugins: [
                             // TFE, 20210511: add image & image tools plugins
                             "codesample wordcount visualchars textcolor advlist autolink lists link charmap anchor image imagetools",
-                            "searchreplace visualblocks code insertdatetime media table contextmenu emoticons help toc hr paste"
+                            "searchreplace visualblocks code insertdatetime media table contextmenu emoticons help toc hr paste",
+                            // TFE, 20230817: add textpattern plugin: https://www.tiny.cloud/docs/plugins/opensource/textpattern/ 
+                            "textpattern"
                     ],
                     codesample_languages: [
                         {text: 'HTML/XML', value: 'markup'},
@@ -96,6 +98,32 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         {text: 'C#', value: 'csharp'},
                         {text: 'C++', value: 'cpp'}
                     ],
+                    textpattern_patterns: [
+                        {start: '*', end: '*', format: 'italic'},
+                        {start: '**', end: '**', format: 'bold'},
+                        {start: '#', format: 'h1'},
+                        {start: '##', format: 'h2'},
+                        {start: '###', format: 'h3'},
+                        {start: '####', format: 'h4'},
+                        {start: '#####', format: 'h5'},
+                        {start: '######', format: 'h6'},
+                        // The following text patterns require the `lists` plugin
+                        {start: '* ', cmd: 'InsertUnorderedList'},
+                        {start: '- ', cmd: 'InsertUnorderedList' },
+                        {start: '1. ', cmd: 'InsertOrderedList', value: { 'list-style-type': 'decimal' }},
+                        {start: '1) ', cmd: 'InsertOrderedList', value: { 'list-style-type': 'decimal' }},
+                        {start: 'a. ', cmd: 'InsertOrderedList', value: { 'list-style-type': 'lower-alpha' }},
+                        {start: 'a) ', cmd: 'InsertOrderedList', value: { 'list-style-type': 'lower-alpha' }},
+                        {start: 'i. ', cmd: 'InsertOrderedList', value: { 'list-style-type': 'lower-roman' }},
+                        {start: 'i) ', cmd: 'InsertOrderedList', value: { 'list-style-type': 'lower-roman' }},
+                        // not all utf-chars yet working, so far only "test"
+                        {start: '<-', replacement: '&#2190'},
+                        {start: '->', replacement: '&#2192'},
+                        {start: '--', replacement: '&#2014'},
+                        {start: '(c)', replacement: '&#00A9'},
+                        {start: 'test', replacement: '&#1787'}
+                    ],
+
                     extended_valid_elements: "form[name|id|action|method|enctype|accept-charset|onsubmit|onreset|target],input[id|name|type|value|size|maxlength|checked|accept|src|width|height|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|onkeyup|onkeydown|required|style],textarea[id|name|rows|cols|maxlength|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|onkeyup|onkeydown|required|style],option[name|id|value|selected|style],select[id|name|type|value|size|maxlength|checked|width|height|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|multiple|style]",
                     toolbar1: "saveNote printNote searchreplace | undo redo | styleselect fontselect fontsizeselect | bold italic underline strikethrough subscript superscript removeformat | charmap emoticons",
                     toolbar2: "forecolor backcolor | alignleft aligncenter alignright alignjustify alignnone | bullist numlist outdent indent | table insertCheckBox | link insertImage insertdatetime hr | codesample | visualchars visualblocks code | wordcount help",
