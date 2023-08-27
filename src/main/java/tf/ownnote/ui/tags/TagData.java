@@ -44,7 +44,6 @@ import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
 import javafx.scene.control.Label;
-import org.apache.commons.lang3.RandomStringUtils;
 import tf.ownnote.ui.notes.Note;
 
 /**

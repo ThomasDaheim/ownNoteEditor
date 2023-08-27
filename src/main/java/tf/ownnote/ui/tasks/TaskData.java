@@ -20,7 +20,6 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.unbescape.html.HtmlEscape;
 import tf.helper.javafx.calendarview.CalendarView;
 import tf.helper.javafx.calendarview.ICalendarEvent;
