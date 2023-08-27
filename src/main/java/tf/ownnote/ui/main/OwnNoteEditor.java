@@ -87,6 +87,7 @@ import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Window;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import tf.helper.general.AppInfo;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AboutMenu;

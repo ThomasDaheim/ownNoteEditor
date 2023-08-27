@@ -25,6 +25,7 @@
  */
 package tf.ownnote.ui.tags;
 
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import java.util.Optional;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
