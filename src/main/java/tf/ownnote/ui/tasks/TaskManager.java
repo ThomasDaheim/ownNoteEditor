@@ -53,9 +53,9 @@ import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import tf.helper.javafx.calendarview.CalendarView;
 import tf.ownnote.ui.helper.FileContentChangeType;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
-import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 

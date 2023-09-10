@@ -25,7 +25,6 @@
  */
 package tf.ownnote.ui.editor;
 
-import tf.ownnote.ui.editor.EditorTab;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;

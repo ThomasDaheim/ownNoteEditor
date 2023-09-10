@@ -38,8 +38,8 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import org.unbescape.html.HtmlEscape;
 import tf.ownnote.ui.helper.FileContentChangeType;
-import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.FileManager;
+import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.links.LinkManager;
 import tf.ownnote.ui.tags.TagData;
 
