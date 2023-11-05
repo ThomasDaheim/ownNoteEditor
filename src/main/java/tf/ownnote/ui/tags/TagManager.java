@@ -460,6 +460,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
         // deep copy tags over to real root
         ROOT_TAG.setChildren(xstreamRoot.cloneMe().getChildren());
+//        System.out.println(ROOT_TAG.printWithChildren());
         
         // ensure reserved names are fixed
         for (ReservedTag reservedTag : ReservedTag.values()) {
@@ -1240,15 +1241,14 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
                 // this shouldn't happen! levels says we need to go up the chain but the chain isn't long enough?
                 System.err.println("Tag '" + tag.getName() + "' has incorrect parent hierarchy!");
                 System.err.println("Expected: " + tag.getLevel() + " parents, chain ended on level " + i);
-                System.err.println("Actual tag hierarchy:");
-                TagData dump = tag;
-                int j = 0;
-                do {
-                    System.err.println("  Tag " + j + ": '" + dump.getName() + "' on level " + dump.getLevel());
-
-                    dump = dump.getParent();
-                    j++;
-                } while (dump != null);
+                System.err.println("Tag hierarchy for this tag:");
+                TagData root = tag;
+                while (root.getParent() != null) {
+                    root = root.getParent();
+                }
+                System.err.println(root.printWithChildren());
+                System.err.println("Tag hierarchy for root tag:");
+                System.err.println(ROOT_TAG.printWithChildren());
             }
             if (isGroupsRootTag(parent)) {
                 // we don't need to go all the way up to root...

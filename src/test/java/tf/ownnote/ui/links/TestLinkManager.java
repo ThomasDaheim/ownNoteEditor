@@ -42,7 +42,7 @@ public class TestLinkManager {
     
     @BeforeEach
     public void setUp() {
-        LinkManager.getInstance().resetLinkList();
+        LinkManager.getInstance().resetLinkLists();
         FileManager.getInstance().setCallback(null);
         FileManager.getInstance().initNotesPath("src/test/resources");
         LinkManager.getInstance().findNoteLinks();

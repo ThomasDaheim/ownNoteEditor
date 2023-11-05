@@ -89,6 +89,12 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
         myEditor.getNoteEditor().subscribe(INSTANCE);
     }
     
+    public void resetLinkLists() {
+        linkList.clear();
+        backlinkList.clear();
+        noteLinksInitialized = false;
+    }
+    
     public void findNoteLinks() {
         if (!noteLinksInitialized) {
             // lazy loading
@@ -108,12 +114,6 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
         assert note != null;
         
         return backlinkList.get(note);
-    }
-    
-    public void resetLinkList() {
-        noteLinksInitialized = false;
-        linkList.clear();
-        backlinkList.clear();
     }
     
     private void initNotesWithLinks() {
@@ -150,8 +150,12 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
             final Set<Note> backlinks = new HashSet<>();
 
             for (Note keyNote : linkList.keySet()) {
-                if (linkList.get(keyNote).contains(note)) {
-                    backlinks.add(keyNote);
+                if (linkList.get(keyNote) == null) {
+                    System.err.println("That shoudn't have happened!");
+                } else {
+                    if (linkList.get(keyNote).contains(note)) {
+                        backlinks.add(keyNote);
+                    }
                 }
             }
             
@@ -169,10 +173,17 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
     
     private boolean initNoteLinks(final Note note, final String noteContent) {
         final Set<Note> linkedNotes = linkedNotesForNoteAndContent(note, noteContent);
+
+        // TFE, 20231103: it could have been a false positive
         note.getMetaData().setLinkedNotes(linkedNotes);
         
-        final Set<Note> prevLinkedNotes = linkList.put(note, linkedNotes);
-        
+        Set<Note> prevLinkedNotes;
+        if (!linkedNotes.isEmpty()){
+            prevLinkedNotes = linkList.put(note, linkedNotes);
+        } else {
+            prevLinkedNotes = linkList.remove(note);
+        }
+
         return !linkedNotes.equals(prevLinkedNotes);
     }
     

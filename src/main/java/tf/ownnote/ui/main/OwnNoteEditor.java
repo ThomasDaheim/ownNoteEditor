@@ -882,6 +882,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             RecentNoteForGroup.getInstance().clear();
         }
         
+        // TFE, 20231105: init link handling as well
+        LinkManager.getInstance().resetLinkLists();
         // scan directory and re-populate lists
         FileManager.getInstance().initNotesPath(ownCloudPath.textProperty().getValue());
 
@@ -1198,6 +1200,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             
             // re-init list of groups and notes - file has beeen added or removed
             Platform.runLater(() -> {
+                // TFE, 20231103: only re-init if required
+                // required for new notes
+                boolean needsInit = StandardWatchEventKinds.ENTRY_CREATE.equals(eventKind);
+                
                 if (!StandardWatchEventKinds.ENTRY_CREATE.equals(eventKind)) {
                     // delete & modify is only relevant if we're editing this note...
                     if (noteHTMLEditor.getEditedNote() != null) {
@@ -1239,6 +1245,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                                     saveNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
                                     if (saveNote(saveNote)) {
                                     }
+                                    // required for new notes
+                                    needsInit = true;
                                 }
 
                                 if (saveChanges.get().equals(buttonDiscard)) {
@@ -1248,6 +1256,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                                         final Note loadNote = noteHTMLEditor.getEditedNote();
                                         FileManager.getInstance().readNote(loadNote, true);
                                         noteHTMLEditor.editNote(loadNote);
+                                    } else {
+                                        // required for removed notes
+                                        needsInit = true;
                                     }
                                 }
                             }
@@ -1257,9 +1268,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             
                 // TFE, 20210101: only initFromDirectory if anything related to note files has changed!
                 if (FileManager.NOTE_EXT.equals(FilenameUtils.getExtension(fileName))) {
-                    // show only notes for selected group
-                    initFromDirectory(true, true);
-                    selectFirstOrCurrentNote();
+                    if (needsInit) {
+                        // show only notes for selected group
+                        initFromDirectory(true, true);
+                        selectFirstOrCurrentNote();
+                    }
 
                     // but only if group still exists in the list!
                     if (TagManager.getInstance().getGroupTags(true).contains(myGroupList.getCurrentGroup())) {
