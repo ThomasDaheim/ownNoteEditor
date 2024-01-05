@@ -46,7 +46,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         </script>
 
         <link rel="stylesheet" type="text/css" href="./editor.min.css">
-        <script src='./tinymce/jquery-3.6.0.slim.min.js'></script>
+        <script src='./tinymce/jquery-3.7.1.slim.min.js'></script>
         <script src='./tinymce/tinymce.min.js'></script>
         <script>
             var insertImageButton;
@@ -83,10 +83,27 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     remove_script_host: false,
                     plugins: [
                             // TFE, 20210511: add image & image tools plugins
-                            "codesample wordcount visualchars textcolor advlist autolink lists link charmap anchor image imagetools",
-                            "searchreplace visualblocks code insertdatetime media table contextmenu emoticons help toc hr paste",
+                            "accordion", "advlist", "anchor", "autolink", "charmap", "code", "codesample", 
+                            // TFE, 20240105: no longer in 6.*, was only empty stub
+                            // "contextmenu", 
+                            "emoticons", "help", 
+                            // TFE, 20240105: no longer in 6.*, now part of core
+                            // "hr", 
+                            "image", 
+                            // TFE, 20240105: no longer in 6.*, now "editimage" premium
+                            // "imagetools", 
+                            "insertdatetime", "link", "lists", "media", 
+                            // TFE, 20240105: no longer in 6.*, now "powerpaste" premium
+                            // "paste",
+                            "searchreplace", "table", 
+                            // TFE, 20240105: no longer in 6.*, was only empty stub
+                            // "textcolor", 
                             // TFE, 20230817: add textpattern plugin: https://www.tiny.cloud/docs/plugins/opensource/textpattern/ 
-                            "textpattern"
+                            // TFE, 20240105: no longer in 6.*, now part of core
+                            // "textpattern",
+                            // TFE, 20240105: no longer in 6.*, now premium
+                            // "toc", 
+                            "visualblocks", "visualchars", "wordcount"
                     ],
                     codesample_languages: [
                         {text: 'HTML/XML', value: 'markup'},
@@ -98,7 +115,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         {text: 'C#', value: 'csharp'},
                         {text: 'C++', value: 'cpp'}
                     ],
-                    textpattern_patterns: [
+                    text_patterns: [
                         {start: '*', end: '*', format: 'italic'},
                         {start: '**', end: '**', format: 'bold'},
                         {start: '#', format: 'h1'},
@@ -125,8 +142,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     ],
 
                     extended_valid_elements: "form[name|id|action|method|enctype|accept-charset|onsubmit|onreset|target],input[id|name|type|value|size|maxlength|checked|accept|src|width|height|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|onkeyup|onkeydown|required|style],textarea[id|name|rows|cols|maxlength|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|onkeyup|onkeydown|required|style],option[name|id|value|selected|style],select[id|name|type|value|size|maxlength|checked|width|height|disabled|readonly|tabindex|accesskey|onfocus|onblur|onchange|onselect|onclick|multiple|style]",
-                    toolbar1: "saveNote printNote searchreplace | undo redo | styleselect fontselect fontsizeselect | bold italic underline strikethrough subscript superscript removeformat | charmap emoticons",
-                    toolbar2: "forecolor backcolor | alignleft aligncenter alignright alignjustify alignnone | bullist numlist outdent indent | table insertCheckBox | link insertImage insertdatetime hr | codesample | visualchars visualblocks code | wordcount help",
+                    toolbar1: "saveNote printNote searchreplace undo redo styles fontfamily fontsize bold italic underline strikethrough subscript superscript removeformat charmap emoticons",
+                    toolbar2: "forecolor backcolor alignleft aligncenter alignright alignjustify alignnone accordion bullist numlist outdent indent table insertCheckBox link insertImage insertdatetime hr codesample visualchars visualblocks code wordcount help",
                     // TFE, 20230423: max list of toolbar items
                     // toolbar1: "aligncenter alignjustify alignleft alignnone alignright| anchor | blockquote blocks | backcolor | bold | copy | cut | fontfamily fontsize forecolor h1 h2 h3 h4 h5 h6 hr indent | italic | language | lineheight | newdocument | outdent | paste pastetext | print | redo | remove removeformat | selectall | strikethrough | styles | subscript superscript underline | undo | visualaid | a11ycheck advtablerownumbering typopgraphy anchor restoredraft casechange charmap checklist code codesample addcomment showcomments ltr rtl editimage fliph flipv imageoptions rotateleft rotateright emoticons export footnotes footnotesupdate formatpainter fullscreen help image insertdatetime link openlink unlink bullist numlist media mergetags mergetags_list nonbreaking pagebreak pageembed permanentpen preview quickimage quicklink quicktable cancel save searchreplace spellcheckdialog spellchecker | tableofcontents tableofcontentsupdate | template typography | insertfile | visualblocks visualchars | wordcount",
                     // toolbar2: "table tablecellprops tablecopyrow tablecutrow tabledelete tabledeletecol tabledeleterow tableinsertdialog tableinsertcolafter tableinsertcolbefore tableinsertrowafter tableinsertrowbefore tablemergecells tablepasterowafter tablepasterowbefore tableprops tablerowprops tablesplitcells tableclass tablecellclass tablecellvalign tablecellborderwidth tablecellborderstyle tablecaption tablecellbackgroundcolor tablecellbordercolor tablerowheader tablecolheader",
@@ -138,6 +155,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     paste_data_images: true,
                     // TFE, 20181203: we only want to have the content...
                     paste_as_text: true,
+                    paste_merge_formats: true,
                     content_style: "body {padding: 0px; margin: 0px;} .mce-content-body {font-size: 10pt;}",
                     // https://github.com/angular-ui/ui-tinymce/issues/260
                     save_enablewhendirty: false,
@@ -148,7 +166,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     // https://andy-carter.com/blog/how-to-remove-the-link-target-options-from-tinymce
                     target_list: false,
                     default_link_target: 'dummy',
-                    paste_preprocess : function(plugin, args) {
+                    paste_preprocess : (editor, args) => {
                         if(!regularPaste) {
                             args.content = ""; // Ignore what TinyMCE think it should insert
 
@@ -157,7 +175,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             var clipboardData = editorCallback.getClipboardContent();
 
                             tinymce.activeEditor.execCommand('mceInsertClipboardContent', false, {
-                                content: clipboardData
+                                // TFE, 20240105: param changed from "content: " with tinymce 6.*
+                                html: clipboardData
                             }); // This will call paste_preprocess again
                         }
 
@@ -167,7 +186,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         //console.log('Save was pressed.');
                         editorCallback.saveNote();
                     },
-                    setup: function (editor) {
+                    setup: (editor) => {
                         //http://archive.tinymce.com/wiki.php/api4:class.tinymce.ContentEvent
                         editor.on('init', function (ed) { 
                             // support for check boxes and such...

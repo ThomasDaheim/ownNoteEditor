@@ -157,7 +157,7 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
     }
     
     private void handleTableClick(final TableCell clickedCell) {
-        assert (this.myEditor != null);
+        assert (myEditor != null);
         
         // only do things for row with data
         if (clickedCell.getTableRow().isEmpty()) {
@@ -180,7 +180,7 @@ class UniversalMouseEvent implements EventHandler<MouseEvent> {
         
         if (reInit) {
             // rescan diretory - also group name counters need to be updated...
-            this.myEditor.initFromDirectory(false, false);
+            myEditor.initFromDirectory(false, false);
         }
     }
 };

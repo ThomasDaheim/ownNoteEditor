@@ -9,6 +9,8 @@ Aim was to mimic the behaviour of the former ownNote web client using JavaFX and
 
 V 6.2
 
+* Upgraded tinymce to 6.8.0
+* Adding tinymce "accordion" feature
 * Links to other notes
 * Internal clean-up of FXML structure
 

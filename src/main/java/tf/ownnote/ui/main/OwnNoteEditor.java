@@ -879,9 +879,13 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             TaskManager.getInstance().resetTaskList();
             TagManager.getInstance().resetTagList();
 
-            RecentNoteForGroup.getInstance().clear();
+            // TFE, 2023: no need to throw away that info
+//            RecentNoteForGroup.getInstance().clear();
         }
         
+        // TFE, 20231105: throy away edited note
+        noteHTMLEditor.editNote(null);
+        noteMetaEditor.editNote(null);
         // TFE, 20231105: init link handling as well
         LinkManager.getInstance().resetLinkLists();
         // scan directory and re-populate lists
@@ -906,6 +910,12 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         
         // Issue #59: advanced filtering & sorting
         // do the stuff in the EditorTableView - thats the right place!
+        if (resetTasksTags) {
+            // TFE, 20231105: we need to reset the filter for the notes table to make sure its not empty after setting the new notes
+            // BUT note working since it leads to the dreaded "Tag 'Projekte' has incorrect parent hierarchy!" exception
+//            firstNoteAccess = true;
+//            notesTable.setGroupFilter(null);
+        }
         notesTable.setNotes(notesList);
         
         myGroupList.setGroups(TagManager.getInstance().getGroupTags(false), updateOnly);
@@ -958,6 +968,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         noteMetaEditor.editNote(note);
         currentNoteProperty.set(note);
         RecentNoteForGroup.getInstance().put(note.getGroup().getExternalName(), note);
+        
+        // TFE, 20231105: also update corresponding preferences
+        EditorPreferences.LAST_EDITED_NOTE.put(noteHTMLEditor.getEditedNote().getNoteName());
+        EditorPreferences.LAST_EDITED_GROUP.put(noteHTMLEditor.getEditedNote().getGroup().getExternalName());
         
         return result;
     }
@@ -1275,6 +1289,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                     }
 
                     // but only if group still exists in the list!
+                    // which is tricky after a re-init since it re-loads tags and therefore the objects don't match anymore...
                     if (TagManager.getInstance().getGroupTags(true).contains(myGroupList.getCurrentGroup())) {
                         setGroupFilter(myGroupList.getCurrentGroup());
                     }

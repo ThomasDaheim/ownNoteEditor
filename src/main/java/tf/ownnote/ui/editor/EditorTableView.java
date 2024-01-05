@@ -424,8 +424,6 @@ public class EditorTableView implements IPreferencesHolder {
     }
     
     public void setGroupFilter(final TagData group) {
-        // group is filtered by name
-        // TODO: is this still true with new group hierarchy and duplicate group names??? NO!!!
         groupFilter = group;
         tagFilter = null;
 
@@ -466,6 +464,10 @@ public class EditorTableView implements IPreferencesHolder {
     
     public void setFilterPredicate() {
         getTableView().setUserData(groupFilter);
+        
+        if (filteredData == null) {
+            return;
+        }
         
         filteredData.setPredicate((Note note) -> {
             // 1. If group filter text is empty or "All": no need to check
