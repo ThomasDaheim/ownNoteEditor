@@ -12,7 +12,10 @@ V 6.2
 * Upgraded tinymce to 6.8.0
 * Adding tinymce "accordion" feature
 * Links to other notes
+* Show edit notes task at beginning of tasks list
 * Internal clean-up of FXML structure
+* Various bugfixes
+* Update dependencies
 
 V 6.1
 
