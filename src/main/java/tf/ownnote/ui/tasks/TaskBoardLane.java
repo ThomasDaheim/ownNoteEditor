@@ -35,6 +35,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
@@ -168,11 +169,33 @@ public class TaskBoardLane extends VBox {
     };
     
     private void updateTaskCards() {
+        // TFE, 20240124: add sorting by notename & textpos to have tasks grouped together
+        final SortedList<TaskData> sortedData = new SortedList<>(filteredData);
+        sortedData.setComparator((o1, o2) -> {
+            if (o1 == o2) {
+                return 0;
+            }
+            if (o1 == null) {
+                return -1;
+            }
+            if (o2 == null) {
+                return 1;
+            }
+            // compare note names
+            int result = o1.getNote().getNoteFileName().compareTo(o2.getNote().getNoteFileName());
+            // TFE, 20230827: we want to have edited note always on top of the list!
+            if (result == 0) {
+                // sort by textpos for same note
+                result = o1.getTextPos() - o2.getTextPos();
+            }
+            return result;
+        });
+        
         // and now check against current cards
         // 1. remove obsolete cards
         final List<TaskData> taskToBeRemoved = new ArrayList<>();
         for (Map.Entry<TaskData, TaskCard> entry : myCardMap.entrySet()) {
-            if (!filteredData.contains(entry.getKey())) {
+            if (!sortedData.contains(entry.getKey())) {
                 taskBox.getChildren().remove(entry.getValue());
                 taskToBeRemoved.add(entry.getKey());
             }
@@ -185,14 +208,17 @@ public class TaskBoardLane extends VBox {
         }
 
         // 2. add missing cards
-        for (TaskData task : filteredData) {
+        // TFE, 20240124: but please at the correct position as in sortedData
+        for (int i = 0; i < sortedData.size(); i++) {
+            final TaskData task = sortedData.get(i);
             if (!myCardMap.containsKey(task)) {
                 final TaskCard card = new TaskCard(task);
                 card.setPrefWidth(taskBox.getWidth());
                 card.prefWidthProperty().bind(taskBox.widthProperty());
-                taskBox.getChildren().add(card);
+                taskBox.getChildren().add(i, card);
                 myCardMap.put(task, card);
             }
+            
         }
 
         requestLayout();
