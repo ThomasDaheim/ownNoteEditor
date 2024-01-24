@@ -230,7 +230,7 @@ public class TaskList {
         setFilterPredicate();
         
         // add sorting by notename & textpos to have tasks grouped together
-        SortedList<TaskData> sortedData = new SortedList<>(filteredData);
+        final SortedList<TaskData> sortedData = new SortedList<>(filteredData);
         sortedData.setComparator((o1, o2) -> {
             if (o1 == o2) {
                 return 0;
