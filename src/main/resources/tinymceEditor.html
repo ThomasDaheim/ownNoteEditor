@@ -166,6 +166,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     // https://andy-carter.com/blog/how-to-remove-the-link-target-options-from-tinymce
                     target_list: false,
                     default_link_target: 'dummy',
+                    help_accessibility: true,
                     paste_preprocess : (editor, args) => {
                         if(!regularPaste) {
                             args.content = ""; // Ignore what TinyMCE think it should insert
@@ -665,7 +666,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <body>
         <form method="post" id="editorBase">
             <textarea id="mytextarea"></textarea>
-            <iframe src='about:blank' name='dummy' height='0' width='0' hidden></iframe>
+            <!-- TFE, 20240124: we did we need that again? Lets try without...
+                <iframe src='about:blank' name='dummy' height='0' width='0' hidden></iframe> -->
         </form>
     </body>
 </html>
