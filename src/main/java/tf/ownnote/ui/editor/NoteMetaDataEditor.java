@@ -35,6 +35,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javafx.application.HostServices;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
@@ -136,10 +137,16 @@ public class NoteMetaDataEditor {
             @Override
             public void onChanged(SetChangeListener.Change<? extends TagData> change) {
                 if (change.wasRemoved()) {
-                    removeTagLabel(change.getElementRemoved());
+                    // TFE, 20240124: not all updates might have happened yet
+                    Platform.runLater(() -> {
+                        removeTagLabel(change.getElementRemoved());
+                    });
                 }
                 if (change.wasAdded()) {
-                    addTagLabel(change.getElementAdded());
+                    // TFE, 20240124: not all updates might have happened yet
+                    Platform.runLater(() -> {
+                        addTagLabel(change.getElementAdded());
+                    });
                 }
             }
         };
@@ -151,12 +158,18 @@ public class NoteMetaDataEditor {
                 while (change.next()) {
                     if (change.wasRemoved()) {
                         for (String attach : change.getRemoved()) {
-                            removeAttachMenu(attach);
+                            Platform.runLater(() -> {
+                                // TFE, 20240124: not all updates might have happened yet
+                                removeAttachMenu(attach);
+                            });
                         }
                     }
                     if (change.wasAdded()) {
                         for (String attach : change.getAddedSubList()) {
-                            addAttachMenu(attach);
+                            Platform.runLater(() -> {
+                                // TFE, 20240124: not all updates might have happened yet
+                                addAttachMenu(attach);
+                            });
                         }
                     }
                 }
@@ -166,21 +179,30 @@ public class NoteMetaDataEditor {
         linkedListener = new SetChangeListener<>() {
             @Override
             public void onChanged(SetChangeListener.Change<? extends Note> change) {
-                buildLinkMenus();
+                // TFE, 20240124: not all updates might have happened yet
+                Platform.runLater(() -> {
+                    buildLinkMenus();
+                });
             }
         };
         
         linkingListener = new SetChangeListener<>() {
             @Override
             public void onChanged(SetChangeListener.Change<? extends Note> change) {
-                buildLinkMenus();
+                // TFE, 20240124: not all updates might have happened yet
+                Platform.runLater(() -> {
+                    buildLinkMenus();
+                });
             }
         };
         
         taskStatusListener = new ChangeListener<>() {
             @Override
             public void changed(ObservableValue<? extends Boolean> ov, Boolean t, Boolean t1) {
-                updateTaskCount();
+                // TFE, 20240124: not all updates might have happened yet
+                Platform.runLater(() -> {
+                    updateTaskCount();
+                });
             }
         };
                 
@@ -193,7 +215,10 @@ public class NoteMetaDataEditor {
                 if (change.wasAdded() && change.getElementAdded() != null) {
                     change.getElementAdded().isCompletedProperty().addListener(taskStatusListener);
                 }
-                updateTaskCount();
+                // TFE, 20240124: not all updates might have happened yet
+                Platform.runLater(() -> {
+                    updateTaskCount();
+                });
             }
         };
         
