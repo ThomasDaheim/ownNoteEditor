@@ -417,8 +417,8 @@ public class EditorTableView implements IPreferencesHolder {
         
         // 4. update item list in table filter
         // that removes the sort order!!!
-        myTableView.setItems(null);
-        myTableView.layout();
+//        myTableView.setItems(null);
+//        myTableView.layout();
         myTableView.setItems(sortedData);
         restoreSortOrder();
     }
