@@ -9,7 +9,7 @@ Aim was to mimic the behaviour of the former ownNote web client using JavaFX and
 
 V 6.2
 
-* Upgraded tinymce to 6.8.0
+* Upgraded tinymce to 6.8.2 (needed to downgrade help plugin back to 5.10.7 since new version not running in WebView)
 * Adding tinymce "accordion" feature
 * Links to other notes
 * Show edit notes task at beginning of tasks list
