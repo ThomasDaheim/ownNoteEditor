@@ -170,11 +170,21 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     default_link_target: 'dummy',
                     help_accessibility: true,
                     help_tabs: [
-                      'shortcuts', // the default shortcuts tab
-                      'keyboardnav', // the default keyboard navigation tab
-                      'plugins', // the default plugins tab
-                      'versions', // the default version tab
-                      'OwnNoteEditor'
+                        'shortcuts', // the default shortcuts tab
+                        'keyboardnav', // the default keyboard navigation tab
+                        'plugins', // the default plugins tab
+                        'versions', // the default version tab
+                        {
+                            // TFE, 202400207: modify help with our own tab https://www.tiny.cloud/docs/plugins/opensource/help/
+                            name: 'OwnNoteEditor',
+                            title: 'OwnNoteEditor',
+                            items: [
+                                {
+                                  type: 'htmlpanel',
+                                  html: '<p>See <a href="https://github.com/ThomasDaheim/ownNoteEditor" target="_blank">https://github.com/ThomasDaheim/ownNoteEditor</a> for information on the editor.</p>',
+                                }
+                            ]
+                        }
                     ],
                     paste_preprocess : (editor, args) => {
                         if(!regularPaste) {
@@ -291,18 +301,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             
                             //console.log('Editor was initialized.');
                             editorCallback.initEditorDone();
-
-                            // TFE, 202400207: modify help with our own tab
-                            editor.plugins.help.addTab({
-                                name: 'OwnNoteEditor',
-                                title: 'OwnNoteEditor',
-                                items: [
-                                    {
-                                      type: 'htmlpanel',
-                                      html: '<p>See <a href="https://github.com/ThomasDaheim/ownNoteEditor" target="_blank">https://github.com/ThomasDaheim/ownNoteEditor</a> for information on the editor.</p>',
-                                    }
-                                ]
-                            });
                         });
 
                         editor.on('Paste Change input Undo Redo', function (ed) {
