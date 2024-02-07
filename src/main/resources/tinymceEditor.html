@@ -169,6 +169,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     target_list: false,
                     default_link_target: 'dummy',
                     help_accessibility: true,
+                    help_tabs: [
+                      'shortcuts', // the default shortcuts tab
+                      'keyboardnav', // the default keyboard navigation tab
+                      'plugins', // the default plugins tab
+                      'versions', // the default version tab
+                      'OwnNoteEditor'
+                    ],
                     paste_preprocess : (editor, args) => {
                         if(!regularPaste) {
                             args.content = ""; // Ignore what TinyMCE think it should insert
@@ -284,6 +291,18 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                             
                             //console.log('Editor was initialized.');
                             editorCallback.initEditorDone();
+
+                            // TFE, 202400207: modify help with our own tab
+                            editor.plugins.help.addTab({
+                                name: 'OwnNoteEditor',
+                                title: 'OwnNoteEditor',
+                                items: [
+                                    {
+                                      type: 'htmlpanel',
+                                      html: '<p>See <a href="https://github.com/ThomasDaheim/ownNoteEditor" target="_blank">https://github.com/ThomasDaheim/ownNoteEditor</a> for information on the editor.</p>',
+                                    }
+                                ]
+                            });
                         });
 
                         editor.on('Paste Change input Undo Redo', function (ed) {
