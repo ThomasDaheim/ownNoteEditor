@@ -112,14 +112,16 @@ dependencies {
     implementation group: 'org.jfxtras', name: 'jmetro', version: '11.6.16'
     implementation 'de.jensd:fontawesomefx:8.9'
 
-    testImplementation "org.testfx:testfx-junit:4.0.+"
-    testImplementation "org.testfx:testfx-core:4.0.+"
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.10.2'
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.10.2'
     // TFE, 20221231: build a test suite for all non-UI tests
     testImplementation group: 'org.junit.platform', name: 'junit-platform-suite-engine', version: '1.10.2'
     // TFE, 20210121: capture System.err() easily
     testImplementation group: 'com.github.stefanbirkner', name: 'system-lambda', version: '1.2.1'
+
+    testImplementation group: 'org.junit.vintage', name: 'junit-vintage-engine', version: '5.6.2'
+    testImplementation "org.testfx:testfx-junit:4.0.+"
+    testImplementation "org.testfx:testfx-core:4.0.+"
 }
 
 
@@ -145,7 +147,7 @@ compileJava {
 }
 
 // see https://github.com/kelemen/netbeans-gradle-project/issues/403 on how to extend gradle tasks
-def newArgs = [ '--add-modules', 'javafx.controls,javafx.graphics,javafx.base,javafx.fxml,javafx.web,javafx.swing,javafx.media',
+def newArgs = [ '--add-modules', 'javafx.controls,javafx.fxml,javafx.web,javafx.swing,javafx.media',
                 // various exports needed at run time - see https://stackoverflow.com/a/52142071
                 '--add-exports', 'javafx.base/com.sun.javafx.reflect=ALL-UNNAMED',
                 '--add-exports', 'javafx.base/com.sun.javafx.beans=ALL-UNNAMED',
