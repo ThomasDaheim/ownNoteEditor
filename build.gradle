@@ -20,7 +20,7 @@ buildscript {
         classpath 'com.google.gradle:osdetector-gradle-plugin:1.7.3'
         // https://github.com/ben-manes/gradle-versions-plugin
         // task: dependencyUpdates
-        classpath 'com.github.ben-manes:gradle-versions-plugin:0.49.0'
+        classpath 'com.github.ben-manes:gradle-versions-plugin:0.51.0'
     }
 }
 
@@ -99,14 +99,14 @@ dependencies {
     implementation 'tf.JavaHelper:JavaHelper:1.16'
 
     implementation 'commons-cli:commons-cli:1.6.0'
-    implementation 'commons-io:commons-io:2.15.0'
-    implementation 'org.apache.commons:commons-lang3:3.13.0'
+    implementation 'commons-io:commons-io:2.15.1'
+    implementation 'org.apache.commons:commons-lang3:3.14.0'
     implementation group: 'org.apache.commons', name: 'commons-text', version: '1.11.0'
     implementation group: 'commons-codec', name: 'commons-codec', version: '1.15'
     implementation group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.20'
     implementation group: 'org.unbescape', name: 'unbescape', version: '1.1.6.RELEASE'
-    implementation group: 'org.jfxtras', name: 'jfxtras-controls', version: '15-r2'
-    implementation group: 'org.controlsfx', name: 'controlsfx', version: '11.1.2'
+    implementation group: 'org.jfxtras', name: 'jfxtras-controls', version: '17-r1'
+    implementation group: 'org.controlsfx', name: 'controlsfx', version: '11.2.0'
     
     // new look & feel for old code :-)
     implementation group: 'org.jfxtras', name: 'jmetro', version: '11.6.16'
@@ -114,10 +114,10 @@ dependencies {
 
     testImplementation "org.testfx:testfx-junit:4.0.+"
     testImplementation "org.testfx:testfx-core:4.0.+"
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.10.0'
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.10.9'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.10.2'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.10.2'
     // TFE, 20221231: build a test suite for all non-UI tests
-    testImplementation group: 'org.junit.platform', name: 'junit-platform-suite-engine', version: '1.10.0'
+    testImplementation group: 'org.junit.platform', name: 'junit-platform-suite-engine', version: '1.10.2'
     // TFE, 20210121: capture System.err() easily
     testImplementation group: 'com.github.stefanbirkner', name: 'system-lambda', version: '1.2.1'
 }
