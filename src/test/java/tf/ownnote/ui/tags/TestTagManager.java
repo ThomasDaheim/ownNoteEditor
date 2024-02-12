@@ -146,7 +146,8 @@ public class TestTagManager {
         Assertions.assertTrue(TagManager.ReservedTag.NotGrouped.getTagName().equals(groupTags.get(1).getName()), "Testing NOT_GROUPED group tag");
         
         final TagData test3 = groupTags.get(4);
-        Assertions.assertTrue("b2eeee278206".equals(test3.getId()), "Testing TEST3 id");
+        // TFE, 20240212: since we now clone after loading from xml we can't test id anymore
+//        Assertions.assertTrue("b2eeee278206".equals(test3.getId()), "Testing TEST3 id");
         Assertions.assertTrue("Test3".equals(test3.getName()), "Testing TEST3 name");
         Assertions.assertTrue("CAMERA_RETRO".equals(test3.getIconName()), "Testing TEST3 iconName");
         Assertions.assertTrue("#99D0DF".equals(test3.getColorName()), "Testing TEST3 colorName");
