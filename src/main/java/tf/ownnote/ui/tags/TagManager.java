@@ -46,6 +46,7 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.nio.file.Path;
+import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1199,6 +1200,15 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             // need to manually update the linkt tag <-> note - both variants, just to be sure...
             oldGroup.getLinkedNotes().remove(curNote);
             oldGroup.getLinkedNotes().remove(movedNote);
+            
+            // TFE, 20240213: WTF??? above removes are not working!!! Need to clear and re-add by hand
+            final Set<Note> oldNotes = new HashSet<>(oldGroup.getLinkedNotes());
+            oldGroup.getLinkedNotes().clear();
+            for (Note note : oldNotes) {
+                if (!note.equals(curNote) && !note.equals(movedNote)) {
+                    oldGroup.getLinkedNotes().add(note);
+                }
+            }
             newGroup.getLinkedNotes().add(movedNote);
         }
 
