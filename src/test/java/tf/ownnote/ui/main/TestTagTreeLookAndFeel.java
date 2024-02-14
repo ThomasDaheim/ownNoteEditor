@@ -49,8 +49,6 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TreeView;
 import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
@@ -158,7 +156,6 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         //System.out.println("testpath: " + testpath.toString());
     }
 
-    private Label ownCloudPath;
     private TableView<Map<String, String>> notesTableFXML;
     private TreeView<TagData> tagsTreeView;
     private TagTextFieldTreeCell allTag;
@@ -167,6 +164,13 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
     private TagTextFieldTreeCell test3Tag;
     private TextField noteFilterText;
     private CheckBox noteFilterCheck;
+    // TFE, 20240213: need to be set during init - otherwise it gets lost on the way
+    private Node testLabel1 = null;
+    private Node testLabel2 = null;
+    private Node testLabel3 = null;
+    private Bounds testBounds1 = null;
+    private Bounds testBounds2 = null;
+    private Bounds testBounds3 = null;
 
     /* Just a shortcut to retrieve widgets in the GUI. */
     public <T extends Node> T find(final String query) {
@@ -194,6 +198,19 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         testTag = TagManager.getInstance().groupForName("Test3", false);
         assertNotNull(this);
         test3Tag = (TagTextFieldTreeCell) find("#" + testTag.getId());
+
+        if (testLabel1 == null) {
+            testLabel1 = test1Tag.getGraphic();
+            testBounds1 = test1Tag.localToScreen(testLabel1.getBoundsInLocal());
+        }
+        if (testLabel2 == null) {
+            testLabel2 = test2Tag.getGraphic();
+            testBounds2 = test2Tag.localToScreen(testLabel2.getBoundsInLocal());
+        }
+        if (testLabel3 == null) {
+            testLabel3 = test3Tag.getGraphic();
+            testBounds3 = test3Tag.localToScreen(testLabel3.getBoundsInLocal());
+        }
 
         noteFilterText = (TextField) find(".noteFilterText");
         noteFilterCheck = (CheckBox) find(".noteFilterCheck");
@@ -295,20 +312,19 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
     public void runTests() {
         resetForNextTest();
 
-//        testNodes();
-//        testInitialSetup();
-//        resetForNextTest();
-//        
-//        // TFE, 20210411: test rename first - otherwise some strang note selection issue
-//        testRenameNote();
-//        resetForNextTest();
-//
-//        testAddDeleteNote();
-//        resetForNextTest();
-
+        testNodes();
+        testInitialSetup();
+        resetForNextTest();
+        
         // TFE; 20201115: dragging with testfx doesn't work anymore for some time now :-(
         // and the fix is: https://github.com/TestFX/TestFX/issues/639#issuecomment-448609608
         testDragNote();
+        resetForNextTest();
+
+        testRenameNote();
+        resetForNextTest();
+
+        testAddDeleteNote();
         resetForNextTest();
 
         // TFE; 20201115: "java.lang.NullPointerException: om.sun.javafx.scene.control.behavior.TableViewBehaviorBase.activate(TableViewBehaviorBase.java:898)"
@@ -480,14 +496,14 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
     private void testDragNote() {
         System.out.println("running testDragNote()");
 
+        assertNotNull(testBounds1);
+        assertNotNull(testBounds2);
+        assertNotNull(testBounds3);
+
         // #1 ------------------------------------------------------------------
         // get x, y coordinates from tab 2
-        Node testLabel = null;
-        testLabel = test2Tag.getGraphic();
-        Bounds testBounds = test2Tag.localToScreen(testLabel.getBoundsInLocal());
-        assertNotNull(testBounds);
-        double centerX = testBounds.getMinX() + (testBounds.getMaxX() - testBounds.getMinX())/2.0;
-        double centerY = testBounds.getMinY() + (testBounds.getMaxY() - testBounds.getMinY())/2.0;
+        double centerX = testBounds2.getMinX() + (testBounds2.getMaxX() - testBounds2.getMinX())/2.0;
+        double centerY = testBounds2.getMinY() + (testBounds2.getMaxY() - testBounds2.getMinY())/2.0;
         
         clickOn(notesTableFXML);
         moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
@@ -507,10 +523,8 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         
         // #2 ------------------------------------------------------------------
         // drag note back
-        testLabel = test1Tag.getGraphic();
-        testBounds = testLabel.localToScreen(testLabel.getBoundsInLocal());
-        centerX = testBounds.getMinX() + (testBounds.getMaxX() - testBounds.getMinX())/2.0;
-        centerY = testBounds.getMinY() + (testBounds.getMaxY() - testBounds.getMinY())/2.0;
+        centerX = testBounds1.getMinX() + (testBounds1.getMaxX() - testBounds1.getMinX())/2.0;
+        centerY = testBounds1.getMinY() + (testBounds1.getMaxY() - testBounds1.getMinY())/2.0;
         
         clickOn(notesTableFXML);
         moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
@@ -520,6 +534,8 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         dragNote = drag(p2d, MouseButton.PRIMARY);
         dragNote.dropTo(centerX, centerY);
         
+        waitOnJavaFxPlatformEventsDone();
+
         // check "Test 1" tab, that should have 2 entries
         testTag("Test1", myTestdata.getNotesCountForGroup("Test1"), CheckMode.TAG_CHILDREN);
 
@@ -528,10 +544,8 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         
         // #3 ------------------------------------------------------------------
         // Alert when dragging to group with same note name
-        testLabel = test3Tag.getGraphic();
-        testBounds = testLabel.localToScreen(testLabel.getBoundsInLocal());
-        centerX = testBounds.getMinX() + (testBounds.getMaxX() - testBounds.getMinX())/2.0;
-        centerY = testBounds.getMinY() + (testBounds.getMaxY() - testBounds.getMinY())/2.0;
+        centerX = testBounds3.getMinX() + (testBounds3.getMaxX() - testBounds3.getMinX())/2.0;
+        centerY = testBounds3.getMinY() + (testBounds3.getMaxY() - testBounds3.getMinY())/2.0;
 
         // go back to the ALL tab
         selectTag(allTag);
@@ -544,6 +558,8 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         dragNote = drag(p2d, MouseButton.PRIMARY);
         dragNote.dropTo(centerX, centerY);
  
+        waitOnJavaFxPlatformEventsDone();
+
         // dialog "Note with same name exists"
         testAlert("An error occured while moving the note.", ButtonBar.ButtonData.OK_DONE);
 
@@ -685,6 +701,11 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 
         // #4 ------------------------------------------------------------------
         // delete file in editor BUT "Save own"
+        // TFE, 20240213: make sure, we have that note in the editor!
+        clickOn(notesTableFXML);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
+        clickOn();
+
         assertTrue(myTestdata.deleteTestFile(testpath, "[Test1] test1.htm"));
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 //        System.out.println("after sleep for: delete file in editor BUT \"Save own\"");
@@ -697,6 +718,11 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
 
         // #5 ------------------------------------------------------------------
         // delete file in editor BUT "Save as new"
+        // TFE, 20240213: make sure, we have that note in the editor!
+        clickOn(notesTableFXML);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
+        clickOn();
+
         assertTrue(myTestdata.deleteTestFile(testpath, "[Test1] test1.htm"));
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 //        System.out.println("after sleep for: delete file in editor BUT \"Save as new\"");
@@ -707,6 +733,10 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         // verify old count
         testTag(TagManager.ReservedTag.All.getTagName(), myTestdata.getNotesCountForGroup(TagManager.ReservedTag.All.getTagName()), CheckMode.BOTH);
         // but with new note name!
+        clickOn(notesTableFXML);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
+        clickOn();
+
         final int newCount = myTestdata.getNotesList().size() + 1;
         final String newName = "New Note " + newCount;
         assertTrue("Check new note type", (notesTableFXML.getSelectionModel().getSelectedItem() instanceof Note));
@@ -715,6 +745,11 @@ public class TestTagTreeLookAndFeel extends ApplicationTest {
         
         // #6 ------------------------------------------------------------------
         // delete file in editor AND "Discard own"
+        // TFE, 20240213: make sure, we have that note in the editor!
+        clickOn(notesTableFXML);
+        moveBy(0, - notesTableFXML.getHeight() / 2 * SCALING);
+        clickOn();
+
         assertTrue(myTestdata.deleteTestFile(testpath, "[Test1] " + newName + ".htm"));
         sleep(sleepTime, TimeUnit.MILLISECONDS);
 //        System.out.println("after sleep for: delete file in editor AND \"Discard own\"");

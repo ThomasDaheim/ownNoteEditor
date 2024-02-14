@@ -1215,8 +1215,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             // re-init list of groups and notes - file has beeen added or removed
             Platform.runLater(() -> {
                 // TFE, 20231103: only re-init if required
-                // required for new notes
-                boolean needsInit = StandardWatchEventKinds.ENTRY_CREATE.equals(eventKind);
+                // required for new notes & deleted notes
+                boolean needsInit = StandardWatchEventKinds.ENTRY_CREATE.equals(eventKind) || StandardWatchEventKinds.ENTRY_DELETE.equals(eventKind);
                 
                 if (!StandardWatchEventKinds.ENTRY_CREATE.equals(eventKind)) {
                     // delete & modify is only relevant if we're editing this note...
@@ -1285,8 +1285,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                     if (needsInit) {
                         // show only notes for selected group
                         initFromDirectory(true, true);
-                        selectFirstOrCurrentNote();
                     }
+                    selectFirstOrCurrentNote();
 
                     // but only if group still exists in the list!
                     // which is tricky after a re-init since it re-loads tags and therefore the objects don't match anymore...

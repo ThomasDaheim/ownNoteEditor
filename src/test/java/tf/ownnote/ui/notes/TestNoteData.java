@@ -108,7 +108,7 @@ public class TestNoteData {
         try {
             result = Files.deleteIfExists(notename);
         } catch (IOException e) {
-            System.err.println("already exists: " + e.getMessage());
+            System.err.println("couldn't delete: " + e.getMessage());
             result = false;
         }        
         
