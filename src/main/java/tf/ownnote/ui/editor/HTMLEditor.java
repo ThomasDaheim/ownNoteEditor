@@ -75,6 +75,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
 import javax.imageio.ImageIO;
@@ -85,6 +86,7 @@ import netscape.javascript.JSObject;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.unbescape.html.HtmlEscape;
 import tf.helper.general.ImageHelper;
 import tf.helper.javafx.UsefulKeyCodes;
@@ -129,7 +131,8 @@ public class HTMLEditor {
     private static final List<String> COMPRESS_IMAGES = List.of("Compress images", "Bilder komprimieren");
     private static final List<String> REPLACE_CHECKEDBOXES = List.of("Checked box -> " + TaskData.ARCHIVED_BOX, "Checked Box -> " + TaskData.ARCHIVED_BOX);
     private static final List<String> REPLACE_CHECKMARKS = List.of(TaskData.ARCHIVED_BOX + " -> Checked box", TaskData.ARCHIVED_BOX + " -> Checked Box");
-    private static final List<String> COLLAPSE_SELECTION = List.of("Collapse selection", "Auswahl einklappen");
+    // TFE, 20240224: option to save embedded images into separat files
+    private static final List<String> EXTRACT_IMAGES = List.of("Extract images", "Bilder extrahieren");
 
     // complete list of menu items for language check
     private static final List<List<String>> TINYMCE_MENUES =  List.of(COPY_SELECTION, RELOAD_PAGE, OPEN_FRAME_NEW_WINDOW, OPEN_LINK, OPEN_LINK_NEW_WINDOW);
@@ -596,10 +599,87 @@ public class HTMLEditor {
         editNote(editedNote, content, true);
     }
     
-    private void collapseSelection() {
-            wrapExecuteScript(myWebEngine, "collapseSelection();");
-    }
+    private void extractImages() {
+        assert (myEditor != null);
+        
+        String content = getNoteText();
 
+        // 1) find all images in the note
+        // "<img src='data:" + mediaType + ";base64," + mediaData + ">"
+        final LinkedList<Integer> images = new LinkedList<>();
+        final Matcher matcher = IMAGE_PATTERN.matcher(content);
+        while (matcher.find()) {
+            images.add(matcher.start());
+        }
+        
+        if (images.isEmpty()) {
+            // no images in this note
+            return;
+        }
+
+        // ask for directory to store image
+        final DirectoryChooser directoryChooser = new DirectoryChooser();
+        directoryChooser.setInitialDirectory(SystemUtils.getUserHome());
+        final File selectedDirectory = directoryChooser.showDialog(myWebView.getScene().getWindow());
+        
+        final String namePrefix = selectedDirectory + File.separator + editedNote.getNoteName() + "_IMAGE_";
+        int imageCount = images.size();
+        
+        // reverse list since file positions change during replace
+        Collections.reverse(images); 
+        for (int imageStart : images) {
+            // 2) create image from base64
+            final int imageEnd = content.indexOf(">", imageStart);
+            if (imageEnd == -1) {
+                // something wrong with this image...
+                continue;
+            }
+            final String imageString = content.substring(imageStart, imageEnd);
+//            System.out.println("imageString: starts with " + imageString.subSequence(0, 5) + " ends with " + imageString.substring(imageString.length()-5) + " and has length " + imageString.length());
+            
+            // extract "data:image/jpeg;base64," content
+            int contentStart = DATA_START.length();
+            int contentEnd = imageString.indexOf(BASE64_START, contentStart);
+            if (contentEnd == -1) {
+                // something wrong with this image...
+                continue;
+            }
+            final String imageType = imageString.substring(contentStart, contentEnd);
+//            System.out.println("imageType: " + imageType);
+            
+            contentStart = imageString.indexOf(BASE64_START) + BASE64_START.length();
+            if (contentStart == -1) {
+                // something wrong with this image...
+                continue;
+            }
+            if (imageString.indexOf("\"", contentStart) > 0) {
+                contentEnd = imageString.indexOf("\"", contentStart);
+            } else {
+                contentEnd = imageString.indexOf("'", contentStart);
+            }
+            if (contentEnd == -1) {
+                // something wrong with this image...
+                continue;
+            }
+            final String imageBase64 = imageString.substring(contentStart, contentEnd);
+//            System.out.println("imageBase64: starts with " + imageBase64.subSequence(0, 5) + " ends with " + imageBase64.substring(imageBase64.length()-5) + " and has length " + imageBase64.length());
+
+            // 3) create javafx image from it and show save as dialouge
+            final BufferedImage bufferedImage = ImageHelper.toBufferedImage(imageBase64);
+            if (bufferedImage != null) {
+                final String imageName = namePrefix + String.valueOf(imageCount) + "." + imageType;
+                
+                try {
+                    ImageIO.write(bufferedImage , imageType, new File(imageName));
+                } catch (IOException ex) {
+                    Logger.getLogger(HTMLEditor.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
+                imageCount--;
+            }
+        }
+    }
+    
     private void initPopupWindow() {
         final ObservableList<Window> windows = Window.getWindows();
 
@@ -739,16 +819,16 @@ public class HTMLEditor {
                                 compressImages();
                             });
 
-                            // collapse selection
-//                            final MenuItem collapseSelectionMenu = new MenuItem(COLLAPSE_SELECTION.get(getLanguage()));
-//                            collapseSelectionMenu.setOnAction((ActionEvent event) -> {
-//                                collapseSelection();
-//                            });
+                            // extract images
+                            final MenuItem extractImagesMenu = new MenuItem(EXTRACT_IMAGES.get(getLanguage()));
+                            extractImagesMenu.setOnAction((ActionEvent event) -> {
+                                extractImages();
+                            });
 
                             // add new items:
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(saveMenu));
-//                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(collapseSelectionMenu));
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(compressImagesMenu));
+                            itemsContainer.getChildren().add(cmc.new MenuItemContainer(extractImagesMenu));
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(replaceCheckedBoxesMenu));
                             itemsContainer.getChildren().add(cmc.new MenuItemContainer(replaceCheckmarksMenu));
                         }
