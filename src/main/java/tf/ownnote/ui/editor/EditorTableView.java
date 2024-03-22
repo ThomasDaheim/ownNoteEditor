@@ -398,6 +398,15 @@ public class EditorTableView implements IPreferencesHolder {
         return myTableView.getItems();
     }
     
+    // TFE, 20240308: need a way to reset after notes directory has changed
+    public void resetTableView() {
+        filteredData = null;
+        groupFilter = null;
+        tagFilter = null;
+        
+        myTableView.setUserData(null);
+    }
+    
     public void setNotes(final ObservableList<Note> items) {
         // 1. Wrap the ObservableList in a FilteredList (initially display all data).
         filteredData = new FilteredList<>(items, p -> true);

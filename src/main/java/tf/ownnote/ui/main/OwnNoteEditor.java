@@ -762,6 +762,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
                     // scan files in new directory
                     initFromDirectory(false, true);
+                    
+                    // TFE, 20240322: and now throw away recent note info
+                    RecentNoteForGroup.getInstance().clear();
                 }
             }); 
         // TFE, 20181028: open file chooser also when left clicking on pathBox
@@ -878,9 +881,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             // TFE, 20201115: throw away any current tasklist - we might have changed the path!
             TaskManager.getInstance().resetTaskList();
             TagManager.getInstance().resetTagList();
-
-            // TFE, 2023: no need to throw away that info
-//            RecentNoteForGroup.getInstance().clear();
         }
         
         // TFE, 20231105: throy away edited note
@@ -912,9 +912,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         // do the stuff in the EditorTableView - thats the right place!
         if (resetTasksTags) {
             // TFE, 20231105: we need to reset the filter for the notes table to make sure its not empty after setting the new notes
-            // BUT note working since it leads to the dreaded "Tag 'Projekte' has incorrect parent hierarchy!" exception
-//            firstNoteAccess = true;
-//            notesTable.setGroupFilter(null);
+            firstNoteAccess = true;
+            notesTable.resetTableView();
         }
         notesTable.setNotes(notesList);
         

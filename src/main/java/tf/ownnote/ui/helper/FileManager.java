@@ -668,6 +668,12 @@ public class FileManager implements INoteCRMDS {
         return Files.exists(Paths.get(this.notesPath, fileName));
     }
 
+    public boolean noteExists(final Note note) {
+        final String fileName = buildNoteName(note);
+
+        return Files.exists(Paths.get(this.notesPath, fileName));
+    }
+
     private void initFilesInProgress() {
         // disable watcher
         myDirMonitor.disableMonitor();
