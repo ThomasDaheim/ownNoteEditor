@@ -117,11 +117,11 @@ public class TestLinkManager {
         final Note linkedNote = FileManager.getInstance().getNote("[Test] TestVerify_OK.htm");
         
         Note origNote = new Note(linkedNote);
-        boolean result = FileManager.getInstance().renameNote(linkedNote, "TestVerify_NEW_OK");
+        boolean result = FileManager.getInstance().renameNote(linkedNote, linkedNote.getNoteName(), "TestVerify_NEW_OK");
         if (!result) {
             System.err.println("Moving of test note \"[Test] TestVerify_OK.htm\" failed!!!" );
         } else {
-            LinkManager.getInstance().renameNote(origNote, "TestVerify_NEW_OK");
+            LinkManager.getInstance().renameNote(origNote, origNote.getNoteName(), "TestVerify_NEW_OK");
             
             // get new numbers
             final int noteLinks = note.getMetaData().getLinkedNotes().size();
@@ -131,11 +131,11 @@ public class TestLinkManager {
 
             // undo rename before testing - to avoid messing up the file system in case assertion fails
             origNote = new Note(linkedNote);
-            result = FileManager.getInstance().renameNote(linkedNote, "TestVerify_OK");
+            result = FileManager.getInstance().renameNote(linkedNote, linkedNote.getNoteName(), "TestVerify_OK");
             if (!result) {
                 System.err.println("Restoring of test note \"[Test] TestVerify_OK.htm\" failed!!!" );
             }
-            LinkManager.getInstance().renameNote(origNote, "TestVerify_OK");
+            LinkManager.getInstance().renameNote(origNote, origNote.getNoteName(), "TestVerify_OK");
 
             // nothing should happen
             Assertions.assertEquals(2, noteLinks, "You have two links");

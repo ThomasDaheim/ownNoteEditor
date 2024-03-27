@@ -1170,16 +1170,14 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
 
     @Override
-    public boolean renameNote(final Note curNote, final String newValue) {
+    public boolean renameNote(final Note curNote, final String oldNoteName, final String newNoteName) {
         return true;
     }
 
     @Override
-    public boolean moveNote(final Note curNote, final TagData newGroup) {
+    public boolean moveNote(final Note curNote, final TagData oldGroup, final TagData newGroup) {
         // we have been called after the fact... so the linkedNotes have already been updated with the new group name
         final Note movedNote = FileManager.getInstance().getNote(newGroup, curNote.getNoteName());
-
-        final TagData oldGroup = curNote.getGroup();
 
         // TFE, 20220424: check if this changes the archiving status!
         if (!oldGroup.isArchivedGroup().equals(movedNote.getGroup().isArchivedGroup())) {

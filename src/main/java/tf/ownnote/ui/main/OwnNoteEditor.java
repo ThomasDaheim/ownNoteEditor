@@ -620,12 +620,13 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             final Note curNote = ObjectsHelper.uncheckedCast(t.getTableView().getItems().get(t.getTablePosition().getRow()));
 
             if (!t.getNewValue().equals(t.getOldValue())) {
-                renameNote(curNote, t.getNewValue());
+                renameNote(curNote, curNote.getNoteName(), t.getNewValue());
                 
                 // TFE, 20221124: always init
                 // rename failed: restore previous name
                 // rename worked: update sort order
-                initFromDirectory(true, false);
+                // TFE, 20240327: tags need to be reseted as well since otherwise linked notes count is one to high
+                initFromDirectory(true, true);
             }
         });
             
@@ -1037,9 +1038,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             // error message - most likely note in "Not grouped" with same name already exists
             showAlert(AlertType.ERROR, "Error Dialog", "New note couldn't be created.", "Note with same group and name already exists.");
         } else {
-            // update group tags as well
+            // call other interrested parties as well
+            // TODO: via subscribe mechanism
             TagManager.getInstance().createNote(newGroup, newNoteName);
-
             LinkManager.getInstance().createNote(newGroup, newNoteName);
         }
         
@@ -1047,32 +1048,28 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     }
 
     @Override
-    public boolean renameNote(final Note curNote, final String newValue) {
-        final Note origNote = new Note(curNote);
-        
-        boolean result = FileManager.getInstance().renameNote(curNote, newValue);
+    public boolean renameNote(final Note curNote, final String oldNoteName, final String newNoteName) {
+        boolean result = FileManager.getInstance().renameNote(curNote, oldNoteName, newNoteName);
         
         if (!result) {
             // error message - most likely note with same name already exists
             showAlert(AlertType.ERROR, "Error Dialog", "An error occured while renaming the note.", "A note with the same name already exists.");
         } else {
             //check if we just moved the current note in the editor...
-            noteHTMLEditor.doNameChange(curNote.getGroup(), curNote.getGroup(), curNote.getNoteName(), newValue);
-
-            // update group tags as well
-            TagManager.getInstance().renameNote(origNote, newValue);
+            noteHTMLEditor.doNameChange(curNote.getGroup(), curNote.getGroup(), oldNoteName, newNoteName);
             
-            LinkManager.getInstance().renameNote(origNote, newValue);
+            // call other interrested parties as well
+            // TODO: via subscribe mechanism
+            TagManager.getInstance().renameNote(curNote, oldNoteName, newNoteName);
+            LinkManager.getInstance().renameNote(curNote, oldNoteName, newNoteName);
         }
         
         return result;
     }
 
     @Override
-    public boolean moveNote(final Note curNote, final TagData newGroup) {
-        final Note origNote = new Note(curNote);
-        
-        boolean result = FileManager.getInstance().moveNote(curNote, newGroup);
+    public boolean moveNote(final Note curNote, final TagData oldGroup, final TagData newGroup) {
+        boolean result = FileManager.getInstance().moveNote(curNote, oldGroup, newGroup);
         
         if (!result) {
             // error message - most likely note with same name already exists
@@ -1080,11 +1077,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         } else {
             //check if we just moved the current note in the editor...
             noteHTMLEditor.doNameChange(curNote.getGroup(), newGroup, curNote.getNoteName(), curNote.getNoteName());
-
-            // update group tags as well
-            TagManager.getInstance().moveNote(origNote, newGroup);
             
-            LinkManager.getInstance().moveNote(origNote, newGroup);
+            // call other interrested parties as well
+            // TODO: via subscribe mechanism
+            TagManager.getInstance().moveNote(curNote, oldGroup, newGroup);
+            LinkManager.getInstance().moveNote(curNote, oldGroup, newGroup);
 
             refilterNotesList();
         }
@@ -1104,9 +1101,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             noteHTMLEditor.hasBeenSaved();
             noteMetaEditor.hasBeenSaved();
 
-            // update group tags as well
+            // call other interrested parties as well
+            // TODO: via subscribe mechanism
             TagManager.getInstance().saveNote(note);
-
             LinkManager.getInstance().saveNote(note);
         } else {
             // error message - most likely note in "Not grouped" with same name already exists
@@ -1118,7 +1115,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     
     public boolean doArchiveRestoreNote(final Note note) {
         // its only a kind of move to another, special group...
-        return moveNote(note, TagManager.getInstance().getComplementaryGroup(note.getGroup(), true));
+        return moveNote(note, note.getGroup(),  TagManager.getInstance().getComplementaryGroup(note.getGroup(), true));
     }
     
     public void refilterNotesList() {

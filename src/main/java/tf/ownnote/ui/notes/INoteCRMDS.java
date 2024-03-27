@@ -40,8 +40,8 @@ import tf.ownnote.ui.tags.TagData;
  */
 public interface INoteCRMDS {
     public boolean createNote(final TagData newGroup, final String newNoteName);
-    public boolean renameNote(final Note curNote, final String newValue);
-    public boolean moveNote(final Note curNote, final TagData newGroup);
+    public boolean renameNote(final Note curNote, final String oldNoteName, final String newNoteName);
+    public boolean moveNote(final Note curNote, final TagData oldGroup, final TagData newGroup);
     public boolean deleteNote(final Note curNote);
     public boolean saveNote(final Note note);
 }

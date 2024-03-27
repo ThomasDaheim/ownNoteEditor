@@ -499,9 +499,11 @@ public class FileManager implements INoteCRMDS {
     }
     
     @Override
-    public boolean renameNote(final Note note, final String newNoteName) {
+    public boolean renameNote(final Note note, final String oldNoteName, final String newNoteName) {
         assert note != null;
         assert newNoteName != null;
+        // make sure no one pulled the rug from under our feets
+        assert oldNoteName.equals(note.getNoteName());
         
         boolean result = true;
         initFilesInProgress();
@@ -535,7 +537,7 @@ public class FileManager implements INoteCRMDS {
     }
     
     @Override
-    public boolean moveNote(final Note note, final TagData newGroup) {
+    public boolean moveNote(final Note note, final TagData oldGroup, final TagData newGroup) {
         assert note != null;
         assert newGroup != null;
         

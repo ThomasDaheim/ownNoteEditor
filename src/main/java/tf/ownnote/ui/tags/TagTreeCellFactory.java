@@ -337,7 +337,7 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
                 }
 
                 // move note to group
-                if (myEditor.moveNote(dragNote, thisTag)) {
+                if (myEditor.moveNote(dragNote, dragNote.getGroup(), thisTag)) {
                 }
             } else {
                 // add tag to note
@@ -354,11 +354,11 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
     private void clearDropLocation() {
         if (dropZone != null) {
             dropZone.setStyle(
-                    dropZone.getStyle().
-                            replace(DropPosition.FULL.dropHint, "").
-                            replace(DropPosition.CENTER.dropHint, "").
-                            replace(DropPosition.BOTTOM.dropHint, "").
-                            replace(DropPosition.TOP.dropHint, ""));
+                dropZone.getStyle().
+                    replace(DropPosition.FULL.dropHint, "").
+                    replace(DropPosition.CENTER.dropHint, "").
+                    replace(DropPosition.BOTTOM.dropHint, "").
+                    replace(DropPosition.TOP.dropHint, ""));
             
             dropZone = null;
         }

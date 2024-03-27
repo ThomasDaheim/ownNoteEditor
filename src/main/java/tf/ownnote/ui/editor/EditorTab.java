@@ -223,7 +223,7 @@ public class EditorTab extends Tab {
 
             final Note dragNote = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(EditorTableView.DRAG_AND_DROP));
             // 1. rename note to new group name
-            if (myEditor.moveNote(dragNote, tabTag)) {
+            if (myEditor.moveNote(dragNote, dragNote.getGroup(), tabTag)) {
                 // 2. focus on this tab
                 getTabPane().getSelectionModel().select(this);
 

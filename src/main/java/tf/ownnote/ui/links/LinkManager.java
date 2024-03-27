@@ -344,14 +344,14 @@ public class LinkManager implements INoteCRMDS, IFileChangeSubscriber, IFileCont
     }
 
     @Override
-    public boolean renameNote(Note curNote, String newName) {
-        final String newValue = FileManager.getInstance().buildNoteName(curNote.getGroup(), newName);
+    public boolean renameNote(Note curNote, String oldNoteName, String newNoteName) {
+        final String newValue = FileManager.getInstance().buildNoteName(curNote.getGroup(), newNoteName);
 
         return updateExistingLinks(curNote.getNoteFileName(), newValue);
     }
 
     @Override
-    public boolean moveNote(Note curNote, TagData newGroup) {
+    public boolean moveNote(Note curNote, TagData oldGroup, TagData newGroup) {
         // what is the name of the note after moving to the new group?
         final String newValue = FileManager.getInstance().buildNoteName(newGroup, curNote.getNoteName());
 
