@@ -128,7 +128,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         NONE(6.0),
         V6_1(6.1),
         V6_2(6.2),
-        CURRENT(6.2);
+        V6_3(6.3),
+        CURRENT(6.3);
         
         private double versionId;
         
@@ -464,7 +465,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                     borderPane.getScene().getWindow(), 
                     menuBar, 
                     "OwnNoteEditor", 
-                    "v6.2", 
+                    "v6.3", 
                     "https://github.com/ThomasDaheim/ownNoteEditor");
         });
     }
@@ -827,7 +828,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         });
         
         // TFE, 20220429: get app version so that we can compare it with one from registry - to determine migration needs!
-        AppInfo.getInstance().initAppInfo(OwnNoteEditor.class, "OwnNoteEditor", "v6.2", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AppInfo.getInstance().initAppInfo(OwnNoteEditor.class, "OwnNoteEditor", "v6.3", "https://github.com/ThomasDaheim/ownNoteEditor");
         AppVersion.CURRENT.setVersionId(Double.valueOf(AppInfo.getInstance().getAppVersion()));
     }
     
