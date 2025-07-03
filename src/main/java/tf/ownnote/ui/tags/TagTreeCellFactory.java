@@ -40,7 +40,7 @@ import javafx.scene.input.TransferMode;
 import javafx.util.Callback;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AppClipboard;
-import tf.ownnote.ui.helper.OwnNoteTableView;
+import tf.ownnote.ui.editor.EditorTableView;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 
@@ -239,8 +239,8 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
 
                 dropZone.setStyle(dropZone.getStyle() + dropPosition.dropHint);
             }
-        } else if (event.getDragboard().hasContent(OwnNoteTableView.DRAG_AND_DROP)) {
-            final Note dragNote = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(OwnNoteTableView.DRAG_AND_DROP));
+        } else if (event.getDragboard().hasContent(EditorTableView.DRAG_AND_DROP)) {
+            final Note dragNote = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(EditorTableView.DRAG_AND_DROP));
             
             // note is dragged here - only accept if it hasn't this tag / group already
             final TagData thisTag = treeCell.getTreeItem().getValue().getTagData();
@@ -325,10 +325,10 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
 
             AppClipboard.getInstance().clearContent(DRAG_AND_DROP);
             event.setDropCompleted(success);
-        } else if (event.getDragboard().hasContent(OwnNoteTableView.DRAG_AND_DROP)) {
+        } else if (event.getDragboard().hasContent(EditorTableView.DRAG_AND_DROP)) {
             assert myEditor != null;
             
-            final Note dragNote = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(OwnNoteTableView.DRAG_AND_DROP));
+            final Note dragNote = ObjectsHelper.uncheckedCast(AppClipboard.getInstance().getContent(EditorTableView.DRAG_AND_DROP));
             final TagData thisTag = treeCell.getTreeItem().getValue().getTagData();
             if (thisTag.isGroup()) {
                 // if group was also a tag -> remove & add
@@ -337,14 +337,14 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
                 }
 
                 // move note to group
-                if (myEditor.moveNote(dragNote, thisTag)) {
+                if (myEditor.moveNote(dragNote, dragNote.getGroup(), thisTag)) {
                 }
             } else {
                 // add tag to note
                 dragNote.getMetaData().getTags().add(thisTag);
             }
             
-            AppClipboard.getInstance().clearContent(OwnNoteTableView.DRAG_AND_DROP);
+            AppClipboard.getInstance().clearContent(EditorTableView.DRAG_AND_DROP);
             event.setDropCompleted(success);
         }
         
@@ -354,11 +354,11 @@ public class TagTreeCellFactory implements Callback<TreeView<TagDataWrapper>, Tr
     private void clearDropLocation() {
         if (dropZone != null) {
             dropZone.setStyle(
-                    dropZone.getStyle().
-                            replace(DropPosition.FULL.dropHint, "").
-                            replace(DropPosition.CENTER.dropHint, "").
-                            replace(DropPosition.BOTTOM.dropHint, "").
-                            replace(DropPosition.TOP.dropHint, ""));
+                dropZone.getStyle().
+                    replace(DropPosition.FULL.dropHint, "").
+                    replace(DropPosition.CENTER.dropHint, "").
+                    replace(DropPosition.BOTTOM.dropHint, "").
+                    replace(DropPosition.TOP.dropHint, ""));
             
             dropZone = null;
         }

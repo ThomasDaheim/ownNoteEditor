@@ -1,13 +1,27 @@
 # ownNoteEditor
-JavaFX editor for the ownNote files locally stored in ownCloud/nextCloud folder.
+JavaFX editor for the note files locally stored in ownCloud/nextCloud folder.
 
-Aim was to mimic the behaviour of the former ownNote web client using JavaFX and working directly on the ownNote files in a local directory. This code does NOT update any of the SQL tables used by owNote - but so far this doesn't seem to impact anything.
+Originally, the aim was to mimic the behaviour of the former ownNote web client using JavaFX and working directly on the ownNote files in a local directory. This code does NOT update any of the SQL tables used by ownNote. But since ownNote doesn't exist anymore for some time now, its a note editor with support for tasks in its own right.
 
-Note on v6.0: After the "classic" look & feel from ownNotes has been removed it might actually be time to rename the whole project to something like "htmlNoteEditor". But we have enough changes for one major release...
+29.06.2025: Since I now use diffetent tools @work (Notion, ...) I have less need for my trusty notes editor. I still use it for my private notes but the usage frequency has reduced drastically. Therefore, I will probably not add any more features but keep things running by e.g. updating dependencies and making sure new java / javafx versions work too.
 
-Note on v5.0: A lot has happened since the initial version of the editor. ownNotes / nextNotes project for NextCloud seems to have died and there is no need anymore to try to mimic their behaviour and notes / groups handling. Therefore, its time for some re-design :-)
+* Note on v6.0: After the "classic" look & feel from ownNotes has been removed it might actually be time to rename the whole project to something like "htmlNoteEditor". But we have enough changes for one major release...
+* Note on v5.0: A lot has happened since the initial version of the editor. ownNotes / nextNotes project for NextCloud seems to have died and there is no need anymore to try to mimic their behaviour and notes / groups handling. Therefore, its time for some re-design :-)
+* Note on Java 11: After various tweaks to build.gradle this now also runs under Java 11. See e.g. https://github.com/kelemen/netbeans-gradle-project/issues/403 an some of the discussion that where required to get there... Unfortunately, there is one issue with the TestFX framework when trying to drag & drop notes. Since I wasn't able to fix this I had to disable the "testDragNote()" test step.
 
-Note on Java 11: After various tweaks to build.gradle this now also runs under Java 11. See e.g. https://github.com/kelemen/netbeans-gradle-project/issues/403 an some of the discussion that where required to get there... Unfortunately, there is one issue with the TestFX framework when trying to drag & drop notes. Since I wasn't able to fix this I had to disable the "testDragNote()" test step.
+V 6.3
+
+* Upgraded dependencies
+
+V 6.2
+
+* Upgraded tinymce to 6.8.2 (needed to downgrade help plugin back to 5.10.7 since new version not running in WebView)
+* Adding tinymce "accordion" feature
+* Links to other notes
+* Show edit notes task at beginning of tasks list
+* Internal clean-up of FXML structure
+* Various bugfixes
+* Update dependencies
 
 V 6.1
 
@@ -28,7 +42,7 @@ V 6.0: Getting rid of old stuff
 * Calendar for KANBAN board incl. drag & drop to set due dates
 * Bugfixes, small features: store recent note per group, insert link to attachments in notes, ...
 
-Important: Once in a while I can see log messages that indicate mess-ups when changing task status in text & tasklist. But so far nothing the note text has never been mixed up...
+Important: Once in a while I can see log messages that indicate mess-ups when changing task status in text & tasklist. But so far the note text has never been mixed up...
 
 V 5.2: Fixes
 
@@ -145,8 +159,6 @@ DISCLAIMER: This has been tested randomly with my ownNote files. Use at your own
 
 ## run & try
 
-Make sure you have Java 8 SDK installed.
-
 You can try to run and use this application by
 
 * cloning this repo to you harddisk
@@ -164,7 +176,7 @@ If you want to, you can reference your locally synced notes dir directly with a 
 To change to look and feel you can use
 
 ```
---lookAndFeel="classic" / "groupTabs" / "tagTree"
+--lookAndFeel="groupTabs" / "tagTree"
 ```
 
 Both things can also be changed using the UI.
@@ -177,27 +189,6 @@ Both things can also be changed using the UI.
 
 The tree will be in `build/install`.
 
-## create a Mac OS X .app bundle
-
-NOTE: Not sure if this still works...
-
-```
-./gradlew createApp
-```
-
-The resulting application will be in the directory `build/macApp`.
-
-## create a Mac OS X .dmg file (will only work on Mac OS X)
-
-NOTE: Not sure if this still works...
-
-```
-./gradlew createDmg
-```
-
-The resulting file will be in the directory `build/distributions`.
-
-
 ## Dependencies
 
 Of course, such a project depends on the results of many others! I've tried to add comments with links to stackoverflow, ... wherever I have re-used the ideas and code of others. In case I have forgotten someone: that was only by accident/incompetency but never intentionally. I'm grateful for anyone that provides his/her results for public use!
@@ -206,19 +197,21 @@ Explicit dependencies:
 
 * tf.JavaHelper:JavaHelper:1.15 https://github.com/ThomasDaheim/JavaHelper, not available via maven <- any help appreciated on how to best include as sub/meta/... repository
 
-* 'commons-cli:commons-cli:1.5.0'
-* 'commons-io:commons-io:2.11.0'
-* 'org.apache.commons:commons-lang3:3.12.0'
-* 'org.apache.commons:commons-text:1.10.0'
-* 'commons-codec:commons-codec:1.15'
-* 'com.thoughtworks.xstream:xstream:1.4.19'
+* 'commons-cli:commons-cli:1.9.0'
+* 'commons-io:commons-io:2.19.0'
+* 'org.apache.commons:commons-lang3:3.17.0'
+* 'org.apache.commons:commons-text:1.13.1'
+* 'commons-codec:commons-codec:1.18.0'
+* 'com.thoughtworks.xstream:xstream:1.4.21'
 * 'org.unbescape:unbescape:1.1.6.RELEASE'
-* 'org.jfxtras:jfxtras-controls:1.4.19'
+* 'org.jfxtras:jfxtras-controls:17-r1'
+* 'org.controlsfx:11.2.2'
 * 'org.jfxtras:jmetro:11.6.16'
-* 'org.controlsfx:1.4.19'
 * 'de.jensd:fontawesomefx:8.9'
 
+* 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+* 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+* 'org.junit.jupiter:junit-platform-suite-engine:1.10.2'
+* 'com.github.stefanbirkner:system-lambda:1.2.1'
 * 'org.testfx:testfx-junit:4.0.+'
 * 'org.testfx:testfx-core:4.0.+'
-* 'org.junit.jupiter:junit-jupiter-api:5.9.1'
-* 'com.github.stefanbirkner:system-lambda:3.2.1'

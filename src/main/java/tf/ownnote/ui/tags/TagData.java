@@ -25,6 +25,7 @@
  */
 package tf.ownnote.ui.tags;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -145,7 +146,8 @@ public class TagData {
     
     protected TagData cloneMe() {
         final TagData clone = new TagData(getName(), isGroup(), isArchivedGroup());
-        clone.myId = myId;
+        // TFE, 20231104: please don't clone the id!!!
+//        clone.myId = myId;
         clone.colorNameProperty.set(colorNameProperty.get());
         clone.iconNameProperty.set(iconNameProperty.get());
         // list copied directly
@@ -181,7 +183,7 @@ public class TagData {
     }
 
     public String getExternalName() {
-        return TagManager.getInstance().getExternalName(this);
+        return TagManager.getExternalName(this);
     }
     
     public Boolean isGroup() {
@@ -320,5 +322,42 @@ public class TagData {
     public Stream<TagData> flattened() {
         return Stream.concat(Stream.of(this),
                 children.stream().flatMap(TagData::flattened));
+    }
+    
+    // TFE, 20231104: support debugging by a simple print method for trees
+    // https://stackoverflow.com/a/8948691
+    
+    public String printWithChildren() {
+        StringBuilder buffer = new StringBuilder(50);
+        print(buffer, "", "");
+        return buffer.toString();
+    }
+
+    private void print(StringBuilder buffer, String prefix, String childrenPrefix) {
+        buffer.append(prefix);
+        buffer.append(nameProperty.get());
+        buffer.append("-");
+        buffer.append(levelProperty.get());
+        buffer.append("-");
+        buffer.append(isGroupProperty.get());
+        buffer.append("-");
+        buffer.append(myId);
+        buffer.append("-parent:");
+        if (parentProperty.get() != null) {
+            buffer.append(parentProperty.get().getId());
+        } else {
+            buffer.append("null");
+        }
+        buffer.append('\n');
+        for (Iterator<TagData> it = children.iterator(); it.hasNext();) {
+            TagData next = it.next();
+            if (it.hasNext()) {
+//                next.print(buffer, childrenPrefix + "??? ", childrenPrefix + "|   ");
+                next.print(buffer, childrenPrefix + "|-- ", childrenPrefix + "|   ");
+            } else {
+//                next.print(buffer, childrenPrefix + "??? ", childrenPrefix + "    ");
+                next.print(buffer, childrenPrefix + "`-- ", childrenPrefix + "    ");
+            }
+        }
     }
 }

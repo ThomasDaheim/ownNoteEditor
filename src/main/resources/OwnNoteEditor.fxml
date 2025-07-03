@@ -18,87 +18,13 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
-<?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.web.WebView?>
 
-<BorderPane fx:id="borderPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="400.0" minWidth="600.0" prefHeight="600.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/15.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tf.ownnote.ui.main.OwnNoteEditor">
-   <center>
-      <GridPane fx:id="gridPane" prefHeight="600.0" prefWidth="1200.0" BorderPane.alignment="CENTER">
-        <columnConstraints>
-            <ColumnConstraints hgrow="SOMETIMES" maxWidth="592.0" minWidth="10.0" prefWidth="434.0" />
-          <ColumnConstraints hgrow="SOMETIMES" maxWidth="592.0" minWidth="10.0" prefWidth="434.0" />
-          <ColumnConstraints hgrow="SOMETIMES" maxWidth="894.0" minWidth="10.0" prefWidth="643.0" />
-            <ColumnConstraints hgrow="SOMETIMES" maxWidth="894.0" minWidth="10.0" prefWidth="223.0" />
-        </columnConstraints>
-        <rowConstraints>
-          <RowConstraints maxHeight="189.0" minHeight="0.0" prefHeight="0.0" vgrow="SOMETIMES" />
-          <RowConstraints maxHeight="535.0" minHeight="10.0" prefHeight="535.0" vgrow="SOMETIMES" />
-        </rowConstraints>
-         <children>
-            <SplitPane fx:id="splitPaneXML" dividerPositions="0.25041736227045075, 0.4991652754590985, 0.9265442404006677" prefHeight="200.0" prefWidth="200.0" GridPane.columnSpan="4" GridPane.rowIndex="1">
-               <items>
-                  <StackPane fx:id="tagsTreePaneXML" prefHeight="150.0" prefWidth="200.0" />
-                  <StackPane fx:id="leftPaneXML" prefHeight="150.0" prefWidth="200.0">
-                     <children>
-                        <TableView fx:id="notesTableFXML" prefHeight="200.0" prefWidth="200.0" styleClass="notesTable">
-                          <columns>
-                            <TableColumn fx:id="noteNameColFXML" editable="false" prefWidth="75.0" styleClass="noteNameCol" text="Name" />
-                            <TableColumn fx:id="noteModifiedColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteModifiedCol" text="Modified" />
-                          </columns>
-                        </TableView>
-                     </children>
-                  </StackPane>
-                  <StackPane fx:id="middlePaneXML" prefHeight="150.0" prefWidth="200.0">
-                     <children>
-                        <VBox fx:id="noteEditorFXML" prefHeight="200.0" prefWidth="100.0" styleClass="noteEditor">
-                           <children>
-                              <WebView fx:id="noteHTMLEditorFXML" disable="true" prefHeight="501.0" prefWidth="354.0" />
-                              <HBox fx:id="noteMetaEditorFXML" maxHeight="30.0" minHeight="30.0" prefHeight="30.0" prefWidth="354.0" styleClass="noteMetaEditor" />
-                           </children>
-                        </VBox>
-                     </children>
-                  </StackPane>
-                  <StackPane fx:id="rightPaneXML" prefHeight="150.0" prefWidth="200.0">
-                     <children>
-                        <ListView fx:id="taskListFXML" prefHeight="200.0" prefWidth="200.0" styleClass="taskList" />
-                     </children>
-                  </StackPane>
-               </items>
-            </SplitPane>
-            <TabPane fx:id="groupsPaneFXML" disable="true" prefHeight="40.0" prefWidth="496.0" styleClass="groupsPane" tabClosingPolicy="UNAVAILABLE" visible="false" GridPane.columnIndex="2" />
-            <HBox spacing="10.0" GridPane.columnIndex="1">
-               <children>
-                  <TextField fx:id="noteFilterText" minWidth="100.0" prefHeight="25.0" prefWidth="180.0" promptText="Search" styleClass="noteFilterText" />
-                  <Label fx:id="noteFilterMode" minWidth="65.0" prefHeight="17.0" prefWidth="65.0" styleClass="noteFilterMode" text="in Files">
-                     <HBox.margin>
-                        <Insets bottom="5.0" top="5.0" />
-                     </HBox.margin></Label>
-               </children>
-               <padding>
-                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-               </padding>
-            </HBox>
-            <HBox fx:id="taskFilterBox" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="3">
-               <children>
-                  <Label fx:id="taskFilterMode" minWidth="65.0" prefHeight="17.0" styleClass="noteFilterMode" text="Show completed tasks">
-                     <HBox.margin>
-                        <Insets bottom="5.0" top="5.0" />
-                     </HBox.margin>
-                  </Label>
-               </children>
-               <padding>
-                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-               </padding>
-            </HBox>
-         </children>
-      </GridPane>
-   </center>
+<BorderPane fx:id="borderPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="400.0" minWidth="600.0" prefHeight="600.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tf.ownnote.ui.main.OwnNoteEditor">
    <top>
       <MenuBar fx:id="menuBar" BorderPane.alignment="CENTER">
          <menus>
@@ -137,6 +63,7 @@
                         <MenuItem disable="true" mnemonicParsing="false" text="(restart required)" />
                      </items>
                   </Menu>
+                  <CheckMenuItem fx:id="menuShowNotesFromSubGroups" mnemonicParsing="false" text="Show notes from sub groups" />
               </items>
             </Menu>
             <Menu mnemonicParsing="false" text="Tasks &amp; Tags">
@@ -150,4 +77,74 @@
          </menus>
       </MenuBar>
    </top>
+   <center>
+      <SplitPane fx:id="splitPaneXML" dividerPositions="0.25041736227045075, 0.4991652754590985, 0.9265442404006677" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+         <items>
+            <StackPane fx:id="tagsTreePaneXML" prefHeight="150.0" prefWidth="200.0" />
+            <StackPane fx:id="leftPaneXML" prefHeight="150.0" prefWidth="200.0">
+               <children>
+                  <VBox fx:id="noteListBoxFXML">
+                     <children>
+                        <HBox fx:id="noteSearchFXML" spacing="10.0">
+                           <children>
+                              <TextField fx:id="noteFilterText" minWidth="100.0" prefHeight="25.0" prefWidth="180.0" promptText="Search" styleClass="noteFilterText" />
+                              <Label fx:id="noteFilterMode" minWidth="65.0" prefHeight="17.0" prefWidth="65.0" styleClass="noteFilterMode" text="in Files">
+                                 <HBox.margin>
+                                    <Insets bottom="5.0" top="5.0" />
+                                 </HBox.margin>
+                              </Label>
+                           </children>
+                           <padding>
+                              <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                           </padding>
+                        </HBox>
+                        <TableView fx:id="notesTableFXML" prefHeight="200.0" prefWidth="200.0" styleClass="notesTable">
+                          <columns>
+                            <TableColumn fx:id="noteNameColFXML" editable="false" prefWidth="75.0" styleClass="noteNameCol" text="Notes" />
+                            <TableColumn fx:id="noteModifiedColFXML" editable="false" prefWidth="75.0" resizable="false" styleClass="noteModifiedCol" text="Modified" />
+                          </columns>
+                        </TableView>
+                     </children>
+                  </VBox>
+               </children>
+            </StackPane>
+            <StackPane fx:id="middlePaneXML" prefHeight="150.0" prefWidth="200.0">
+               <children>
+                  <VBox fx:id="noteEditBoxFXML">
+                     <children>
+                        <TabPane fx:id="groupsPaneFXML" disable="true" prefHeight="40.0" prefWidth="496.0" styleClass="groupsPane" tabClosingPolicy="UNAVAILABLE" visible="false" />
+                        <VBox fx:id="noteEditorFXML" prefHeight="200.0" prefWidth="100.0" styleClass="noteEditor">
+                           <children>
+                              <WebView fx:id="noteHTMLEditorFXML" disable="true" prefHeight="501.0" prefWidth="354.0" />
+                              <HBox fx:id="noteMetaEditorFXML" maxHeight="30.0" minHeight="30.0" prefHeight="30.0" prefWidth="354.0" styleClass="noteMetaEditor" />
+                           </children>
+                        </VBox>
+                     </children>
+                  </VBox>
+               </children>
+            </StackPane>
+            <StackPane fx:id="rightPaneXML" prefHeight="150.0" prefWidth="200.0">
+               <children>
+                  <VBox fx:id="taskListBoxFXML">
+                     <children>
+                        <HBox fx:id="taskFilterBoxFXML" spacing="10.0">
+                           <children>
+                              <Label fx:id="taskFilterMode" minWidth="65.0" prefHeight="17.0" styleClass="noteFilterMode" text="Show completed tasks">
+                                 <HBox.margin>
+                                    <Insets bottom="5.0" top="5.0" />
+                                 </HBox.margin>
+                              </Label>
+                           </children>
+                           <padding>
+                              <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                           </padding>
+                        </HBox>
+                        <ListView fx:id="taskListFXML" prefHeight="200.0" prefWidth="200.0" styleClass="taskList" />
+                     </children>
+                  </VBox>
+               </children>
+            </StackPane>
+         </items>
+      </SplitPane>
+   </center>
 </BorderPane>

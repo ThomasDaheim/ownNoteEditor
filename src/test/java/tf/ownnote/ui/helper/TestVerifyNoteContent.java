@@ -26,10 +26,10 @@
 package tf.ownnote.ui.helper;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.*;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.tags.TagManager;
 
@@ -41,21 +41,21 @@ public class TestVerifyNoteContent {
     private Boolean resultBool;
     private String resultErr;
     
-    @Before
+    @BeforeEach
     public void setUp() {
-        OwnNoteFileManager.getInstance().setCallback(null);
-        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/");
+        FileManager.getInstance().setCallback(null);
+        FileManager.getInstance().initNotesPath("src/test/resources/");
     }
     
-    @After
+    @AfterEach
     public void tearDown() {
     }
 
     @Test
     public void testVerifyOK() throws Exception {
         final String errorString = "";
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestVerify_OK");
-        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
+        final Note note = FileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestVerify_OK");
+        final String content = FileManager.getInstance().readNote(note, true).getNoteFileContent();
         
         doTestNoteFileContent(note, errorString, true);
         doTestNoteContent(content, errorString, true);
@@ -64,8 +64,8 @@ public class TestVerifyNoteContent {
     @Test
     public void testVerifyDuplicateComment() throws Exception {
         final String errorString = "Checking of Repeated Metadata failed!\n  Found --><!-- @274\n  Found --><!-- @1327\n";
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestVerify_DUPL_COM");
-        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
+        final Note note = FileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestVerify_DUPL_COM");
+        final String content = FileManager.getInstance().readNote(note, true).getNoteFileContent();
 
         doTestNoteFileContent(note, "[Test] TestVerify_DUPL_COM.htm: " + errorString, false);
         doTestNoteContent(content, errorString, false);
@@ -74,8 +74,8 @@ public class TestVerifyNoteContent {
     @Test
     public void testVerifyDuplicateId() throws Exception {
         final String errorString = "Checking of Duplicate Metadata Id failed!\n  Found 9c4fcb5f90af @882\n  Found b6b5f454856d @629\n  Found b659e1dc2728 @551\n";
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestVerify_DUPL_ID");
-        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
+        final Note note = FileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestVerify_DUPL_ID");
+        final String content = FileManager.getInstance().readNote(note, true).getNoteFileContent();
 
         doTestNoteFileContent(note, "[Test] TestVerify_DUPL_ID.htm: " + errorString, false);
         doTestNoteContent(content, errorString, false);
@@ -84,8 +84,8 @@ public class TestVerifyNoteContent {
     @Test
     public void testVerifyAdditionalAttributes() throws Exception {
         final String errorString = "Checking of Additional checkbox attributes failed!\n  Found <input type=\"checkbox\" value=\"salami\"> @519\n  Found <input name=\"zutat\" type=\"checkbox\" value=\"salami\"> @953\n  Found <input name=\"zutat\" type=\"checkbox\" value=\"salami\"> @1242\n";
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestVerify_ADD_ATTR");
-        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
+        final Note note = FileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestVerify_ADD_ATTR");
+        final String content = FileManager.getInstance().readNote(note, true).getNoteFileContent();
 
         doTestNoteFileContent(note, "[Test] TestVerify_ADD_ATTR.htm: " + errorString, false);
         doTestNoteContent(content, errorString, false);
@@ -135,15 +135,15 @@ public class TestVerifyNoteContent {
         resultErr = tapSystemErrNormalized(() -> {
             resultBool = VerifyNoteContent.getInstance().verifyNoteFileContent(note);
           });
-        Assert.assertTrue(errorBool == resultBool);
-        Assert.assertEquals(errorString, resultErr);
+        Assertions.assertTrue(errorBool == resultBool);
+        Assertions.assertEquals(errorString, resultErr);
     }
 
     private void doTestNoteContent(final String content, final String errorString, final boolean errorBool) throws Exception {
         resultErr = tapSystemErrNormalized(() -> {
             resultBool = VerifyNoteContent.getInstance().verifyNoteContent(content);
           });
-        Assert.assertTrue(errorBool == resultBool);
-        Assert.assertEquals(errorString, resultErr);
+        Assertions.assertTrue(errorBool == resultBool);
+        Assertions.assertEquals(errorString, resultErr);
     }
 }

@@ -58,9 +58,9 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import org.testfx.api.FxRobot;
 import org.testfx.framework.junit.ApplicationTest;
-import tf.ownnote.ui.helper.OwnNoteEditorParameters;
-import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
-import tf.ownnote.ui.helper.OwnNoteTab;
+import tf.ownnote.ui.editor.EditorTab;
+import tf.ownnote.ui.helper.CmdLineParameters;
+import tf.ownnote.ui.helper.EditorPreferences;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.notes.TestNoteData;
 import tf.ownnote.ui.tags.TagManager;
@@ -103,7 +103,7 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
     private String lastGroupName;
     private String lastNoteName;
     
-    private OwnNoteEditorParameters.LookAndFeel currentLookAndFeel;
+    private CmdLineParameters.LookAndFeel currentLookAndFeel;
 
     @Override
     public void init() throws Exception {
@@ -112,13 +112,13 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
 
         // get current look & feel and notes path
         try {
-            currentLookAndFeel = OwnNoteEditorPreferences.RECENT_LOOKANDFEEL.getAsType();
+            currentLookAndFeel = EditorPreferences.RECENT_LOOKANDFEEL.getAsType();
 
-            currentPath = OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH.getAsType();
+            currentPath = EditorPreferences.RECENT_OWNCLOUDPATH.getAsType();
 //            System.out.println("currentPath: " + currentPath);
 
-            lastGroupName = OwnNoteEditorPreferences.LAST_EDITED_GROUP.getAsType();
-            lastNoteName = OwnNoteEditorPreferences.LAST_EDITED_NOTE.getAsType();
+            lastGroupName = EditorPreferences.LAST_EDITED_GROUP.getAsType();
+            lastNoteName = EditorPreferences.LAST_EDITED_NOTE.getAsType();
         } catch (SecurityException ex) {
             Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
         }        
@@ -136,21 +136,21 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         }
         
         // set look & feel and notes path name
-        OwnNoteEditorPreferences.RECENT_LOOKANDFEEL.put(OwnNoteEditorParameters.LookAndFeel.groupTabs);
-        OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH.put(testpath.toString());
-        OwnNoteEditorPreferences.LAST_EDITED_GROUP.put("");
-        OwnNoteEditorPreferences.LAST_EDITED_NOTE.put("");
+        EditorPreferences.RECENT_LOOKANDFEEL.put(CmdLineParameters.LookAndFeel.groupTabs);
+        EditorPreferences.RECENT_OWNCLOUDPATH.put(testpath.toString());
+        EditorPreferences.LAST_EDITED_GROUP.put("");
+        EditorPreferences.LAST_EDITED_NOTE.put("");
         //System.out.println("testpath: " + testpath.toString());
     }
 
     private Label ownCloudPath;
     private TableView<Map<String, String>> notesTableFXML;
     private TabPane groupsPaneFXML;
-    private OwnNoteTab allTab;
-    private OwnNoteTab test1Tab;
-    private OwnNoteTab test2Tab;
-    private OwnNoteTab test3Tab;
-    private OwnNoteTab testPLUSTab;
+    private EditorTab allTab;
+    private EditorTab test1Tab;
+    private EditorTab test2Tab;
+    private EditorTab test3Tab;
+    private EditorTab testPLUSTab;
     private TextField noteFilterText;
     private CheckBox noteFilterCheck;
 
@@ -168,19 +168,19 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         
         // tabs are not nodes!!! So we have to find them the hard way
         final ObservableList<Tab> tabsList = groupsPaneFXML.getTabs();
-        allTab = (OwnNoteTab) tabsList.stream().filter(x -> {
+        allTab = (EditorTab) tabsList.stream().filter(x -> {
                                                         return ((Label) x.getGraphic()).getText().startsWith(TagManager.ReservedTag.All.getTagName());
                                                     }).findFirst().orElse(null);
-        test1Tab = (OwnNoteTab) tabsList.stream().filter(x -> {
+        test1Tab = (EditorTab) tabsList.stream().filter(x -> {
                                                         return ((Label) x.getGraphic()).getText().startsWith("Test1");
                                                     }).findFirst().orElse(null);
-        test2Tab = (OwnNoteTab) tabsList.stream().filter(x -> {
+        test2Tab = (EditorTab) tabsList.stream().filter(x -> {
                                                         return ((Label) x.getGraphic()).getText().startsWith("Test2");
                                                     }).findFirst().orElse(null);
-        test3Tab = (OwnNoteTab) tabsList.stream().filter(x -> {
+        test3Tab = (EditorTab) tabsList.stream().filter(x -> {
                                                         return ((Label) x.getGraphic()).getText().startsWith("Test3");
                                                     }).findFirst().orElse(null);
-        testPLUSTab = (OwnNoteTab) tabsList.stream().filter(x -> {
+        testPLUSTab = (EditorTab) tabsList.stream().filter(x -> {
                                                         return "+".equals(((Label) x.getGraphic()).getText());
                                                     }).findFirst().orElse(null);
         
@@ -204,19 +204,19 @@ public class TestGroupTabsLookAndFeel extends ApplicationTest {
         
         // set look & feel to old value
         if (currentLookAndFeel != null) {
-            OwnNoteEditorPreferences.RECENT_LOOKANDFEEL.put(currentLookAndFeel);
+            EditorPreferences.RECENT_LOOKANDFEEL.put(currentLookAndFeel);
         }
         
         // set path name to old value
         if (currentPath != null) {
-            OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH.put(currentPath);
+            EditorPreferences.RECENT_OWNCLOUDPATH.put(currentPath);
         }
         
         if (lastGroupName != null) {
-            OwnNoteEditorPreferences.LAST_EDITED_GROUP.put(lastGroupName);
+            EditorPreferences.LAST_EDITED_GROUP.put(lastGroupName);
         }
         if (lastNoteName != null) {
-            OwnNoteEditorPreferences.LAST_EDITED_NOTE.put(lastNoteName);
+            EditorPreferences.LAST_EDITED_NOTE.put(lastNoteName);
         }
 
         try {

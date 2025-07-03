@@ -37,7 +37,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.io.FilenameUtils;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.tags.TagManager;
 
 /**
@@ -72,7 +72,7 @@ public class TestNoteData {
             Files.copy(htmlfile.toPath(), notename);
             
             // and now add to our internal groupsList if a htm file
-            if (FilenameUtils.isExtension(htmlfile.getName(), OwnNoteFileManager.NOTE_EXT)) {
+            if (FilenameUtils.isExtension(htmlfile.getName(), FileManager.NOTE_EXT)) {
                 updateLists(htmlfile);
             }
         }
@@ -108,14 +108,14 @@ public class TestNoteData {
         try {
             result = Files.deleteIfExists(notename);
         } catch (IOException e) {
-            System.err.println("already exists: " + e.getMessage());
+            System.err.println("couldn't delete: " + e.getMessage());
             result = false;
         }        
         
         return result;
     }
     
-    // same logic as done in OwnNoteFileManager::initOwnNotePath
+    // same logic as done in FileManager::initOwnNotePath
     private void updateLists(final File file) {
         final String filename = file.getName();
 

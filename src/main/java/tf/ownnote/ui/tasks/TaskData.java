@@ -27,7 +27,7 @@ import tf.helper.javafx.calendarview.ICalendarEvent;
 import tf.ownnote.ui.commentdata.CommentDataMapper;
 import tf.ownnote.ui.commentdata.ICommentDataHolder;
 import tf.ownnote.ui.commentdata.ICommentDataInfo;
-import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
+import tf.ownnote.ui.editor.HTMLEditor;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.tags.ITagHolder;
@@ -312,7 +312,7 @@ public class TaskData implements ICommentDataHolder, ITagHolder, ICalendarEvent 
 
         // TFE, 20191211: remove html tags BUT convert </p> to </p> + line break
 //        System.out.println("noteText before strip: " + noteText);
-        noteText = OwnNoteHTMLEditor.stripHtmlTags(noteText);
+        noteText = HTMLEditor.stripHtmlTags(noteText);
 //        System.out.println("noteText after strip: " + noteText);
 //        System.out.println("      html tags stripped: " + noteText + " @" + Instant.now());
 
@@ -335,7 +335,7 @@ public class TaskData implements ICommentDataHolder, ITagHolder, ICalendarEvent 
         }
     }
     
-    public String toHtmlComment() {
+    protected String toHtmlComment() {
         return CommentDataMapper.getInstance().toComment(this);
     }
     
@@ -379,7 +379,7 @@ public class TaskData implements ICommentDataHolder, ITagHolder, ICalendarEvent 
     protected void setHtmlText(final String text) {
         myHtmlText = text;
         
-        setEscapedText(OwnNoteHTMLEditor.stripHtmlTags(myHtmlText));
+        setEscapedText(HTMLEditor.stripHtmlTags(myHtmlText));
     }
     
     public String getEscapedText() {

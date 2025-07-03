@@ -45,7 +45,7 @@ import javafx.collections.SetChangeListener;
 import tf.ownnote.ui.commentdata.CommentDataMapper;
 import tf.ownnote.ui.commentdata.ICommentDataHolder;
 import tf.ownnote.ui.commentdata.ICommentDataInfo;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.tags.ITagHolder;
 import tf.ownnote.ui.tags.TagData;
@@ -97,6 +97,8 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
     private final ObservableList<NoteVersion> myVersions = FXCollections.<NoteVersion>observableArrayList();
     private final ObservableSet<TagData> myTags = FXCollections.<TagData>observableSet();
     // TFE, 20210228: know thy tasks as well
+    // TFE, 20230309: use property extractor to able to react to task status changes as well
+    // not supported for sets ?!?!?!?! https://stackoverflow.com/a/42494026
     private final ObservableSet<TaskData> myTasks = FXCollections.<TaskData>observableSet();
     // TFE, 20201217: add charset to metadata - since we switched to UTF-8 on 17.12.2020 we need to be able to handle old notes
     private Charset myCharset = StandardCharsets.ISO_8859_1;
@@ -104,6 +106,9 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
     private final ObservableList<String> myAttachments = FXCollections.<String>observableArrayList();
     // TFE, 20220430: know thy app version - to find out if we might need to migrate stuff
     private final DoubleProperty myAppVersionProperty = new SimpleDoubleProperty(OwnNoteEditor.AppVersion.NONE.getVersionId());
+    // TFE, 20221207: notes can have links to other notes
+    private final ObservableSet<Note> myLinkedNotes = FXCollections.<Note>observableSet();
+    private final ObservableSet<Note> myLinkingNotes = FXCollections.<Note>observableSet();
     
     // TFE, 20210201: know you're own change status
     private final BooleanProperty hasUnsavedChanges = new SimpleBooleanProperty(false);
@@ -252,6 +257,26 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
     public DoubleProperty appVersionProperty() {
         return myAppVersionProperty;
     }
+    
+    public ObservableSet<Note> getLinkedNotes() {
+        return myLinkedNotes;
+    }
+    
+    public void setLinkedNotes(final Set<Note> notes) {
+        myLinkedNotes.clear();
+        myLinkedNotes.addAll(notes);
+    }
+    
+    public ObservableSet<Note> getLinkingNotes() {
+        return myLinkingNotes;
+    }
+    
+    public void setLinkingNotes(final Set<Note> notes) {
+        myLinkingNotes.clear();
+        myLinkingNotes.addAll(notes);
+    }
+    
+    // ===============================================================
 
     public static boolean hasMetaDataContent(final String htmlString) {
         if (htmlString == null) {
@@ -281,7 +306,7 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
         return result;
     }
     
-    public static NoteMetaData fromHtmlComment(final Note note, final String htmlString) {
+    protected static NoteMetaData fromHtmlComment(final Note note, final String htmlString) {
         final NoteMetaData result = new NoteMetaData(note);
 
         // parse html string
@@ -297,7 +322,7 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
         return result;
     }
     
-    public static String toHtmlComment(final NoteMetaData data) {
+    protected static String toHtmlComment(final NoteMetaData data) {
         if (data == null) {
             return "";
         }
@@ -393,6 +418,6 @@ public class NoteMetaData implements ICommentDataHolder, ITagHolder {
     }
     
     public static String getAttachmentPath() {
-        return OwnNoteFileManager.getInstance().getNotesPath() + ATTACHMENTS_DIR + File.separator;
+        return FileManager.getInstance().getNotesPath() + ATTACHMENTS_DIR + File.separator;
     }
 }

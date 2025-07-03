@@ -67,7 +67,8 @@ public class TaskList {
         final StringConverter<TaskData> converter = new StringConverter<TaskData>() {
             @Override
             public String toString(TaskData task) {
-                return task.getDescription() + System.lineSeparator() + TaskCard.getPriorityText(task) + "\t\t" + TaskCard.getDueDateText(task);
+                return  task.getDescription() + System.lineSeparator() +
+                        TaskCard.getPriorityText(task) + "\t\t" + TaskCard.getDueDateText(task);
             }
 
             // not actually used by CheckBoxListCell
@@ -102,6 +103,8 @@ public class TaskList {
                         tooltip.getStyleClass().add("taskdata-popup");
                         tooltip.setOnShowing((t) -> {
                             final StringBuilder text = new StringBuilder();
+                            text.append(item.getDescription());
+                            text.append(System.lineSeparator());
                             text.append(item.getNote().getNoteFileName());
                             text.append(System.lineSeparator());
                             text.append("Prio: ");
@@ -192,7 +195,9 @@ public class TaskList {
         // TFE, 20210301: highlight tasks for current note
         myEditor.currentNoteProperty().addListener((ov, oldNote, newNote) -> {
             // set styles accordingly
-            myTaskList.refresh();
+            // TFE, 20230827: we want to have edited note always on top of the list!
+//            myTaskList.refresh();
+            initListData();
         });
     }
     
@@ -225,7 +230,7 @@ public class TaskList {
         setFilterPredicate();
         
         // add sorting by notename & textpos to have tasks grouped together
-        SortedList<TaskData> sortedData = new SortedList<>(filteredData);
+        final SortedList<TaskData> sortedData = new SortedList<>(filteredData);
         sortedData.setComparator((o1, o2) -> {
             if (o1 == o2) {
                 return 0;
@@ -237,10 +242,15 @@ public class TaskList {
                 return 1;
             }
             // compare note names
-            int result = o1.getNote().getNoteName().compareTo(o2.getNote().getNoteName());
+            int result = o1.getNote().getNoteFileName().compareTo(o2.getNote().getNoteFileName());
+            // TFE, 20230827: we want to have edited note always on top of the list!
             if (result == 0) {
                 // sort by textpos for same note
                 result = o1.getTextPos() - o2.getTextPos();
+            } else if (o1.getNote().equals(myEditor.currentNoteProperty().get())) {
+                result = -1;
+            } else if (o2.getNote().equals(myEditor.currentNoteProperty().get())) {
+                result = 1;
             }
             return result;
         });

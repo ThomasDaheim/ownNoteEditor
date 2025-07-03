@@ -17,17 +17,16 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.google.gradle:osdetector-gradle-plugin:1.7.1'
+        classpath 'com.google.gradle:osdetector-gradle-plugin:1.7.3'
         // https://github.com/ben-manes/gradle-versions-plugin
         // task: dependencyUpdates
-        classpath 'com.github.ben-manes:gradle-versions-plugin:0.44.0'
+        classpath 'com.github.ben-manes:gradle-versions-plugin:0.52.0'
     }
 }
 
-// TFE, 20220122: leads to errors with gradle 7.*...
-// // Use a plugin (https://github.com/crotwell/gradle-macappbundle) to create a Mac OS X .app and .dmg
+// Use a plugin (https://github.com/crotwell/gradle-macappbundle) to create a Mac OS X .app and .dmg
 // plugins {
-//     id "edu.sc.seis.macAppBundle" version "2.3.0"
+//     id "edu.sc.seis.macAppBundle" version "2.3.1"
 // }
 // macAppBundle {
 //     mainClassName   = "tf.ownnote.ui.main.OwnNoteEditorManager"
@@ -43,6 +42,7 @@ buildscript {
 //     // Uncomment the next line to bundle the JRE with the Mac OS X application
 //     //bundleJRE     = true
 // }
+// configurations.default.canBeResolved=true
 
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
@@ -75,7 +75,7 @@ if (!hasProperty('mainClass')) {
 mainClassName = 'tf.ownnote.ui.main.OwnNoteEditorManager'
 def appName='OwnNoteEditor'
 group='tf.OwnNoteEditor'
-version='6.1'
+version='6.3'
 description = 'ownNoteEditor - JavaFX html notes editor'
 
 // In this section you declare the dependencies for your production and test code
@@ -84,7 +84,10 @@ dependencies {
 //    def javafx_version='11.0.2'
 //    def javafx_version='14'
 //    def javafx_version='15.0.1'
-    def javafx_version='17.0.1'
+//    def javafx_version='17.0.2'
+//    def javafx_version='19.0.2'
+//    def javafx_version='21.0.2'
+    def javafx_version='23.0.1'
     implementation "org.openjfx:javafx-base:$javafx_version:$platform"
     implementation "org.openjfx:javafx-graphics:$javafx_version:$platform"
     implementation "org.openjfx:javafx-controls:$javafx_version:$platform"
@@ -94,27 +97,32 @@ dependencies {
     implementation "org.openjfx:javafx-media:$javafx_version:$platform"
     
     // TFE, 20200809: use our own helper library
-    implementation 'tf.JavaHelper:JavaHelper:1.15'
+    implementation 'tf.JavaHelper:JavaHelper:1.16'
 
-    implementation 'commons-cli:commons-cli:1.5.0'
-    implementation 'commons-io:commons-io:2.11.0'
-    implementation 'org.apache.commons:commons-lang3:3.12.0'
-    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.10.0'
-    implementation group: 'commons-codec', name: 'commons-codec', version: '1.15'
-    implementation group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.19'
+    implementation 'commons-cli:commons-cli:1.9.0'
+    implementation 'commons-io:commons-io:2.19.0'
+    implementation 'org.apache.commons:commons-lang3:3.17.0'
+    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.13.1'
+    implementation group: 'commons-codec', name: 'commons-codec', version: '1.18.0'
+    implementation group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.21'
     implementation group: 'org.unbescape', name: 'unbescape', version: '1.1.6.RELEASE'
-    implementation group: 'org.jfxtras', name: 'jfxtras-controls', version: '15-r2'
-    implementation group: 'org.controlsfx', name: 'controlsfx', version: '11.1.2'
+    implementation group: 'org.jfxtras', name: 'jfxtras-controls', version: '17-r1'
+    implementation group: 'org.controlsfx', name: 'controlsfx', version: '11.2.2'
     
     // new look & feel for old code :-)
     implementation group: 'org.jfxtras', name: 'jmetro', version: '11.6.16'
     implementation 'de.jensd:fontawesomefx:8.9'
 
-    testImplementation "org.testfx:testfx-junit:4.0.+"
-    testImplementation "org.testfx:testfx-core:4.0.+"
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.9.1'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.10.2'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.10.2'
+    // TFE, 20221231: build a test suite for all non-UI tests
+    testImplementation group: 'org.junit.platform', name: 'junit-platform-suite-engine', version: '1.10.2'
     // TFE, 20210121: capture System.err() easily
     testImplementation group: 'com.github.stefanbirkner', name: 'system-lambda', version: '1.2.1'
+
+    testImplementation group: 'org.junit.vintage', name: 'junit-vintage-engine', version: '5.6.2'
+    testImplementation "org.testfx:testfx-junit:4.0.+"
+    testImplementation "org.testfx:testfx-core:4.0.+"
 }
 
 
@@ -140,7 +148,7 @@ compileJava {
 }
 
 // see https://github.com/kelemen/netbeans-gradle-project/issues/403 on how to extend gradle tasks
-def newArgs = [ '--add-modules', 'javafx.controls,javafx.graphics,javafx.base,javafx.fxml,javafx.web,javafx.swing,javafx.media',
+def newArgs = [ '--add-modules', 'javafx.controls,javafx.fxml,javafx.web,javafx.swing,javafx.media',
                 // various exports needed at run time - see https://stackoverflow.com/a/52142071
                 '--add-exports', 'javafx.base/com.sun.javafx.reflect=ALL-UNNAMED',
                 '--add-exports', 'javafx.base/com.sun.javafx.beans=ALL-UNNAMED',
@@ -176,6 +184,7 @@ test {
     doFirst {
         jvmArgs = jvmArgs.plus(['-Dtestfx.robot=awt'])
     }
+    useJUnitPlatform()
 }
 
 // extend Netbeans Gradle "Debug" task
@@ -218,3 +227,5 @@ sourceSets {
         } 
     }  
 }
+
+build.finalizedBy(installDist)

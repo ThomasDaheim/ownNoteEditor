@@ -31,12 +31,12 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import tf.ownnote.ui.helper.FileContentChangeType;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.notes.Note;
 import tf.ownnote.ui.tags.TagManager;
 
@@ -45,53 +45,53 @@ import tf.ownnote.ui.tags.TagManager;
  * @author thomas
  */
 public class TestTaskManager {
-    @Before
+    @BeforeEach
     public void setUp() {
-        OwnNoteFileManager.getInstance().setCallback(null);
-        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/");
+        FileManager.getInstance().setCallback(null);
+        FileManager.getInstance().initNotesPath("src/test/resources/");
         
         TaskManager.getInstance().resetTaskList();
     }
     
-    @After
+    @AfterEach
     public void tearDown() {
     }
 
     @Test
     public void testFindAllOccurences() {
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
+        final Note note = FileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
         
-        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
-        Assert.assertEquals(5, TaskManager.getInstance().tasksForNote(note).size());
+        final String content = FileManager.getInstance().readNote(note, true).getNoteFileContent();
+        Assertions.assertEquals(5, TaskManager.getInstance().tasksForNote(note).size());
     }
 
     @Test
     public void testGetTaskList() {
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
+        final Note note = FileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
         
         // need to sort task list since other tests might have screwed with the order
         final List<TaskData> taskList = TaskManager.getInstance().tasksForNote(note).stream().sorted((o1, o2) -> {
             return Integer.compare(o1.getTextPos(), o2.getTextPos());
         }).collect(Collectors.toList());
-        Assert.assertEquals(5, taskList.size());
+        Assertions.assertEquals(5, taskList.size());
         
         for (TaskData data : taskList) {
-            Assert.assertEquals("Test", data.getNote().getGroupName());
-            Assert.assertEquals("TestTasks", data.getNote().getNoteName());
+            Assertions.assertEquals("Test", data.getNote().getGroupName());
+            Assertions.assertEquals("TestTasks", data.getNote().getNoteName());
         }
         
-        Assert.assertEquals(" tell me, what to do!", taskList.get(0).getEventDescription().get());
-        Assert.assertTrue(taskList.get(2).getDescription().startsWith(" of course with something special: "));
+        Assertions.assertEquals(" tell me, what to do!", taskList.get(0).getEventDescription().get());
+        Assertions.assertTrue(taskList.get(2).getDescription().startsWith(" of course with something special: "));
     }
     
     @Test
     public void testChangeContent1() {
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
+        final Note note = FileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
         
-        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
+        final String content = FileManager.getInstance().readNote(note, true).getNoteFileContent();
         TaskManager.getInstance().tasksForNote(note);
         final ObservableSet<TaskData> taskList = note.getMetaData().getTasks();
-        Assert.assertEquals(5, taskList.size());
+        Assertions.assertEquals(5, taskList.size());
         
         BooleanProperty wasUpdated = new SimpleBooleanProperty(Boolean.FALSE);
         BooleanProperty wasAdded = new SimpleBooleanProperty(Boolean.FALSE);
@@ -108,9 +108,9 @@ public class TestTaskManager {
         // add something in front of content - tasklist shouldn't change
         String newContent = "TEST" + content;
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, content, newContent);
-        Assert.assertFalse(wasUpdated.getValue());
-        Assert.assertFalse(wasAdded.getValue());
-        Assert.assertFalse(wasRemoved.getValue());
+        Assertions.assertFalse(wasUpdated.getValue());
+        Assertions.assertFalse(wasAdded.getValue());
+        Assertions.assertFalse(wasRemoved.getValue());
         
         // reset wasXYZ
         wasAdded.setValue(Boolean.FALSE);
@@ -120,9 +120,9 @@ public class TestTaskManager {
         // add something to end of content - tasklist shouldn't change
         newContent = content + "TEST";
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, content, newContent);
-        Assert.assertFalse(wasUpdated.getValue());
-        Assert.assertFalse(wasAdded.getValue());
-        Assert.assertFalse(wasRemoved.getValue());
+        Assertions.assertFalse(wasUpdated.getValue());
+        Assertions.assertFalse(wasAdded.getValue());
+        Assertions.assertFalse(wasRemoved.getValue());
 
         // reset wasXYZ
         wasAdded.setValue(Boolean.FALSE);
@@ -132,9 +132,9 @@ public class TestTaskManager {
         // add checkbox in front of content - tasklist should change
         newContent = TaskData.UNCHECKED_BOXES_1 + "TEST" + content;
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, content, newContent);
-        Assert.assertFalse(wasUpdated.getValue());
-        Assert.assertTrue(wasAdded.getValue());
-        Assert.assertFalse(wasRemoved.getValue());
+        Assertions.assertFalse(wasUpdated.getValue());
+        Assertions.assertTrue(wasAdded.getValue());
+        Assertions.assertFalse(wasRemoved.getValue());
 
         // reset wasXYZ
         wasAdded.setValue(Boolean.FALSE);
@@ -143,9 +143,9 @@ public class TestTaskManager {
         
         // remove checkbox - tasklist should change
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, newContent, content);
-        Assert.assertFalse(wasUpdated.getValue());
-        Assert.assertFalse(wasAdded.getValue());
-        Assert.assertTrue(wasRemoved.getValue());
+        Assertions.assertFalse(wasUpdated.getValue());
+        Assertions.assertFalse(wasAdded.getValue());
+        Assertions.assertTrue(wasRemoved.getValue());
 
         // reset wasXYZ
         wasAdded.setValue(Boolean.FALSE);
@@ -155,9 +155,9 @@ public class TestTaskManager {
         // add checkbox after content - tasklist should change
         newContent = content + TaskData.UNCHECKED_BOXES_1 + "TEST";
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, content, newContent);
-        Assert.assertFalse(wasUpdated.getValue());
-        Assert.assertTrue(wasAdded.getValue());
-        Assert.assertFalse(wasRemoved.getValue());
+        Assertions.assertFalse(wasUpdated.getValue());
+        Assertions.assertTrue(wasAdded.getValue());
+        Assertions.assertFalse(wasRemoved.getValue());
 
         // reset wasXYZ
         wasAdded.setValue(Boolean.FALSE);
@@ -166,21 +166,21 @@ public class TestTaskManager {
         
         // remove checkbox - tasklist should change
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, newContent, content);
-        Assert.assertFalse(wasUpdated.getValue());
-        Assert.assertFalse(wasAdded.getValue());
-        Assert.assertTrue(wasRemoved.getValue());
+        Assertions.assertFalse(wasUpdated.getValue());
+        Assertions.assertFalse(wasAdded.getValue());
+        Assertions.assertTrue(wasRemoved.getValue());
     }
     
     @Test
     public void testChangeContent2() {
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
+        final Note note = FileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
         
-        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
+        final String content = FileManager.getInstance().readNote(note, true).getNoteFileContent();
         // need to sort task list since other tests might have screwed with the order
         final List<TaskData> taskList = TaskManager.getInstance().tasksForNote(note).stream().sorted((o1, o2) -> {
             return Integer.compare(o1.getTextPos(), o2.getTextPos());
         }).collect(Collectors.toList());
-        Assert.assertEquals(5, taskList.size());
+        Assertions.assertEquals(5, taskList.size());
         
         // change an existing checkbox to see if updated works
         final TaskData firstTask = taskList.get(0);
@@ -189,37 +189,37 @@ public class TestTaskManager {
         String newContent = content.substring(0, textPos) + " - TEST - " + content.substring(textPos);
 
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, content, newContent);
-        Assert.assertNotEquals(firstDescription, firstTask.getHtmlText());
-        Assert.assertEquals(" - TEST - " + firstDescription, firstTask.getHtmlText());
+        Assertions.assertNotEquals(firstDescription, firstTask.getHtmlText());
+        Assertions.assertEquals(" - TEST - " + firstDescription, firstTask.getHtmlText());
         
         // change back
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, newContent, content);
-        Assert.assertEquals(firstDescription, firstTask.getHtmlText());
+        Assertions.assertEquals(firstDescription, firstTask.getHtmlText());
         
         // switch between checked / unchecked
-        Assert.assertFalse(firstTask.isCompleted());
+        Assertions.assertFalse(firstTask.isCompleted());
         textPos = content.indexOf(firstTask.getHtmlText());
         newContent = content.substring(0, firstTask.getTextPos()) + TaskData.CHECKED_BOXES_1 + content.substring(textPos);
 
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, content, newContent);
-        Assert.assertTrue(firstTask.isCompleted());
+        Assertions.assertTrue(firstTask.isCompleted());
         
         // change back
         TaskManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, note, newContent, content);
-        Assert.assertFalse(firstTask.isCompleted());
+        Assertions.assertFalse(firstTask.isCompleted());
     }
     
     @Test
     public void testChangeContent3() {
         // add checkbox id twice to make sure second gets a new value
-        final Note note = OwnNoteFileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
+        final Note note = FileManager.getInstance().getNote(TagManager.getInstance().groupForName("Test", false), "TestTasks");
         
-        final String content = OwnNoteFileManager.getInstance().readNote(note, true).getNoteFileContent();
+        final String content = FileManager.getInstance().readNote(note, true).getNoteFileContent();
         // need to sort task list since other tests might have screwed with the order
         final List<TaskData> taskList = TaskManager.getInstance().tasksForNote(note).stream().sorted((o1, o2) -> {
             return Integer.compare(o1.getTextPos(), o2.getTextPos());
         }).collect(Collectors.toList());
-        Assert.assertEquals(5, taskList.size());
+        Assertions.assertEquals(5, taskList.size());
         
         // change an existing checkbox to see if updated works
         final TaskData firstTask = taskList.get(0);
@@ -234,12 +234,12 @@ public class TestTaskManager {
             return Integer.compare(o1.getTextPos(), o2.getTextPos());
         }).collect(Collectors.toList());
         // should be 2 tasks longer
-        Assert.assertEquals(7, newTaskList.size());
+        Assertions.assertEquals(7, newTaskList.size());
         
         // new tasks should have different id than first one
-        Assert.assertFalse(firstTask.getId().equals(newTaskList.get(5).getId()));
-        Assert.assertFalse(firstTask.getId().equals(newTaskList.get(6).getId()));
+        Assertions.assertFalse(firstTask.getId().equals(newTaskList.get(5).getId()));
+        Assertions.assertFalse(firstTask.getId().equals(newTaskList.get(6).getId()));
         // and different from each other
-        Assert.assertFalse(newTaskList.get(5).getId().equals(newTaskList.get(6).getId()));
+        Assertions.assertFalse(newTaskList.get(5).getId().equals(newTaskList.get(6).getId()));
     }
 }

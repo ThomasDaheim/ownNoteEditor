@@ -26,7 +26,6 @@
 package tf.ownnote.ui.tags;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javafx.beans.property.BooleanProperty;
@@ -321,9 +320,18 @@ public class TagsTreeView extends TreeView<TagDataWrapper> implements IGroupList
     public void selectGroupForNote(final Note note) {
         assert note != null;
         
-        final TreeItem<TagDataWrapper> groupItem = getTreeViewItem(getRoot(), note.getGroupName());
-        if (groupItem != null) {
-            getSelectionModel().select(groupItem);
+        TreeItem<TagDataWrapper> searchItem = getRoot();
+        // TFE, 20221228: with hierarchies in groups we need to find starting from the root of the groups @ the note!
+        for (TagData tag : TagManager.getTagHierarchyAsList(note.getGroup())) {
+            searchItem = getTreeViewItem(searchItem, tag.getName());
+            
+            if (searchItem == null) {
+                // wedon't know this group
+                break;
+            }
+        }
+        if (searchItem != null) {
+            getSelectionModel().select(searchItem);
         }
     }
     

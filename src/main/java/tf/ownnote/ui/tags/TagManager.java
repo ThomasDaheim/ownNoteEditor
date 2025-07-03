@@ -50,6 +50,7 @@ import java.nio.file.WatchEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -74,10 +75,10 @@ import org.apache.commons.lang3.EnumUtils;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.xstreamfx.FXConverters;
 import tf.ownnote.ui.helper.FileContentChangeType;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IFileContentChangeSubscriber;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
@@ -150,6 +151,8 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
         
         public TagData getTag() {
+            // TFE, 20230411: We might not yet have loaded the tags! Happens e.g. on first call on new machine...
+            TagManager.getInstance().initTags();
             return myTag;
         }
 
@@ -266,7 +269,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         myEditor = editor;
 
         // now we can register everywhere
-        OwnNoteFileManager.getInstance().subscribe(INSTANCE);
+        FileManager.getInstance().subscribe(INSTANCE);
         myEditor.getNoteEditor().subscribe(INSTANCE);
     }
 
@@ -404,7 +407,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         
         final TagData xstreamRoot = new TagData("xstream-root", false, false);
         
-        final String fileName = OwnNoteFileManager.getInstance().getNotesPath() + TAG_FILE;
+        final String fileName = FileManager.getInstance().getNotesPath() + TAG_FILE;
         final File file = new File(fileName);
         if (file.exists() && !file.isDirectory() && file.canRead()) {
             // load from xml AND from current metadata
@@ -457,6 +460,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
         // deep copy tags over to real root
         ROOT_TAG.setChildren(xstreamRoot.cloneMe().getChildren());
+//        System.out.println(ROOT_TAG.printWithChildren());
         
         // ensure reserved names are fixed
         for (ReservedTag reservedTag : ReservedTag.values()) {
@@ -638,12 +642,12 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
 
         try {
-            FileUtils.forceMkdir(new File(OwnNoteFileManager.getInstance().getNotesPath() + TAG_DIR));
+            FileUtils.forceMkdir(new File(FileManager.getInstance().getNotesPath() + TAG_DIR));
         } catch (IOException ex) {
             Logger.getLogger(TagManager.class.getName()).log(Level.SEVERE, null, ex);
             return;
         }
-        final String fileName = OwnNoteFileManager.getInstance().getNotesPath() + TAG_FILE;
+        final String fileName = FileManager.getInstance().getNotesPath() + TAG_FILE;
         final File file = new File(fileName);
         if (file.exists() && (file.isDirectory() || !file.canWrite())) {
             return;
@@ -712,20 +716,20 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         // check all notes if they already have a tag with their group name
         // if not add such a tag
         // probably only used once for "migration" to tag metadata
-        for (Note note : OwnNoteFileManager.getInstance().getNotesList()) {
+        for (Note note : FileManager.getInstance().getNotesList()) {
             // lets not store a "Not grouped" tag...
             if (!isNotGrouped(note.getGroup())) {
                 final TagData groupInfo = note.getGroup();
                 if (note.getMetaData().getTags().contains(groupInfo)) {
                     System.out.println("Removing tag " + note.getGroupName() + " from note " + note.getNoteName());
-                    OwnNoteFileManager.getInstance().readNote(note, false);
+                    FileManager.getInstance().readNote(note, false);
                     note.getMetaData().getTags().remove(groupInfo);
-                    OwnNoteFileManager.getInstance().saveNote(note);
+                    FileManager.getInstance().saveNote(note);
                 } else {
                     System.out.println("Adding tag " + note.getGroupName() + " to note " + note.getNoteName());
-                    OwnNoteFileManager.getInstance().readNote(note, false);
+                    FileManager.getInstance().readNote(note, false);
                     note.getMetaData().getTags().add(groupInfo);
-                    OwnNoteFileManager.getInstance().saveNote(note);
+                    FileManager.getInstance().saveNote(note);
                 }
             }
         }
@@ -941,7 +945,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         // if groupTag rename group (and with it note file) as well
         if (tag.isGroup()) {
             final String newGroupName = newName != null ? newName : ReservedTag.NotGrouped.getTagName();
-            result = OwnNoteFileManager.getInstance().renameGroup(tag, newGroupName);
+            result = FileManager.getInstance().renameGroup(tag, newGroupName);
 
             if (result) {
                 //check if we just moved the current note in the editor...
@@ -983,7 +987,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         // save the notes (except for the one currently in the editor
         for (Note note : changedNotes) {
             if (!note.equals(myEditor.getEditedNote())) {
-                OwnNoteFileManager.getInstance().saveNote(note);
+                FileManager.getInstance().saveNote(note);
             } else {
                 // tell the world, the note metadata has changed (implicitly)
                 // so that any interesting party can listen to the change
@@ -1158,7 +1162,7 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     public boolean createNote(final TagData newGroup, final String newNoteName) {
         // this is called after the fact that a new note has been created
         // so we only need to back-link notes to groups
-        final Note newNote = OwnNoteFileManager.getInstance().getNote(newGroup, newNoteName);
+        final Note newNote = FileManager.getInstance().getNote(newGroup, newNoteName);
         newNote.getGroup().getLinkedNotes().add(newNote);
         ReservedTag.All.getTag().getLinkedNotes().add(newNote);
 
@@ -1166,16 +1170,14 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
     }
 
     @Override
-    public boolean renameNote(final Note curNote, final String newValue) {
+    public boolean renameNote(final Note curNote, final String oldNoteName, final String newNoteName) {
         return true;
     }
 
     @Override
-    public boolean moveNote(final Note curNote, final TagData newGroup) {
+    public boolean moveNote(final Note curNote, final TagData oldGroup, final TagData newGroup) {
         // we have been called after the fact... so the linkedNotes have already been updated with the new group name
-        final Note movedNote = OwnNoteFileManager.getInstance().getNote(newGroup, curNote.getNoteName());
-
-        final TagData oldGroup = curNote.getGroup();
+        final Note movedNote = FileManager.getInstance().getNote(newGroup, curNote.getNoteName());
 
         // TFE, 20220424: check if this changes the archiving status!
         if (!oldGroup.isArchivedGroup().equals(movedNote.getGroup().isArchivedGroup())) {
@@ -1195,6 +1197,15 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
             // need to manually update the linkt tag <-> note - both variants, just to be sure...
             oldGroup.getLinkedNotes().remove(curNote);
             oldGroup.getLinkedNotes().remove(movedNote);
+            
+            // TFE, 20240213: WTF??? above removes are not working!!! Need to clear and re-add by hand
+            final Set<Note> oldNotes = new HashSet<>(oldGroup.getLinkedNotes());
+            oldGroup.getLinkedNotes().clear();
+            for (Note note : oldNotes) {
+                if (!note.equals(curNote) && !note.equals(movedNote)) {
+                    oldGroup.getLinkedNotes().add(note);
+                }
+            }
             newGroup.getLinkedNotes().add(movedNote);
         }
 
@@ -1226,12 +1237,26 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         return result;
     }
     
-    public String getExternalName(final TagData tag) {
+    public static String getExternalName(final TagData tag) {
         final StringBuffer result = new StringBuffer(tag.getName());
         
         // and now go upwards in the hierarchy til root or "Groups" tag
         TagData parent = tag.getParent();
         for (int i = tag.getLevel(); i > 0; i--) {
+            if (parent == null) {
+                // TFE, 20230213: occasional exception: Cannot invoke "tf.ownnote.ui.tags.TagData.getName()" because "parent" is null
+                // this shouldn't happen! levels says we need to go up the chain but the chain isn't long enough?
+                System.err.println("Tag '" + tag.getName() + "' has incorrect parent hierarchy!");
+                System.err.println("Expected: " + tag.getLevel() + " parents, chain ended on level " + i);
+                System.err.println("Tag hierarchy for this tag:");
+                TagData root = tag;
+                while (root.getParent() != null) {
+                    root = root.getParent();
+                }
+                System.err.println(root.printWithChildren());
+                System.err.println("Tag hierarchy for root tag:");
+                System.err.println(ROOT_TAG.printWithChildren());
+            }
             if (isGroupsRootTag(parent)) {
                 // we don't need to go all the way up to root...
                 break;
@@ -1243,6 +1268,27 @@ public class TagManager implements IFileChangeSubscriber, IFileContentChangeSubs
         }
         
         return result.toString();
+    }
+    
+    public static LinkedList<TagData> getTagHierarchyAsList(final TagData tag) {
+        final LinkedList<TagData> result = new LinkedList<>();
+        
+        // lets start with ourselves
+        result.add(tag);
+        
+        TagData parent = tag.getParent();
+        for (int i = tag.getLevel(); i > 0; i--) {
+            if (isGroupsRootTag(parent)) {
+                // we don't need to go all the way up to root...
+                break;
+            }
+            // add upfront so that order ing is like for external name
+            result.add(0, parent);
+            
+            parent = parent.getParent();
+        }
+
+        return result;
     }
     
     // ===========================================================================

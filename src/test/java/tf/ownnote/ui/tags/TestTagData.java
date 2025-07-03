@@ -29,12 +29,12 @@ import java.util.concurrent.Callable;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import tf.ownnote.ui.helper.FileManager;
 
 /**
  *
@@ -52,7 +52,7 @@ public class TestTagData {
     // used to track calls to the change listener
     private static final ObservableList<ChangeType> testChangeType = FXCollections.<ChangeType>observableArrayList();
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() {
         tagTestListener = new ListChangeListener<>() {
             @Override
@@ -86,14 +86,14 @@ public class TestTagData {
         });
     }
     
-    @Before 
+    @BeforeEach
     public void setUp() {
         TagManager.getInstance().resetTagList();
-        OwnNoteFileManager.getInstance().setCallback(null);
-        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/LookAndFeel");
+        FileManager.getInstance().setCallback(null);
+        FileManager.getInstance().initNotesPath("src/test/resources/LookAndFeel");
     }
     
-    @After
+    @AfterEach
     public void tearDown() {
     }
     
@@ -112,26 +112,26 @@ public class TestTagData {
         testChangeType.clear();
         System.out.println("testPropertyExtractor: add of 1 child to root");
         localRoot.getChildren().add(localChild1);
-        Assert.assertEquals("Count of changes", 3, testChangeType.size());
+        Assertions.assertEquals(3, testChangeType.size(), "Count of changes");
         // 1. we have "ADDED" to the list
-        Assert.assertEquals("1. we have \"ADDED\" to the list", ChangeType.ADDED, testChangeType.get(0));
+        Assertions.assertEquals(ChangeType.ADDED, testChangeType.get(0), "1. we have \"ADDED\" to the list");
         // 2. we have "UPDATED" of the parent property
-        Assert.assertEquals("2. we have \"UPDATED\" of the parent property", ChangeType.UPDATED, testChangeType.get(1));
+        Assertions.assertEquals(ChangeType.UPDATED, testChangeType.get(1), "2. we have \"UPDATED\" of the parent property");
         // 3. we have "ADDED" to the list
-        Assert.assertEquals("3. we have \"ADDED\" to the list", ChangeType.ADDED, testChangeType.get(2));
+        Assertions.assertEquals(ChangeType.ADDED, testChangeType.get(2), "3. we have \"ADDED\" to the list");
         
         testChangeType.clear();
         System.out.println("testPropertyExtractor: setName of child #1");
         localChild1.setName("DUMMY");
-        Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
-        Assert.assertEquals("Attribue has changed", "DUMMY", localChild1.getName());
+        Assertions.assertEquals(ChangeType.UPDATED, testChangeType.get(0), "Attribue has changed");
+        Assertions.assertEquals("DUMMY", localChild1.getName(), "Attribue has changed");
         
         testChangeType.clear();
         System.out.println("testPropertyExtractor: resetName of child #1");
         // TFE, 20210428: WTF??? property extractor only triggers change event for the second change if property is read after setting it?!?!?!
         localChild1.setName("CHILD_1");
-        Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
-        Assert.assertEquals("Attribue has changed", "CHILD_1", localChild1.getName());
+        Assertions.assertEquals(ChangeType.UPDATED, testChangeType.get(0), "Attribue has changed");
+        Assertions.assertEquals("CHILD_1", localChild1.getName(), "Attribue has changed");
 
         // and now for childs of childs
         final TagData localChildChild1 = new TagData("CHILD_CHILD_1", false, false);
@@ -145,14 +145,14 @@ public class TestTagData {
         testChangeType.clear();
         System.out.println("testPropertyExtractor: setName of child child #1");
         localChildChild1.setName("DUMMY");
-        Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
-        Assert.assertEquals("Attribue has changed", "DUMMY", localChildChild1.getName());
+        Assertions.assertEquals(ChangeType.UPDATED, testChangeType.get(0), "Attribue has changed");
+        Assertions.assertEquals("DUMMY", localChildChild1.getName(), "Attribue has changed");
         
         testChangeType.clear();
         System.out.println("testPropertyExtractor: resetName of child #1");
         localChildChild1.setName("CHILD_CHILD_1");
-        Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
-        Assert.assertEquals("Attribue has changed", "CHILD_CHILD_1", localChildChild1.getName());
+        Assertions.assertEquals(ChangeType.UPDATED, testChangeType.get(0), "Attribue has changed");
+        Assertions.assertEquals("CHILD_CHILD_1", localChildChild1.getName(), "Attribue has changed");
     }
     
     @Test
@@ -166,29 +166,29 @@ public class TestTagData {
         testChangeType.clear();
         System.out.println("testChildListenerLocal: addAll of 2 childs to root");
         localRoot.getChildren().addAll(localChild1, localChild2);
-        Assert.assertEquals("Count of changes", 5, testChangeType.size());
+        Assertions.assertEquals(5, testChangeType.size(), "Count of changes");
         // 1. we have "ADDED" to the list
-        Assert.assertEquals("1. we have \"ADDED\" to the list", ChangeType.ADDED, testChangeType.get(0));
+        Assertions.assertEquals(ChangeType.ADDED, testChangeType.get(0), "1. we have \"ADDED\" to the list");
         // 2. we have "UPDATED" of the parent property
-        Assert.assertEquals("2. we have \"UPDATED\" of the parent property", ChangeType.UPDATED, testChangeType.get(1));
+        Assertions.assertEquals(ChangeType.UPDATED, testChangeType.get(1), "2. we have \"UPDATED\" of the parent property");
         // 3. we have "ADDED" to the list
-        Assert.assertEquals("3. we have \"ADDED\" to the list", ChangeType.ADDED, testChangeType.get(2));
+        Assertions.assertEquals(ChangeType.ADDED, testChangeType.get(2), "3. we have \"ADDED\" to the list");
         // 4. we have "UPDATED" of the parent property
-        Assert.assertEquals("4. we have \"UPDATED\" of the parent property", ChangeType.UPDATED, testChangeType.get(3));
+        Assertions.assertEquals(ChangeType.UPDATED, testChangeType.get(3), "4. we have \"UPDATED\" of the parent property");
         // 5. we have "ADDED" from the parent tag
-        Assert.assertEquals("5. we have \"ADDED\" from the parent tag", ChangeType.ADDED, testChangeType.get(4));
+        Assertions.assertEquals(ChangeType.ADDED, testChangeType.get(4), "5. we have \"ADDED\" from the parent tag");
 
         // change attributes
         testChangeType.clear();
         System.out.println("testChildListenerLocal: setName of root");
         localRoot.setName("DUMMY");
         // no listener => no change triggered
-        Assert.assertTrue("No change listener", testChangeType.isEmpty());
+        Assertions.assertTrue(testChangeType.isEmpty(), "No change listener");
 
         testChangeType.clear();
         System.out.println("testChildListenerLocal: setName of child #1");
         localChild1.setName("DUMMY");
-        Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
+        Assertions.assertEquals(ChangeType.UPDATED, testChangeType.get(0), "Attribue has changed");
     }
     
     @Test
@@ -202,29 +202,29 @@ public class TestTagData {
         testChangeType.clear();
         System.out.println("testChildListenerManager: addAll of 2 childs to root");
         localRoot.getChildren().addAll(localChild1, localChild2);
-        Assert.assertEquals("Count of changes", 5, testChangeType.size());
+        Assertions.assertEquals(5, testChangeType.size(), "Count of changes");
         // 1. we have "ADDED" to the list
-        Assert.assertEquals("1. we have \"ADDED\" to the list", ChangeType.ADDED, testChangeType.get(0));
+        Assertions.assertEquals(ChangeType.ADDED, testChangeType.get(0), "1. we have \"ADDED\" to the list");
         // 2. we have "UPDATED" of the parent property
-        Assert.assertEquals("2. we have \"UPDATED\" of the parent property", ChangeType.UPDATED, testChangeType.get(1));
+        Assertions.assertEquals(ChangeType.UPDATED, testChangeType.get(1), "2. we have \"UPDATED\" of the parent property");
         // 3. we have "ADDED" to the list
-        Assert.assertEquals("3. we have \"ADDED\" to the list", ChangeType.ADDED, testChangeType.get(2));
+        Assertions.assertEquals(ChangeType.ADDED, testChangeType.get(2), "3. we have \"ADDED\" to the list");
         // 4. we have "UPDATED" of the parent property
-        Assert.assertEquals("4. we have \"UPDATED\" of the parent property", ChangeType.UPDATED, testChangeType.get(3));
+        Assertions.assertEquals(ChangeType.UPDATED, testChangeType.get(3), "4. we have \"UPDATED\" of the parent property");
         // 5. we have "ADDED" from the parent tag
-        Assert.assertEquals("5. we have \"ADDED\" from the parent tag", ChangeType.ADDED, testChangeType.get(4));
+        Assertions.assertEquals(ChangeType.ADDED, testChangeType.get(4), "5. we have \"ADDED\" from the parent tag");
 
         // change attributes
         testChangeType.clear();
         System.out.println("testChildListenerManager: setName of root");
         localRoot.setName("DUMMY");
         // no listener => no change triggered
-        Assert.assertTrue("No change listener", testChangeType.isEmpty());
+        Assertions.assertTrue(testChangeType.isEmpty(), "No change listener");
 
         testChangeType.clear();
         System.out.println("testChildListenerManager: setName of child #1");
         localChild1.setName("DUMMY");
-        Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
+        Assertions.assertEquals(ChangeType.UPDATED, testChangeType.get(0), "Attribue has changed");
     }
 
     @Test
@@ -238,17 +238,17 @@ public class TestTagData {
         testChangeType.clear();
         System.out.println("testChildListenerReuse: addAll of 2 childs to root");
         localRoot.getChildren().addAll(localChild1, localChild2);
-        Assert.assertEquals("Count of changes", 5, testChangeType.size());
+        Assertions.assertEquals(5, testChangeType.size(), "Count of changes");
         // 1. we have "ADDED" to the list
-        Assert.assertEquals("1. we have \"ADDED\" to the list", ChangeType.ADDED, testChangeType.get(0));
+        Assertions.assertEquals(ChangeType.ADDED, testChangeType.get(0), "1. we have \"ADDED\" to the list");
         // 2. we have "UPDATED" of the parent property
-        Assert.assertEquals("2. we have \"UPDATED\" of the parent property", ChangeType.UPDATED, testChangeType.get(1));
+        Assertions.assertEquals(ChangeType.UPDATED, testChangeType.get(1), "2. we have \"UPDATED\" of the parent property");
         // 3. we have "ADDED" to the list
-        Assert.assertEquals("3. we have \"ADDED\" to the list", ChangeType.ADDED, testChangeType.get(2));
+        Assertions.assertEquals(ChangeType.ADDED, testChangeType.get(2), "3. we have \"ADDED\" to the list");
         // 4. we have "UPDATED" of the parent property
-        Assert.assertEquals("4. we have \"UPDATED\" of the parent property", ChangeType.UPDATED, testChangeType.get(3));
+        Assertions.assertEquals(ChangeType.UPDATED, testChangeType.get(3), "4. we have \"UPDATED\" of the parent property");
         // 5. we have "ADDED" from the parent tag
-        Assert.assertEquals("5. we have \"ADDED\" from the parent tag", ChangeType.ADDED, testChangeType.get(4));
+        Assertions.assertEquals(ChangeType.ADDED, testChangeType.get(4), "5. we have \"ADDED\" from the parent tag");
 
         // re-use tagTestListener on first child
         final TagData firstChild = localRoot.getChildren().get(0);
@@ -260,22 +260,22 @@ public class TestTagData {
         testChangeType.clear();
         System.out.println("testChildListenerReuse: addAll of 2 childs to child #1");
         firstChild.getChildren().addAll(localChildChild1, localChildChild2);
-        Assert.assertEquals("Count of changes", 5, testChangeType.size());
+        Assertions.assertEquals(5, testChangeType.size(), "Count of changes");
         // we have "ADDED" to the list
-        Assert.assertEquals("1. we have \"ADDED\" to the list", ChangeType.ADDED, testChangeType.get(0));
+        Assertions.assertEquals(ChangeType.ADDED, testChangeType.get(0), "1. we have \"ADDED\" to the list");
         // we have "UPDATED" of the parent property
-        Assert.assertEquals("2. we have \"UPDATED\" of the parent property", ChangeType.UPDATED, testChangeType.get(1));
+        Assertions.assertEquals(ChangeType.UPDATED, testChangeType.get(1), "2. we have \"UPDATED\" of the parent property");
         // we have "ADDED" to the list
-        Assert.assertEquals("3. we have \"ADDED\" to the list", ChangeType.ADDED, testChangeType.get(2));
+        Assertions.assertEquals(ChangeType.ADDED, testChangeType.get(2), "3. we have \"ADDED\" to the list");
         // we have "UPDATED" of the parent property
-        Assert.assertEquals("4. we have \"UPDATED\" of the parent property", ChangeType.UPDATED, testChangeType.get(3));
+        Assertions.assertEquals(ChangeType.UPDATED, testChangeType.get(3), "4. we have \"UPDATED\" of the parent property");
         // we have "ADDED" from the parent tag
-        Assert.assertEquals("5. we have \"ADDED\" from the parent tag", ChangeType.ADDED, testChangeType.get(4));
+        Assertions.assertEquals(ChangeType.ADDED, testChangeType.get(4), "5. we have \"ADDED\" from the parent tag");
         
         // and now try on the original child list
         testChangeType.clear();
         System.out.println("testChildListenerReuse: setName of child #1");
         firstChild.setName("DUMMY");
-        Assert.assertEquals("Attribue has changed", ChangeType.UPDATED, testChangeType.get(0));
+        Assertions.assertEquals(ChangeType.UPDATED, testChangeType.get(0), "Attribue has changed");
     }
 }

@@ -25,9 +25,9 @@
  */
 package tf.ownnote.ui.notes;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Set;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
@@ -37,8 +37,10 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import org.unbescape.html.HtmlEscape;
+import tf.ownnote.ui.helper.FileContentChangeType;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.helper.FormatHelper;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
+import tf.ownnote.ui.links.LinkManager;
 import tf.ownnote.ui.tags.TagData;
 
 /**
@@ -185,13 +187,29 @@ public class Note {
     }
 
     public void setNoteFileContent(final String content) {
-        // TFE, 20201024: extract line with metadata - if any
-        noteFileContentProperty.set(NoteMetaData.removeMetaDataContent(content));
-        
-        // set meta data - was done intially but might now have changed during editing
         if (NoteMetaData.hasMetaDataContent(content)) {
-            setMetaData(NoteMetaData.fromHtmlComment(this, content));
+            final Set<Note> linkedNotes = myMetaData.getLinkedNotes();
+            final Set<Note> linkingNotes = myMetaData.getLinkingNotes();
+
+            setMetaDataFromHtmlComment(content);
+            
+            myMetaData.setLinkedNotes(linkedNotes);
+            myMetaData.setLinkingNotes(linkingNotes);
         }
+
+        final String oldContent = getNoteFileContent();
+        final String newContent = NoteMetaData.removeMetaDataContent(content);
+        
+        if (oldContent == null || !oldContent.equals(newContent)) {
+            // only set in case of changes
+            noteFileContentProperty.set(newContent);
+
+            // TODO: call notefilecontentchange listeners properly in case of changes
+            // TFE, 20230110: links need to be initialized in any case explicitly here until above TODO is done
+            // YES, I know that this is an ugly hack...
+            LinkManager.getInstance().processFileContentChange(FileContentChangeType.CONTENT_CHANGED, this, oldContent, newContent);
+        }
+        
     }
     
     public StringProperty noteFileContentProperty() {
@@ -220,15 +238,23 @@ public class Note {
         return myMetaData;
     }
 
-    public void setMetaData(final NoteMetaData metaData) {
+    public String getMetaDataAsHtmlComment() {
+        return NoteMetaData.toHtmlComment(myMetaData);
+    }
+
+    private void setMetaData(final NoteMetaData metaData) {
         myMetaData = metaData;
         
         myMetaData.setNote(this);
         initNoteHasChanged();
     }
     
+    public void setMetaDataFromHtmlComment(final String comment) {
+        setMetaData(NoteMetaData.fromHtmlComment(this, comment));
+    }
+    
     public String getNoteFileName() {
-        return OwnNoteFileManager.getInstance().buildNoteName(this);
+        return FileManager.getInstance().buildNoteName(this);
     }
     
     public BooleanProperty hasUnsavedChangesProperty() {

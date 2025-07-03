@@ -25,11 +25,11 @@
  */
 package tf.ownnote.ui.notes;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.main.OwnNoteEditor;
 import tf.ownnote.ui.tags.TagManager;
 
@@ -38,37 +38,37 @@ import tf.ownnote.ui.tags.TagManager;
  * @author thomas
  */
 public class TestNoteAppVersion {
-    @Before 
+    @BeforeEach
     public void setUp() {
         TagManager.getInstance().resetTagList();
-        OwnNoteFileManager.getInstance().setCallback(null);
-        OwnNoteFileManager.getInstance().initNotesPath("src/test/resources/LookAndFeel");
+        FileManager.getInstance().setCallback(null);
+        FileManager.getInstance().initNotesPath("src/test/resources/LookAndFeel");
     }
     
-    @After
+    @AfterEach
     public void tearDown() {
     }
     
     @Test
     public void testAppVersionExistingNote() {
         // this one should have no app version
-        Note testNote = OwnNoteFileManager.getInstance().getNote("[Test1] test1.htm");
+        Note testNote = FileManager.getInstance().getNote("[Test1] test1.htm");
         
-        Assert.assertNotNull(testNote);
-        Assert.assertEquals(OwnNoteEditor.AppVersion.NONE.getVersionId(), testNote.getMetaData().getAppVersion(), 0.1);
+        Assertions.assertNotNull(testNote);
+        Assertions.assertEquals(OwnNoteEditor.AppVersion.NONE.getVersionId(), testNote.getMetaData().getAppVersion(), 0.1);
 
         // this one should have 6.1
-        testNote = OwnNoteFileManager.getInstance().getNote("[Test3] test1.htm");
+        testNote = FileManager.getInstance().getNote("[Test3] test1.htm");
         
-        Assert.assertNotNull(testNote);
-        Assert.assertEquals(OwnNoteEditor.AppVersion.V6_1.getVersionId(), testNote.getMetaData().getAppVersion(), 0.1);
+        Assertions.assertNotNull(testNote);
+        Assertions.assertEquals(OwnNoteEditor.AppVersion.V6_1.getVersionId(), testNote.getMetaData().getAppVersion(), 0.1);
     }
     
     @Test
     public void testAppVersionNewNote() {
         Note testNote = new Note("Test3", "TestAppVersion");
 
-        Assert.assertNotNull(testNote);
-        Assert.assertEquals(OwnNoteEditor.AppVersion.NONE.getVersionId(), testNote.getMetaData().getAppVersion(), 0.1);
+        Assertions.assertNotNull(testNote);
+        Assertions.assertEquals(OwnNoteEditor.AppVersion.NONE.getVersionId(), testNote.getMetaData().getAppVersion(), 0.1);
     }
 }

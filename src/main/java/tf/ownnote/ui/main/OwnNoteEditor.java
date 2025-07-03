@@ -78,11 +78,9 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.web.WebView;
@@ -94,20 +92,21 @@ import tf.helper.general.AppInfo;
 import tf.helper.general.ObjectsHelper;
 import tf.helper.javafx.AboutMenu;
 import tf.helper.javafx.TableMenuUtils;
+import tf.ownnote.ui.editor.EditorTabPane;
+import tf.ownnote.ui.editor.EditorTableColumn;
+import tf.ownnote.ui.editor.EditorTableView;
+import tf.ownnote.ui.editor.HTMLEditor;
+import tf.ownnote.ui.editor.NoteMetaDataEditor;
+import tf.ownnote.ui.helper.CmdLineParameters;
+import tf.ownnote.ui.helper.EditorPreferences;
+import tf.ownnote.ui.helper.FileManager;
 import tf.ownnote.ui.helper.FormatHelper;
 import tf.ownnote.ui.helper.IFileChangeSubscriber;
 import tf.ownnote.ui.helper.IGroupListContainer;
-import tf.ownnote.ui.helper.OwnNoteEditorParameters;
-import tf.ownnote.ui.helper.OwnNoteEditorPreferences;
-import tf.ownnote.ui.helper.OwnNoteFileManager;
-import tf.ownnote.ui.helper.OwnNoteHTMLEditor;
-import tf.ownnote.ui.helper.OwnNoteTabPane;
-import tf.ownnote.ui.helper.OwnNoteTableColumn;
-import tf.ownnote.ui.helper.OwnNoteTableView;
 import tf.ownnote.ui.helper.RecentNoteForGroup;
+import tf.ownnote.ui.links.LinkManager;
 import tf.ownnote.ui.notes.INoteCRMDS;
 import tf.ownnote.ui.notes.Note;
-import tf.ownnote.ui.notes.NoteMetaDataEditor;
 import tf.ownnote.ui.tags.TagData;
 import tf.ownnote.ui.tags.TagManager;
 import tf.ownnote.ui.tags.TagsEditor;
@@ -122,12 +121,15 @@ import tf.ownnote.ui.tasks.TaskManager;
  * @author Thomas Feuster <thomas@feuster.com>
  */
 public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INoteCRMDS {
+
     // TFE, 20220506: keep track of app version numbers
-    // to be bale to determine any need for data migration
+    // to be able to determine any need for data migration
     public enum AppVersion {
         NONE(6.0),
         V6_1(6.1),
-        CURRENT(6.1);
+        V6_2(6.2),
+        V6_3(6.3),
+        CURRENT(6.3);
         
         private double versionId;
         
@@ -180,7 +182,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
     private final List<String> filesInProgress = new LinkedList<>();
 
-    private final static OwnNoteEditorParameters parameters = OwnNoteEditorParameters.getInstance();
+    private final static CmdLineParameters parameters = CmdLineParameters.getInstance();
     
     public final static String DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm:ss";
     public final static DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
@@ -198,7 +200,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     
     // should we show standard ownNote face or groupTabs?
     // TF, 20160630: refactored from "classicLook" to show its real meeaning
-    private OwnNoteEditorParameters.LookAndFeel currentLookAndFeel;
+    private CmdLineParameters.LookAndFeel currentLookAndFeel;
 
     private Double tagTreeWidth;
     private Double groupTabsGroupWidth;
@@ -239,29 +241,39 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         return o;
     }
     
-    private OwnNoteTabPane groupsPane = null;
+    // TFE, 20221129: get rid of overall grid pane
+    @FXML
+    private VBox noteListBoxFXML;
+    @FXML
+    private VBox noteEditBoxFXML;
+    @FXML
+    private VBox taskListBoxFXML;
+    @FXML
+    private HBox noteSearchFXML;
+    @FXML
+    private HBox taskFilterBoxFXML;
+
     @FXML
     private BorderPane borderPane;
     @FXML
-    private GridPane gridPane;
-    @FXML
     private TableView<Note> notesTableFXML;
-    private OwnNoteTableView notesTable = null;
+    private EditorTableView notesTable = null;
     @FXML
     private Label ownCloudPath;
     @FXML
     private Button setOwnCloudPath;
     @FXML
     private TableColumn<Note, String> noteNameColFXML;
-    private OwnNoteTableColumn noteNameCol = null;
+    private EditorTableColumn noteNameCol = null;
     @FXML
     private TableColumn<Note, String> noteModifiedColFXML;
-    private OwnNoteTableColumn noteModifiedCol = null;
+    private EditorTableColumn noteModifiedCol = null;
     @FXML
     private WebView noteHTMLEditorFXML;
-    private OwnNoteHTMLEditor noteHTMLEditor = null;
+    private HTMLEditor noteHTMLEditor = null;
     @FXML
     private TabPane groupsPaneFXML;
+    private EditorTabPane groupsPane = null;
     @FXML
     private MenuBar menuBar;
     @FXML
@@ -284,8 +296,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
     final CheckBox noteFilterCheck = new CheckBox();
     final CheckBox taskFilterCheck = new CheckBox();
-    @FXML
-    private HBox taskFilterBox;
     @FXML
     private SplitPane splitPaneXML;
     @FXML
@@ -313,6 +323,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     @FXML
     private MenuItem menuTaskboard;
 
+    // TFE, 20230423: show / hide notes from subgroups
+    @FXML
+    private CheckMenuItem menuShowNotesFromSubGroups;
+
     public OwnNoteEditor() {
     }
     
@@ -322,42 +336,49 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     }
     
     public void stop(final boolean productiveRun) {
-        OwnNoteFileManager.getInstance().stop();
+        FileManager.getInstance().stop();
         
         if (productiveRun) {
             // store current percentage of group column width
             // if increment is passed as parameter, we need to remove it from the current value
             // otherwise, the percentage grows with each call :-)
             // store in the preferences
-            OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH.put(gridPane.getColumnConstraints().get(NOTE_GROUP_COLUMN).getPercentWidth());
+            
+            // TFE, 20221129 gridpane has gone, we now need to derive from splitpane divider positions
+//            // #1 tagtree is easy - use own percentage
+//            splitPaneXML.setDividerPosition(TAGTREE_NOTE_GROUP_DIVIDER, tagTreeWidth/100d);
+//            // #2 note/group is easy - use percentage of tagtree + own percentage
+//            splitPaneXML.setDividerPosition(NOTE_GROUP_EDITOR_DIVIDER, (tagTreeWidth + groupTabsGroupWidth)/100d);
+//            // #4 tasklist is easy - use 100 - own percentage
+//            splitPaneXML.setDividerPosition(EDITOR_TASKLIST_DIVIDER, (100d - taskListWidth)/100d);
+
             // TFE, 20201204: store tag tree width only for this look & feel
-            if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
-                OwnNoteEditorPreferences.RECENT_TAGTREE_WIDTH.put(gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth());
-            }
+            if (CmdLineParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+                EditorPreferences.RECENT_TAGTREE_WIDTH.put(tagTreeWidth);
+            } 
+            EditorPreferences.RECENT_GROUPTABS_GROUPWIDTH.put(groupTabsGroupWidth);
             // TFE, 20201203: taskList can be hidden (and therefore have column has width 0)
             if (tasklistVisible.get()) {
-                OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH.put(gridPane.getColumnConstraints().get(TASKLIST_COLUMN).getPercentWidth());
-            } else {
-                OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH.put(taskListWidth);
+                EditorPreferences.RECENT_TASKLIST_WIDTH.put(taskListWidth);
             }
-            OwnNoteEditorPreferences.RECENT_TASKLIST_VISIBLE.put(tasklistVisible.get());
+            EditorPreferences.RECENT_TASKLIST_VISIBLE.put(tasklistVisible.get());
 
             // issue #45 store sort order for tables
-            notesTable.savePreferences(OwnNoteEditorPreferences.INSTANCE);
+            notesTable.savePreferences(EditorPreferences.INSTANCE);
 
             // TFE, 20200903: store groups tabs order as well
             if (groupsPane != null) {
-                groupsPane.savePreferences(OwnNoteEditorPreferences.INSTANCE);
+                groupsPane.savePreferences(EditorPreferences.INSTANCE);
             }
 
             // TFE, 20201030: store name of last edited note
             if (noteHTMLEditor.getEditedNote() != null) {
-                OwnNoteEditorPreferences.LAST_EDITED_NOTE.put(noteHTMLEditor.getEditedNote().getNoteName());
-                OwnNoteEditorPreferences.LAST_EDITED_GROUP.put(noteHTMLEditor.getEditedNote().getGroup().getExternalName());
+                EditorPreferences.LAST_EDITED_NOTE.put(noteHTMLEditor.getEditedNote().getNoteName());
+                EditorPreferences.LAST_EDITED_GROUP.put(noteHTMLEditor.getEditedNote().getGroup().getExternalName());
             }
             
             // TFE, 20210716: store recent note for group to references
-            OwnNoteEditorPreferences.RECENT_NOTE_FOR_GROUP.put(RecentNoteForGroup.getInstance().toPreferenceString());
+            EditorPreferences.RECENT_NOTE_FOR_GROUP.put(RecentNoteForGroup.getInstance().toPreferenceString());
 
             // TFE, 20201121: tag info is now stored in a separate file
             TagManager.getInstance().saveTags();
@@ -374,20 +395,20 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             currentLookAndFeel = OwnNoteEditor.parameters.getLookAndFeel().get();
         } else {
             try {
-                currentLookAndFeel = OwnNoteEditorPreferences.RECENT_LOOKANDFEEL.getAsType();
+                currentLookAndFeel = EditorPreferences.RECENT_LOOKANDFEEL.getAsType();
             } catch (SecurityException ex) {
                 Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
-                currentLookAndFeel = OwnNoteEditorParameters.LookAndFeel.groupTabs;
+                currentLookAndFeel = CmdLineParameters.LookAndFeel.groupTabs;
             }
         }
         
         // issue #30: get percentages for group column width for classic and onenote look & feel
         // issue #45 store sort order for tables
         try {
-            tagTreeWidth = OwnNoteEditorPreferences.RECENT_TAGTREE_WIDTH.getAsType();
-            groupTabsGroupWidth = OwnNoteEditorPreferences.RECENT_GROUPTABS_GROUPWIDTH.getAsType();
-            taskListWidth = OwnNoteEditorPreferences.RECENT_TASKLIST_WIDTH.getAsType();
-            tasklistVisible.set(OwnNoteEditorPreferences.RECENT_TASKLIST_VISIBLE.getAsType());
+            tagTreeWidth = EditorPreferences.RECENT_TAGTREE_WIDTH.getAsType();
+            groupTabsGroupWidth = EditorPreferences.RECENT_GROUPTABS_GROUPWIDTH.getAsType();
+            taskListWidth = EditorPreferences.RECENT_TASKLIST_WIDTH.getAsType();
+            tasklistVisible.set(EditorPreferences.RECENT_TASKLIST_VISIBLE.getAsType());
         } catch (SecurityException ex) {
             Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
             tagTreeWidth = 18.3333333;
@@ -400,6 +421,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         tagTreeWidth = limit(tagTreeWidth, paneSizes.get(TAGTREE_COLUMN).getLeft(), paneSizes.get(TAGTREE_COLUMN).getRight());
         groupTabsGroupWidth = limit(groupTabsGroupWidth, paneSizes.get(NOTE_GROUP_COLUMN).getLeft(), paneSizes.get(NOTE_GROUP_COLUMN).getRight());
         taskListWidth = limit(taskListWidth, paneSizes.get(TASKLIST_COLUMN).getLeft(), paneSizes.get(TASKLIST_COLUMN).getRight());
+        tasklistVisible.set(EditorPreferences.RECENT_TASKLIST_VISIBLE.getAsType());
         
         // init ownCloudPath to parameter or nothing
         pathLabel.setMinWidth(Region.USE_PREF_SIZE);
@@ -410,7 +432,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         } else {
             // 2. try the preferences setting - most recent file that was opened
             try {
-                pathname = OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH.getAsType();
+                pathname = EditorPreferences.RECENT_OWNCLOUDPATH.getAsType();
                 // System.out.println("Using preference for ownCloudDir: " + pathname);
             } catch (SecurityException ex) {
                 Logger.getLogger(OwnNoteEditor.class.getName()).log(Level.SEVERE, null, ex);
@@ -434,7 +456,18 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         });
         
         // TFE, 20210716: get recent note for group from references
-        RecentNoteForGroup.getInstance().fromPreferenceString(OwnNoteEditorPreferences.RECENT_NOTE_FOR_GROUP.getAsType());
+        RecentNoteForGroup.getInstance().fromPreferenceString(EditorPreferences.RECENT_NOTE_FOR_GROUP.getAsType());
+        
+        // TFE, 20230213: add about menu as the very last since all dependencies should have been loaded before
+        Platform.runLater(() -> {
+            AboutMenu.getInstance().addAboutMenu(
+                    OwnNoteEditor.class, 
+                    borderPane.getScene().getWindow(), 
+                    menuBar, 
+                    "OwnNoteEditor", 
+                    "v6.3", 
+                    "https://github.com/ThomasDaheim/ownNoteEditor");
+        });
     }
 
     //
@@ -443,6 +476,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     // TFE, 20200810: 3rd column added for task handling
     // TFE, 20201204: column to the left added for tag tree
     // TFE, 20210412: no more classic look & feel
+    // TFE, 20221129: remove gridpane and have vboxes in each split of splitpane instead
     //
     // -------------------------------------------------------------------------------------------------------------------
     // |                            |                            |                           |                           |
@@ -461,66 +495,58 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     // value of currentLookAndFeel
     //
     private void initEditor() {
-        // init our wrappers to FXML classes...
-        noteNameCol = new OwnNoteTableColumn(noteNameColFXML, this);
-        noteNameColFXML.setUserData(TableMenuUtils.NO_HIDE_COLUMN);
-        noteModifiedCol = new OwnNoteTableColumn(noteModifiedColFXML, this);
-        notesTable = new OwnNoteTableView(notesTableFXML, this);
-        notesTable.loadPreferences(OwnNoteEditorPreferences.INSTANCE);
+        
+        // noteListBoxXML: as high as possible
+        VBox.setVgrow(noteListBoxFXML, Priority.ALWAYS);
+        // noteSearchXML: standard height, always above
+        VBox.setVgrow(noteSearchFXML, Priority.NEVER);
+        // notesTableFXML: as high as possible
+        VBox.setVgrow(notesTableFXML, Priority.ALWAYS);
 
+        // init our wrappers to FXML classes...
+        noteNameCol = new EditorTableColumn(noteNameColFXML, this);
+        noteNameColFXML.setUserData(TableMenuUtils.NO_HIDE_COLUMN);
+        noteModifiedCol = new EditorTableColumn(noteModifiedColFXML, this);
+        notesTable = new EditorTableView(notesTableFXML, this);
+        notesTable.loadPreferences(EditorPreferences.INSTANCE);
+
+        // noteEditorFXML: as high as possible
+        VBox.setVgrow(noteEditBoxFXML, Priority.ALWAYS);
+        // groupsPaneFXML: standard height, always above
+        VBox.setVgrow(groupsPaneFXML, Priority.NEVER);
         groupsPaneFXML.setDisable(true);
         groupsPaneFXML.setVisible(false);
 
+        // noteEditorFXML: as high as possible
+        // noteHTMLEditorFXML: as high as possible, always above
+        // noteMetaEditorFXML: standard height, always below
+        VBox.setVgrow(noteEditorFXML, Priority.ALWAYS);
         VBox.setVgrow(noteHTMLEditorFXML, Priority.ALWAYS);
         // error when trying this in the fxml: "java.lang.IllegalArgumentException: Unable to coerce noteHTMLEditor to interface java.util.Collection."
         noteHTMLEditorFXML.getStyleClass().add("noteHTMLEditor");
         VBox.setVgrow(noteMetaEditorFXML, Priority.NEVER);
         noteMetaEditorFXML.getStyleClass().add("noteMetaEditor");
-        noteHTMLEditor = new OwnNoteHTMLEditor(noteHTMLEditorFXML, this);
+
+        // init our wrappers to FXML classes...
+        noteHTMLEditor = new HTMLEditor(noteHTMLEditorFXML, this);
+        noteHTMLEditor.setVisible(true);
+        noteHTMLEditor.setDisable(false);
         noteMetaEditor = new NoteMetaDataEditor(noteMetaEditorFXML, this);
+        
+        // taskListBoxFXML: as high as possible
+        VBox.setVgrow(taskListBoxFXML, Priority.ALWAYS);
+        // taskFilterBoxFXML: standard height, always above
+        VBox.setVgrow(taskFilterBoxFXML, Priority.NEVER);
+        // taskListFXML: as high as possible
+        VBox.setVgrow(taskListFXML, Priority.ALWAYS);
         
         // hide borders
         borderPane.setBottom(null);
         borderPane.setLeft(null);
         borderPane.setRight(null);
         
-        // fixed height top row in grid and set height & width of rest
-        gridPane.getRowConstraints().clear();
-        gridPane.getRowConstraints().add(new RowConstraints(40, 40, 40));
-        RowConstraints row2 = new RowConstraints(160, 560, Double.MAX_VALUE);
-        row2.setVgrow(Priority.ALWAYS);
-        gridPane.getRowConstraints().add(row2);
-        
-        gridPane.getColumnConstraints().clear();
-        
-        // 1st column: tag tree
-        ColumnConstraints column1 = new ColumnConstraints();
-        if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
-            column1.setPercentWidth(tagTreeWidth);
-        } else {
-            column1.setPercentWidth(0d);
-        }
-
-        // 2nd column: groups table or notes table
-        ColumnConstraints column2 = new ColumnConstraints();
-        column2.setPercentWidth(groupTabsGroupWidth);
-        column2.setHgrow(Priority.ALWAYS);
-
-        // 3rd column: notes editor
-        ColumnConstraints column3 = new ColumnConstraints();
-        column3.setHgrow(Priority.ALWAYS);
-
-        // 4th column: tasklist
-        ColumnConstraints column4 = new ColumnConstraints();
-        column4.setPercentWidth(taskListWidth);
-        column4.setHgrow(Priority.ALWAYS);
-
-        gridPane.getColumnConstraints().addAll(column1, column2, column3, column4);
-        // EDITOR_COLUMN width is gicen by all other width values
-        setRemainingColumnWidth(EDITOR_COLUMN);
-        
         //Constrain max size of left & right pane:
-        if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+        if (CmdLineParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
             tagsTreePaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(paneSizes.get(TAGTREE_COLUMN).getLeft()/100d));
             tagsTreePaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(paneSizes.get(TAGTREE_COLUMN).getRight()/100d));
         } else {
@@ -558,9 +584,9 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         noteFilterMode.setContentDisplay(ContentDisplay.RIGHT);
 
         // groupTabs look and feel
-        if (OwnNoteEditorParameters.LookAndFeel.groupTabs.equals(currentLookAndFeel)) {
-            groupsPane = new OwnNoteTabPane(groupsPaneFXML, this);
-            groupsPane.loadPreferences(OwnNoteEditorPreferences.INSTANCE);
+        if (CmdLineParameters.LookAndFeel.groupTabs.equals(currentLookAndFeel)) {
+            groupsPane = new EditorTabPane(groupsPaneFXML, this);
+            groupsPane.loadPreferences(EditorPreferences.INSTANCE);
             groupsPane.setDisable(false);
             groupsPane.setVisible(true);
 
@@ -573,10 +599,6 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
             myGroupList = tagsTreeView;
         }
-
-        // 2. note table is shown left
-        middlePaneXML.getChildren().remove(notesTableFXML);
-        leftPaneXML.getChildren().setAll(notesTableFXML);
 
         // maximize noteNameCol
         // http://bekwam.blogspot.com/2016/02/getting-around-javafx-tableview.html
@@ -591,27 +613,27 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         notesTable.setEditable(true);
 
         // From documentation - The .root style class is applied to the root node of the Scene instance.
-        gridPane.getScene().getRoot().setStyle("note-selected-background-color: white");
-        gridPane.getScene().getRoot().setStyle("note-selected-font-color: black");
+        splitPaneXML.getScene().getRoot().setStyle("note-selected-background-color: white");
+        splitPaneXML.getScene().getRoot().setStyle("note-selected-font-color: black");
 
         // renaming note
         noteNameCol.setOnEditCommit((CellEditEvent<Note, String> t) -> {
             final Note curNote = ObjectsHelper.uncheckedCast(t.getTableView().getItems().get(t.getTablePosition().getRow()));
 
             if (!t.getNewValue().equals(t.getOldValue())) {
-                if (!renameNote(curNote, t.getNewValue())) {
-                    // TF, 20160815: restore old name in case of error
-                    // https://stackoverflow.com/questions/20798634/restore-oldvalue-in-tableview-after-editing-the-cell-javafx
-//                    t.getTableView().getColumns().get(0).setVisible(false);
-//                    t.getTableView().getColumns().get(0).setVisible(true);
-                    // TFE, 20220419: hide / show doesn't work anymore...
-                    t.getTableView().refresh();
-                }
+                renameNote(curNote, curNote.getNoteName(), t.getNewValue());
+                
+                // TFE, 20221124: always init
+                // rename failed: restore previous name
+                // rename worked: update sort order
+                // TFE, 20240327: tags need to be reseted as well since otherwise linked notes count is one to high
+                initFromDirectory(true, true);
             }
         });
             
-        // TFE, 20201204: new column to the left for tagtree layout
-        if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+        // TFE, 2022118: merge grid cells with tagTree and editor for noteEditorFXML look & feel
+        if (CmdLineParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+            noteEditBoxFXML.getChildren().remove(groupsPaneFXML);
         }
         
         // TFE, 20200810: adding third gridpane column for task handling
@@ -626,31 +648,49 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         taskFilterMode.setContentDisplay(ContentDisplay.RIGHT);
 
         // all setup, lets spread the news
-        OwnNoteFileManager.getInstance().setCallback(this);
+        FileManager.getInstance().setCallback(this);
         TaskManager.getInstance().setCallback(this);
         TagsEditor.getInstance().setCallback(this);
         TagManager.getInstance().setCallback(this);
+        LinkManager.getInstance().setCallback(this);
         
         // run layout to have everything set up
         splitPaneXML.applyCss();
         splitPaneXML.requestLayout();
         
-        // now sync splitpane dividers with grid column width
+        // TFE, 20230617: can't hide header - its the only way to sort & show/hide columns
+        // hide notesTableFXML header
+//        final Pane header = (Pane) notesTableFXML.lookup("TableHeaderRow");
+//        header.setMinHeight(0);
+//        header.setPrefHeight(0);
+//        header.setMaxHeight(0);
+//        header.setVisible(false);
+
+        // 1st column: tag tree
+        ColumnConstraints column1 = new ColumnConstraints();
+        if (CmdLineParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+            column1.setPercentWidth(tagTreeWidth);
+        } else {
+            column1.setPercentWidth(0d);
+        }
+
+        // now set splitpane dividers with from preferences
         // TFE, 20201204: gets more tricky with for columns :-)
         // #1 tagtree is easy - use own percentage
-        splitPaneXML.setDividerPosition(TAGTREE_NOTE_GROUP_DIVIDER, 
-                gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth()/100d);
+        splitPaneXML.setDividerPosition(TAGTREE_NOTE_GROUP_DIVIDER, tagTreeWidth/100d);
         // #2 note/group is easy - use percentage of tagtree + own percentage
-        splitPaneXML.setDividerPosition(NOTE_GROUP_EDITOR_DIVIDER, 
-                (gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth() + gridPane.getColumnConstraints().get(NOTE_GROUP_COLUMN).getPercentWidth())/100d);
+        if (CmdLineParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+            splitPaneXML.setDividerPosition(NOTE_GROUP_EDITOR_DIVIDER, (tagTreeWidth + groupTabsGroupWidth)/100d);
+        } else {
+            splitPaneXML.setDividerPosition(NOTE_GROUP_EDITOR_DIVIDER, groupTabsGroupWidth/100d);
+        }
         // #4 tasklist is easy - use 100 - own percentage
-        splitPaneXML.setDividerPosition(EDITOR_TASKLIST_DIVIDER, 
-                (100d - gridPane.getColumnConstraints().get(TASKLIST_COLUMN).getPercentWidth())/100d);
+        splitPaneXML.setDividerPosition(EDITOR_TASKLIST_DIVIDER, (100d - taskListWidth)/100d);
         
-//        System.out.println("TAGTREE_COLUMN: " + gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth());
-//        System.out.println("NOTE_GROUP_COLUMN: " + gridPane.getColumnConstraints().get(NOTE_GROUP_COLUMN).getPercentWidth());
-//        System.out.println("EDITOR_COLUMN: " + gridPane.getColumnConstraints().get(EDITOR_COLUMN).getPercentWidth());
-//        System.out.println("TASKLIST_COLUMN: " + gridPane.getColumnConstraints().get(TASKLIST_COLUMN).getPercentWidth());
+//        System.out.println("TAGTREE_COLUMN: " + tagTreeWidth);
+//        System.out.println("NOTE_GROUP_COLUMN: " + groupTabsGroupWidth);
+//        System.out.println("EDITOR_COLUMN: " + (100 - tagTreeWidth - groupTabsGroupWidth - taskListWidth));
+//        System.out.println("TASKLIST_COLUMN: " + taskListWidth);
 //        
 //        System.out.println("TAGTREE_NOTE_GROUP_DIVIDER: " + splitPaneXML.getDividerPositions()[TAGTREE_NOTE_GROUP_DIVIDER]);
 //        System.out.println("NOTE_GROUP_EDITOR_DIVIDER: " + splitPaneXML.getDividerPositions()[NOTE_GROUP_EDITOR_DIVIDER]);
@@ -660,71 +700,33 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         splitPaneXML.getDividers().get(TAGTREE_NOTE_GROUP_DIVIDER).positionProperty().addListener((observable, oldValue, newValue) -> {
             // only do magic once the window is showing to avoid initial layout pass
             if (newValue != null && (Math.abs(newValue.doubleValue() - oldValue.doubleValue()) > 0.001)) {
-                // change later to avoid loop calls when resizing scene
-                Platform.runLater(() -> {
-                    final double newPercentage = newValue.doubleValue() * 100d;
-                    // needs to take 4 column into account - if shown
-                    gridPane.getColumnConstraints().get(TAGTREE_COLUMN).setPercentWidth(newPercentage);
-                    setRemainingColumnWidth(EDITOR_COLUMN);
-
-                    tagTreeWidth = newPercentage;
-
-//                    System.out.println("Moved TagTree-Note/Group divider to " + newPercentage + "%");
-                });
+                tagTreeWidth = newValue.doubleValue() * 100d;
             }
         });
 
         splitPaneXML.getDividers().get(NOTE_GROUP_EDITOR_DIVIDER).positionProperty().addListener((observable, oldValue, newValue) -> {
             // only do magic once the window is showing to avoid initial layout pass
             if (newValue != null && (Math.abs(newValue.doubleValue() - oldValue.doubleValue()) > 0.001)) {
-                // change later to avoid loop calls when resizing scene
-                Platform.runLater(() -> {
-                    final double newPercentage = newValue.doubleValue() * 100d;
-                    // needs to take 2 columns into account
-                    gridPane.getColumnConstraints().get(NOTE_GROUP_COLUMN).setPercentWidth(
-                            newPercentage - gridPane.getColumnConstraints().get(TAGTREE_COLUMN).getPercentWidth());
-                    setRemainingColumnWidth(EDITOR_COLUMN);
-
-                    groupTabsGroupWidth = newPercentage;
-
-//                    System.out.println("Moved Note/Group-Editor divider to " + newPercentage + "%");
-                });
+                groupTabsGroupWidth = newValue.doubleValue() * 100d;
+                if (CmdLineParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+                    groupTabsGroupWidth -= tagTreeWidth;
+                }
             }
         });
 
         splitPaneXML.getDividers().get(EDITOR_TASKLIST_DIVIDER).positionProperty().addListener((observable, oldValue, newValue) -> {
-            // TFE, 20201203: ignore divider in case tasklist not visible
+            // only do magic once the window is showing to avoid initial layout pass
             if (newValue != null && (Math.abs(newValue.doubleValue() - oldValue.doubleValue()) > 0.001)) {
-                // change later to avoid loop calls when resizing scene
-                Platform.runLater(() -> {
-                    final double newPercentage = newValue.doubleValue() * 100d;
-                    gridPane.getColumnConstraints().get(TASKLIST_COLUMN).setPercentWidth(100d - newPercentage);
-                    setRemainingColumnWidth(EDITOR_COLUMN);
-
-                    if (tasklistVisible.get()) {
-                        taskListWidth = newPercentage;
-                    }
-
-//                    System.out.println("Moved Editor-TaskList divider to " + newPercentage + "%");
-                });
+                // TFE, 20201203: ignore divider in case tasklist not visible
+                if (tasklistVisible.get()) {
+                    taskListWidth = newValue.doubleValue() * 100d;
+                }
             }
         });
 
         // init menu handling
         // TFE, 20201203: do this last since it does changes to layout depending on tasklistVisible 
         initMenus();
-    }
-    
-    private void setRemainingColumnWidth(final int column) {
-        double result = 100d;
-        
-        for (int i = 0; i < gridPane.getColumnConstraints().size(); i++) {
-            if (i != column) {
-                result -= gridPane.getColumnConstraints().get(i).getPercentWidth();
-            }
-        }
-        
-        gridPane.getColumnConstraints().get(column).setPercentWidth(result);
     }
     
     private void initMenus() {
@@ -739,8 +741,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         }
 
         // 2. add listener to track changes of layout - only after setting it initially
-        groupTabsLookAndFeel.getToggleGroup().selectedToggleProperty().addListener(
-            (ObservableValue<? extends Toggle> arg0, Toggle arg1, Toggle arg2) -> {
+        groupTabsLookAndFeel.getToggleGroup().selectedToggleProperty().addListener((ObservableValue<? extends Toggle> arg0, Toggle arg1, Toggle arg2) -> {
                 // when starting up things might not be initialized properly
                 if (arg2 != null) {
                     assert (arg2 instanceof RadioMenuItem);
@@ -748,22 +749,24 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                     // store in the preferences - don't overwrite local variable!
                     final RadioMenuItem radioArg = ((RadioMenuItem) arg2);
                     if (radioArg.equals(groupTabsLookAndFeel)) {
-                        OwnNoteEditorPreferences.RECENT_LOOKANDFEEL.put(OwnNoteEditorParameters.LookAndFeel.groupTabs);
+                        EditorPreferences.RECENT_LOOKANDFEEL.put(CmdLineParameters.LookAndFeel.groupTabs);
                     } else if (radioArg.equals(tagTreeLookAndFeel)) {
-                        OwnNoteEditorPreferences.RECENT_LOOKANDFEEL.put(OwnNoteEditorParameters.LookAndFeel.tagTree);
+                        EditorPreferences.RECENT_LOOKANDFEEL.put(CmdLineParameters.LookAndFeel.tagTree);
                     }
                 }
             });
         
         // add changelistener to pathlabel - not that you should actually change its value during runtime...
-        ownCloudPath.textProperty().addListener(
-            (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
+        ownCloudPath.textProperty().addListener((ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
                 if (newValue != null && !newValue.equals(oldValue)) {
                     // store in the preferences
-                    OwnNoteEditorPreferences.RECENT_OWNCLOUDPATH.put(newValue);
+                    EditorPreferences.RECENT_OWNCLOUDPATH.put(newValue);
 
                     // scan files in new directory
                     initFromDirectory(false, true);
+                    
+                    // TFE, 20240322: and now throw away recent note info
+                    RecentNoteForGroup.getInstance().clear();
                 }
             }); 
         // TFE, 20181028: open file chooser also when left clicking on pathBox
@@ -817,25 +820,29 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         menuGroups2Tags.setOnAction((t) -> {
             TagManager.getInstance().groupsToTags();
         });
-
-        AboutMenu.getInstance().addAboutMenu(OwnNoteEditor.class, borderPane.getScene().getWindow(), menuBar, "OwnNoteEditor", "v6.1", "https://github.com/ThomasDaheim/ownNoteEditor");
+        
+        menuShowNotesFromSubGroups.setSelected(EditorPreferences.SHOW_NOTES_FROM_SUB_GROUPS.getAsType());
+        menuShowNotesFromSubGroups.selectedProperty().addListener((ObservableValue<? extends Boolean> ov, Boolean t, Boolean t1) -> {
+            EditorPreferences.SHOW_NOTES_FROM_SUB_GROUPS.put(menuShowNotesFromSubGroups.isSelected());
+            notesTable.setFilterPredicate();
+        });
         
         // TFE, 20220429: get app version so that we can compare it with one from registry - to determine migration needs!
-        AppInfo.getInstance().initAppInfo(OwnNoteEditor.class, "OwnNoteEditor", "v6.1", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AppInfo.getInstance().initAppInfo(OwnNoteEditor.class, "OwnNoteEditor", "v6.3", "https://github.com/ThomasDaheim/ownNoteEditor");
         AppVersion.CURRENT.setVersionId(Double.valueOf(AppInfo.getInstance().getAppVersion()));
     }
     
     // do everything to show / hide tasklist
     private void setTasklistVisible(final boolean visible) {
 //        System.out.println("Start switching taskList to " + visible);
-        if (taskFilterBox.isVisible() == visible) {
+        if (taskFilterBoxFXML.isVisible() == visible) {
             return;
         }
 
-        // 1) show / hide taskFilterBox
-        taskFilterBox.setVisible(visible);
-        taskFilterBox.setDisable(!visible);
-        taskFilterBox.setManaged(visible);
+        // 1) show / hide taskFilterBoxFXML
+        taskFilterBoxFXML.setVisible(visible);
+        taskFilterBoxFXML.setDisable(!visible);
+        taskFilterBoxFXML.setManaged(visible);
 
         // 2) show / hide taskListFXML container
         rightPaneXML.setVisible(visible);
@@ -848,18 +855,18 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             rightPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.3));
 
             // 3) show / hide grid column
-            gridPane.getColumnConstraints().get(TASKLIST_COLUMN).setPercentWidth(taskListWidth);
+//            gridPane.getColumnConstraints().get(TASKLIST_COLUMN).setPercentWidth(taskListWidth);
         } else {
             // 2) show / hide taskListFXML container
             rightPaneXML.minWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.0));
             rightPaneXML.maxWidthProperty().bind(splitPaneXML.widthProperty().multiply(0.0));
 
             // 3) show / hide grid column
-            gridPane.getColumnConstraints().get(TASKLIST_COLUMN).setPercentWidth(0d);
+//            gridPane.getColumnConstraints().get(TASKLIST_COLUMN).setPercentWidth(0d);
         }
 
         // 4) update calculation of percentages for resize
-        splitPaneXML.setDividerPosition(EDITOR_TASKLIST_DIVIDER, (100d - gridPane.getColumnConstraints().get(TASKLIST_COLUMN).getPercentWidth())/100d);
+//        splitPaneXML.setDividerPosition(EDITOR_TASKLIST_DIVIDER, (100d - gridPane.getColumnConstraints().get(TASKLIST_COLUMN).getPercentWidth())/100d);
 
 //        System.out.println("Done switching taskList");
     }
@@ -876,27 +883,40 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             // TFE, 20201115: throw away any current tasklist - we might have changed the path!
             TaskManager.getInstance().resetTaskList();
             TagManager.getInstance().resetTagList();
-
-            RecentNoteForGroup.getInstance().clear();
         }
         
+        // TFE, 20231105: throy away edited note
+        noteHTMLEditor.editNote(null);
+        noteMetaEditor.editNote(null);
+        // TFE, 20231105: init link handling as well
+        LinkManager.getInstance().resetLinkLists();
         // scan directory and re-populate lists
-        OwnNoteFileManager.getInstance().initNotesPath(ownCloudPath.textProperty().getValue());
+        FileManager.getInstance().initNotesPath(ownCloudPath.textProperty().getValue());
 
         if (resetTasksTags) {
-            taskList.populateTaskList();
             // TFE, 20201206: re-populate tags treeview as well - if shown
-            if (OwnNoteEditorParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
+            if (CmdLineParameters.LookAndFeel.tagTree.equals(currentLookAndFeel)) {
                 tagsTreeView.fillTreeView(TagsTreeView.WorkMode.LIST_MODE, null);
             }
+            
+            Platform.runLater(() -> {
+                taskList.populateTaskList();
+                
+                LinkManager.getInstance().findNoteLinks();
+            });
         }
         
         // add new table entries & disable & enable accordingly
-        notesList = OwnNoteFileManager.getInstance().getNotesList();
+        notesList = FileManager.getInstance().getNotesList();
         // http://code.makery.ch/blog/javafx-8-tableview-sorting-filtering/
         
         // Issue #59: advanced filtering & sorting
-        // do the stuff in the OwnNoteTableView - thats the right place!
+        // do the stuff in the EditorTableView - thats the right place!
+        if (resetTasksTags) {
+            // TFE, 20231105: we need to reset the filter for the notes table to make sure its not empty after setting the new notes
+            firstNoteAccess = true;
+            notesTable.resetTableView();
+        }
         notesTable.setNotes(notesList);
         
         myGroupList.setGroups(TagManager.getInstance().getGroupTags(false), updateOnly);
@@ -925,7 +945,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                     if (!saveNote(prevNote)) {
                     }
                 } else {
-                    OwnNoteFileManager.getInstance().readNote(prevNote, true);
+                    FileManager.getInstance().readNote(prevNote, true);
                 }
             }
         }
@@ -933,25 +953,26 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         return result;
     }
     
-    public boolean editNote(final Note curNote) {
+    public boolean editNote(final Note note) {
         boolean result = false;
         
         // TFE, 20210102: are we already editing that note? than we're done here...
-        if (curNote.equals(noteHTMLEditor.getEditedNote()) || !checkChangedNote()) {
+        if (note.equals(noteHTMLEditor.getEditedNote()) || !checkChangedNote()) {
             return result;
         }
         
-        // 1. switch views: replace NoteTable with htmlEditor
-        showNoteEditor();
-
         // 2. show content of file in editor
-        if (curNote.getNoteFileContent() == null) {
-            OwnNoteFileManager.getInstance().readNote(curNote, true);
+        if (note.getNoteFileContent() == null) {
+            FileManager.getInstance().readNote(note, true);
         }
-        noteHTMLEditor.editNote(curNote);
-        noteMetaEditor.editNote(curNote);
-        currentNoteProperty.set(curNote);
-        RecentNoteForGroup.getInstance().put(curNote.getGroup().getExternalName(), curNote);
+        noteHTMLEditor.editNote(note);
+        noteMetaEditor.editNote(note);
+        currentNoteProperty.set(note);
+        RecentNoteForGroup.getInstance().put(note.getGroup().getExternalName(), note);
+        
+        // TFE, 20231105: also update corresponding preferences
+        EditorPreferences.LAST_EDITED_NOTE.put(noteHTMLEditor.getEditedNote().getNoteName());
+        EditorPreferences.LAST_EDITED_GROUP.put(noteHTMLEditor.getEditedNote().getGroup().getExternalName());
         
         return result;
     }
@@ -960,7 +981,15 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         return noteHTMLEditor.getEditedNote();
     }
     
+    public void selectNote(final String noteName) {
+        selectNote(FileManager.getInstance().getNote(noteName));
+    }
+
     private void selectNote(final Note note) {
+        // clear any filters to make sure group & note can be shown
+        noteFilterText.setText("");
+        noteFilterCheck.setSelected(false);
+
         // need to distinguish between views to select group
         myGroupList.selectGroupForNote(note);
         
@@ -981,18 +1010,13 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         noteHTMLEditor.scrollToAndToggleCheckBox(textPos, htmlText, taskId, isChecked);
     }
 
-    private void showNoteEditor() {
-        noteHTMLEditor.setDisable(false);
-        noteHTMLEditor.setVisible(true);
-    }
-    
-    public OwnNoteHTMLEditor getNoteEditor() {
+    public HTMLEditor getNoteEditor() {
         return noteHTMLEditor;
     }
 
     @Override
     public boolean deleteNote(final Note curNote) {
-        boolean result = OwnNoteFileManager.getInstance().deleteNote(curNote);
+        boolean result = FileManager.getInstance().deleteNote(curNote);
 
         if (!result) {
             // error message - something went wrong
@@ -1000,6 +1024,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         } else {
             // update group tags as well
             TagManager.getInstance().deleteNote(curNote);
+
+            LinkManager.getInstance().deleteNote(curNote);
         }
         
         return result;
@@ -1007,42 +1033,44 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
     @Override
     public boolean createNote(final TagData newGroup, final String newNoteName) {
-        boolean result = OwnNoteFileManager.getInstance().createNote(newGroup, newNoteName);
+        boolean result = FileManager.getInstance().createNote(newGroup, newNoteName);
 
         if (!result) {
             // error message - most likely note in "Not grouped" with same name already exists
             showAlert(AlertType.ERROR, "Error Dialog", "New note couldn't be created.", "Note with same group and name already exists.");
         } else {
-            // update group tags as well
+            // call other interrested parties as well
+            // TODO: via subscribe mechanism
             TagManager.getInstance().createNote(newGroup, newNoteName);
+            LinkManager.getInstance().createNote(newGroup, newNoteName);
         }
         
         return result;
     }
 
     @Override
-    public boolean renameNote(final Note curNote, final String newValue) {
-        boolean result = OwnNoteFileManager.getInstance().renameNote(curNote, newValue);
+    public boolean renameNote(final Note curNote, final String oldNoteName, final String newNoteName) {
+        boolean result = FileManager.getInstance().renameNote(curNote, oldNoteName, newNoteName);
         
         if (!result) {
             // error message - most likely note with same name already exists
             showAlert(AlertType.ERROR, "Error Dialog", "An error occured while renaming the note.", "A note with the same name already exists.");
         } else {
             //check if we just moved the current note in the editor...
-            noteHTMLEditor.doNameChange(curNote.getGroup(), curNote.getGroup(), curNote.getNoteName(), newValue);
-
-            // update group tags as well
-            TagManager.getInstance().renameNote(curNote, newValue);
+            noteHTMLEditor.doNameChange(curNote.getGroup(), curNote.getGroup(), oldNoteName, newNoteName);
+            
+            // call other interrested parties as well
+            // TODO: via subscribe mechanism
+            TagManager.getInstance().renameNote(curNote, oldNoteName, newNoteName);
+            LinkManager.getInstance().renameNote(curNote, oldNoteName, newNoteName);
         }
         
         return result;
     }
 
     @Override
-    public boolean moveNote(final Note curNote, final TagData newGroup) {
-        final Note origNote = new Note(curNote);
-        
-        boolean result = OwnNoteFileManager.getInstance().moveNote(curNote, newGroup);
+    public boolean moveNote(final Note curNote, final TagData oldGroup, final TagData newGroup) {
+        boolean result = FileManager.getInstance().moveNote(curNote, oldGroup, newGroup);
         
         if (!result) {
             // error message - most likely note with same name already exists
@@ -1050,10 +1078,12 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         } else {
             //check if we just moved the current note in the editor...
             noteHTMLEditor.doNameChange(curNote.getGroup(), newGroup, curNote.getNoteName(), curNote.getNoteName());
-
-            // update group tags as well
-            TagManager.getInstance().moveNote(origNote, newGroup);
             
+            // call other interrested parties as well
+            // TODO: via subscribe mechanism
+            TagManager.getInstance().moveNote(curNote, oldGroup, newGroup);
+            LinkManager.getInstance().moveNote(curNote, oldGroup, newGroup);
+
             refilterNotesList();
         }
         
@@ -1062,7 +1092,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
     @Override
     public boolean saveNote(final Note note) {
-        boolean result = OwnNoteFileManager.getInstance().saveNote(note);
+        boolean result = FileManager.getInstance().saveNote(note);
                 
         if (result) {
             // TF, 20170723: refresh notes list since modified has changed
@@ -1072,8 +1102,10 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             noteHTMLEditor.hasBeenSaved();
             noteMetaEditor.hasBeenSaved();
 
-            // update group tags as well
+            // call other interrested parties as well
+            // TODO: via subscribe mechanism
             TagManager.getInstance().saveNote(note);
+            LinkManager.getInstance().saveNote(note);
         } else {
             // error message - most likely note in "Not grouped" with same name already exists
             showAlert(AlertType.ERROR, "Error Dialog", "Note couldn't be saved.", null);
@@ -1084,7 +1116,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     
     public boolean doArchiveRestoreNote(final Note note) {
         // its only a kind of move to another, special group...
-        return moveNote(note, TagManager.getInstance().getComplementaryGroup(note.getGroup(), true));
+        return moveNote(note, note.getGroup(),  TagManager.getInstance().getComplementaryGroup(note.getGroup(), true));
     }
     
     public void refilterNotesList() {
@@ -1118,11 +1150,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
 
             // TFE, 20201030: support re-load of last edited note
             if (currentNoteProperty.get() == null) {
-                final String lastGroupName = OwnNoteEditorPreferences.LAST_EDITED_GROUP.getAsType();
+                final String lastGroupName = EditorPreferences.LAST_EDITED_GROUP.getAsType();
                 final TagData lastGroup = TagManager.getInstance().groupForExternalName(lastGroupName, false);
-                final String lastNoteName = OwnNoteEditorPreferences.LAST_EDITED_NOTE.getAsType();
-                if (lastGroup != null && OwnNoteFileManager.getInstance().noteExists(lastGroup, lastNoteName)) {
-                    currentNoteProperty.set(OwnNoteFileManager.getInstance().getNote(lastGroup, lastNoteName));
+                final String lastNoteName = EditorPreferences.LAST_EDITED_NOTE.getAsType();
+                if (lastGroup != null && FileManager.getInstance().noteExists(lastGroup, lastNoteName)) {
+                    currentNoteProperty.set(FileManager.getInstance().getNote(lastGroup, lastNoteName));
                     
                     if (firstNoteAccess) {
                         // done, selectGroupForNote calls selectFirstOrCurrentNote() internally - BUT NO LOOPS PLEASE
@@ -1161,7 +1193,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         do {
             result = OwnNoteEditor.NEW_NOTENAME + " " + newCount;
             newCount++;
-        } while(OwnNoteFileManager.getInstance().noteExists(group, result));
+        } while(FileManager.getInstance().noteExists(group, result));
         
         return result;
     }
@@ -1179,11 +1211,15 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
             
             // re-init list of groups and notes - file has beeen added or removed
             Platform.runLater(() -> {
+                // TFE, 20231103: only re-init if required
+                // required for new notes & deleted notes
+                boolean needsInit = StandardWatchEventKinds.ENTRY_CREATE.equals(eventKind) || StandardWatchEventKinds.ENTRY_DELETE.equals(eventKind);
+                
                 if (!StandardWatchEventKinds.ENTRY_CREATE.equals(eventKind)) {
                     // delete & modify is only relevant if we're editing this note...
                     if (noteHTMLEditor.getEditedNote() != null) {
                         final Note curNote = noteHTMLEditor.getEditedNote();
-                        final String curName = OwnNoteFileManager.getInstance().buildNoteName(curNote);
+                        final String curName = FileManager.getInstance().buildNoteName(curNote);
 
                         if (curName.equals(filePath.getFileName().toString())) {
                             String alertTitle;
@@ -1220,6 +1256,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                                     saveNote.setNoteEditorContent(noteHTMLEditor.getNoteText());
                                     if (saveNote(saveNote)) {
                                     }
+                                    // required for new notes
+                                    needsInit = true;
                                 }
 
                                 if (saveChanges.get().equals(buttonDiscard)) {
@@ -1227,8 +1265,11 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                                     if (StandardWatchEventKinds.ENTRY_MODIFY.equals(eventKind)) {
                                         // re-load into edit for StandardWatchEventKinds.ENTRY_MODIFY
                                         final Note loadNote = noteHTMLEditor.getEditedNote();
-                                        OwnNoteFileManager.getInstance().readNote(loadNote, true);
+                                        FileManager.getInstance().readNote(loadNote, true);
                                         noteHTMLEditor.editNote(loadNote);
+                                    } else {
+                                        // required for removed notes
+                                        needsInit = true;
                                     }
                                 }
                             }
@@ -1237,12 +1278,15 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
                 }
             
                 // TFE, 20210101: only initFromDirectory if anything related to note files has changed!
-                if (OwnNoteFileManager.NOTE_EXT.equals(FilenameUtils.getExtension(fileName))) {
-                    // show only notes for selected group
-                    initFromDirectory(true, true);
+                if (FileManager.NOTE_EXT.equals(FilenameUtils.getExtension(fileName))) {
+                    if (needsInit) {
+                        // show only notes for selected group
+                        initFromDirectory(true, true);
+                    }
                     selectFirstOrCurrentNote();
 
                     // but only if group still exists in the list!
+                    // which is tricky after a re-init since it re-loads tags and therefore the objects don't match anymore...
                     if (TagManager.getInstance().getGroupTags(true).contains(myGroupList.getCurrentGroup())) {
                         setGroupFilter(myGroupList.getCurrentGroup());
                     }
@@ -1260,7 +1304,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     }
 
     // TF, 20160630: refactored from "getClassicLook" to show its real meeaning
-    public OwnNoteEditorParameters.LookAndFeel getCurrentLookAndFeel() {
+    public CmdLineParameters.LookAndFeel getCurrentLookAndFeel() {
         return currentLookAndFeel;
     }
     
@@ -1296,7 +1340,7 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     }
     
     public Set<Note> getNotesWithText(final String searchText) {
-        return OwnNoteFileManager.getInstance().getNotesWithText(searchText);
+        return FileManager.getInstance().getNotesWithText(searchText);
     }
     
     public Window getWindow() {
@@ -1311,6 +1355,16 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
     // not to confuse with the static method in TaskManager - this does the bookkeeping for the current node as well
     public void replaceCheckmarks() {
         noteHTMLEditor.replaceCheckmarks();
+    }
+    
+    // not to confuse with the static method in ListManager - this does the bookkeeping for the current node as well
+    public void replaceNoteLinks(final String oldNoteName, final String newNoteName) {
+        noteHTMLEditor.replaceNoteLinks(oldNoteName, newNoteName);
+    }
+    
+    // not to confuse with the static method in ListManager - this does the bookkeeping for the current node as well
+    public void invalidateNoteLinks(final String noteName) {
+        noteHTMLEditor.invalidateNoteLinks(noteName);
     }
     
     // and now everyone can listen to note selection changes...
