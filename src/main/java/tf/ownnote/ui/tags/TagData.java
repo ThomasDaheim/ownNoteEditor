@@ -72,7 +72,7 @@ public class TagData {
     private final BooleanProperty isArchivedGroupProperty = new SimpleBooleanProperty(false);
 
     // TFE, 20201230: initialized here to always have a value but can be overwritten from parsed noteContent
-    private String myId = RandomStringUtils.random(12, "0123456789abcdef"); 
+    private final String myId = RandomStringUtils.secure().next(12, "0123456789abcdef"); 
     
     private TagData() {
         this("", false, false);

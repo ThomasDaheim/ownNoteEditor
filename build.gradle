@@ -64,15 +64,13 @@ repositories {
             artifact()
         }
     }
-    // Use 'jcenter' for resolving your dependencies.
-    // You can declare any Maven/Ivy/file repository here.
-    jcenter()
+    mavenCentral()
 }
 
-if (!hasProperty('mainClass')) {
-    ext.mainClass = 'tf.ownnote.ui.main.OwnNoteEditorManager'
+// TFE, 20251224: Updates for Java25 and Gradle 9
+application {
+    mainClass.set('tf.ownnote.ui.main.OwnNoteEditorManager')
 }
-mainClassName = 'tf.ownnote.ui.main.OwnNoteEditorManager'
 def appName='OwnNoteEditor'
 group='tf.OwnNoteEditor'
 version='6.4'
@@ -87,7 +85,8 @@ dependencies {
 //    def javafx_version='17.0.2'
 //    def javafx_version='19.0.2'
 //    def javafx_version='21.0.2'
-    def javafx_version='23.0.1'
+//    def javafx_version='23.0.1'
+    def javafx_version='25.0.1'
     implementation "org.openjfx:javafx-base:$javafx_version:$platform"
     implementation "org.openjfx:javafx-graphics:$javafx_version:$platform"
     implementation "org.openjfx:javafx-controls:$javafx_version:$platform"
@@ -124,7 +123,6 @@ dependencies {
     testImplementation "org.testfx:testfx-junit:4.0.+"
     testImplementation "org.testfx:testfx-core:4.0.+"
 }
-
 
 task unzip(type: Copy) {
     def zipFile = file("${buildDir}/distributions/OwnNoteEditor-${version}.zip")
@@ -167,6 +165,9 @@ def newArgs = [ '--add-modules', 'javafx.controls,javafx.fxml,javafx.web,javafx.
                 '--add-opens', 'java.base/java.util=ALL-UNNAMED',
                 '--add-opens', 'javafx.base/com.sun.javafx.collections=ALL-UNNAMED',
                 '--add-opens', 'javafx.graphics/javafx.scene.layout=ALL-UNNAMED',
+                // TFE, 20251224: Updates for Java25 and Gradle 9
+                '--enable-native-access', 'javafx.graphics',
+                '--enable-native-access', 'javafx.web',
     ]
     
 // extend Netbeans Gradle "Run" task

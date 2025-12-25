@@ -409,7 +409,7 @@ public class TaskData implements ICommentDataHolder, ITagHolder, ICalendarEvent 
     }
     
     protected void randomId() {
-        myId = RandomStringUtils.random(12, "0123456789abcdef");
+        myId = RandomStringUtils.secure().next(12, "0123456789abcdef");
     }
 
     public ObjectProperty<LocalDateTime> dueDateProperty() {
