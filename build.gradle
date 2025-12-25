@@ -13,7 +13,7 @@ buildscript {
         mavenLocal()
         mavenCentral()
         maven {
-          url "https://plugins.gradle.org/m2/"
+          url = 'https://plugins.gradle.org/m2/'
         }
     }
     dependencies {
@@ -101,25 +101,25 @@ dependencies {
     implementation 'commons-cli:commons-cli:1.9.0'
     implementation 'commons-io:commons-io:2.19.0'
     implementation 'org.apache.commons:commons-lang3:3.17.0'
-    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.13.1'
-    implementation group: 'commons-codec', name: 'commons-codec', version: '1.18.0'
-    implementation group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.21'
-    implementation group: 'org.unbescape', name: 'unbescape', version: '1.1.6.RELEASE'
-    implementation group: 'org.jfxtras', name: 'jfxtras-controls', version: '17-r1'
-    implementation group: 'org.controlsfx', name: 'controlsfx', version: '11.2.2'
+    implementation 'org.apache.commons:commons-text:1.13.1'
+    implementation 'commons-codec:commons-codec:1.18.0'
+    implementation 'com.thoughtworks.xstream:xstream:1.4.21'
+    implementation 'org.unbescape:unbescape:1.1.6.RELEASE'
+    implementation 'org.jfxtras:jfxtras-controls:17-r1'
+    implementation 'org.controlsfx:controlsfx:11.2.2'
     
     // new look & feel for old code :-)
-    implementation group: 'org.jfxtras', name: 'jmetro', version: '11.6.16'
+    implementation 'org.jfxtras:jmetro:11.6.16'
     implementation 'de.jensd:fontawesomefx:8.9'
 
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.10.2'
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.10.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
     // TFE, 20221231: build a test suite for all non-UI tests
-    testImplementation group: 'org.junit.platform', name: 'junit-platform-suite-engine', version: '1.10.2'
+    testImplementation 'org.junit.platform:junit-platform-suite-engine:1.10.2'
     // TFE, 20210121: capture System.err() easily
-    testImplementation group: 'com.github.stefanbirkner', name: 'system-lambda', version: '1.2.1'
+    testImplementation 'com.github.stefanbirkner:system-lambda:1.2.1'
 
-    testImplementation group: 'org.junit.vintage', name: 'junit-vintage-engine', version: '5.6.2'
+    testImplementation 'org.junit.vintage:junit-vintage-engine:5.6.2'
     testImplementation "org.testfx:testfx-junit:4.0.+"
     testImplementation "org.testfx:testfx-core:4.0.+"
 }
