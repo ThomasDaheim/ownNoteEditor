@@ -307,6 +307,10 @@ public class HTMLEditor {
                                 copyToClipboard(true, true);
                                 event.consume();
                             }
+                            if (UsefulKeyCodes.SHIFT_CNTRL_C.match(event)) {
+                                copyToClipboard(true, false);
+                                event.consume();
+                            }
                             if (UsefulKeyCodes.SHIFT_DEL.match(event)) {
                                 copyToClipboard(false, true);
 //                                wrapExecuteScript(myWebEngine, "tinymce.activeEditor.execCommand(\"Cut\");");
@@ -318,6 +322,14 @@ public class HTMLEditor {
                             }
                             if (UsefulKeyCodes.CNTRL_S.match(event)) {
                                 saveNote();
+                                event.consume();
+                            }
+                            if (UsefulKeyCodes.SHIFT_CNTRL_V.match(event)) {
+                                pasteFromClipboard(true, false);
+                                event.consume();
+                            }
+                            if (UsefulKeyCodes.CNTRL_V.match(event)) {
+                                pasteFromClipboard(true, true);
                                 event.consume();
                             }
                         }
@@ -748,6 +760,7 @@ public class HTMLEditor {
                                     item.getItem().setOnAction((t) -> {
                                         copyToClipboard(true, true);
                                     });
+                                    item.getItem().setAccelerator(UsefulKeyCodes.CNTRL_C.getKeyCodeCombination());
                                     
                                     copyIndex = index;
                                     
@@ -757,6 +770,10 @@ public class HTMLEditor {
                                 }
                                 
                                 if (PASTE.contains(item.getItem().getText())) {
+                                    // not working... BUT still here to show short cut :-) 
+                                    // work is done in myWebView.addEventHandler(KeyEvent.KEY_PRESSED...
+                                    item.getItem().setAccelerator(UsefulKeyCodes.CNTRL_V.getKeyCodeCombination());
+                                    
                                     pasteIndex = index;
                                     
                                     if (copyIndex != -1) {
@@ -773,6 +790,9 @@ public class HTMLEditor {
                                 copyPlain.setOnAction((ActionEvent event) -> {
                                     copyToClipboard(true, false);
                                 });
+                                // not working... BUT still here to show short cut :-) 
+                                // work is done in myWebView.addEventHandler(KeyEvent.KEY_PRESSED...
+                                copyPlain.setAccelerator(UsefulKeyCodes.SHIFT_CNTRL_C.getKeyCodeCombination());
 
                                 // add new item
                                 itemsContainer.getChildren().add(copyIndex+1, cmc.new MenuItemContainer(copyPlain));
@@ -783,6 +803,9 @@ public class HTMLEditor {
                                 pastePlain.setOnAction((ActionEvent event) -> {
                                     pasteFromClipboard(true, false);
                                 });
+                                // not working... BUT still here to show short cut :-) 
+                                // work is done in myWebView.addEventHandler(KeyEvent.KEY_PRESSED...
+                                pastePlain.setAccelerator(UsefulKeyCodes.SHIFT_CNTRL_V.getKeyCodeCombination());
 
                                 // add new item
                                 itemsContainer.getChildren().add(pasteIndex+1, cmc.new MenuItemContainer(pastePlain));
