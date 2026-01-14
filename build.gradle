@@ -168,6 +168,8 @@ def newArgs = [ '--add-modules', 'javafx.controls,javafx.fxml,javafx.web,javafx.
                 // TFE, 20251224: Updates for Java25 and Gradle 9
                 '--enable-native-access', 'javafx.graphics',
                 '--enable-native-access', 'javafx.web',
+                // TFE, 20260111: for com.thoughtworks.xstream
+                //'--sun-misc-unsafe-memory-access', 'allow',
     ]
     
 // extend Netbeans Gradle "Run" task
