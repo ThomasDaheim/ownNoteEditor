@@ -188,20 +188,25 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         }
                     ],
                     paste_preprocess : (editor, args) => {
-                        if(!regularPaste) {
-                            args.content = ""; // Ignore what TinyMCE think it should insert
+                        // TFE, 20260114: lets get rid of tinymce paste altogether
+                        // so that we can add shortcuts for paste & paste as text in the htmleditor
+                        // otherwise, pasting happens twice...
+                        args.content = ""; // Ignore what TinyMCE think it should insert
 
-                            regularPaste = true;
+                        //if(!regularPaste) {
+                        //    args.content = ""; // Ignore what TinyMCE think it should insert
 
-                            var clipboardData = editorCallback.getClipboardContent();
+                        //    regularPaste = true;
 
-                            tinymce.activeEditor.execCommand('mceInsertClipboardContent', false, {
+                        //    var clipboardData = editorCallback.getClipboardContent();
+
+                        //    tinymce.activeEditor.execCommand('mceInsertClipboardContent', false, {
                                 // TFE, 20240105: param changed from "content: " with tinymce 6.*
-                                html: clipboardData
-                            }); // This will call paste_preprocess again
-                        }
+                        //        html: clipboardData
+                        //    }); // This will call paste_preprocess again
+                        //}
 
-                        regularPaste = false;
+                        //regularPaste = false;
                     },
                     save_onsavecallback: function () { 
                         //console.log('Save was pressed.');

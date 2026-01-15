@@ -303,12 +303,12 @@ public class HTMLEditor {
                     myWebView.addEventHandler(KeyEvent.KEY_PRESSED, new EventHandler<KeyEvent>() {
                         @Override
                         public void handle(KeyEvent event) {
-                            if (UsefulKeyCodes.CNTRL_C.match(event)) {
-                                copyToClipboard(true, true);
-                                event.consume();
-                            }
                             if (UsefulKeyCodes.SHIFT_CNTRL_C.match(event)) {
                                 copyToClipboard(true, false);
+                                event.consume();
+                            }
+                            if (UsefulKeyCodes.CNTRL_C.match(event)) {
+                                copyToClipboard(true, true);
                                 event.consume();
                             }
                             if (UsefulKeyCodes.SHIFT_DEL.match(event)) {
@@ -945,26 +945,48 @@ public class HTMLEditor {
     
     private void doPasteFromClipboard(final boolean pasteFullHTML) {
         String selection = "";
-        if (myClipboardFx.hasHtml()) {
-            // remove all html tags
-            selection = myClipboardFx.getHtml().replaceAll("\\<.*?>","");
-//        } else if (myClipboardFx.hasUrl()) {
-//            System.out.println(myClipboardFx.getUrl());
-        } else if (myClipboardFx.hasRtf()) {
-            try {
-                final RTFEditorKit rtfParser = new RTFEditorKit();
-                final Document document = rtfParser.createDefaultDocument();
-                rtfParser.read(new ByteArrayInputStream(myClipboardFx.getRtf().getBytes()), document, 0);
-                selection = document.getText(0, document.getLength());
-            } catch (IOException | BadLocationException ex) {
-                Logger.getLogger(HTMLEditor.class.getName()).log(Level.SEVERE, null, ex);
+
+        // We use the AWT clipboard because the FX implementation delivers funky characters when pasting from e.g. Command Prompt and images
+        try {
+            if (myClipboardFx.hasHtml()) {
+                selection = myClipboardFx.getHtml();
+                // remove all html tags if asked
+                if (!pasteFullHTML) {
+                    selection = selection.replaceAll("\\<.*?>","");
+                }
+    //        } else if (myClipboardFx.hasUrl()) {
+    //            System.out.println(myClipboardFx.getUrl());
+            } else if (myClipboardFx.hasRtf()) {
+                try {
+                    final RTFEditorKit rtfParser = new RTFEditorKit();
+                    final Document document = rtfParser.createDefaultDocument();
+                    rtfParser.read(new ByteArrayInputStream(myClipboardFx.getRtf().getBytes()), document, 0);
+                    selection = document.getText(0, document.getLength());
+                } catch (IOException | BadLocationException ex) {
+                    Logger.getLogger(HTMLEditor.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
+                try {
+                    selection = (String) myClipboardAwt.getData(DataFlavor.stringFlavor);
+                } catch (UnsupportedFlavorException | IOException ex) {
+                    Logger.getLogger(HTMLEditor.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.imageFlavor)) {
+                // TFE, 20201012: allow pasting of images
+                // issues with images from javafx clipboard: https://bugs.openjdk.java.net/browse/JDK-8223425
+                final BufferedImage img = (BufferedImage) myClipboardAwt.getData(DataFlavor.imageFlavor); 
+                final String base64String;
+                try (ByteArrayOutputStream baos = new ByteArrayOutputStream(1000)) {
+                    ImageIO.write(img, "png", baos);
+                    baos.flush();
+                    base64String = java.util.Base64.getEncoder().encodeToString(baos.toByteArray());
+                }  
+
+                // duplication of code with javascript method insertMedia - but we can live with that
+                selection = "<img src='data:" + "image/png" + ";base64," + base64String + "' >";
             }
-        } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
-            try {
-                selection = (String) myClipboardAwt.getData(DataFlavor.stringFlavor);
-            } catch (UnsupportedFlavorException | IOException ex) {
-                Logger.getLogger(HTMLEditor.class.getName()).log(Level.SEVERE, null, ex);
-            }
+        } catch (UnsupportedFlavorException | IOException ex) {
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
         }
 
         // anything left to insert?
@@ -1269,41 +1291,42 @@ public class HTMLEditor {
         }
     }
     
-    public String getClipboardContent() {
-        // TFE, 20200711: tinyMCE manages an own clipboard. Once something has been copied in tinyMCE the system clipboard is ignored during paste...
-        // https://stackoverrun.com/de/q/9359780#39265109
-        String result = "";
-
-        // We use the AWT clipboard because the FX implementation delivers funky characters when pasting from e.g. Command Prompt and images
-        try {
-            if (myClipboardFx.hasHtml()) {
-                // TFE, 20210624: change from 20210510 breaks html copy & paste...
-                result = myClipboardFx.getHtml();
-            } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
-                result = (String) myClipboardAwt.getData(DataFlavor.stringFlavor);
-                if (!isHtml(result)) {
-                    result = result.replaceAll("(\n\r|\r\n|\n|\r)", "<br />");
-                }
-            } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.imageFlavor)) {
-                // TFE, 20201012: allow pasting of images
-                // issues with images from javafx clipboard: https://bugs.openjdk.java.net/browse/JDK-8223425
-                final BufferedImage img = (BufferedImage) myClipboardAwt.getData(DataFlavor.imageFlavor); 
-                final String base64String;
-                try (ByteArrayOutputStream baos = new ByteArrayOutputStream(1000)) {
-                    ImageIO.write(img, "png", baos);
-                    baos.flush();
-                    base64String = java.util.Base64.getEncoder().encodeToString(baos.toByteArray());
-                }  
-            
-                // duplication of code with javascript method insertMedia - but we can live with that
-                result = "<img src='data:" + "image/png" + ";base64," + base64String + "' >";
-            }
-        } catch (UnsupportedFlavorException | IOException ex) {
-            Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
-        }
-
-        return result;
-    }
+    // TFE, 20260114: not needed anymore since poaste & paste as text now completely handled here and not in tinmce anymore
+//    public String getClipboardContent() {
+//        // TFE, 20200711: tinyMCE manages an own clipboard. Once something has been copied in tinyMCE the system clipboard is ignored during paste...
+//        // https://stackoverrun.com/de/q/9359780#39265109
+//        String result = "";
+//
+//        // We use the AWT clipboard because the FX implementation delivers funky characters when pasting from e.g. Command Prompt and images
+//        try {
+//            if (myClipboardFx.hasHtml()) {
+//                // TFE, 20210624: change from 20210510 breaks html copy & paste...
+//                result = myClipboardFx.getHtml();
+//            } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
+//                result = (String) myClipboardAwt.getData(DataFlavor.stringFlavor);
+//                if (!isHtml(result)) {
+//                    result = result.replaceAll("(\n\r|\r\n|\n|\r)", "<br />");
+//                }
+//            } else if (myClipboardAwt.isDataFlavorAvailable(DataFlavor.imageFlavor)) {
+//                // TFE, 20201012: allow pasting of images
+//                // issues with images from javafx clipboard: https://bugs.openjdk.java.net/browse/JDK-8223425
+//                final BufferedImage img = (BufferedImage) myClipboardAwt.getData(DataFlavor.imageFlavor); 
+//                final String base64String;
+//                try (ByteArrayOutputStream baos = new ByteArrayOutputStream(1000)) {
+//                    ImageIO.write(img, "png", baos);
+//                    baos.flush();
+//                    base64String = java.util.Base64.getEncoder().encodeToString(baos.toByteArray());
+//                }  
+//            
+//                // duplication of code with javascript method insertMedia - but we can live with that
+//                result = "<img src='data:" + "image/png" + ";base64," + base64String + "' >";
+//            }
+//        } catch (UnsupportedFlavorException | IOException ex) {
+//            Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
+//        }
+//
+//        return result;
+//    }
     
     public void checkBoxChanged(final String htmlBefore, final String htmlAfter) {
         // send change note to all subscribes
