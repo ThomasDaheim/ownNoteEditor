@@ -13,7 +13,7 @@ buildscript {
         mavenLocal()
         mavenCentral()
         maven {
-          url "https://plugins.gradle.org/m2/"
+          url = 'https://plugins.gradle.org/m2/'
         }
     }
     dependencies {
@@ -64,18 +64,16 @@ repositories {
             artifact()
         }
     }
-    // Use 'jcenter' for resolving your dependencies.
-    // You can declare any Maven/Ivy/file repository here.
-    jcenter()
+    mavenCentral()
 }
 
-if (!hasProperty('mainClass')) {
-    ext.mainClass = 'tf.ownnote.ui.main.OwnNoteEditorManager'
+// TFE, 20251224: Updates for Java25 and Gradle 9
+application {
+    mainClass.set('tf.ownnote.ui.main.OwnNoteEditorManager')
 }
-mainClassName = 'tf.ownnote.ui.main.OwnNoteEditorManager'
 def appName='OwnNoteEditor'
 group='tf.OwnNoteEditor'
-version='6.3'
+version='6.4'
 description = 'ownNoteEditor - JavaFX html notes editor'
 
 // In this section you declare the dependencies for your production and test code
@@ -87,7 +85,8 @@ dependencies {
 //    def javafx_version='17.0.2'
 //    def javafx_version='19.0.2'
 //    def javafx_version='21.0.2'
-    def javafx_version='23.0.1'
+//    def javafx_version='23.0.1'
+    def javafx_version='25.0.1'
     implementation "org.openjfx:javafx-base:$javafx_version:$platform"
     implementation "org.openjfx:javafx-graphics:$javafx_version:$platform"
     implementation "org.openjfx:javafx-controls:$javafx_version:$platform"
@@ -97,34 +96,36 @@ dependencies {
     implementation "org.openjfx:javafx-media:$javafx_version:$platform"
     
     // TFE, 20200809: use our own helper library
-    implementation 'tf.JavaHelper:JavaHelper:1.16'
+    implementation 'tf.JavaHelper:JavaHelper:1.17'
 
-    implementation 'commons-cli:commons-cli:1.9.0'
-    implementation 'commons-io:commons-io:2.19.0'
-    implementation 'org.apache.commons:commons-lang3:3.17.0'
-    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.13.1'
-    implementation group: 'commons-codec', name: 'commons-codec', version: '1.18.0'
-    implementation group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.21'
-    implementation group: 'org.unbescape', name: 'unbescape', version: '1.1.6.RELEASE'
-    implementation group: 'org.jfxtras', name: 'jfxtras-controls', version: '17-r1'
-    implementation group: 'org.controlsfx', name: 'controlsfx', version: '11.2.2'
+    implementation 'commons-cli:commons-cli:1.10.0'
+    implementation 'commons-io:commons-io:2.22.0'
+    implementation 'org.apache.commons:commons-lang3:3.20.0'
+    implementation 'org.apache.commons:commons-text:1.15.0'
+    implementation 'commons-codec:commons-codec:1.22.1'
+    implementation 'com.thoughtworks.xstream:xstream:1.4.21'
+    implementation 'org.unbescape:unbescape:1.1.6.RELEASE'
+    implementation 'org.jfxtras:jfxtras-controls:17-r1'
+    implementation 'org.controlsfx:controlsfx:11.2.4'
     
     // new look & feel for old code :-)
-    implementation group: 'org.jfxtras', name: 'jmetro', version: '11.6.16'
+    implementation 'org.jfxtras:jmetro:11.6.16'
     implementation 'de.jensd:fontawesomefx:8.9'
 
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.10.2'
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.10.2'
-    // TFE, 20221231: build a test suite for all non-UI tests
-    testImplementation group: 'org.junit.platform', name: 'junit-platform-suite-engine', version: '1.10.2'
-    // TFE, 20210121: capture System.err() easily
-    testImplementation group: 'com.github.stefanbirkner', name: 'system-lambda', version: '1.2.1'
+    // for migration to md
+    implementation 'com.vladsch.flexmark:flexmark-html2md-converter:0.64.8'
 
-    testImplementation group: 'org.junit.vintage', name: 'junit-vintage-engine', version: '5.6.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+    // TFE, 20221231: build a test suite for all non-UI tests
+    testImplementation 'org.junit.platform:junit-platform-suite-engine:1.10.2'
+    // TFE, 20210121: capture System.err() easily
+    testImplementation 'com.github.stefanbirkner:system-lambda:1.2.1'
+
+    testImplementation 'org.junit.vintage:junit-vintage-engine:5.6.2'
     testImplementation "org.testfx:testfx-junit:4.0.+"
     testImplementation "org.testfx:testfx-core:4.0.+"
 }
-
 
 task unzip(type: Copy) {
     def zipFile = file("${buildDir}/distributions/OwnNoteEditor-${version}.zip")
@@ -167,6 +168,11 @@ def newArgs = [ '--add-modules', 'javafx.controls,javafx.fxml,javafx.web,javafx.
                 '--add-opens', 'java.base/java.util=ALL-UNNAMED',
                 '--add-opens', 'javafx.base/com.sun.javafx.collections=ALL-UNNAMED',
                 '--add-opens', 'javafx.graphics/javafx.scene.layout=ALL-UNNAMED',
+                // TFE, 20251224: Updates for Java25 and Gradle 9
+                '--enable-native-access', 'javafx.graphics',
+                '--enable-native-access', 'javafx.web',
+                // TFE, 20260111: for com.thoughtworks.xstream
+                //'--sun-misc-unsafe-memory-access', 'allow',
     ]
     
 // extend Netbeans Gradle "Run" task
