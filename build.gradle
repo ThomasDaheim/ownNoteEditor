@@ -112,6 +112,9 @@ dependencies {
     implementation 'org.jfxtras:jmetro:11.6.16'
     implementation 'de.jensd:fontawesomefx:8.9'
 
+    // for migration to md
+    implementation 'com.vladsch.flexmark:flexmark-html2md-converter:0.64.8'
+
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
     // TFE, 20221231: build a test suite for all non-UI tests
