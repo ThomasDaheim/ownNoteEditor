@@ -3,7 +3,7 @@ JavaFX editor for the note files locally stored in ownCloud/nextCloud folder.
 
 Originally, the aim was to mimic the behavior of the former ownNote web client using JavaFX and working directly on the ownNote files in a local directory. This code does NOT update any of the SQL tables used by ownNote. But since ownNote doesn't exist anymore for some time now, its a note editor with support for tasks in its own right.
 
-#### 01.08.2026: With even more declining number use cases the moment has come to retire notes editor! Last feature added is some code to convert notes to md that can be understood by Obsidian (Groups, Attachments are converted to Obsidian Properties + html -> md conversion). Goodbye, my trusty companion for more than 10 eventful years!
+#### 01.08.2026: With even more declining number use cases the moment has come to retire ownNoteEditor! Last feature added is some code to convert notes to md that can be understood by Obsidian (Groups, Attachments are converted to Obsidian Properties + html -> md conversion). Goodbye, my trusty companion for more than 10 eventful years!
 
 29.06.2025: Since I now use diffetent tools @work (Notion, ...) I have less need for my trusty notes editor. I still use it for my private notes but the usage frequency has reduced drastically. Therefore, I will probably not add any more features but keep things running by e.g. updating dependencies and making sure new java / javafx versions work too.
 
