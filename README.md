@@ -3,7 +3,7 @@ JavaFX editor for the note files locally stored in ownCloud/nextCloud folder.
 
 Originally, the aim was to mimic the behaviour of the former ownNote web client using JavaFX and working directly on the ownNote files in a local directory. This code does NOT update any of the SQL tables used by ownNote. But since ownNote doesn't exist anymore for some time now, its a note editor with support for tasks in its own right.
 
-#### 01.08.2026: We even more declinig use the moment has come to retire my trusty notes editor. Last feature added is some code to convert notes to md that can be understood by Obsidian (Groups, Attachments are converted to Obsidian Properties + html -> md conversion).
+#### 01.08.2026: We even more declinig use cases the moment has come to retire notes editor! Last feature added is some code to convert notes to md that can be understood by Obsidian (Groups, Attachments are converted to Obsidian Properties + html -> md conversion). Goodbye, my trusty companion for more than 10 eventful years!
 
 29.06.2025: Since I now use diffetent tools @work (Notion, ...) I have less need for my trusty notes editor. I still use it for my private notes but the usage frequency has reduced drastically. Therefore, I will probably not add any more features but keep things running by e.g. updating dependencies and making sure new java / javafx versions work too.
 
@@ -204,17 +204,18 @@ Explicit dependencies:
 
 * tf.JavaHelper:JavaHelper:1.15 https://github.com/ThomasDaheim/JavaHelper, not available via maven <- any help appreciated on how to best include as sub/meta/... repository
 
-* 'commons-cli:commons-cli:1.9.0'
-* 'commons-io:commons-io:2.19.0'
-* 'org.apache.commons:commons-lang3:3.17.0'
-* 'org.apache.commons:commons-text:1.13.1'
-* 'commons-codec:commons-codec:1.18.0'
+* 'commons-cli:commons-cli:1.10.0'
+* 'commons-io:commons-io:2.22.0'
+* 'org.apache.commons:commons-lang3:3.20.0'
+* 'org.apache.commons:commons-text:1.15.0'
+* 'commons-codec:commons-codec:1.22.1'
 * 'com.thoughtworks.xstream:xstream:1.4.21'
 * 'org.unbescape:unbescape:1.1.6.RELEASE'
 * 'org.jfxtras:jfxtras-controls:17-r1'
-* 'org.controlsfx:11.2.2'
+* 'org.controlsfx:11.2.4'
 * 'org.jfxtras:jmetro:11.6.16'
 * 'de.jensd:fontawesomefx:8.9'
+* 'com.vladsch.flexmark:flexmark-html2md-converter:0.64.8'
 
 * 'org.junit.jupiter:junit-jupiter-api:5.10.2'
 * 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
