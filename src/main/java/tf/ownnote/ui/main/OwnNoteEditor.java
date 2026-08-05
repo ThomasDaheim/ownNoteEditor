@@ -829,8 +829,8 @@ public class OwnNoteEditor implements Initializable, IFileChangeSubscriber, INot
         });
         
         // TFE, 20220429: get app version so that we can compare it with one from registry - to determine migration needs!
-        AppInfo.getInstance().initAppInfo(OwnNoteEditor.class, "OwnNoteEditor", "v6.4", "https://github.com/ThomasDaheim/ownNoteEditor");
-        AppVersion.CURRENT.setVersionId(Double.valueOf(AppInfo.getInstance().getAppVersion()));
+        AppInfo.getInstance().initAppInfo(OwnNoteEditor.class, "OwnNoteEditor", "6.4", "https://github.com/ThomasDaheim/ownNoteEditor");
+        AppVersion.CURRENT.setVersionId(Double.parseDouble(AppInfo.getInstance().getAppVersion()));
     }
     
     // do everything to show / hide tasklist
